@@ -971,18 +971,18 @@ I64 *GetTilesInPath(C3DWorld *w,F64 angle,F64 dist) {
     //Advance by the closest distance
     if(cos>0.) {
       xdist=GRID_SZ-FUMod(x,GRID_SZ)+x;
-      if(xdist==x) xdist+=GRID_SZ;
+      if(xdist-x<1.) xdist+=GRID_SZ;
     } else if(cos<0.) {
       xdist=x-(GRID_SZ-FUMod(x,GRID_SZ));
-      if(xdist==x) xdist-=GRID_SZ;
+      if(x-xdist<1.) xdist-=GRID_SZ;
     } else 
       xdist=x;
     if(sin>0.) {
       ydist=GRID_SZ-FUMod(y,GRID_SZ)+y;
-      if(ydist==y) ydist+=GRID_SZ;
+      if(ydist-y<1.) ydist+=GRID_SZ;
     } else if(sin<0.) {
       ydist=y-(GRID_SZ-FUMod(y,GRID_SZ));
-      if(ydist==y) ydist-=GRID_SZ;
+      if(y-ydist<1.) ydist-=GRID_SZ;
     } else 
       ydist=y;
     if(!dx) goto dy_type;
@@ -1294,7 +1294,7 @@ ceil2:
           }
         }
         for(idx3=0;idx3<adj_height;idx3++) {
-          DrawWallSegment(w,segment,x,y0+h*idx3,w->wall_textures[w->world_mat[idx]],h,dist,ceil+adj_height-idx3,idx,side);
+          DrawWallSegment(w,segment,x,y0+h*idx3,w->wall_textures[w->world_mat[idx]],h,dist,ceil+adj_height-idx3,idx,side);
         }
         last_ceil=ceil;
 //      }
