@@ -1,9 +1,15 @@
 class CFrogThing:CQue {
 #define THINGF_TO_DELETE 1
+#define THINGF_FRAME_TYPE 2
   I32 thing_flags,pad;
   I32 id,ref_cnt;
   U8 class_name[STR_LEN];
 };
+class CFrogFrame {
+  CQue *pad,*pad;
+  I32 thing_flags,pad;
+  I32 id,ref_cnt;
+}
 class CFrogNum:CFrogThing {
   F64 num;
 };

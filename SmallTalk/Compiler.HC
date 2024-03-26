@@ -24,29 +24,32 @@ U0 LocalsDel(CLocals *l) {
   Free(l);
 }
 
-class CLocalsGeneric0 {
+class CLocalsGeneric0:CFrogFrame {
   U64 _type;
   CLocalsGeneric0 *_next;
   CLocalsGeneric0 *_parent;
   U8 *_return_flag;
-  I32 _ref_cnt,_item_cnt;
+  I64 _item_cnt;
   CFrogThing *_body[0];
 };
 
 
 CLocalsGeneric *STNewBlockFrame(U8 *frame_title,CLocalsGeneric *parent) {
   CHashClass *as=HashFind(frame_title,Fs->hash_table,HTT_CLASS);
-  CLocalsGeneric *fr2,*fr=MAlloc(as->size);
+  CLocalsGeneric *fr2,*fr=MAlloc(as->size,frog_mem_task);
   MemSetI64(fr,FROG_SMALL_NIL,as->size/8);
+  QueIns(fr,&allocs_head);
   fr2=Fs->user_data;
   fr->item_cnt=(as->size-sizeof(CLocalsGeneric))/8;
+  fr->thing_flags=THINGF_FRAME_TYPE;
   fr->parent=parent;
   fr->type='Block';
   fr->next=Fs->user_data;
   fr->ref_cnt=1;
   Fs->user_data=fr;
+  if(parent->type=='Block'||parent->type=='Method')
+    FrogIncRefCnt(parent);
   fr->return_flag=parent->return_flag;
-  parent->ref_cnt++;
   return fr;
 }
 
@@ -54,9 +57,11 @@ CLocalsGeneric *STAddMethodFrame(CMethod *method,U8 *frame_title,Bool *ret_flag,
   CHashClass *as=HashFind(frame_title,Fs->hash_table,HTT_CLASS);
   CHashClass *cls;
   CMemberLst *mlst,*mlst2;
-  CLocalsGeneric *fr=MAlloc(as->size);
+  CLocalsGeneric *fr=MAlloc(as->size,frog_mem_task);
   MemSetI64(fr,FROG_SMALL_NIL,as->size/8);
+  QueIns(fr,&allocs_head);
   fr->item_cnt=(as->size-sizeof(CLocalsGeneric))/8;
+  fr->thing_flags=THINGF_FRAME_TYPE;
   fr->ref_cnt=1;
   fr->type='Method';
   fr->return_flag=ret_flag;
@@ -515,11 +520,11 @@ U0 STRunStmt(U8 *str) {
   STRepl(str,FALSE);
 }
 #include "Studio.HC";;
-/*STRunStmt(
+STRunStmt(
 "  #Y _ [:f| [:x| x value: x] value: [:g| f value: [:x| (g value: g) value: x] ] ]."
 "  #fib _ #Y value: [:f| [:i| i <= 1 ifTrue: [i] ifFalse: [(f value: i - 1) + (f value: i - 2)] ] ]."
 " (#fib value: 10 ) show ."
-);*/
+);
 
 
 #endif

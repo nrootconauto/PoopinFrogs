@@ -109,6 +109,12 @@ Bool ThingHasClass(CFrogThing *thing,U8 *name,I64 small_type=0) {
   if(small_type&&thing&1) {
     return thing&0xffff==small_type;
   }
+  if(!(thing&1))
+    if(thing->thing_flags&THINGF_FRAME_TYPE) {
+      if(!StrCmp(name,"CFrogFrame"))
+        return TRUE;
+      return FALSE;
+    }
   CHashClass *cls=HashFind(FrogThingClassName(thing),frog_mem_task->hash_table,HTT_CLASS);
   while(cls) {
     if(!StrCmp(cls->str,name))
@@ -419,29 +425,20 @@ fin:
     ret=FROG_SMALL_NIL;
   return ret;
 }
-class CLocalsGeneric {
+class CLocalsGeneric:CFrogFrame {
   U64 type;
   CLocalsGeneric *next;
   CLocalsGeneric *parent;
   U8 *return_flag;
-  I32 ref_cnt,item_cnt;
+  I64 item_cnt;
   CFrogThing *body[0];
 };
-U0 STFrameFree(CLocalsGeneric *g) {
-  I64 idx;
-  if(--g->ref_cnt==0) {
-    idx=g->item_cnt;
-    while(--idx>=0)
-      ThingDel(g->body[idx]);
-    Free(g);
-  }
-}
 U0 STFrameDel() {
   CLocalsGeneric *s=Fs->user_data;
   CHashGeneric *gen;
   Fs->user_data=s->next;
   if(s->type=='Block'||s->type=='Method')
-    STFrameFree(s);
+    ThingDel(s);
 }
 CFrogThing *FrogIncRefCnt(CFrogThing *t) {
   if(!(t&1)) t->ref_cnt++;
@@ -546,11 +543,7 @@ CFrogThing *FrogBlockNew(U8 *fptr,CLocalsGeneric *frame,CFrogThing *self) {
   I64 idx;
   ret->frame=frame;
   ret->fun_ptr=fptr;
-  frame->ref_cnt++;
-  if(frame->type=='Method'||frame->type=='Block') {
-    for(idx=frame->item_cnt;--idx>=0;)
-     FrogIncRefCnt(frame->body[idx]);
-  }
+  FrogIncRefCnt(frame);
   ret->self=self;
   return ret;
 }
@@ -726,14 +719,22 @@ fin:
   if(*cur->return_flag) {
 //Propigate the return upwards
     cur2=old_frame;
-    while(cur->parent!=cur2) {
-     *cur2->return_flag=TRUE;
-     cur2=cur2->next;
+    while(cur2) {
+      if(cur2==cur->parent) {
+        cur2=old_frame;
+        while(cur->parent!=cur2) {
+	  *cur2->return_flag=TRUE;
+	  cur2=cur2->next;
+        }
+        goto exit;
+      }
+      cur2=cur2->next;
     }
   }
+exit:
   Fs->user_data=old_frame;
   return ret;
-  
+
 }
 
 FramePtrAdd("CFrogBlock@value",&FrogBlockValue);
@@ -996,8 +997,26 @@ FramePtrAdd("CFrogBlock@whileFalse:",&FrogWhileFalse);
 
 U0 ThingDel(CFrogThing *thing) {
   U8 *del;
+  I64 idx;
+  CLocalsGeneric *g,*parent;
   if(!thing||thing&1) return; //bit 0 is set for special "SMALL" type
   if(--thing->ref_cnt<=0) {
+    if(thing->thing_flags&THINGF_FRAME_TYPE) {
+//TODOfree contents
+      g=thing;
+      QueRem(thing);
+      idx=g->item_cnt;
+      while(--idx>=0) {
+	ThingDel(g->body[idx]);
+      }
+      if(g->type=='Block') {
+	parent=g->parent; //g is now parent
+	if(parent->type=='Block'||parent->type=='Method')
+          ThingDel(parent);
+      }
+      Free(thing);
+      return;
+    }
     QueRem(thing);
     if(del=GetClassMemberValI64(thing,"destroy")) {
       if(HashFind(del,frog_mem_task->hash_table,HTT_FUN))
@@ -1019,8 +1038,11 @@ U0 FrogGarbageCollectThing(CFrogThing *root) {
   CFrogThing **body,dummy;
   CHashClass *cls,*cls2;
   CMemberLst *mlst;
+  root->ref_cnt++;
   root->thing_flags&=~THINGF_TO_DELETE;
-  if(ThingHasClass(root,"CFrogArray")) {
+  if(ThingHasClass(root,"CFrogFrame")) {
+    FrogGarbageCollectThing(root(CLocalsGeneric*)->parent);
+  } else if(ThingHasClass(root,"CFrogArray")) {
     body=root(CFrogArray*)->items->body;
     idx=root(CFrogArray*)->items->cnt;
     while(--idx>=0) {
@@ -1050,8 +1072,10 @@ U0 FrogGarbageCollectThing(CFrogThing *root) {
 U0 FrogGarbageCollect(CFrogThing *root) {
   CFrogThing *head=&allocs_head,*cur,*next;
   for(cur=head->next;cur!=head;cur=cur->next) {
-    if(!ThingHasClass(root,"CFrogSymbol"))
+    if(!ThingHasClass(root,"CFrogSymbol")) {
       cur->thing_flags|=THINGF_TO_DELETE;
+      cur->ref_cnt=0;
+    }
   } 
   FrogGarbageCollectThing(root);
   for(cur=head->next;cur!=head;cur=next) {
@@ -1208,6 +1232,9 @@ FramePtrAdd("CFrogBlobFile@readLump:",&FrogBlobFileReadLump);
 U0 FrogBinDel(CFrogBin *bin) {
   Free(bin->data);
   Free(bin);
+}
+U0 FrogBlockDel(CFrogBlock *b) {
+  ThingDel(b->frame);
 }
 
 Fs->user_data=0;

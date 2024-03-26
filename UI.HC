@@ -231,7 +231,7 @@ return &ret_code;
       cb=update->ms_rdown;
 ms_cb:
       if(ThingHasClass(cb,"CFrogBlock")) {
-        FramePtrAdd("Arg0",update);
+        FramePtrAdd("Arg0",FrogIncRefCnt(update));
         FramePtrAdd("Arg1",FrogNumNew(m1-x));
         FramePtrAdd("Arg2",FrogNumNew(m2-y));
         ThingDel(FrogBlockValue(cb));

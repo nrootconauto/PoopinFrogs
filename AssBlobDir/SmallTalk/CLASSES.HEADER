@@ -19,6 +19,7 @@ class CFrogBlock:CFrogThing {
   CFrogThing *self;
   U8 *frame;
   U8 (*fun_ptr)(CFrogThing *self,U8 *);//CSTFrame
+  U8 *destroy dft "FrogBlockDel";
 };
 #ifndef CI64Set 
 extern class CI64Set;
@@ -144,7 +145,7 @@ class CUICenter:CUIElem {
 //
 class C2DThingTemplate:CFrogThing {
   I64 flags;
-  CFrogStr *name;
+  CFrogStr *name;
   CDC *front;
   CDC *side;
   CDC *back;
