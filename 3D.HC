@@ -175,13 +175,22 @@ C3DWorld *LoadWorldFromFile(U8 *blob_file="ASS",U8 *filename,F64 fov=pi/4) {
   fptr=world(U8*)+world->things_where.ptr;
   to=fptr+world->things_where.len;
   while(fptr<to) {
-    thing=ConstructThing("CFrogNPC");
-    thing->x=fptr(CFileThing*)->x*GRID_SZ+xoff;
-    thing->y=fptr(CFileThing*)->y*GRID_SZ+yoff;
-    thing->angle=fptr(CFileThing*)->rot;
-//TODO reload
-    CallScript("init",thing);
-    I64SetAdd(ret->_2d_things,thing);
+    template=templates[fptr(CFileThing*)->thing_template_idx-I16_MIN];
+    if(template) {
+      tmp=AsString(template->name);
+      if(thing=ConstructThing(tmp)) {
+PrintI(tmp,thing);
+        if(ThingHasClass(thing,"C2DThing")) {
+	  thing->x=fptr(CFileThing*)->x*GRID_SZ+xoff;
+	  thing->y=fptr(CFileThing*)->y*GRID_SZ+yoff;
+	  thing->angle=fptr(CFileThing*)->rot;
+	  CallScript("init",thing);
+	  I64SetAdd(ret->_2d_things,thing);
+        } else
+	  ThingDel(thing);
+      }
+      Free(tmp);
+    }
     fptr(CFileThing*)++;
   }
   Free(world);
@@ -544,7 +553,7 @@ ent:
 	  depth_dst[3]=dist;
 	  depth_dst+=width;
 	  depth_dst[0]=dist;
-	  depth_dst[1]=dist;
+	  depth_dst[1]=dist;
 	  depth_dst[2]=dist;
 	  depth_dst[3]=dist;
 	  depth_dst+=width;
@@ -913,6 +922,7 @@ F64 NormalizeAngle(F64 a) {
 }
 #define THING_DRAW_CUTOFF GRID_SZ/2
 U0 Draw2DThing(C3DWorld *w,C2DThing *thing) {
+  if(thing->no_draw) return;
   C2DThingTemplate *template=thing->template;
   if(!ThingHasClass(template,"C2DThingTemplate"))
     return;
@@ -1080,27 +1090,38 @@ U0 WalkAround() {
   I64 c,sc;
   F64 x=9*GRID_SZ,y=5*GRID_SZ;
   CFrogSymbol *man=FrogSymbol("world");
+  C2DThing *player=CallScript("getPlayer",man->value);
   Fs->draw_it=&DrawIt;
   w->x=x,w->y=y;
   w->cam_height=.8;
   w->angle=0;
   while(TRUE) {
     CallScript("update",man->value);
-    x=w->x,y=w->y;
-    if(Bt(kbd.down_bitmap,SC_CURSOR_UP))
-      C3DWorldMoveWithCollision(w,w->angle,GRID_SZ/4,&x,&y);
-    if(Bt(kbd.down_bitmap,SC_CURSOR_DOWN))
-      C3DWorldMoveWithCollision(w,w->angle,-GRID_SZ/4,&x,&y);
-    if(Bt(kbd.down_bitmap,SC_CURSOR_LEFT))
-      w->angle-=pi/60;
-    if(Bt(kbd.down_bitmap,SC_CURSOR_RIGHT))
-      w->angle+=pi/60;
-    if(Bt(kbd.down_bitmap,Char2ScanCode('\n')))
-      break;
+    if(ThingHasClass(player,"CPlayer")) {
+      if(Bt(kbd.down_bitmap,SC_CURSOR_UP)) {
+        FramePtrAdd("Arg0",FrogNumNew(GRID_SZ/4));
+        FramePtrAdd("Arg1",FrogNumNew(player->angle));
+        CallScript("move:atAngle:",player);
+      }
+      if(Bt(kbd.down_bitmap,SC_CURSOR_DOWN)) {
+        FramePtrAdd("Arg0",FrogNumNew(-GRID_SZ/4));
+        FramePtrAdd("Arg1",FrogNumNew(player->angle));
+        CallScript("move:atAngle:",player);
+      }
+      if(Bt(kbd.down_bitmap,SC_CURSOR_LEFT))
+        player->angle-=pi/60;
+      if(Bt(kbd.down_bitmap,SC_CURSOR_RIGHT))
+        player->angle+=pi/60;
+    }
+    w->x=player->x;
+    w->y=player->y;
+    w->angle=player->angle;
+    w->cam_height=player->z+.6;
     w->angle%=2*pi;
     if(w->angle<0)
       w->angle+=2*pi;
-    w->x=x,w->y=y;
+    if(Bt(kbd.down_bitmap,Char2ScanCode('\n')))
+      break;
     Refresh;
   }
 en:

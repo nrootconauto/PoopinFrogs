@@ -1,5 +1,5 @@
 #ifndef ANIM_DC
-#define ANIM_DC
+#define ANIM_DC
 #define ANIM_DELAY .25
 U0 AnimDCDel(CDC *dc) {
   I64 idx=0;

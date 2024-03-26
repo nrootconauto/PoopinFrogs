@@ -73,7 +73,7 @@ found:
 #ifdef DEVELOPMENT_MODE
     else if (UndumpBlobFile(filename,DEVELOPMENT_DIR),
              (ftxt=GetBlobFileData(filename))) goto found;
-#endif    
+#endif    
   Free(filename);
   return ret;
 }

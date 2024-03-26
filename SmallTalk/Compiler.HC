@@ -515,11 +515,11 @@ U0 STRunStmt(U8 *str) {
   STRepl(str,FALSE);
 }
 #include "Studio.HC";;
-STRunStmt(
+/*STRunStmt(
 "  #Y _ [:f| [:x| x value: x] value: [:g| f value: [:x| (g value: g) value: x] ] ]."
 "  #fib _ #Y value: [:f| [:i| i <= 1 ifTrue: [i] ifFalse: [(f value: i - 1) + (f value: i - 2)] ] ]."
 " (#fib value: 10 ) show ."
-);
+);*/
 
 
 #endif

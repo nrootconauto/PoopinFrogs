@@ -288,7 +288,7 @@ public CDC *BMPRead(U8 *filename,Bool dither_probability=FALSE,
       } else if (bmp->bit_cnt==24) {
 	for (i=bmp->height-1;i>=0;i--) {
 	  for (j=0;j<bmp->width;j++,ptr+=3) {
-	    res->color=BMP24Color(ptr,dither_probability);
+	    res->color=BMP24Color(ptr,dither_probability);
 	    GrPlot(res,j,i);
 	  }
 	  ptr+=bmp->width&3;

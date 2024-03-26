@@ -365,7 +365,7 @@ U0 DrawEditor(CTask *t,CDC *dc) {
   dither_mask->color=ROPF_DITHER;
   dither_mask->color.c0.color=TRANSPARENT;
   dither_mask->color.c1.color=LTGRAY;
-  GrFloodFill(dither_mask,0,0);
+  GrFloodFill(dither_mask,0,0);
 
   GrBlot(dc,x,y,dither_mask);
   DCDel(dither_mask);

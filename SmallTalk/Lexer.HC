@@ -183,7 +183,7 @@ exp:
     Bts(&l->flags,LEXf_USE_LAST_CHAR);
     return l->tok='.';
   }
-  if(Bt(char_bmp_alpha_numeric,ch)) {
+  if(Bt(char_bmp_alpha_numeric,ch)) {
     idx=0;
     Bts(&l->flags,LEXf_USE_LAST_CHAR);
     do {

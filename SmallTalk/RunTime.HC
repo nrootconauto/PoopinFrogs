@@ -835,7 +835,7 @@ CFrogThing *FrogThingShow(CFrogStr *self) {
   CFrogStr *msg;
   CI64Set *items;
   self=FrogUnSuper(self);
-  for(attempt=0;attempt!=2;attempt++) {
+  for(attempt=0;attempt!=2;attempt++) {
     if(ThingHasClass(self,"CFrogError",FROG_SMALL_ERROR)) {
       "Error:";
       msg=FrogSymbol("error_msg")(CFrogSymbol*)->value;

@@ -1145,7 +1145,7 @@ U0 WorldEdit(U8 *blob,U8 *filename=NULL) {
 	  if(Bt(kbd.down_bitmap,SC_SHIFT))
 	    world_edit.floor_height-=world_edit.ms_scroll_delta;
           else
-	    world_edit.wall_height-=world_edit.ms_scroll_delta;
+	    world_edit.wall_height-=world_edit.ms_scroll_delta;
 	  world_edit.ms_scroll_delta=0;
 	}
         Refresh;

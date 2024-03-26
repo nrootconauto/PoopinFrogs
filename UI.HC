@@ -684,7 +684,7 @@ STRunStmt("#ui_root setWidth: 200 ; setHeight: 100 .\n");
 STRunStmt("#ui_label _ CUILabel new .\n");
 STRunStmt("#ui_label setLabel: 'I was here';setX: 50;setY: 50 .");
 STRunStmt("#ui_root addChild: #ui_label .");
-STRunStmt("#ui_bttn _ CUIButton new .\n");
+STRunStmt("#ui_bttn _ CUIButton new .\n");
 STRunStmt("#ui_bttn setX:50 ;setY: 60 ; setLabel: 'Press Me' .\n");
 STRunStmt("#ui_bttn onLeftClick: [:s :x :y | #ui_bttn setLabel: 'Pressed' ; setBackgroundColor: #color_LTGREEN  ] .\n");
 STRunStmt("#ui_root addChild: #ui_bttn .");

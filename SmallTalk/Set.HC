@@ -1,5 +1,5 @@
 #ifndef SET_H
-#define SET_H "gay frogballer"
+#define SET_H "gay frogballer"
 class CI64Set {
   I64 cnt,cap;
   CTask *mem_task;

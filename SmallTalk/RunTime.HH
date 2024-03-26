@@ -35,7 +35,7 @@ class CFrogSymbol:CFrogThing {
   CFrogThing *value;
 };
 class CFrogError:CFrogThing {
-};
+};
 class CFrogBlobFile:CFrogThing {
   CFrogStr *filename;
 };

@@ -42,7 +42,7 @@ extern CAST *ParseCascade(CLexer *l);
 U0 AddToScope(U8 *name) {
  FramePtrAdd(name,1);
 }
-U0 RemFromScope(U8 *name) {
+U0 RemFromScope(U8 *name) {
  FramePtrDel(name);
 }
 CAST *ParseLiteral(CLexer *l) {
