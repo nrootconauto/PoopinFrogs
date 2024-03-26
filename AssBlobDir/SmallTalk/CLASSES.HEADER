@@ -1,0 +1,176 @@
+class CFrogThing:CQue {
+#define SRV_THINGF_TO_DELETE 1
+  I32 thing_flags,pad;
+  I32 id,ref_cnt;
+  U8 class_name[STR_LEN];
+};
+class CFrogNum:CFrogThing {
+  F64 num;
+};
+class CFrogUndefined:CFrogThing {
+};
+class CFrogClass:CFrogThing {
+  U8 name[STR_LEN];
+};
+class CFrogChr:CFrogThing {
+  U64 ch;
+};
+class CFrogBlock:CFrogThing {
+  CFrogThing *self;
+  U8 *frame;
+  U8 (*fun_ptr)(CFrogThing *self,U8 *);//CSTFrame
+};
+#ifndef CI64Set 
+extern class CI64Set;
+#endif
+class CFrogArray:CFrogThing {
+  CI64Set *items;
+  U8 *constructor dft "FrogArrayInit";
+  U8 *destroy dft "FrogArrayDel";
+};
+
+
+class CFrogDictionary:CFrogThing {
+  CFrogThing *buckets;
+  CFrogNum *size;
+};
+class CFrogStr:CFrogArray {
+};
+class CFrogSymbol:CFrogThing {
+  U8 name[STR_LEN];
+  CFrogThing *value;
+};
+class CFrogError:CFrogThing {
+};
+class CFrogDivideError:CFrogError {
+};
+
+class CFrogRandom:CFrogThing {
+//https://en.wikipedia.org/wiki/Linear_congruential_generator
+  F64 mul,inc,mod,seed;
+};
+class CFrogBlobFile:CFrogThing {
+  CFrogStr *filename;
+};
+class CFrogBin:CFrogThing {
+  U8 *data;
+  U8 *destroy dft "FrogBinDel";
+};
+//
+// See /UI.HC
+//
+
+class CUIElem:CFrogThing {
+ //Negative means from side of parent/window
+  I64 x,y;
+  I64 sz_x,sz_y;
+//x/y is where to draw the stuff
+//These cordnates are realtive to the element
+  CFrogBlock *ms_ldown;
+  CFrogBlock *ms_lup;
+  CFrogBlock *ms_rdown;
+  CFrogBlock *ms_rup;
+  CFrogBlock *kbd_up;
+  CFrogBlock *kbd_down;
+  CFrogBlock *drag_start;
+  CFrogBlock *drag_end;
+  CFrogBlock *ms_move;
+  CFrogArray *sub_elems;
+//
+  I64 computed_x,computed_y;
+  Bool dont_draw_children;
+  Bool update_parent_first;
+  Bool focus;
+  Bool dont_draw,pad[4];
+};
+class CUIChatLog:CUIElem {
+  U8 *constructor dft "UIChatLogInit";
+  U8 *draw_it dft "UIChatLogDraw";
+  CFrogArray *lines;
+  I64 max_cnt;
+  U8 bg_color,fg_color;
+};
+class CUIBackground:CUIElem {
+  U8 *draw_it dft "UIBackgroundDraw";
+  U8 *constructor dft "UIElemInit";
+  I64 bg_color;
+};
+class CUILabel:CUIElem {
+  U8 *draw_it dft "UILabelDraw";
+  U8 *constructor dft "UIElemInit";
+  I64 color;
+  CFrogStr *label;
+};
+class CUIButton:CUIElem {
+  U8 *draw_it dft "UIButtonDraw";
+  U8 *constructor dft "UIButtonInit";  
+  I64 fg_color;
+  I64 bg_color;
+  CFrogStr *label;
+};
+class CUIMeter:CUIElem {
+  U8 *draw_it dft "UIMeterDraw";
+  U8 *constructor dft "UIMeterInit";  
+  I64 max,value;
+  I64 bg_color;
+  I64 fg_color;
+  I64 text_color;
+  I64 border_color;
+  CFrogStr *str;
+};
+class CUITextBar:CUIElem {
+  CFrogStr *buf;
+  U8 *constructor dft "UITextBarInit";
+  U8 *draw_it dft "UITextBarDraw";
+  I64 view_pos,cur_pos;
+  U8 bg_color,fg_color,border_color;
+};
+class CUIScrollBars:CUIElem {
+  U8 *constructor dft "UIElemInit";
+  U8 *draw_it dft "UIScrollBarsDraw";
+  I64 x_scroll,y_scroll,bg_color;
+};
+class CUICenter:CUIElem {
+  U8 *constructor dft "UIElemInit";
+  U8 *draw_it dft "UICenterDraw";
+  CUIElem *parent; 
+  Bool x_center,y_center;
+};
+
+
+
+//
+//See /3D.HC
+//
+class C2DThingTemplate:CFrogThing {
+  I64 flags;
+  CFrogStr *name;
+  CDC *front;
+  CDC *side;
+  CDC *back;
+  U8 *destroy dft "C2DThingTemplateDel";
+};
+class C2DThing:CFrogThing {
+  C2DThingTemplate *template;
+  F64 x,y,z,angle,health;
+  F64 momx,momy,momz;
+  Bool no_draw,pad[7];
+};
+class C3DWorldManager:CFrogThing {
+  U8 *world_handle;
+  CFrogArray *things;
+  CFrogDictionary *thing_templates;
+  CFrogDictionary *tile_templates;
+  F64 gravity;
+//A grid of things having the things(128*128 size)
+  CFrogArray *grid;
+};
+//
+// Game Section
+//
+class CFrogNPC:C2DThing {
+  CFrogRandom *random_generator;
+  F64 speed;
+};
+class CPlayer:C2DThing {
+}; 

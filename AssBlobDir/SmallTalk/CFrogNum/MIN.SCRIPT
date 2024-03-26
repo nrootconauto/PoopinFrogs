@@ -1,0 +1,2 @@
+min: other | |
+  ^ self < other ifTrue: [ ^ self ] ifFalse: [^ other]

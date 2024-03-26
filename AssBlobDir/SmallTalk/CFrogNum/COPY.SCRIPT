@@ -1,0 +1,3 @@
+copy  | |
+  ^ self + 0 .
+  'TODO IMPLENT AT RUNTIME LEVEL' 

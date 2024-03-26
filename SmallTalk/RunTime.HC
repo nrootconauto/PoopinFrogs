@@ -1,0 +1,1213 @@
+$BK,0$
+#exe {Cd(__DIR__);};;
+#include "Parser.HC";
+#include "RunTime.HH";
+#include "Set.HC";
+//MAlloc'ed variables are aligned  to 8 0b1000,so we set bit 0 for "Small Var"
+#define FROG_SMALL_NUM 0b1
+#define FROG_SMALL_NIL 0b11
+#define FROG_SMALL_CHR 0b101
+//Error value is stored in a special place,Use FrogExceptValue
+#define FROG_SMALL_ERROR 0b111
+//
+// $BK,1$IMPORTANT$BK,0$ This is how class members are rperesented
+//
+//The upper 32bits are an offset from self
+//
+#define FROG_SMALL_MEMBER_PTR 0b111
+//
+
+#define FROG_FP_ERROR "?STError"
+
+extern CFrogThing *FrogStrNew(U8 *s);
+
+I64 class CFrogSmallMemberPtr {
+  I32 type;
+  I32 offset;
+};
+I64 class CFrogSmallFixedPoint {
+  I16 type; //Bit 0 must be set
+  I16 fraction;
+  I32 integer;
+};
+I64 class CFrogSmallChr {
+  I16 type; //Bit 0 must be set
+  I16 pad;
+  U32 ch;
+};
+//
+// $BK,1$IMPORTANT,this is for th "super" keyword$BK,0$
+//
+class CFrogSuper:CFrogThing {
+  U8 *destroy dft "FrogSuperDel";
+  CFrogThing *from;
+};
+CTask *frog_mem_task=Fs;
+CQue allocs_head;
+QueInit(&allocs_head);
+extern U0 ThingDel(CFrogThing *thing);
+extern F64 AsF64(CFrogThing *t);
+extern U32 AsChar(CFrogThing *t);
+extern CFrogThing *ToFrogNum(F64 n);
+
+Bool IsSmalltalkMember2(CHashClass *cls) {
+  CHashClass *fc=HashFind("CFrogThing",frog_mem_task->hash_table,HTT_CLASS);
+  if(cls->type&HTT_FUN)
+    return FALSE;
+//Account for pointers to cls
+  if(cls->ptr_stars_cnt)
+    --cls;
+  while(cls) {
+    if(cls==fc){
+      return TRUE;
+    }
+    cls=cls->base_class;
+  }
+  return FALSE;
+}
+
+
+
+//Reduces the CFrogSuper class to the actual value
+U8 *FrogUnSuper(CFrogSuper *s) {
+  if(!s) return FROG_SMALL_NIL;
+  if(s&1) return s;
+  if(!StrCmp("CFrogSuper",s->class_name)) {
+    return s->from;
+  }
+  return s;
+}
+U8 *FrogThingClassName(CFrogThing *thing) {
+//Check for special "small" type
+  U8 *name;
+  CHashClass *cls;
+  if(thing&1) {
+    if(thing&0xffff==FROG_SMALL_NUM)
+      name="CFrogNum";
+    else if(thing&0xffff==FROG_SMALL_NIL)
+      name="CFrogUndefined";
+    else if(thing&0xffff==FROG_SMALL_CHR)
+      name="CFrogChr";
+    else
+      name="CFrogUndefined";
+  } else  {
+    name=thing->class_name;
+    if(!StrCmp(name,"CFrogSuper")) {
+      name=FrogThingClassName(thing(CFrogSuper*)->from);
+      cls=HashFind(name,frog_mem_task->hash_table,HTT_CLASS);
+      if(cls) {
+	if(cls=cls->base_class) {
+	  return cls->str;
+	}
+      }
+    }
+  }
+  return name;
+}
+Bool ThingHasClass(CFrogThing *thing,U8 *name,I64 small_type=0) {
+//Quick check for small Types
+  if(small_type&&thing&1) {
+    return thing&0xffff==small_type;
+  }
+  CHashClass *cls=HashFind(FrogThingClassName(thing),frog_mem_task->hash_table,HTT_CLASS);
+  while(cls) {
+    if(!StrCmp(cls->str,name))
+      return TRUE;
+    cls=cls->base_class;
+  }
+  return FALSE;
+}
+Bool ThingIsError(CFrogThing *t) {
+  return t&0xffFF==FROG_SMALL_ERROR;
+}
+I64 GetClassMeta(U8 *class_name,U8 *member,U8 *meta_name) {
+  CHashClass *cls=HashFind(class_name,frog_mem_task->hash_table,HTT_CLASS);
+  CMemberLst *mlst;
+  CMemberLstMeta *meta;
+  if(!cls) return NULL;
+  if(mlst=MemberFind(member,cls)) {
+     if(meta=MemberMetaFind(meta_name,mlst))
+	return meta->user_data;
+  }
+  return NULL;
+}
+I64 GetClassMemberValI64(CFrogThing *t,U8 *member) {
+  t=FrogUnSuper(t);
+  if(t&1) return 0; //Special "small type"
+  CHashClass *cls=HashFind(t->class_name,frog_mem_task->hash_table,HTT_CLASS);
+  CMemberLst *mlst;
+  CMemberLstMeta *meta;
+  if(!cls) return NULL;
+  if(mlst=MemberFind(member,cls)) {
+     switch(mlst->member_class->raw_type) {
+       case RT_U8:
+         return *(t(U8*)+mlst->offset);
+       case RT_U16:
+         return (t(U8*)+mlst->offset)(U16*)[0];
+       case RT_U32:
+         return (t(U8*)+mlst->offset)(U32*)[0];
+       case RT_U64:
+         return (t(U8*)+mlst->offset)(U64*)[0];
+       case RT_I8:
+         return *(t(I8*)+mlst->offset);
+       case RT_I16:
+         return (t(U8*)+mlst->offset)(I16*)[0];
+       case RT_I32:
+         return (t(U8*)+mlst->offset)(I32*)[0];
+       case RT_I64:
+         return (t(U8*)+mlst->offset)(I64*)[0];
+       case RT_F64:
+         return (t(U8*)+mlst->offset)(F64*)[0];
+     }
+  }
+  return NULL;
+}
+
+U0 SetClassMemberValI64(CFrogThing *t,U8 *member,I64 val) {
+  t=FrogUnSuper(t);
+  if(t&1) return 0; //Special "small type"
+  CHashClass *cls=HashFind(FrogThingClassName(t),frog_mem_task->hash_table,HTT_CLASS);
+  CMemberLst *mlst;
+  CMemberLstMeta *meta;
+  if(!cls) NULL;
+  if(mlst=MemberFind(member,cls)) {
+     switch(mlst->member_class->raw_type) {
+       case RT_U8:
+         *(t(U8*)+mlst->offset)=val;
+	 break;
+       case RT_U16:
+         (t(U8*)+mlst->offset)(U16*)[0]=val;
+	 break;
+       case RT_U32:
+         (t(U8*)+mlst->offset)(U32*)[0]=val;
+	 break;
+       case RT_U64:
+         (t(U8*)+mlst->offset)(U64*)[0]=val;
+	 break;
+       case RT_I8:
+         *(t(I8*)+mlst->offset)=val;
+	 break;
+       case RT_I16:
+         (t(U8*)+mlst->offset)(I16*)[0]=val;
+	 break;
+       case RT_I32:
+         (t(U8*)+mlst->offset)(I32*)[0]=val;
+	 break;
+       case RT_I64:
+         (t(U8*)+mlst->offset)(I64*)[0]=val;
+	 break;
+       case RT_F64:
+         (t(U8*)+mlst->offset)(F64*)[0]=val;
+	 break;
+     }
+  }
+  return;
+}
+
+U0 SetClassMemberValF64(CFrogThing *t,U8 *member,F64 val) {
+  t=FrogUnSuper(t);
+  if(t&1) return 0; //Special "small type"
+  CHashClass *cls=HashFind(t->class_name,frog_mem_task->hash_table,HTT_CLASS);
+  CMemberLst *mlst;
+  CMemberLstMeta *meta;
+  if(!cls) NULL;
+  if(mlst=MemberFind(member,cls)) {
+     switch(mlst->member_class->raw_type) {
+       case RT_U8:
+         *(t(U8*)+mlst->offset)=val;
+	 break;
+       case RT_U16:
+         (t(U8*)+mlst->offset)(U16*)[0]=val;
+	 break;
+       case RT_U32:
+         (t(U8*)+mlst->offset)(U32*)[0]=val;
+	 break;
+       case RT_U64:
+         (t(U8*)+mlst->offset)(U64*)[0]=val;
+	 break;
+       case RT_I8:
+         *(t(I8*)+mlst->offset)=val;
+	 break;
+       case RT_I16:
+         (t(U8*)+mlst->offset)(I16*)[0]=val;
+	 break;
+       case RT_I32:
+         (t(U8*)+mlst->offset)(I32*)[0]=val;
+	 break;
+       case RT_I64:
+         (t(U8*)+mlst->offset)(I64*)[0]=val;
+	 break;
+       case RT_F64:
+         (t(U8*)+mlst->offset)(F64*)[0]=val;
+	 break;
+     }
+  }
+  return;
+}
+
+
+F64 GetClassMemberValF64(CFrogThing *t,U8 *member) {
+  t=FrogUnSuper(t);
+  if(t&1) return 0; //Special "small type"
+  CHashClass *cls=HashFind(t->class_name,frog_mem_task->hash_table,HTT_CLASS);
+  CMemberLst *mlst;
+  CMemberLstMeta *meta;
+  if(mlst=MemberFind(member,cls)) {
+     switch(mlst->member_class->raw_type) {
+       case RT_U8:
+         return *(t(U8*)+mlst->offset);
+       case RT_U16:
+         return (t(U8*)+mlst->offset)(U16*)[0];
+       case RT_U32:
+         return (t(U8*)+mlst->offset)(U32*)[0];
+       case RT_U64:
+         return (t(U8*)+mlst->offset)(U64*)[0];
+       case RT_I8:
+         return *(t(I8*)+mlst->offset);
+       case RT_I16:
+         return (t(U8*)+mlst->offset)(I16*)[0];
+       case RT_I32:
+         return (t(U8*)+mlst->offset)(I32*)[0];
+       case RT_I64:
+         return (t(U8*)+mlst->offset)(I64*)[0];
+       case RT_F64:
+         return (t(U8*)+mlst->offset)(F64*)[0];
+     }
+  }
+  return NULL;
+}
+extern CFrogThing *CallScript(U8 *name,CFrogThing *self);
+
+CFrogThing *_ConstructThing(U8 *class_name,I64 argc,I64 *argv) {
+  CTask *mem_task=frog_mem_task;
+  I64 idx;
+  CHashClass *cls=HashFind(class_name,frog_mem_task->hash_table,HTT_CLASS),*ocls=cls;
+  CMemberLst *mlst;
+  U8 *constructor;
+  if(!cls) return NULL;
+  CFrogThing *t=CAlloc(cls->size,mem_task);
+  QueInit(t);
+  StrCpy(t->class_name,class_name);
+  for(cls=ocls;cls;cls=cls->base_class)
+    for(mlst=cls->member_lst_and_root;mlst;mlst=mlst->next) {
+      idx=GetClassMeta(class_name,mlst->str,"dft");
+      if(idx)
+        (t(U8*)+mlst->offset)(I64*)[0]=idx;
+      else if(IsSmalltalkMember2(mlst->member_class)&&mlst->dim.total_cnt==1) {
+	(t(U8*)+mlst->offset)(I64*)[0]=FROG_SMALL_NIL;
+      }
+    }
+//CFrogSuper is a special value
+//Routines that call CFrogSuper reduce down to CFrogSuper->self,so skip this as ->self isnt assigned yet
+  if(!StrCmp(t->class_name,"CFrogSuper")) {
+   goto fin;
+  }
+  cls=ocls;
+  for(idx=0;idx<argc;idx+=2) {
+    mlst=MemberFind(argv[idx],cls);
+    if(mlst) {
+      switch(mlst->member_class->raw_type) {
+        case RT_U8:
+	  *(t(U8*)+mlst->offset)=argv[idx+1];
+	  break;
+        case RT_U16:
+	  (t(U8*)+mlst->offset)(U16*)[0]=argv[idx+1];
+	  break;
+        case RT_U32:
+	  (t(U8*)+mlst->offset)(U32*)[0]=argv[idx+1];
+	  break;
+        case RT_U64:
+	  (t(U8*)+mlst->offset)(U64*)[0]=argv[idx+1];
+	  break;
+        case RT_I8:
+	  *(t(I8*)+mlst->offset)=argv[idx+1];
+	  break;
+        case RT_I16:
+	  (t(U8*)+mlst->offset)(I16*)[0]=argv[idx+1];
+	  break;
+        case RT_I32:
+	  (t(U8*)+mlst->offset)(I32*)[0]=argv[idx+1];
+	  break;
+        case RT_I64:
+	  (t(U8*)+mlst->offset)(I64*)[0]=argv[idx+1];
+	  break;
+        case RT_F64:
+	  (t(U8*)+mlst->offset)(F64*)[0]=argv(F64*)[idx+1];
+	  break;
+      }
+    }
+  }
+  if(constructor=GetClassMemberValI64(t,"constructor")) {
+    CallExtStr(constructor,t);
+  }
+fin:
+  t->ref_cnt=1;
+  QueIns(t,allocs_head.next);
+  return t;
+}
+CFrogThing *ConstructThing(U8 *name,...) {
+  return _ConstructThing(name,argc,argv);
+}
+
+CFrogSymbol *FrogSymbol(U8 *name) {
+  CFrogSymbol *sym;
+  name=MStrPrint("SYM#%s",name);
+  if(sym=FramePtr(name,frog_mem_task)) {
+  } else {
+    sym=ConstructThing("CFrogSymbol");
+    FramePtrAdd(name,sym,frog_mem_task);
+    sym->value=FROG_SMALL_NIL;
+  }
+  Free(name);
+  return sym;
+}
+
+CFrogThing *FrogNumNew(F64 val) {
+  return ToFrogNum(val);
+}
+CFrogThing *FrogChrNew(U64 ch) {
+  return (ch<<32)|FROG_SMALL_CHR;
+}
+U0 FrogArrayInit(CFrogArray *a) {
+  a->items=I64SetNew(frog_mem_task);
+} 
+CFrogArray *FrogArrayNew() {
+  CFrogArray *ret=ConstructThing("CFrogArray");
+  return ret;
+}
+
+CFrogThing *FrogStrNew(U8 *s) {
+  CFrogStr *str=ConstructThing("CFrogStr");
+  CI64Set *items;
+  I64 idx;
+  items=str->items;
+  for(idx=0;s[idx];s++) {
+    I64SetAdd(items,FrogChrNew(s[idx]));
+  }
+  return str;
+}
+
+
+CFrogThing *CallScript(U8 *name,CFrogThing *self) {
+  U8 *cn=FrogThingClassName(self);
+  U8 *full;
+  CFrogThing *(*fun_ptr)(CFrogThing *);
+  CFrogThing *ret=NULL;
+  CHashClass *cls=HashFind(cn,frog_mem_task->hash_table,HTT_CLASS);
+  if(ThingHasClass(self,"CFrogClass")) {
+    cls=HashFind(self(CFrogClass*)->name,frog_mem_task->hash_table,HTT_CLASS);
+    while(!ret&&cls) {
+      full=MStrPrint(".%s@%s",cls->str,name);
+      if(fun_ptr=FramePtr(full)) {
+        ret=(fun_ptr)(self);
+      }
+      cls=cls->base_class;
+      Free(full);
+    }
+    goto fin;
+  }
+  while(!ret&&cls) {
+    full=MStrPrint("%s@%s",cls->str,name);
+    if(fun_ptr=FramePtr(full)) {
+      ret=(fun_ptr)(self);
+    }
+    cls=cls->base_class;
+    Free(full);
+  }
+fin:
+  if(!ret)
+    ret=FROG_SMALL_NIL;
+  return ret;
+}
+class CLocalsGeneric {
+  U64 type;
+  CLocalsGeneric *next;
+  CLocalsGeneric *parent;
+  U8 *return_flag;
+  I32 ref_cnt,item_cnt;
+  CFrogThing *body[0];
+};
+U0 STFrameFree(CLocalsGeneric *g) {
+  I64 idx;
+  if(--g->ref_cnt==0) {
+    idx=g->item_cnt;
+    while(--idx>=0)
+      ThingDel(g->body[idx]);
+    Free(g);
+  }
+}
+U0 STFrameDel() {
+  CLocalsGeneric *s=Fs->user_data;
+  CHashGeneric *gen;
+  Fs->user_data=s->next;
+  if(s->type=='Block'||s->type=='Method')
+    STFrameFree(s);
+}
+CFrogThing *FrogIncRefCnt(CFrogThing *t) {
+  if(!(t&1)) t->ref_cnt++;
+  return t;
+}
+
+CFrogClass *FrogClassNew(U8 *name) {
+  CFrogClass *ret;
+  if(HashFind(name,frog_mem_task->hash_table,HTT_CLASS)) {
+    ret=ConstructThing("CFrogClass");
+    StrCpy(ret->name,name);
+  } else
+    ret=FROG_SMALL_NIL;
+  return ret;
+}
+Bool IsSmalltalkMember(CHashClass *cls) {
+  I64 t;
+  if(!cls->ptr_stars_cnt) {
+    t=cls->raw_type;
+    if(t==RT_F64)
+      return TRUE;
+    if(RT_I8<=t<=RT_U64)
+      return TRUE;
+  }
+  CHashClass *fc=HashFind("CFrogThing",frog_mem_task->hash_table,HTT_CLASS);
+  if(cls->type&HTT_FUN)
+    return FALSE;
+//Account for pointers to cls
+  if(cls->ptr_stars_cnt)
+    --cls;
+  while(cls) {
+    if(cls==fc){
+      return TRUE;
+    }
+    cls=cls->base_class;
+  }
+  return FALSE;
+}
+
+CFrogThing *STGetVar(U8 *self,U8 *name) {
+  CLocalsGeneric *var=Fs->user_data;
+  CHashGeneric *g;
+  CFrogThing *f;
+  CHashClass *cls;
+  CMemberLst *lst;
+  if(!var) return FROG_SMALL_NIL;
+  self=FrogUnSuper(self);
+  if(g=HashFind(name,frog_mem_task->hash_table,HTT_CLASS)) {
+      return FrogClassNew(name);
+  }
+"UNDEF:%s\n",name;
+  return FROG_SMALL_NIL;
+}
+
+//Returns FROG_SMALL_NIL if successful,else FROG_SMALL_ERR
+CFrogThing *STSetVar(U8 *self,U8 *name,CFrogThing *val) {
+  CLocalsGeneric *var=Fs->user_data;
+  I64 ud,t;
+  CHashGeneric *g;
+  CFrogSymbol *sym;
+  CMemberLst *lst;
+  CHashClass *cls;
+  CFrogThing **member;
+  if(!var) throw('UndefVar');
+  self=FrogUnSuper(self);
+  throw('UndefVar');
+}
+
+
+CFrogNum *FrogThingIsKindOf(CFrogThing *obj,CFrogClass *cls) {
+  return FrogNumNew(ThingHasClass(obj,cls->name));
+}
+CFrogClass *FrogThingClass(CFrogThing *obj) {
+  return FrogClassNew(FrogThingClassName(obj));
+}
+CFrogClass *FrogThingIsNil(CFrogThing *obj) {
+  return FrogNumNew(ThingHasClass(obj,"CFrogUndefined",FROG_SMALL_NIL));
+}
+
+U0 FramePtrAdd2(CHashTable *tab,U8 *nm,I64 value) {
+  CHashGeneric *gen=CAlloc(sizeof(CHashGeneric),frog_mem_task);
+  gen->str=StrNew(nm,frog_mem_task);
+  gen->type=HTT_FRAME_PTR;
+  gen->user_data0=value;
+  HashAdd(gen,tab);
+}
+
+CLocalsGeneric *STNewReplFrame(I64 *return_flag) {
+  static CLocalsGeneric frs;
+  CLocalsGeneric *fr=&frs,*fr2;
+  CAST *name,*head;
+  fr2=Fs->user_data;
+  fr->type='Repl';
+  fr->next=Fs->user_data;
+  Fs->user_data=fr;
+  fr->return_flag=return_flag;
+  return fr;
+}
+
+CFrogThing *FrogBlockNew(U8 *fptr,CLocalsGeneric *frame,CFrogThing *self) {
+  CFrogBlock *ret=ConstructThing("CFrogBlock");
+  I64 idx;
+  ret->frame=frame;
+  ret->fun_ptr=fptr;
+  frame->ref_cnt++;
+  if(frame->type=='Method'||frame->type=='Block') {
+    for(idx=frame->item_cnt;--idx>=0;)
+     FrogIncRefCnt(frame->body[idx]);
+  }
+  ret->self=self;
+  return ret;
+}
+CFrogThing *FrogGetArg(I64 a) {
+  U8 buf[32];
+  CFrogThing *ret;
+  StrPrint(buf,"Arg%d",a);
+  ret=FramePtr(buf);
+  FramePtrDel(buf);
+  return ret;
+}
+CFrogThing *FrogArrayAt(CFrogArray *self,I64 n) {
+  if(0<=n<self->items->cnt) {
+    return FrogIncRefCnt(self->items->body[n]);
+  }
+  return FROG_SMALL_NIL;
+}
+CFrogThing *FrogArrayAtPut(CFrogArray *self,I64 n,CFrogThing *t) {
+  I64 *at;
+  if(0<=n<self->items->cnt) {
+    at=&self->items->body[n];
+    ThingDel(*at);
+    *at=FrogIncRefCnt(t);
+  } else if(n==self->items->cnt) {
+    I64SetAdd(self->items,FrogIncRefCnt(t));
+  }
+  return FROG_SMALL_NIL;
+}
+CFrogThing *FrogArrayRemAt(CFrogArray *self,I64 n) {
+  I64 idx;
+  I64 *flat=self->items->body;
+  if(0<=n<self->items->cnt) {
+    ThingDel(flat[idx]);
+    for(idx=n;idx<self->items->cnt-1;idx++) {
+      flat[idx]=flat[idx+1];
+    }
+    self->items->cnt--;
+  }
+  return FROG_SMALL_NIL;
+}
+CFrogThing *FrogArrayRemove(CFrogArray *self,CFrogThing *t) {
+  I64 idx,ptr=0;
+  I64 *flat=self->items->body;
+  CFrogThing *ret;
+  for(idx=0;idx<self->items->cnt;idx++) {
+    FramePtrAdd("Arg0",FrogIncRefCnt(t));
+    ret=CallScript("=",flat[idx]);
+    if(ThingIsError(ret)) {
+      return ret;
+    }if(AsF64(ret)) {
+      //Skip
+      ThingDel(flat[idx]);
+    } else
+      flat[ptr++]=flat[idx];
+    ThingDel(ret);
+  }
+  self->items->cnt=ptr;
+  return FROG_SMALL_NIL;
+}
+U0 FrogArrayDel(CFrogArray *self) {
+  I64 idx;
+  I64 *flat=self->items->body;
+  for(idx=0;idx<self->items->cnt;idx++) {
+    ThingDel(flat[idx]);
+  }
+  I64SetDel(self->items);
+  Free(self);
+}
+//Example
+//
+//  ConstructBuiltin("FrogNumNew(AsF64(a)+AsF64(self))","CFrogNum","+","CFrogNum","a");
+//
+U0 ConstructBuiltin(U8 *code,U8 *type,U8 *name,...) { 
+  I64 idx;
+  static I64 cnt=0;
+  U8 uniq[STR_LEN],*class_name;
+  I64 small_type_code;
+  StrPrint(uniq,"%s@Prim%d",type,cnt++);
+  StreamPrint("CFrogThing *%s(%s *self ) {\n",uniq,type);
+  StreamPrint("CFrogThing *ret=NULL;\n");
+  StreamPrint("self=FrogUnSuper(self);");
+  StreamPrint("I64 failed=FALSE;\n");
+  for(idx=0;idx<argc;idx+=2) {
+    StreamPrint("%s* %s=FrogGetArg(%d);\n",argv[idx],argv[idx+1],idx/2);
+  }
+  for(idx=0;idx!=argc;idx+=2) {
+    class_name=argv[idx];
+    if(!StrCmp(class_name,"CFrogNum"))
+      small_type_code=FROG_SMALL_NUM;
+    else if(!StrCmp(class_name,"CFrogUndefined"))
+      small_type_code=FROG_SMALL_NIL;
+    else if(!StrCmp(class_name,"CFrogChr"))
+      small_type_code=FROG_SMALL_CHR;
+    else
+      small_type_code=0;
+    StreamPrint("if(!ThingHasClass(%s,\"%Q\",%d)) {failed=TRUE;}\n",argv[idx+1],argv[idx],small_type_code);
+  }
+  StreamPrint("if(failed) {ret=FROG_SMALL_NIL;goto retlab;}\n");
+  StreamPrint("ret=%s;\n",code);
+  StreamPrint("retlab:\n");
+  for(idx=0;idx<argc;idx+=2) {
+    StreamPrint("ThingDel(%s);\n",argv[idx+1]);
+  }
+  StreamPrint("return ret;\n");
+  StreamPrint("};\n");
+  StreamPrint("FramePtrAdd(\"%Q@%Q\",&%s);\n",type,name,uniq);
+};
+#exe {
+//Object
+  ConstructBuiltin("FrogThingIsKindOf(self,thing)","CFrogThing","isKindOf:","CFrogClass","thing");
+  ConstructBuiltin("FrogThingClass(self)","CFrogThing","class");
+  ConstructBuiltin("FrogThingIsNil(self)","CFrogThing","isNil");
+  ConstructBuiltin("FrogNumNew(self==a)","CFrogThing","=","CFrogThing","a");
+  ConstructBuiltin("FrogNumNew(self!=a)","CFrogThing","~=","CFrogThing","a");
+//Set
+  ConstructBuiltin("FrogArrayRemove(self,thing)","CFrogArray","remove:","CFrogThing","thing");
+  ConstructBuiltin("FROG_SMALL_NIL;I64SetAdd(self->items,FrogIncRefCnt(thing));","CFrogArray","add:","CFrogThing","thing");
+  ConstructBuiltin("FrogArrayAtPut(self,AsF64(idx),thing)","CFrogArray","at:put:","CFrogNum","idx","CFrogThing","thing");
+  ConstructBuiltin("FrogArrayAt(self,AsF64(idx))","CFrogArray","at:","CFrogNum","idx");
+  ConstructBuiltin("FrogArrayRemAt(self,AsF64(thing))","CFrogArray","removeAt:","CFrogNum","thing");
+  ConstructBuiltin("FrogNumNew(self->items->cnt)","CFrogArray","size");
+//Arithmetic
+  ConstructBuiltin("FrogNumNew(AsF64(self)<AsF64(a))","CFrogNum","<","CFrogNum","a");
+  ConstructBuiltin("FrogNumNew(AsF64(self)>AsF64(a))","CFrogNum",">","CFrogNum","a");
+  ConstructBuiltin("FrogNumNew(AsF64(self)<=AsF64(a))","CFrogNum","<=","CFrogNum","a");
+  ConstructBuiltin("FrogNumNew(AsF64(self)>=AsF64(a))","CFrogNum",">=","CFrogNum","a");
+  ConstructBuiltin("FrogNumNew(AsF64(self)==AsF64(a))","CFrogNum","=","CFrogNum","a");
+  ConstructBuiltin("FrogNumNew(AsF64(self)!=AsF64(a))","CFrogNum","~=","CFrogNum","a");
+
+  ConstructBuiltin("FrogNumNew(AsF64(self)+AsF64(a))","CFrogNum","+","CFrogNum","a");
+  ConstructBuiltin("FrogNumNew(AsF64(self)-AsF64(a))","CFrogNum","-","CFrogNum","a");
+  ConstructBuiltin("FrogNumNew(AsF64(self)*AsF64(a))","CFrogNum","*","CFrogNum","a");
+  ConstructBuiltin("FrogNumNew(AsF64(self)/AsF64(a))","CFrogNum","basicDiv:","CFrogNum","a");
+  ConstructBuiltin("FrogNumNew(AsF64(self)%AsF64(a))","CFrogNum","basicRem:","CFrogNum","a");
+  ConstructBuiltin("FrogNumNew(ToI64(AsF64(self))/ToI64(AsF64(a)))","CFrogNum","basicIntDiv:","CFrogNum","a");
+  ConstructBuiltin("FrogNumNew(-AsF64(self))","CFrogNum","negated");
+  ConstructBuiltin("FrogNumNew(AsF64(self)`AsF64(a))","CFrogNum","raisedTo:","CFrogNum","a");
+  ConstructBuiltin("FrogNumNew(Floor(AsF64(self)))","CFrogNum","floor");
+  ConstructBuiltin("FrogNumNew(Ceil(AsF64(self)))","CFrogNum","ceil");
+  ConstructBuiltin("FrogNumNew(Log10(AsF64(self)))","CFrogNum","log");
+  ConstructBuiltin("FrogNumNew(Sin(AsF64(self)))","CFrogNum","sin");
+  ConstructBuiltin("FrogNumNew(Cos(AsF64(self)))","CFrogNum","cos");
+  ConstructBuiltin("FrogNumNew(Tan(AsF64(self)))","CFrogNum","tan");
+  ConstructBuiltin("FrogNumNew(ASin(AsF64(self)))","CFrogNum","arcsin");
+  ConstructBuiltin("FrogNumNew(ACos(AsF64(self)))","CFrogNum","arccos");
+  ConstructBuiltin("FrogNumNew(ATan(AsF64(self)))","CFrogNum","arctan");
+//Bits
+  ConstructBuiltin("FrogNumNew(~ToI64(AsF64(self)))","CFrogNum","bitInvert");
+  ConstructBuiltin("FrogNumNew(ToI64(AsF64(self))&ToI64(AsF64(a)))","CFrogNum","&","CFrogNum","a");
+  ConstructBuiltin("FrogNumNew(ToI64(AsF64(self))|ToI64(AsF64(a)))","CFrogNum","|","CFrogNum","a");
+  ConstructBuiltin("FrogNumNew(ToI64(AsF64(self))^ToI64(AsF64(a)))","CFrogNum","^","CFrogNum","a");
+  ConstructBuiltin("FrogNumNew(ToI64(AsF64(self))&(1<<ToI64(AsF64(a))))","CFrogNum","bitAt:","CFrogNum","a");
+//Conversion
+  ConstructBuiltin("FrogNumNew(ToI64(AsF64(self)))","CFrogNum","asInteger");
+  ConstructBuiltin("FrogChrNew(AsF64(self))","CFrogNum","asCharactor");
+  ConstructBuiltin("FrogNumNew(AsChar(self))","CFrogChr","asciiValue");
+};
+Bool ValidateFrame(CLocalsGeneric *g) {
+  CLocalsGeneric *cur=Fs->user_data;
+  while(cur) {
+    if(g==cur) return TRUE;
+    cur=cur->next;
+  }
+  return FALSE;  
+}
+CFrogThing *FrogBlockValue(CFrogBlock *self) {
+  CFrogThing *ret;
+  I64 return_flag;
+  CLocalsGeneric *old_frame=Fs->user_data,*cur=self->frame,*cur2,dummy;
+  Fs->user_data=cur;
+fin:
+  ret=(*self->fun_ptr)(self->self,cur);
+  if(*cur->return_flag) {
+//Propigate the return upwards
+    cur2=old_frame;
+    while(cur->parent!=cur2) {
+     *cur2->return_flag=TRUE;
+     cur2=cur2->next;
+    }
+  }
+  Fs->user_data=old_frame;
+  return ret;
+  
+}
+
+FramePtrAdd("CFrogBlock@value",&FrogBlockValue);
+FramePtrAdd("CFrogBlock@value:",&FrogBlockValue); //Arg1 will be delegated to the block's code
+FramePtrAdd("CFrogBlock@value:value:",&FrogBlockValue); //Args will be deletagted to the block's code
+FramePtrAdd("CFrogBlock@value:value:value:",&FrogBlockValue);
+FramePtrAdd("CFrogBlock@value:value:value:value:",&FrogBlockValue);
+
+
+//Exception handler
+CFrogThing *FrogBlockOnDo(CFrogBlock *self) {
+  CFrogThing *ret=FrogBlockValue(self);
+  CFrogBlock *do_block=FrogGetArg(1);
+  CFrogClass *err_class=FrogGetArg(0);
+  CFrogError *e;
+  if(ThingIsError(ret)&&ThingHasClass(err_class,"CFrogClass")) {
+     e=FramePtr(FROG_FP_ERROR);
+     if(!e) throw('STIntern');
+     if(ThingHasClass(e,err_class->name)) {
+       FramePtrAdd("Arg0",ret);
+       ret=FrogBlockValue(do_block);
+     }
+  }
+  ThingDel(do_block);
+  ThingDel(err_class);
+  return ret;
+}
+FramePtrAdd("CFrogBlock@on:do:",&FrogBlockOnDo);
+
+
+CFrogThing *FrogIfTrue(CFrogNum *self) {
+  CFrogBlock *cond=FrogGetArg(0);
+  CFrogThing *ret;
+  if(!ThingHasClass(self,"CFrogNum",FROG_SMALL_NUM)||!ThingHasClass(cond,"CFrogBlock")) {
+    ThingDel(cond);
+    return FROG_SMALL_NIL;
+  }
+  self=FrogUnSuper(self);
+  cond=FrogUnSuper(cond);
+  if(ThingIsError(self)) {
+    ret=FROG_SMALL_ERROR;
+  } else if(AsF64(self)!=0.) {
+    ret=FrogBlockValue(cond);
+  } else
+    ret=FROG_SMALL_NIL;
+  ThingDel(cond);
+  return ret;
+}
+FramePtrAdd("CFrogNum@ifTrue:",&FrogIfTrue);
+
+CFrogThing *FrogIfFalse(CFrogNum *self) {
+  CFrogBlock *cond=FrogGetArg(0);
+  CFrogThing *ret;
+  if(!ThingHasClass(self,"CFrogNum",FROG_SMALL_NUM)||!ThingHasClass(cond,"CFrogBlock")) {
+    ThingDel(cond);
+    return FROG_SMALL_NIL;
+  }
+  self=FrogUnSuper(self);
+  cond=FrogUnSuper(cond);
+  if(ThingIsError(self)) {
+    ret=FROG_SMALL_ERROR;
+  } else if(AsF64(self)==0.) {
+    ret=FrogBlockValue(cond);
+  } else
+    ret=FROG_SMALL_NIL;
+  ThingDel(cond);
+  return ret;
+}
+FramePtrAdd("CFrogNum@ifFalse:",&FrogIfFalse);
+
+CFrogThing *FrogIfTrueIfFalse(CFrogNum *self) {
+  CFrogBlock *cond=FrogGetArg(0);
+  CFrogBlock *cond2=FrogGetArg(1);
+  CFrogThing *ret;
+  self=FrogUnSuper(self);
+  cond=FrogUnSuper(cond);
+  cond2=FrogUnSuper(cond2);
+  if(!ThingHasClass(self,"CFrogNum",FROG_SMALL_NUM)||!ThingHasClass(cond,"CFrogBlock")
+        ||!ThingHasClass(cond2,"CFrogBlock")) {
+    ThingDel(cond);
+    ThingDel(cond2);
+    return FROG_SMALL_NIL;
+  }
+  if(ThingIsError(self)) {
+    ret=FROG_SMALL_ERROR;
+  } else if(AsF64(self)) {
+    ret=FrogBlockValue(cond);
+  } else 
+    ret=FrogBlockValue(cond2);
+  ThingDel(cond);
+  ThingDel(cond2);
+  return ret;
+}
+FramePtrAdd("CFrogNum@ifTrue:ifFalse:",&FrogIfTrueIfFalse);
+
+CFrogThing *FrogThingShow(CFrogStr *self) {
+  I64 attempt;
+  I64 idx,ch;
+  CFrogStr *msg;
+  CI64Set *items;
+  self=FrogUnSuper(self);
+  for(attempt=0;attempt!=2;attempt++) {
+    if(ThingHasClass(self,"CFrogError",FROG_SMALL_ERROR)) {
+      "Error:";
+      msg=FrogSymbol("error_msg")(CFrogSymbol*)->value;
+      if(ThingHasClass(msg,"CFrogStr")) {
+        idx=0;
+        items=msg(CFrogStr*)->items;
+        "'";
+        for(idx=0;idx<items->cnt;idx++)
+	  "%c",AsChar(items->body[idx]);
+        "'";
+      }
+      "\n";
+      ThingDel(msg);
+      break;
+    } else if(ThingHasClass(self,"CFrogNum",FROG_SMALL_NUM)) {
+      "%n\n",AsF64(self);
+      break;
+    } else if(ThingHasClass(self,"CFrogChr")) {
+      "%c\n",AsChar(self);
+      break;
+    } else if(ThingHasClass(self,"CFrogStr")) {
+      idx=0;
+      items=self(CFrogStr*)->items;
+      "'";
+      for(idx=0;idx<self->items->cnt;idx++)
+        "%c",AsChar(items->body[idx]);
+      "'\n";
+      break;
+    } else  {
+      if(!(self&1))
+        "<%s>\n",self->class_name;
+      else
+        "???\n";
+      break;
+    }
+  }
+  return FROG_SMALL_NIL;
+}
+FramePtrAdd("CFrogThing@show",&FrogThingShow);
+
+
+CFrogThing *FrogNumTimesRepeat(CFrogNum *self) {
+  CFrogBlock *block=FrogGetArg(0),*ret=FROG_SMALL_NIL;
+  I64 cnt;
+  Bool *return_flag=block->frame(CLocalsGeneric *)->return_flag;
+  if(!ThingHasClass(self,"CFrogNum")||!ThingHasClass(block,"CFrogBlock")) {
+    ThingDel(block);
+    return FROG_SMALL_NIL;
+  }
+  self=FrogUnSuper(self);
+  block=FrogUnSuper(block);
+  cnt=AsF64(self);
+  while(--cnt>=0) {
+    ret=FrogBlockValue(block);
+    if(ThingIsError(ret))
+      break;
+    ThingDel(ret);
+    ret=FROG_SMALL_NIL;
+    if(*return_flag)
+      break;
+  }
+  ThingDel(block);
+  return ret;
+}
+FramePtrAdd("CFrogNum@timesRepeat:",&FrogNumTimesRepeat);
+
+
+CFrogThing *FrogWhileTrue(CFrogBlock *self) {
+  CFrogBlock *pass=FrogGetArg(0),*ret=FROG_SMALL_NIL;
+  CFrogNum *cond;
+  if(!ThingHasClass(self,"CFrogBlock")||!ThingHasClass(pass,"CFrogBlock")) {
+    ThingDel(pass);
+    return FROG_SMALL_NIL;
+  }
+  self=FrogUnSuper(self);
+  cond=FrogUnSuper(cond);
+  Bool *return_flag=self->frame(CLocalsGeneric *)->return_flag;
+  while(TRUE) {
+     cond=FrogBlockValue(self);
+     if(ThingIsError(cond)) {
+       ret=cond;
+       break;
+     }
+     if(*return_flag) {
+	ret=cond;
+        break;
+     }
+     if(ThingHasClass(cond,"CFrogNum",FROG_SMALL_NUM)) {
+       if(AsF64(cond)) {
+	 ThingDel(cond);
+         goto on_true;
+       }
+     } else {
+       ThingDel(cond);
+       break;
+     }
+     ThingDel(cond);
+     break;
+on_true:
+     ret=FrogBlockValue(pass);
+     if(ThingIsError(ret))
+        break;
+     if(*return_flag)
+        break;
+     ThingDel(ret);
+     ret=FROG_SMALL_NIL;
+  }
+  ThingDel(pass);
+  return ret;
+}
+FramePtrAdd("CFrogBlock@whileTrue:",&FrogWhileTrue);
+
+
+CFrogThing *FrogWhileFalse(CFrogBlock *self) {
+  CFrogBlock *pass=FrogGetArg(0);
+  CFrogNum *cond,*ret=FROG_SMALL_NIL;
+  if(!ThingHasClass(self,"CFrogBlock")||!ThingHasClass(pass,"CFrogBlock")) {
+    ThingDel(pass);
+    return FROG_SMALL_NIL;
+  }
+  self=FrogUnSuper(self);
+  cond=FrogUnSuper(cond);
+  Bool *return_flag=self->frame(CLocalsGeneric *)->return_flag;
+  while(TRUE) {
+    cond=FrogBlockValue(self);
+    if(ThingIsError(cond)) {
+      ret=cond;
+      break;
+    }
+     if(*return_flag) {
+       ret=cond;
+       break;
+     }
+    if(ThingHasClass(cond,"CFrogNum",FROG_SMALL_NUM)) {
+      if(AsF64(cond)==0.) {
+        ThingDel(cond);
+        break;
+      }
+    } else {
+//Not anumber
+      ret=FROG_SMALL_NIL;
+      ThingDel(cond);
+      break;
+    }
+    ThingDel(cond);
+    ret=FrogBlockValue(pass);
+    if(ThingIsError(ret))
+        break;
+    if(*return_flag)
+      break;
+    ThingDel(ret);
+    ret=FROG_SMALL_NIL;
+  }
+  ThingDel(pass);
+  return ret;
+}
+FramePtrAdd("CFrogBlock@whileFalse:",&FrogWhileFalse);
+
+U0 ThingDel(CFrogThing *thing) {
+  U8 *del;
+  if(!thing||thing&1) return; //bit 0 is set for special "SMALL" type
+  if(--thing->ref_cnt<=0) {
+    QueRem(thing);
+    if(del=GetClassMemberValI64(thing,"destroy")) {
+      if(HashFind(del,frog_mem_task->hash_table,HTT_FUN))
+        CallExtStr(del,thing);
+      else
+        Free(thing);
+    } else
+      Free(thing);
+  }
+}
+
+CFrogUndefined *FrogNil() {
+  return FROG_SMALL_NIL;
+}
+
+U0 FrogGarbageCollectThing(CFrogThing *root) {
+  if(!root||root&1) return; //bit 0 is set for special "small" values
+  I64 idx;
+  CFrogThing **body,dummy;
+  CHashClass *cls,*cls2;
+  CMemberLst *mlst;
+  root->thing_flags&=~THINGF_TO_DELETE;
+  if(ThingHasClass(root,"CFrogArray")) {
+    body=root(CFrogArray*)->items->body;
+    idx=root(CFrogArray*)->items->cnt;
+    while(--idx>=0) {
+      FrogGarbageCollectThing(body[idx]);
+    }
+  } else {
+    cls=HashFind(FrogThingClassName(root),frog_mem_task->hash_table,HTT_CLASS);
+    while(cls) {
+      for(mlst=cls->member_lst_and_root;mlst;mlst=mlst->next) {
+	cls2=mlst->member_class-mlst->member_class->ptr_stars_cnt;
+        StrCpy(dummy.class_name,cls2->str);
+        if(ThingHasClass(&dummy,"CFrogThing")) {
+//TODO scan for pointers of pointers
+	  if(mlst->member_class->ptr_stars_cnt==1) {
+	    body=root(U8*)+mlst->offset;
+	    idx=mlst->dim.total_cnt;
+	    while(--idx>=0) {
+	      FrogGarbageCollectThing(body[idx]);
+	    }
+          }
+	} 
+      }
+      cls=cls->base_class;
+    }
+  }
+}
+U0 FrogGarbageCollect(CFrogThing *root) {
+  CFrogThing *head=&allocs_head,*cur,*next;
+  for(cur=head->next;cur!=head;cur=cur->next) {
+    if(!ThingHasClass(root,"CFrogSymbol"))
+      cur->thing_flags|=THINGF_TO_DELETE;
+  } 
+  FrogGarbageCollectThing(root);
+  for(cur=head->next;cur!=head;cur=next) {
+    next=cur->next;
+    if(!ThingHasClass(cur,"CFrogSymbol"))
+      FrogGarbageCollectThing(cur);
+    else if(cur->thing_flags&THINGF_TO_DELETE) {
+      cur->ref_cnt=1;
+      ThingDel(cur);
+    }
+  }
+}
+
+
+
+F64 AsF64(CFrogThing *t) {
+  CFrogSmallFixedPoint mfp=t;
+  F64 ret;
+  if(mfp&0xffff==FROG_SMALL_NUM) {
+     return (mfp>>16)/ToF64(I16_MAX);
+  }
+//Number-ish used for internal operations
+  if(mfp&0xffff==FROG_SMALL_CHR) {
+     return mfp>>32;
+  }
+  if(ThingHasClass(t,"CFrogNum")) { //Phat ass number
+    return t(CFrogNum*)->num;
+  }
+  return 0;
+}
+U32 AsChar(CFrogThing *t) {
+//CFrogSmallChr
+  U64 sc=t;
+  if(sc&0xffff==FROG_SMALL_CHR) {
+     return sc>>32;
+  }
+  if(ThingHasClass(t,"CFrogChr")) { //Phat charactor?
+    return t(CFrogChr*)->ch;
+  }
+  return 0;
+}
+
+//This is temporary,exepct changes
+CFrogThing *FrogThingNew(CFrogClass *cls) {
+  CFrogThing *t=FROG_SMALL_NIL;
+  CHashClass *tmph;
+  if(ThingHasClass(cls,"CFrogClass")) {
+    tmph=HashFind(cls->name,frog_mem_task->hash_table,HTT_CLASS);
+    while(tmph) {
+      if(!StrCmp(tmph->str,"CFrogError")) {
+	if(t=FramePtr(FROG_FP_ERROR)) {
+	  ThingDel(t);
+	  FramePtrDel(FROG_FP_ERROR);
+        }
+	FramePtrAdd(FROG_FP_ERROR,ConstructThing(cls->name));
+        t=FROG_SMALL_ERROR;
+	goto fin;
+      }
+      tmph=tmph->base_class;
+    }
+    t=ConstructThing(cls->name);
+  }
+fin:
+  return t;
+}
+FramePtrAdd(".CFrogThing@basicNew",&FrogThingNew);
+
+CFrogNum *FrogHasClass(CFrogClass *self) {
+  CFrogClass *c=FrogGetArg(0);
+  CFrogNum *ret=FROG_SMALL_NIL;
+  if(ThingHasClass(c,"CFrogClass")) {
+    ret=FrogNumNew(ThingHasClass(self,c->name));
+  }
+  ThingDel(c);
+  return ret;
+}
+FramePtrAdd("CFrogThing@hasClass:",&FrogHasClass);
+
+
+CFrogStr *FrogClassName(CFrogClass *cls) {
+  return FrogStrNew(cls->name);
+}
+//This is a class method
+FramePtrAdd(".CFrogThing@name",&FrogClassName);
+
+
+
+CFrogThing *FrogSymbolValueGet(U8 *name) {
+  return FrogIncRefCnt(FrogSymbol(name)->value);
+}
+U0 FrogSymbolValueSet(U8 *name,CFrogThing *v) {
+  CFrogSymbol *sym=FrogSymbol(name);
+  ThingDel(sym->value);
+  sym->value=v;
+}
+CFrogSuper *FrogSuper(CFrogThing *from) {
+  CFrogSuper *s=ConstructThing("CFrogSuper");
+  s->from=FrogIncRefCnt(from);
+  return s;
+}
+U0 FrogSuperDel(CFrogSuper *s) {
+  ThingDel(s->from);
+  Free(s);
+}
+CFrogThing *ToFrogNum(F64 n) {
+ return (ToI64(n*I16_MAX)<<16)|FROG_SMALL_NUM;
+}
+U8 *AsString(CFrogThing *t) {
+  I64 idx;
+  U8 *ret=NULL;
+  CFrogThing *as_str;
+  CI64Set *items;
+  if(ThingHasClass(t,"CFrogBin")) {
+    return MAllocIdent(t(CFrogBin*)->data);
+  } else if(ThingHasClass(t,"CFrogStr")) {
+      idx=0;
+      items=t(CFrogStr*)->items;
+      ret=CAlloc(items->cnt+1);
+      for(idx=0;idx<items->cnt;idx++)
+        ret[idx]=AsChar(items->body[idx]);    
+  } else {
+    as_str=CallScript("printString",t);
+    if(ThingHasClass(as_str,"CFrogStr")) {
+      ret=AsString(as_str);
+      ThingDel(as_str);
+    } else
+      ret=StrNew("");
+  }
+  return ret;
+}
+
+#include "../BlobFile.HC";
+CFrogThing *FrogBlobFileOpen(CFrogBlobFile *f,CFrogStr *name) {
+  ThingDel(f->filename);
+  f->filename=CallScript("copy",name);
+  return FROG_SMALL_NIL;
+}
+FramePtrAdd("CFrogBlobFile@open:",&FrogBlobFileOpen);
+CFrogThing *FrogBlobFileReadLump(CFrogBlobFile *f,CFrogStr *lump) {
+  U8 *blob_name=AsString(f->filename),*lump_name=AsString(lump);
+  U8 *data;
+  CFrogBin *ret=FROG_SMALL_NIL;
+  if(blob_name&&lump_name) {
+    if(data=BlobFileGetLump(blob_name,lump_name)) {
+      ret=ConstructThing("CFrogBin");
+      ret->data=data;
+    } 
+  }
+  Free(lump_name);
+  Free(blob_name);
+  return ret;
+}
+FramePtrAdd("CFrogBlobFile@readLump:",&FrogBlobFileReadLump);
+U0 FrogBinDel(CFrogBin *bin) {
+  Free(bin->data);
+  Free(bin);
+}
+
+Fs->user_data=0;
