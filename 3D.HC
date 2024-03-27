@@ -179,7 +179,6 @@ C3DWorld *LoadWorldFromFile(U8 *blob_file="ASS",U8 *filename,F64 fov=pi/4) {
     if(template) {
       tmp=AsString(template->name);
       if(thing=ConstructThing(tmp)) {
-PrintI(tmp,thing);
         if(ThingHasClass(thing,"C2DThing")) {
 	  thing->x=fptr(CFileThing*)->x*GRID_SZ+xoff;
 	  thing->y=fptr(CFileThing*)->y*GRID_SZ+yoff;

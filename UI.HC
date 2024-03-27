@@ -98,6 +98,21 @@ class CUICenter:CUIElem {
   CUIElem *parent; 
   Bool x_center,y_center;
 };
+
+class CUIGridItem:CUIElem {
+  CFrogStr *name;
+  CDC *graphics;
+  I64 cnt; //0 for none
+  CFrogThing *parent;
+  U8 *draw_it dft "UIGridItemDraw";
+};
+
+class CUIGrid:CUIElem {
+  I64  grid_w,grid_h;
+  CFrogArray *mat;
+  CUIGridItem *active;
+  U8 *draw_it dft "UIGridDraw";
+};
 #endif
 U0 RenderUI(CDC *dc,CUIElem *e,I64 left_x=0,I64 left_y=0,I64 right_x=GR_WIDTH,I64 right_y=GR_HEIGHT) {
   CUIElem *draw,**body=e->sub_elems->items->body;
@@ -143,7 +158,7 @@ U0 UIUnFocus() {
 }
 //Do not Free
 I64 *UpdateUI(CUIElem *update,I64 msg_type,I64 m1,I64 m2,I64 right_x=GR_WIDTH,I64 right_y=GR_HEIGHT) {
-  CUIElem *chain,**body=update->sub_elems->items->body;
+  CUIElem *chain,**body=update->sub_elems->items->body,*drag;
   I64 x,y,got,cnt=update->sub_elems->items->cnt,idx;
   U8 *cb;
   static I64 ret_code=0;
@@ -204,24 +219,36 @@ pass:
         cb=update->ms_rdown;
       goto ms_cb;
     case MSG_MS_L_UP:
-/*if(update->drag_end) {
-if(got=FramePtr(UI_GRID_DRAG_FPTR)) {
-ret_code=(*update->drag_end)(update,m1-x,m2-y,got);
-FramePtrDel(UI_GRID_DRAG_FPTR);
-return &ret_code;
-}
-}*/
+      if(ThingHasClass(update->drag_end,"CFrogBlock")) {
+        if(drag=FramePtr(UI_GRID_DRAG_FPTR)) {
+          FramePtrAdd("Arg0",FrogIncRefCnt(update));
+          FramePtrAdd("Arg1",FrogNumNew(m1-x));
+          FramePtrAdd("Arg2",FrogNumNew(m2-y));
+          FramePtrAdd("Arg3",got);
+          ThingDel(FrogBlockValue(update->drag_end));
+	  FramePtrDel(UI_GRID_DRAG_FPTR);
+	  ret_code=TRUE;
+	  return &ret_code;
+        }
+      }
       cb=update->ms_lup;
       goto ms_cb;
     case MSG_MS_L_DOWN:
-/*        if(update->drag_start) {
-if(!FramePtr(UI_GRID_DRAG_FPTR)) {
-FramePtrDel(UI_GRID_DRAG_FPTR);
-ret_code=(*update->drag_start)(update);
-FramePtrAdd(UI_GRID_DRAG_FPTR,update);
-return &ret_code;
-}
-}*/
+     if(ThingHasClass(update->drag_start,"CFrogBlock")) {
+        if(!FramePtr(UI_GRID_DRAG_FPTR)) {
+	  FramePtrDel(UI_GRID_DRAG_FPTR);
+          FramePtrAdd("Arg0",FrogIncRefCnt(update));
+          FramePtrAdd("Arg1",FrogNumNew(m1-x));
+          FramePtrAdd("Arg2",FrogNumNew(m2-y));
+          drag=FrogBlockValue(update->drag_start);
+	  if(ThingHasClass(drag,"CUIGridItem"))
+	    FramePtrAdd(UI_GRID_DRAG_FPTR,drag);
+	  else
+	    ThingDel(drag);
+	  ret_code=TRUE;
+	  return &ret_code;
+        }
+      }
       cb=update->ms_ldown;
       goto ms_cb;
     case MSG_MS_R_UP:
@@ -520,110 +547,31 @@ U0 UICenterDraw(CDC *dc,I64 xoff,I64 yoff,CUICenter *center) {
     RenderUI(dc,body[i],x,y,x+w,y+h);
   }
 }
-#if 0
 //
 // Item Grid Section
 //
 #define UI_GRID_WIDTH 32
 #define UI_GRID_PAD 8
-extern class CUIGrid;
-class CUIGridItem:CUIElem {
-  U8 *name;
-  CDC *graphics;
-  I64 cnt; //0 for none
-  CUIGrid *parent;
-};
-
-class CUIGrid:CUIElem {
-  I64 grid_w,grid_h;
-  CUIGridItem **mat;
-  CUIGridItem *active;
-};
 U0 UIGridItemDraw(CDC *dc,I64 x,I64 y,CUIGridItem *self) {
   U8 *str;
-  if(self->parent->active==self) {
-    if(Blink)
-      dc->color=RED;
-    else
-      dc->color=BLUE;
-    GrRect(dc,x+UI_GRID_PAD/2,y+UI_GRID_PAD/2,UI_GRID_WIDTH-UI_GRID_PAD,UI_GRID_WIDTH-UI_GRID_PAD);
-  }
-  AnimDCBlot(dc,x+UI_GRID_PAD/2,y+UI_GRID_PAD/2,self->graphics);
+  if(ThingHasClass(self->parent,"CUIGrid"))
+    if(self->parent(CUIGrid*)->active==self) {
+      if(Blink)
+        dc->color=RED;
+      else
+        dc->color=BLUE;
+      GrRect(dc,x+UI_GRID_PAD/2,y+UI_GRID_PAD/2,UI_GRID_WIDTH-UI_GRID_PAD,UI_GRID_WIDTH-UI_GRID_PAD);
+    }
+  if(self->graphics)
+    AnimDCBlot(dc,x+UI_GRID_PAD/2,y+UI_GRID_PAD/2,self->graphics);
   if(self->cnt) {
     str=MStrPrint("%d",self->cnt);
     x=x+UI_GRID_WIDTH/2-StrLen(str)*8/2;
-    y=y+UI_GRID_WIDTH-4;
+   y=y+UI_GRID_WIDTH-4;
     dc->color=WHITE;
     GrPutS(dc,x,y,str);
     Free(str);
   }
-}
-I64 UIGridItemDragBegin(CUIGridItem *self) {
-  return self;
-}
-I64 UIGridItemDragEnd(CUIGridItem *dst,I64 x,I64 y,CUIGridItem *with) {
-  if(with->type!='GridItem') return;
-  if(!with||dst==with) {
-    dst->parent->active=dst;
-    return;
-  }
-  QueRem(dst);
-  QueRem(with);
-  SwapI64(&dst->x,&with->x);
-  SwapI64(&dst->y,&with->y);
-  SwapI64(&dst->parent,&with->parent);
-  QueIns(with,&with->parent->sub_elems);
-  QueIns(dst,&dst->parent->sub_elems);
-  dst->parent->active=NULL;
-  with->parent->active=with;
-  return 0;
-}
-I64 UIGridItemLUp(CUIGridItem *self,I64 x,I64 y) {
-  self->parent->active=self;
-  return 0;
-}
-CUIGridItem *UIGridItemNew(CDC *graphics,U8 *name,CUIGrid *parent,I64 x=-1,I64 y=-1) { 
-  if(x==-1||y==-1) {
-    for(x=0;x!=parent->grid_w;x++)
-      for(y=0;y!=parent->grid_h;y++) {
-	if(!parent->mat[x+y*parent->grid_w])
-	  goto enter;
-      }
-    return NULL;
-  }
-enter:
-  CUIGridItem *new=CAlloc(sizeof(CUIGridItem),ui_task);
-  QueInit(&new->sub_elems);
-  new->x=x*UI_GRID_WIDTH;
-  new->y=y*UI_GRID_WIDTH;
-  new->sz_x=UI_GRID_WIDTH;
-  new->sz_y=UI_GRID_WIDTH;
-  new->graphics=DCCopy(graphics,ui_task);
-  new->name=StrNew(name,ui_task);
-  new->parent=parent;
-  new->drag_start=&UIGridItemDragBegin;
-  new->drag_end=&UIGridItemDragEnd;
-  new->ms_ldown=&UIGridItemLUp;
-  new->draw_it=&UIGridItemDraw;
-  new->type='GridItem';
-  QueIns(new,&parent->sub_elems);
-  parent->mat[x+y*parent->grid_w]=new;
-  return new;
-}
-
-I64 UIGridDragEnd(CUIGrid *dst,I64 x,I64 y,CUIGridItem *with) {
-  if(with->type!='GridItem') return;
-  x/=UI_GRID_WIDTH;
-  y/=UI_GRID_WIDTH;
-  if(!dst->mat[x+y*dst->grid_w]) {
-    QueRem(with);
-    dst->mat[x+y*dst->grid_w]=with;
-    with->x=x*UI_GRID_WIDTH;
-    with->y=y*UI_GRID_WIDTH;
-    QueIns(with,&dst->sub_elems);
-    dst->active=with;
-  }
-  return 0;
 }
 
 U0 UIGridDraw(CDC *dc,I64 x,I64 y,CUIGrid *self) {
@@ -641,30 +589,22 @@ U0 UIGridDraw(CDC *dc,I64 x,I64 y,CUIGrid *self) {
     }
   }
 }
-
-U0 UIGridKillData(CUIGrid *grid) {
-  Free(grid->mat);
-}
-
-CUIGrid *UIGridNew(I64 w,I64 h) {
-  CUIGrid *ret=CAlloc(sizeof(CUIGrid),ui_task);
-  QueInit(&ret->sub_elems);
-  ret->grid_w=w,ret->grid_h=h;
-  ret->sz_x=w*UI_GRID_WIDTH;
-  ret->sz_y=h*UI_GRID_WIDTH;
-  ret->mat=CAlloc(8*w*h,ui_task);
-  ret->draw_it=&UIGridDraw;
-  ret->kill_data=&UIGridKillData;
-  ret->drag_end=&UIGridDragEnd;
-  ret->type='Grid';
-  return ret;
-}
-#endif
 FrogSymbol("ui_root");
 U0 DrawUIRoot(CTask *t,CDC *dc) {
   CFrogSymbol *s=FrogSymbol("ui_root");
+  CUIElem *e;
+  I64 oldx,oldy;
   if(ThingHasClass(s->value,"CUIElem")) {
     RenderUI(dc,s->value,0,0,t->pix_width,t->pix_height);
+  }
+  if(e=FramePtr(UI_GRID_DRAG_FPTR,t)) {
+    oldx=e->x;
+    oldy=e->y;
+    e->x=0;
+    e->y=0;
+    RenderUI(dc,e,ms.pos.x-t->pix_left,ms.pos.y-t->pix_top,t->pix_width,t->pix_height);
+    e->x=oldx;
+    e->y=oldy;
   }
 }
 
@@ -680,7 +620,7 @@ U0 LoadColorSyms() {
 }
 LoadColorSyms;
 STRunStmt("#ui_root _ CUIScrollBars new .\n");
-STRunStmt("#ui_root setWidth: 200 ; setHeight: 100 .\n");
+STRunStmt("#ui_root setWidth: 400 ; setHeight: 100 .\n");
 STRunStmt("#ui_label _ CUILabel new .\n");
 STRunStmt("#ui_label setLabel: 'I was here';setX: 50;setY: 50 .");
 STRunStmt("#ui_root addChild: #ui_label .");
@@ -692,11 +632,19 @@ STRunStmt("#ui_meter _ CUIMeter new .\n");
 STRunStmt("#ui_meter setMax: 100 ; setValue: 60 ;setLabel: 'abc'.\n");
 STRunStmt("#ui_meter setX:20 ;setY: 100 .\n");
 STRunStmt("#ui_root addChild: #ui_meter .");
+STRunStmt("#ui_grid _ CUIGrid new .");
+STRunStmt("#ui_grid setWidth: 5 withHeight: 2 .");
+STRunStmt("#ui_grid_item _ CUIGridItem new .");
+STRunStmt("#ui_grid_item setCount: 123 .");
+STRunStmt("#ui_grid addItem: #ui_grid_item .");
+STRunStmt("#ui_grid setX: 200 .");
+STRunStmt("#ui_grid setY: 10 .");
+STRunStmt("#ui_root addChild: #ui_grid .");
 Fs->draw_it=&DrawUIRoot;
 I64 msg,m1,m2;;
 U0 UITest() {
   while(TRUE) {
-    if(msg=ScanMsg(&m1,&m2)) {
+    while(msg=ScanMsg(&m1,&m2)) {
       UpdateUI(FrogSymbol("ui_root")->value,msg,m1,m2);
     }
     Refresh;

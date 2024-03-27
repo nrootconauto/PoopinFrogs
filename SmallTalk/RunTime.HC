@@ -719,15 +719,10 @@ fin:
   if(*cur->return_flag) {
 //Propigate the return upwards
     cur2=old_frame;
-    while(cur2) {
-      if(cur2==cur->parent) {
-        cur2=old_frame;
-        while(cur->parent!=cur2) {
-	  *cur2->return_flag=TRUE;
-	  cur2=cur2->next;
-        }
-        goto exit;
-      }
+    while(cur->parent!=cur2) {
+      if(!cur2) break; //???
+      if(cur2->return_flag)
+        *cur2->return_flag=TRUE;
       cur2=cur2->next;
     }
   }

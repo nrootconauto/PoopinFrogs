@@ -289,12 +289,14 @@ U0 CompileAST(CDoc *doc,CAST *ast,CLocals *locals,I64 stack_depth) {
 pass:
 //Skip past object we are calling to
       cur=ast->args.next->next;
+      CompileAST(doc,ast->args.next,locals,stack_depth);
       for(idx=0;idx<cnt;idx++) {
-        CompileAST(doc,cur,locals,stack_depth+1);
-        DocPrint(doc,"  FramePtrAdd(\"Arg%d\",%s);\n",idx,StackFrame2Var(stack_depth+1));
+        CompileAST(doc,cur,locals,stack_depth+1+idx);
         cur=cur->next;
       }
-      CompileAST(doc,ast->args.next,locals,stack_depth);
+      for(idx=0;idx<cnt;idx++) {
+        DocPrint(doc,"  FramePtrAdd(\"Arg%d\",%s);\n",idx,StackFrame2Var(stack_depth+1+idx));
+     }
       DocPrint(doc,"  retval=CallScript(\"%Q\",%s);\n",ast->op_name,StackFrame2Var(stack_depth));
       DocPrint(doc,"  ThingDel(%s);\n",StackFrame2Var(stack_depth));
       DocPrint(doc,"  %s=retval;\n",StackFrame2Var(stack_depth));
@@ -525,7 +527,5 @@ STRunStmt(
 "  #fib _ #Y value: [:f| [:i| i <= 1 ifTrue: [i] ifFalse: [(f value: i - 1) + (f value: i - 2)] ] ]."
 " (#fib value: 10 ) show ."
 );
-
-
 #endif
 #endif

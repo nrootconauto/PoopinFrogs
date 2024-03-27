@@ -19,7 +19,7 @@ class CFrogBlock:CFrogThing {
   CFrogThing *self;
   U8 *frame;
   U8 (*fun_ptr)(CFrogThing *self,U8 *);//CSTFrame
-  U8 *destroy dft "FrogBlockDel";
+  U8 *destroy dft "FrogBlockDel";
 };
 #ifndef CI64Set 
 extern class CI64Set;
@@ -138,6 +138,22 @@ class CUICenter:CUIElem {
   Bool x_center,y_center;
 };
 
+class CUIGridItem:CUIElem {
+  CFrogStr *name;
+  CDC *graphics;
+  I64 cnt; //0 for none
+  CFrogThing *parent;
+  U8 *constructor dft "UIElemInit";
+  U8 *draw_it dft "UIGridItemDraw";
+};
+
+class CUIGrid:CUIElem {
+  I64  grid_w,grid_h;
+  CFrogArray *mat;
+  CUIGridItem *active;
+  U8 *constructor dft "UIElemInit";
+  U8 *draw_it dft "UIGridDraw";
+};
 
 
 //
