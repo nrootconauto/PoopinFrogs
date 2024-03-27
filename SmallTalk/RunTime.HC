@@ -1064,10 +1064,10 @@ U0 FrogGarbageCollectThing(CFrogThing *root) {
     }
   }
 }
-U0 FrogGarbageCollect(CFrogThing *root) {
+U0 FrogGarbageCollect(CFrogThing *root=FROG_SMALL_NIL) {
   CFrogThing *head=&allocs_head,*cur,*next;
   for(cur=head->next;cur!=head;cur=cur->next) {
-    if(!ThingHasClass(root,"CFrogSymbol")) {
+    if(!ThingHasClass(cur,"CFrogSymbol")) {
       cur->thing_flags|=THINGF_TO_DELETE;
       cur->ref_cnt=0;
     }
