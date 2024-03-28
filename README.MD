@@ -42,8 +42,6 @@ Member variables are actually of type `FROG_SMALL_MEMBER_PTR` and need to be red
 ```
 #### Back to buisness
 Use `CompileAST` to generate an expression from parser data. Also in the `CompileThunk` and `CompileMethod` functions,**you need to make a variable frame on the heap**,do this via `STNewBlockFrame("tmp_class_name",parent) `and `STNewMethodFrame`. The temporary class for the frame is generated from `GenerateLocalsFromThunk(method)->name`. The `tmp_class_name` is a JIT compiled class for HolyC
-#### Contriubuting to Compiler
-* Make argument passing not use `FramePtrAdd("Arg%dx",value);`(get arguments with `FrogGetArg`)
 ### Part 4: The runtime
 All smalltalk types (except for temporary frames) have a baseclass of`CFrogThing` which are made with `ContructThing`.
 #### ConstructThing
@@ -56,6 +54,7 @@ Use `ThingDel` to decrease the reference count on an object, and use `FrogGarbag
 
 For convienence
 * Functions will `ThingDel` thier arguments(except for self)
+* Arguments are passed via `argc` and `argv`
 * **HELP WANTED,make things delete thier members for automatically**
 #### Adding METHods
 Use `CallScript` on a mother[redacted for GH]ing `CFrogClass`to call a method on it. Methods are function pointers in a frame-pointer. Make it like this

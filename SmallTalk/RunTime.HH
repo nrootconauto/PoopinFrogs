@@ -24,7 +24,7 @@ class CFrogChr:CFrogThing {
 class CFrogBlock:CFrogThing {
   CFrogThing *self;
   U8 *frame;
-  U8 (*fun_ptr)(CFrogThing *self,U8 *);//CSTFrame
+  U8 (*fun_ptr)(CFrogThing *self,U8 *,...);//CSTFrame
 };
 #ifndef CI64Set 
 extern class CI64Set;

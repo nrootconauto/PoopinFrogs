@@ -186,10 +186,7 @@ I64 *UpdateUI(CUIElem *update,I64 msg_type,I64 m1,I64 m2,I64 right_x=GR_WIDTH,I6
     end:
 //These are handled by the focused silly sauce
       if(cb) {
-        FramePtrAdd("Arg0",update);
-        FramePtrAdd("Arg1",FrogChrNew(m1));
-        FramePtrAdd("Arg2",FrogNumNew(m2));
-        ThingDel(FrogBlockValue(cb));
+        ThingDel(FrogBlockValue(cb,update,FrogChrNew(m1),FrogChrNew(m2)));
         ret_code=TRUE;
         return &ret_code;
       }
@@ -221,11 +218,12 @@ pass:
     case MSG_MS_L_UP:
       if(ThingHasClass(update->drag_end,"CFrogBlock")) {
         if(drag=FramePtr(UI_GRID_DRAG_FPTR)) {
-          FramePtrAdd("Arg0",FrogIncRefCnt(update));
-          FramePtrAdd("Arg1",FrogNumNew(m1-x));
-          FramePtrAdd("Arg2",FrogNumNew(m2-y));
-          FramePtrAdd("Arg3",got);
-          ThingDel(FrogBlockValue(update->drag_end));
+	  ThingDel(FrogBlockValue(update->drag_end,
+	        FrogIncRefCnt(update),
+	        FrogNumNew(m1-x),
+	        FrogNumNew(m2-y),
+	        got
+	        ));
 	  FramePtrDel(UI_GRID_DRAG_FPTR);
 	  ret_code=TRUE;
 	  return &ret_code;
@@ -234,13 +232,14 @@ pass:
       cb=update->ms_lup;
       goto ms_cb;
     case MSG_MS_L_DOWN:
-     if(ThingHasClass(update->drag_start,"CFrogBlock")) {
+      if(ThingHasClass(update->drag_start,"CFrogBlock")) {
         if(!FramePtr(UI_GRID_DRAG_FPTR)) {
 	  FramePtrDel(UI_GRID_DRAG_FPTR);
-          FramePtrAdd("Arg0",FrogIncRefCnt(update));
-          FramePtrAdd("Arg1",FrogNumNew(m1-x));
-          FramePtrAdd("Arg2",FrogNumNew(m2-y));
-          drag=FrogBlockValue(update->drag_start);
+	  drag=FrogBlockValue(update->drag_start,
+	        FrogIncRefCnt(update),
+	        FrogNumNew(m1-x),
+	        FrogNumNew(m2-y)
+	  );
 	  if(ThingHasClass(drag,"CUIGridItem"))
 	    FramePtrAdd(UI_GRID_DRAG_FPTR,drag);
 	  else
@@ -258,10 +257,11 @@ pass:
       cb=update->ms_rdown;
 ms_cb:
       if(ThingHasClass(cb,"CFrogBlock")) {
-        FramePtrAdd("Arg0",FrogIncRefCnt(update));
-        FramePtrAdd("Arg1",FrogNumNew(m1-x));
-        FramePtrAdd("Arg2",FrogNumNew(m2-y));
-        ThingDel(FrogBlockValue(cb));
+        ThingDel(FrogBlockValue(cb,
+	      FrogIncRefCnt(update),
+	      FrogNumNew(m1-x),
+	      FrogNumNew(m2-y)
+        ));
         ret_code=TRUE;
         return &ret_code;
       }

@@ -167,9 +167,7 @@ C3DWorld *LoadWorldFromFile(U8 *blob_file="ASS",U8 *filename,F64 fov=pi/4) {
     if(tmp)
       template->side=AnimDCLoad(tmp);
     Free(tmp);
-    FramePtrAdd("Arg0",template);
-    FramePtrAdd("Arg1",FrogStrNew(fptr(CFileThingTemplate*)->name));
-    CallScript("addThingTemplate:withName:",man);
+    CallScript("addThingTemplate:withName:",man,template,FrogStrNew(fptr(CFileThingTemplate*)->name));
     fptr(CFileThingTemplate*)++;
   }
   fptr=world(U8*)+world->things_where.ptr;
@@ -426,8 +424,8 @@ final:
   goto fin;
 
 }
-C2DThing *BumpsIntoThing(C2DThing *self) {
-  C2DThing *who=FrogGetArg(0);
+C2DThing *BumpsIntoThing(C2DThing *self,...) {
+  C2DThing *who=argv[0];
   F64 radius=THING_RADIUS*THING_RADIUS;
   F64 x,y;
   x=who->x-self->x;
@@ -1047,9 +1045,9 @@ U0 DrawIt(CTask *,CDC *dc) {
 // SmallTalk Section
 //
 //Returns 1. if COLLISION,else 0
-CFrogThing *C2DThingMoveAtAngle(C2DThing *self) {
-  CFrogThing *dist=FrogGetArg(0);
-  CFrogThing *angle=FrogGetArg(1);
+CFrogThing *C2DThingMoveAtAngle(C2DThing *self,...) {
+  CFrogThing *dist=argv[0];
+  CFrogThing *angle=argv[1];
   Bool hit_wall=FALSE;
   hit_wall=C3DWorldMoveWithCollision(w,AsF64(angle),AsF64(dist),&self->x,&self->y,TRUE,self->z);
 fin:
@@ -1059,17 +1057,17 @@ fin:
 }
 FramePtrAdd("C2DThing@move:atAngle:",&C2DThingMoveAtAngle);
 
-CFrogThing *WorldManagerWidth(C3DWorldManager *self) {
+CFrogThing *WorldManagerWidth(C3DWorldManager *self,...) {
   return FrogNumNew(self->world_handle(C3DWorld*)->world_width);
 }
-CFrogThing *WorldManagerHeight(C3DWorldManager *self) {
+CFrogThing *WorldManagerHeight(C3DWorldManager *self,...) {
   return FrogNumNew(self->world_handle(C3DWorld*)->world_height);
 }
 FramePtrAdd("C3DWorldManager@width",&WorldManagerWidth);
 FramePtrAdd("C3DWorldManager@height",&WorldManagerHeight);
-CFrogThing *WorldManagerTileHeightAtXAtY(C3DWorldManager *self) {
-  I64 x=AsF64(FrogGetArg(0));
-  I64 y=AsF64(FrogGetArg(1));
+CFrogThing *WorldManagerTileHeightAtXAtY(C3DWorldManager *self,...) {
+  I64 x=AsF64(argv[0]);
+  I64 y=AsF64(argv[1]);
   C3DWorld *w=self->world_handle;
   if(0<=x<w->world_width)
     if(0<=y<w->world_height) {
@@ -1098,14 +1096,14 @@ U0 WalkAround() {
     CallScript("update",man->value);
     if(ThingHasClass(player,"CPlayer")) {
       if(Bt(kbd.down_bitmap,SC_CURSOR_UP)) {
-        FramePtrAdd("Arg0",FrogNumNew(GRID_SZ/4));
-        FramePtrAdd("Arg1",FrogNumNew(player->angle));
-        CallScript("move:atAngle:",player);
+        CallScript("move:atAngle:",player,
+		FrogNumNew(GRID_SZ/4),
+		FrogNumNew(player->angle));
       }
       if(Bt(kbd.down_bitmap,SC_CURSOR_DOWN)) {
-        FramePtrAdd("Arg0",FrogNumNew(-GRID_SZ/4));
-        FramePtrAdd("Arg1",FrogNumNew(player->angle));
-        CallScript("move:atAngle:",player);
+        CallScript("move:atAngle:",player,
+		FrogNumNew(-GRID_SZ/4),
+		FrogNumNew(player->angle));
       }
       if(Bt(kbd.down_bitmap,SC_CURSOR_LEFT))
         player->angle-=pi/60;
