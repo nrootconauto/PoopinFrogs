@@ -71,8 +71,10 @@ found:
     Free(ftxt);
   } 
 #ifdef DEVELOPMENT_MODE
-    else if (UndumpBlobFile(filename,DEVELOPMENT_DIR),
-             (ftxt=GetBlobFileData(filename))) goto found;
+  else {
+    UndumpBlobFile(filename,DEVELOPMENT_DIR);
+    if (ftxt=GetBlobFileData(filename)) goto found;
+  }
 #endif    
   Free(filename);
   return ret;

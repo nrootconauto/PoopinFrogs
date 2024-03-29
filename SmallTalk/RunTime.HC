@@ -404,37 +404,8 @@ CFrogThing *CallScript(U8 *name,CFrogThing *self,...) {
     cls=HashFind(self(CFrogClass*)->name,frog_mem_task->hash_table,HTT_CLASS);
     while(!ret&&cls) {
       full=MStrPrint(".%s@%s",cls->str,name);
-      if(fun_ptr=FramePtr(full)) {
-        switch(argc) {
-	  case 0:
-	    ret=(fun_ptr)(self);
-	    break;
-	  case 1:
-	    ret=(fun_ptr)(self,argv[0]);
-	    break;
-	  case 2:
-	    ret=(fun_ptr)(self,argv[0],argv[1]);
-	    break;
-	  case 3:
-	    ret=(fun_ptr)(self,argv[0],argv[1],argv[2]);
-	    break;
-	  case 4:
-	    ret=(fun_ptr)(self,argv[0],argv[1],argv[2],argv[3]);
-	    break;
-	  case 5:
-	    ret=(fun_ptr)(self,argv[0],argv[1],argv[2],argv[3],argv[4]);
-	    break;
-	  case 6:
-	    ret=(fun_ptr)(self,argv[0],argv[1],argv[2],argv[3],argv[4],argv[5]);
-	    break;
-	  case 7:
-	    ret=(fun_ptr)(self,argv[0],argv[1],argv[2],argv[3],argv[4],argv[5],argv[6]);
-	    break;
-	  case 8:
-	    ret=(fun_ptr)(self,argv[0],argv[1],argv[2],argv[3],argv[4],argv[5],argv[6],argv[7]);
-	    break;
-        }
-      }
+      if(fun_ptr=FramePtr(full))
+        ret=CallVaArgs(fun_ptr,argc,argv,self);
       cls=cls->base_class;
       Free(full);
     }
@@ -442,37 +413,8 @@ CFrogThing *CallScript(U8 *name,CFrogThing *self,...) {
   }
   while(!ret&&cls) {
     full=MStrPrint("%s@%s",cls->str,name);
-    if(fun_ptr=FramePtr(full)) {
-      switch(argc) {
-        case 0:
-	  ret=(fun_ptr)(self);
-	  break;
-        case 1:
-	  ret=(fun_ptr)(self,argv[0]);
-	  break;
-        case 2:
-	  ret=(fun_ptr)(self,argv[0],argv[1]);
-	  break;
-        case 3:
-	  ret=(fun_ptr)(self,argv[0],argv[1],argv[2]);
-	  break;
-        case 4:
-	  ret=(fun_ptr)(self,argv[0],argv[1],argv[2],argv[3]);
-	  break;
-        case 5:
-	  ret=(fun_ptr)(self,argv[0],argv[1],argv[2],argv[3],argv[4]);
-	  break;
-        case 6:
-	  ret=(fun_ptr)(self,argv[0],argv[1],argv[2],argv[3],argv[4],argv[5]);
-	  break;
-        case 7:
-	  ret=(fun_ptr)(self,argv[0],argv[1],argv[2],argv[3],argv[4],argv[5],argv[6]);
-	  break;
-        case 8:
-	  ret=(fun_ptr)(self,argv[0],argv[1],argv[2],argv[3],argv[4],argv[5],argv[6],argv[7]);
-	  break;
-      }
-    }
+    if(fun_ptr=FramePtr(full))
+     ret=CallVaArgs(fun_ptr,argc,argv,self);
     cls=cls->base_class;
     Free(full);
   }
@@ -762,23 +704,7 @@ CFrogThing *_FrogBlockValue(CFrogBlock *self,I64 argc,I64 *argv) {
   CLocalsGeneric *old_frame=Fs->user_data,*cur=self->frame,*cur2,dummy;
   Fs->user_data=cur;
 fin:
-  switch(argc) {
-    case 0:
-      ret=(*self->fun_ptr)(self->self,cur);
-      break;
-    case 1:
-      ret=(*self->fun_ptr)(self->self,cur,argv[0]);
-      break;
-    case 2:
-      ret=(*self->fun_ptr)(self->self,cur,argv[0],argv[1]);
-      break;
-    case 3:
-      ret=(*self->fun_ptr)(self->self,cur,argv[0],argv[1],argv[2]);
-      break;
-    case 4:
-      ret=(*self->fun_ptr)(self->self,cur,argv[0],argv[1],argv[2],argv[3]);
-      break;
-  }
+  ret=CallVaArgs(self->fun_ptr,argc,argv,self->self,cur);
   if(*cur->return_flag) {
 //Propigate the return upwards
     cur2=old_frame;
