@@ -404,8 +404,11 @@ CFrogThing *CallScript(U8 *name,CFrogThing *self,...) {
     cls=HashFind(self(CFrogClass*)->name,frog_mem_task->hash_table,HTT_CLASS);
     while(!ret&&cls) {
       full=MStrPrint(".%s@%s",cls->str,name);
-      if(fun_ptr=FramePtr(full))
+      if(fun_ptr=FramePtr(full)) {
         ret=CallVaArgs(fun_ptr,argc,argv,self);
+        Free(full);
+	break;
+      }
       cls=cls->base_class;
       Free(full);
     }
@@ -413,8 +416,11 @@ CFrogThing *CallScript(U8 *name,CFrogThing *self,...) {
   }
   while(!ret&&cls) {
     full=MStrPrint("%s@%s",cls->str,name);
-    if(fun_ptr=FramePtr(full))
+    if(fun_ptr=FramePtr(full)) {
      ret=CallVaArgs(fun_ptr,argc,argv,self);
+      Free(full);
+      break;
+    }
     cls=cls->base_class;
     Free(full);
   }
@@ -727,7 +733,7 @@ CFrogThing *FrogBlockValue(CFrogBlock *s,...) {
   StreamPrint("FramePtrAdd(\"CFrogBlock@value\",&FrogBlockValue);\n");
   //args are delegated to block's code
   I64 i,j;
-  for (i=1;i<=5;++i) {
+  for (i=1;i<=5;++i) {
     StreamPrint("FramePtrAdd(\"CFrogBlock@");
     for (j=0;j<i;++j)
       StreamPrint("value:");
@@ -1223,6 +1229,15 @@ CFrogThing *FrogBlobFileReadLump(CFrogBlobFile *f,...) {
   return ret;
 }
 FramePtrAdd("CFrogBlobFile@readLump:",&FrogBlobFileReadLump);
+
+CFrogThing *FrogTimeNow(CFrogThing *ul,...) {
+  CFrogTime *t=ConstructThing("CFrogTime");
+  t->ts=FrogNumNew(tS);
+  return t;
+}
+FramePtrAdd(".CFrogTime@now",&FrogTimeNow);
+
+
 U0 FrogBinDel(CFrogBin *bin) {
   Free(bin->data);
   Free(bin);

@@ -46,6 +46,10 @@ class CFrogError:CFrogThing {
 class CFrogDivideError:CFrogError {
 };
 
+class CFrogTime:CFrogThing {
+  CFrogNum *ts;
+};
+
 class CFrogRandom:CFrogThing {
 //https://en.wikipedia.org/wiki/Linear_congruential_generator
   F64 mul,inc,mod,seed;
@@ -182,9 +186,22 @@ class C3DWorldManager:CFrogThing {
 //A grid of things having the things(128*128 size)
   CFrogArray *grid;
 };
+
+class CHandItem:CFrogThing {
+  CDC *gr;
+  I64  x,y;
+  I64  xoff,yoff;
+  I64 ammo;
+  F64 timeout;
+  CFrogBlock *on_click;
+};
+
+
 //
 // Game Section
 //
+class CGun1:CHandItem {
+};
 class CFrogNPC:C2DThing {
   CFrogRandom *random_generator;
   F64 speed;

@@ -49,3 +49,7 @@ class CFrogBin:CFrogThing {
   U8 *data;
   U8 *destroy dft "FrogBinDel";
 };
+
+class CFrogTime:CFrogThing {
+  CFrogNum *ts;
+};

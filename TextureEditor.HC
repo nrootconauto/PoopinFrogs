@@ -911,4 +911,6 @@ fin:
   Free(lump_name);
   return lump_name;
 }
-//TextureEdit("ASS");
+#if __CMD_LINE__
+TextureEdit("ASS");
+#endif

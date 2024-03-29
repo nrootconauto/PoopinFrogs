@@ -1063,6 +1063,20 @@ CFrogThing *WorldManagerTileHeightAtXAtY(C3DWorldManager *self,...) {
 }
 FramePtrAdd("C3DWorldManager@tileHeightAtX:atY:",&WorldManagerTileHeightAtXAtY);
 
+CFrogThing *HandItemSetGr(CHandItem *self,...) {
+  U8 *name=AsString(argv[0]);
+  U8 *grl=BlobFileGetLump("ASS.BLOB",name);
+  if(grl) {
+    if(self->gr)
+      AnimDCDel(self->gr);
+    self->gr=AnimDCLoad(grl);
+    Free(grl);
+  }
+  ThingDel(argv[0]);
+  Free(name);
+  return FROG_SMALL_NIL;
+}
+FramePtrAdd("CHandItem@setGraphics:",&HandItemSetGr);
 
 //
 // Test section
@@ -1071,6 +1085,9 @@ FramePtrAdd("C3DWorldManager@tileHeightAtX:atY:",&WorldManagerTileHeightAtXAtY);
 w=LoadWorldFromFile(,"Untitled.WORLD");
 #include "UI.HC"
 U0 DrawIt(CTask *t,CDC *dc) {
+  CDC *hand_gr;
+  CHandItem *hand=FrogSymbol("hand_item")->value;
+  dc=DCAlias(dc,t);
   w->to_dc=dc;
   DCDepthBufAlloc(dc);
   InitTables(w->angle,w->fov);
@@ -1081,7 +1098,14 @@ U0 DrawIt(CTask *t,CDC *dc) {
       Draw2DThing(w,body[cnt]);
   Free(w->to_dc->depth_buf);
   w->to_dc->depth_buf=NULL;
+  if(ThingHasClass(hand,"CHandItem")) {
+    hand->x=ms.pos.x;
+    if(hand_gr=hand->gr) {
+     GrBlot(dc,hand->x+hand->xoff-hand_gr->width/2,hand->y+hand->yoff-hand_gr->height/2,hand_gr);
+    }
+  }
   DrawUIRoot(t,dc);
+  DCDel(dc);
 }
 U0 WalkAround() {
   I64 c,sc,m1,m2,msg;
@@ -1090,7 +1114,8 @@ U0 WalkAround() {
   C2DThing *player=CallScript("getPlayer",man->value);
   CallScript("makeUI",player);
   WinMax;
-  WinBorder;
+  DocClear;
+//  WinBorder;
   Fs->draw_it=&DrawIt;
   w->x=x,w->y=y;
   w->cam_height=.8;
@@ -1099,6 +1124,7 @@ U0 WalkAround() {
 /*    while(msg=ScanMsg(&m1,&m2)) {
       UpdateUI(FrogSymbol("ui_root")->value,msg,m1,m2);
     }*/
+    FlushMsgs;
     CallScript("update",man->value);
     if(ThingHasClass(player,"CPlayer")) {
       if(Bt(kbd.down_bitmap,SC_CURSOR_UP)) {
@@ -1115,6 +1141,10 @@ U0 WalkAround() {
         player->angle-=pi/60;
       if(Bt(kbd.down_bitmap,SC_CURSOR_RIGHT))
         player->angle+=pi/60;
+
+      if(ms.lb) {
+        CallScript("fire",FrogSymbol("hand_item")->value);
+      }
     }
     w->x=player->x;
     w->y=player->y;
@@ -1128,9 +1158,8 @@ U0 WalkAround() {
     Refresh;
   }
 en:
-  Fs->draw_it=NULL;
   Refresh;
-  DCFill;
+  Fs->draw_it=NULL;
 }
 WalkAround;
 #endif
