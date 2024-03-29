@@ -48,7 +48,7 @@ class CFrogDivideError:CFrogError {
 
 class CFrogTime:CFrogThing {
   CFrogNum *ts;
-};
+};
 
 class CFrogRandom:CFrogThing {
 //https://en.wikipedia.org/wiki/Linear_congruential_generator

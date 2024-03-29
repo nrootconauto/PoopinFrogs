@@ -7,14 +7,6 @@
 #define GRID_SZ 16
 #define DIST_SCALE (GRID_SZ*2200)
 
-CDC *LoadGr(U8 *blob,U8 *name) {
-  U8 *body=BlobFileGetLump(blob,name);
-  CDC *dc;
-  if(body) dc=AnimDCLoad(body);
-  else dc=DCNew(1,1);
-  Free(body);
-  return dc;
-}
 #define SEGMENT_SZ 32
 #define GRID_SZ 16
 #define THING_WIDTH (16*8)
@@ -75,7 +67,7 @@ class CWorldEditor {
   I64 base_x,base_y;
   I64 w,h;
   CLevelTexture *textures[0x10000];
-  CLevelThingTemplate **thing_templates[0x10000];
+  CLevelThingTemplate *thing_templates[0x10000];
   CQue textures_que;
   CQue thing_templates_que;
 //TEXTURE SCROLLS AREMULTIPLES OF 3 Dude
@@ -105,6 +97,14 @@ class CWorldEditor {
   Bool flat_mode;
   I8 wall_height,floor_height;
 } world_edit;
+CDC *LoadGr(U8 *blob,U8 *name) {
+  U8 *body=BlobFileGetLump(blob,name);
+  CDC *dc;
+  if(body) dc=AnimDCLoad(body,,world_edit.mem_task);
+  else dc=DCNew(1,1,world_edit.mem_task);
+  Free(body);
+  return dc;
+}
 
 I64 SegmentRoundDown(I64 s) {
   if(!(s%SEGMENT_SZ)) return s;
@@ -289,6 +289,7 @@ U0 LevelEditorExport(U8 *blob,U8 *filename) {
 	template!=&world_edit.thing_templates_que;
 	template=template->next) {
     fptr(CFileThingTemplate*)->idx=template->idx;
+    PrintI(template->name,1);
     StrCpy(fptr(CFileThingTemplate*)->name,template->name);
     StrCpy(fptr(CFileThingTemplate*)->blob_side_name,template->blob_side_name);
     StrCpy(fptr(CFileThingTemplate*)->blob_front_name,template->blob_front_name);
@@ -802,9 +803,10 @@ Bool EditDC(U8 *blob,U8 *name,I64 dft_h,I64 dft_w) {
   return TRUE;
 }
 U0 EditThingTemplate(U8 *blob,CLevelThingTemplate *template) {
+enter:;
   CDoc *what=DocNew(blkdev.tmp_filename);
-  CLevelThingTemplate *anim_frame;
-  I64 resp;
+  CLevelThingTemplate *head,*cur;
+  I64 resp,idx,len;
   U8 *str;
   DocPrint(what,"$$TX+CX,\"Welcome to thing edit\"$$\n");
   DocPrint(what,"\n\n$$BT,\"Change Name\",LE=1$$\n");
@@ -812,48 +814,48 @@ U0 EditThingTemplate(U8 *blob,CLevelThingTemplate *template) {
   DocPrint(what,"\n\n$$BT,\"Edit Back\",LE=3$$\n");
   DocPrint(what,"\n\n$$BT,\"Edit Side\",LE=4$$\n");
   DocPrint(what,"\n\n$$BT,\"Use Front for All Sides\",LE=5$$\n");
-  DocPrint(what,"\n\n$$BT,\"Add Animation Frame\",LE=6$$\n");
+  if(!StrOcc(template->name,'/')) DocPrint(what,"\n\n$$BT,\"Add State\",LE=6$$\n");
   DocPrint(what,"\n\n$$BT,\"Done\",LE=-1$$\n");
   resp=PopUpMenu(what);
   switch(resp) {
     case -1:
       break;
     case 1:
-      //Name
+//Name
       str=PopUpGetStr("Thing Title:");
       StrCpy(template->name,str);
       Free(str);
       break;
     case 2:
-      //Front
+//Front
       EditDC(blob,template->blob_front_name,150,275);
       AnimDCDel(template->front_orig_dc);
       template->front_orig_dc=LoadGr(blob,template->blob_front_name);
       AnimDCDel(template->front_dc);
       template->front_dc=ScaleDC(template->front_orig_dc,
-	THING_WIDTH_SCALED,
-	THING_HEIGHT_SCALED);
+	    THING_WIDTH_SCALED,
+	    THING_HEIGHT_SCALED);
       break;
     case 3:
-      //Back
+//Back
       EditDC(blob,template->blob_back_name,150,275);
       AnimDCDel(template->back_orig_dc);
       template->back_orig_dc=LoadGr(blob,template->blob_back_name);
       template->back_dc=ScaleDC(template->back_orig_dc,
-	THING_WIDTH_SCALED,
-	THING_HEIGHT_SCALED);
+	    THING_WIDTH_SCALED,
+	    THING_HEIGHT_SCALED);
       break;
     case 4:
-      //Side
+//Side
       EditDC(blob,template->blob_side_name,150,275);
       AnimDCDel(template->side_orig_dc);
       template->side_orig_dc=LoadGr(blob,template->blob_side_name);
       template->side_dc=ScaleDC(template->side_orig_dc,
-	THING_WIDTH_SCALED,
-	THING_HEIGHT_SCALED);
+	    THING_WIDTH_SCALED,
+	    THING_HEIGHT_SCALED);
       break;
     case 5:
-      //Use front for all sides
+//Use front for all sides
       AnimDCDel(template->side_orig_dc);
       AnimDCDel(template->back_orig_dc);
       AnimDCDel(template->side_dc);
@@ -864,6 +866,41 @@ U0 EditThingTemplate(U8 *blob,CLevelThingTemplate *template) {
       template->back_dc=AnimDCCopy(template->front_dc,world_edit.mem_task);
       template->side_orig_dc=AnimDCCopy(template->front_orig_dc,world_edit.mem_task);
       template->back_orig_dc=AnimDCCopy(template->front_orig_dc,world_edit.mem_task);
+      break;
+    case 6:
+      DocDel(what);
+      what=DocNew;
+      DocPrint(what,"$$TX+CX,\"What State\"$$:\n\n");
+      head=&world_edit.thing_templates_que;
+      for(cur=head->next;cur!=head;cur=cur->next) {
+        len=StrLen(template->name);
+        if(!StrNCmp(template->name,cur->name,len)) {
+	  if(cur->name[len]=='/')
+	    DocPrint(what,"$$BLUE$$$$MU,\"State:%s\",LE=%d$$$$FD$$\n",cur->name,cur);
+        }
+      }
+      DocPrint(what,"$$RED$$$$MU,\"NEW STATE\",LE=%d$$$$FD$$\n",INVALID_PTR);
+      resp=PopUpMenu(what);
+      if(resp==DOCM_CANCEL)
+        break;
+      else if(resp==INVALID_PTR) {
+        str=PopUpGetStr("New state name:");
+        for(idx=U16_MAX/2;idx<I16_MAX;idx++) {
+	  if(!world_edit.thing_templates[idx]) {
+	    cur=CreateNewThingTemplate(idx);
+	    StrPrint(cur->name,"%s/%s",template->name,str);
+	    Free(str);
+	    DocDel(what);
+	    template=cur;
+	    goto enter;
+	  }
+        }
+        Free(str);
+      } else {
+        DocDel(what);
+        template=resp;
+        goto enter;
+      }
       break;
   }
   DocDel(what);
@@ -905,9 +942,12 @@ U0 FreeEditorData() {
     AnimDCDel(template->front_orig_dc);
     AnimDCDel(template->back_orig_dc);
     AnimDCDel(template->side_orig_dc);
+PrintI(template->name,123);
     template=template->next;
   }
+PrintI("1",1);
   QueDel(&world_edit.thing_templates_que);
+PrintI("2",2);
 
   texture=world_edit.textures_que.next;
   while(texture!=&world_edit.textures_que) {

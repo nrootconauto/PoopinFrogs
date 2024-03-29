@@ -685,6 +685,7 @@ U0 ConstructBuiltin(U8 *code,U8 *type,U8 *name,...) {
   ConstructBuiltin("FrogNumNew(ASin(AsF64(self)))","CFrogNum","arcsin");
   ConstructBuiltin("FrogNumNew(ACos(AsF64(self)))","CFrogNum","arccos");
   ConstructBuiltin("FrogNumNew(ATan(AsF64(self)))","CFrogNum","arctan");
+  ConstructBuiltin("FrogNumNew(Sqrt(AsF64(self)))","CFrogNum","sqrt");
 //Bits
   ConstructBuiltin("FrogNumNew(~ToI64(AsF64(self)))","CFrogNum","bitInvert");
   ConstructBuiltin("FrogNumNew(ToI64(AsF64(self))&ToI64(AsF64(a)))","CFrogNum","&","CFrogNum","a");

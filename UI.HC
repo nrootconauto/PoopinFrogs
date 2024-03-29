@@ -405,9 +405,10 @@ U0 UIMeterDraw(CDC *dc,I64 xoff,I64 yoff,CUIMeter *meter) {
   xoff2=0;
   while(GrPeek(dc,x+xoff2,rad+y-h)==meter->bg_color)
     xoff2++;
+  dc->color=meter->fg_color;
   GrLine(dc,xoff2+x,rad+y-h,x-xoff2,rad+y-h); 
   if(h)
-   GrFloodFill(dc,x,rad+y-1);
+   GrFloodFill(dc,x,MaxI64(rad+y-1,rad+y-h/2-1));
   dc->color=meter->text_color;
   y=yoff;
   x=xoff;
