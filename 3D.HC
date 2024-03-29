@@ -628,17 +628,17 @@ F64 FUMod(F64 v,F64 to) {
   if(v<0.) return -(v%to);
   return 0;
 }
-I64 *GetTilesInPath(C3DWorld *w,I64 view_x,F64 dist) {
+I64 *GetTilesInPath(C3DWorld *w,F64 angle,F64 dist) {
   I64 *tiles=MAlloc((dist/GRID_SZ+8)*4*8);
   I64 ptr=0;
   F64 x=w->x,y=w->y,ex,ey,dx,dy,step,i,by,slope,cos,sin,xdist,ydist;
   I64 tx=x/GRID_SZ,ty=y/GRID_SZ,idx,old_tx,old_ty,dirx,diry,ix,iy;
   Bool use_x;
-  cos=cos_lookup_table[view_x];
-  sin=sin_lookup_table[view_x];
+  cos=Cos(angle);
+  sin=Sin(angle);
   ex=x+cos*dist;
   ey=y+sin*dist;
-  slope=tan_lookup_table[view_x];
+  slope=Tan(angle);
   dx=ex-x;
   dy=ey-y;
   if(Abs(dx)>Abs(dy)) {
@@ -740,7 +740,7 @@ U0 MPCastCol(C3DWorld *w) {
     dist=0;
     floor_y=0;
     last_height=I64_MIN;
-    tiles=GetTilesInPath(w,x,I16_MAX);
+    tiles=GetTilesInPath(w,angle,I16_MAX);
     if(tiles[0]==-1)
       goto fin;
 ent:
@@ -917,6 +917,20 @@ F64 NormalizeAngle(F64 a) {
   if(a<0) a+=2*pi;
   return a;
 }
+Bool CanSee2DThing(C3DWorld *w,C2DThing *t) {
+  Bool ret=TRUE;
+  F64 dist=Sqrt(Sqr(t->x-w->x)+Sqr(t->y-w->y));
+  F64 angle=Arg(t->x-w->x,t->y-w->y);
+  I64 *ti=GetTilesInPath(w,angle,dist+GRID_SZ),idx;
+  for(idx=0;ti[idx]!=-1;idx++) {
+    if(w->heightmap[ti[idx]]>w->cam_height) {
+      ret=FALSE;
+      break;
+    }
+  }
+  Free(ti);
+  return ret;
+}
 #define THING_DRAW_CUTOFF GRID_SZ/2
 U0 Draw2DThing(C3DWorld *w,C2DThing *thing) {
   if(thing->no_draw) return;
@@ -1062,7 +1076,6 @@ CFrogThing *WorldManagerTileHeightAtXAtY(C3DWorldManager *self,...) {
   return FrogNumNew(I16_MAX);
 }
 FramePtrAdd("C3DWorldManager@tileHeightAtX:atY:",&WorldManagerTileHeightAtXAtY);
-
 CFrogThing *HandItemSetGr(CHandItem *self,...) {
   U8 *name=AsString(argv[0]);
   U8 *grl=BlobFileGetLump("ASS.BLOB",name);
@@ -1077,7 +1090,21 @@ CFrogThing *HandItemSetGr(CHandItem *self,...) {
   return FROG_SMALL_NIL;
 }
 FramePtrAdd("CHandItem@setGraphics:",&HandItemSetGr);
-
+CFrogThing *ThingCanSeeThing(C2DThing *self,...) {
+  F64 old_x=w->x,old_y=w->y,old_z=w->cam_height;
+  CFrogThing *ret;
+  C2DThing *other=argv[0];
+  w->x=self->x;
+  w->y=self->y;
+  w->cam_height=self->z;
+  ret=FrogNumNew(CanSee2DThing(w,other));
+  w->x=old_x;
+  w->y=old_y;
+  w->cam_height=old_z;
+  ThingDel(other);
+  return ret;
+}
+FramePtrAdd("C2DThing@canSeeThing:",&ThingCanSeeThing);
 //
 // Test section
 //
@@ -1115,7 +1142,7 @@ U0 WalkAround() {
   CallScript("makeUI",player);
   WinMax;
   DocClear;
-//  WinBorder;
+  WinBorder;
   Fs->draw_it=&DrawIt;
   w->x=x,w->y=y;
   w->cam_height=.8;

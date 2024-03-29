@@ -478,6 +478,7 @@ U0 CompileToHolyC(U8 *src,U8 *class_name,U8 *src_path=NULL,Bool class_method=FAL
 }
 
 U0 STRepl(U8 *dft="",Bool interactive=TRUE) {
+  Bool br;
   U8 *str;
   CLexer *lex; //TODO feed into lexer
   CAST *ast,dummy;
@@ -487,12 +488,15 @@ U0 STRepl(U8 *dft="",Bool interactive=TRUE) {
     lex->flags|=LEXF_CMD_LINE|LEXF_WANTS_INPUT;
   while(TRUE) {
     try {
+      br=FALSE;
       if(!Lex(lex)&&!interactive)
-        return;
-      ast=ParseAst(lex);
+        br=TRUE;
+      if(!br)
+        ast=ParseAst(lex);
 //Dont delete,the REPL will need to keep info on Blocks and stuff
     } catch
       PutExcept(TRUE);
+    if(br) break;
     if(ast) {
       doc=DocNew;
       DocPrint(doc,"CFrogThing *REPLFun(CFrogThing *self) {\n");
