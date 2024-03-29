@@ -1027,20 +1027,6 @@ skip:;
   }
 }
 C3DWorld *w;
-U0 DrawIt(CTask *,CDC *dc) {
-  w->to_dc=dc;
-  DCDepthBufAlloc(dc);
-  InitTables(w->angle,w->fov);
-  C3DWorldCastRays(w);   
-  C2DThing **body=w->_2d_things->body;
-  I64 cnt=w->_2d_things->cnt;
-  while(--cnt>=0)
-      Draw2DThing(w,body[cnt]);
-  Free(w->to_dc->depth_buf);
-  w->to_dc->depth_buf=NULL;
-
-}
-
 //
 // SmallTalk Section
 //
@@ -1083,16 +1069,36 @@ FramePtrAdd("C3DWorldManager@tileHeightAtX:atY:",&WorldManagerTileHeightAtXAtY);
 //
 #ifdef TEST_3D
 w=LoadWorldFromFile(,"Untitled.WORLD");
+#include "UI.HC"
+U0 DrawIt(CTask *t,CDC *dc) {
+  w->to_dc=dc;
+  DCDepthBufAlloc(dc);
+  InitTables(w->angle,w->fov);
+  C3DWorldCastRays(w);   
+  C2DThing **body=w->_2d_things->body;
+  I64 cnt=w->_2d_things->cnt;
+  while(--cnt>=0)
+      Draw2DThing(w,body[cnt]);
+  Free(w->to_dc->depth_buf);
+  w->to_dc->depth_buf=NULL;
+  DrawUIRoot(t,dc);
+}
 U0 WalkAround() {
-  I64 c,sc;
+  I64 c,sc,m1,m2,msg;
   F64 x=9*GRID_SZ,y=5*GRID_SZ;
   CFrogSymbol *man=FrogSymbol("world");
   C2DThing *player=CallScript("getPlayer",man->value);
+  CallScript("makeUI",player);
+  WinMax;
+  WinBorder;
   Fs->draw_it=&DrawIt;
   w->x=x,w->y=y;
   w->cam_height=.8;
   w->angle=0;
   while(TRUE) {
+/*    while(msg=ScanMsg(&m1,&m2)) {
+      UpdateUI(FrogSymbol("ui_root")->value,msg,m1,m2);
+    }*/
     CallScript("update",man->value);
     if(ThingHasClass(player,"CPlayer")) {
       if(Bt(kbd.down_bitmap,SC_CURSOR_UP)) {

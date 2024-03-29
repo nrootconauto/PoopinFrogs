@@ -190,4 +190,9 @@ class CFrogNPC:C2DThing {
   F64 speed;
 };
 class CPlayer:C2DThing {
+  CFrogArray *items;
+  CUIMeter *health_meter;
+  CUIMeter *ammo_meter;
+  CUIGrid *quick_inventory;
+  CUIButton *open_inventory_button;
 }; 

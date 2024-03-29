@@ -282,7 +282,7 @@ F64 GetClassMemberValF64(CFrogThing *t,U8 *member) {
   }
   return NULL;
 }
-extern CFrogThing *CallScript(U8 *name,CFrogThing *self);
+extern CFrogThing *CallScript(U8 *name,CFrogThing *self,...);
 
 CFrogThing *_ConstructThing(U8 *class_name,I64 argc,I64 *argv) {
   CTask *mem_task=frog_mem_task;
@@ -704,7 +704,7 @@ CFrogThing *_FrogBlockValue(CFrogBlock *self,I64 argc,I64 *argv) {
   CLocalsGeneric *old_frame=Fs->user_data,*cur=self->frame,*cur2,dummy;
   Fs->user_data=cur;
 fin:
-  ret=CallVaArgs(self->fun_ptr,argc,argv,self->self,cur);
+  ret=CallVaArgs(self->fun_ptr,argc,argv,self->self,cur);
   if(*cur->return_flag) {
 //Propigate the return upwards
     cur2=old_frame;

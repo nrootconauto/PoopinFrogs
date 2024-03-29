@@ -293,9 +293,9 @@ pass:
         CompileAST(doc,cur,locals,stack_depth+1+idx);
         cur=cur->next;
       }
-      DocPrint(doc,"  retval=CallScript(\"%Q\",%s,\n",ast->op_name,StackFrame2Var(stack_depth));
+      DocPrint(doc,"  retval=CallScript(\"%Q\",%s\n",ast->op_name,StackFrame2Var(stack_depth));
       for(idx=0;idx<cnt;idx++) {
-	if(idx) DocPrint(doc,",");
+	DocPrint(doc,",");
 	DocPrint(doc,"%s",StackFrame2Var(stack_depth+1+idx));
      }
       DocPrint(doc,");\n");
@@ -497,7 +497,7 @@ U0 STRepl(U8 *dft="",Bool interactive=TRUE) {
       doc=DocNew;
       DocPrint(doc,"CFrogThing *REPLFun(CFrogThing *self) {\n");
       DocPrint(doc,"  CFrogThing *stk[0x100],*retval;\n");
-      DocPrint(doc,"  Bool st_return=FALSE;\n");
+      DocPrint(doc,"  static Bool st_return=FALSE;\n");
       DocPrint(doc,"  Bool *return_flag=STNewReplFrame(&st_return)->return_flag;\n");
       DocPrint(doc,"  CLocalsGeneric0 *parent_frame=Fs->user_data;\n");
       DocPrint(doc,"  I64 unwind=0;\n");
@@ -506,6 +506,10 @@ U0 STRepl(U8 *dft="",Bool interactive=TRUE) {
       QueIns(ast,dummy.args);
       CompileAST(doc,&dummy,NULL,0);
       DocPrint(doc,"ret:\n");
+//
+// Dumb hack,blocks have a reference to the retunr_flag,so reset it.
+//
+      DocPrint(doc,"  *return_flag=0;\n");
       DocPrint(doc,"  while(--unwind>=0) ThingDel(stk[unwind]);");
       DocPrint(doc,"  STFrameDel;\n");
       DocPrint(doc,"  return retval;\n");

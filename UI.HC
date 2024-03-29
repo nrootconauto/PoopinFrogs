@@ -128,6 +128,7 @@ U0 RenderUI(CDC *dc,CUIElem *e,I64 left_x=0,I64 left_y=0,I64 right_x=GR_WIDTH,I6
   else y=draw->y+left_y;
   draw->computed_x=x;
   draw->computed_y=y;
+
   if(dc&&!(draw->dont_draw)) {
     draw_it=GetClassMemberValI64(e,"draw_it");
     if(draw_it) {
@@ -619,6 +620,7 @@ U0 LoadColorSyms() {
   }
 }
 LoadColorSyms;
+#if__CMD_LINE__
 STRunStmt("#ui_root _ CUIScrollBars new .\n");
 STRunStmt("#ui_root setWidth: 400 ; setHeight: 100 .\n");
 STRunStmt("#ui_label _ CUILabel new .\n");
@@ -650,5 +652,7 @@ U0 UITest() {
     Refresh;
   }
 }
-UITest;
+//UITest;
+//Uf("RenderUI");
+#endif
 #endif
