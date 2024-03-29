@@ -722,12 +722,18 @@ exit:
 CFrogThing *FrogBlockValue(CFrogBlock *s,...) {
   return _FrogBlockValue(s,argc,argv);
 }
-FramePtrAdd("CFrogBlock@value",&FrogBlockValue);
-FramePtrAdd("CFrogBlock@value:",&FrogBlockValue); //Arg1 will be delegated to the block's code
-FramePtrAdd("CFrogBlock@value:value:",&FrogBlockValue); //Args will be deletagted to the block's code
-FramePtrAdd("CFrogBlock@value:value:value:",&FrogBlockValue);
-FramePtrAdd("CFrogBlock@value:value:value:value:",&FrogBlockValue);
 
+#exe {
+  StreamPrint("FramePtrAdd(\"CFrogBlock@value\",&FrogBlockValue);\n");
+  //args are delegated to block's code
+  I64 i,j;
+  for (i=1;i<=5;++i) {
+    StreamPrint("FramePtrAdd(\"CFrogBlock@");
+    for (j=0;j<i;++j)
+      StreamPrint("value:");
+    StreamPrint("\",&FrogBlockValue);\n");
+  }
+}
 
 //Exception handler
 CFrogThing *FrogBlockOnDo(CFrogBlock *self,...) {
