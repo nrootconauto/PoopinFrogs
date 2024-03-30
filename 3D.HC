@@ -1138,8 +1138,9 @@ U0 DrawIt(CTask *t,CDC *dc) {
   DCDel(dc);
 }
 U0 WalkAround() {
-  I64 c,sc,m1,m2,msg;
+  I64 c,ch=0,sc=0,m1,m2,msg;
   F64 x=9*GRID_SZ,y=5*GRID_SZ;
+  Bool up=FALSE,down=FALSE,right=FALSE,left=FALSE;
   CFrogSymbol *man=FrogSymbol("world");
   C2DThing *player=CallScript("getPlayer",man->value);
   CallScript("makeUI",player);
@@ -1150,32 +1151,58 @@ U0 WalkAround() {
   w->x=x,w->y=y;
   w->cam_height=.8;
   w->angle=0;
-  while(TRUE) {
-/*    while(msg=ScanMsg(&m1,&m2)) {
-      UpdateUI(FrogSymbol("ui_root")->value,msg,m1,m2);
-    }*/
-    FlushMsgs;
+  try while (TRUE) {
     CallScript("update",man->value);
-    if(ThingHasClass(player,"CPlayer")) {
-      if(Bt(kbd.down_bitmap,SC_CURSOR_UP)) {
-        CallScript("move:atAngle:",player,
-		FrogNumNew(GRID_SZ/4),
-		FrogNumNew(player->angle));
-      }
-      if(Bt(kbd.down_bitmap,SC_CURSOR_DOWN)) {
-        CallScript("move:atAngle:",player,
-		FrogNumNew(-GRID_SZ/4),
-		FrogNumNew(player->angle));
-      }
-      if(Bt(kbd.down_bitmap,SC_CURSOR_LEFT))
-        player->angle-=pi/60;
-      if(Bt(kbd.down_bitmap,SC_CURSOR_RIGHT))
-        player->angle+=pi/60;
-
-      if(ms.lb) {
-        CallScript("fire",FrogSymbol("hand_item")->value);
-      }
+//if (ThingHasClass(player,"CPlayer")) {
+    // set vars for multikey input
+    switch (ScanMsg(&m1,&m2,1<<MSG_KEY_DOWN|1<<MSG_KEY_UP)) {
+        break;case MSG_KEY_DOWN:
+        ch=m1,sc=m2;
+        if (!ch) switch (sc.u8[0]) {
+          case SC_CURSOR_RIGHT: right=TRUE; break;
+          case SC_CURSOR_LEFT: left=TRUE; break;
+          case SC_CURSOR_UP: up=TRUE; break;
+	  case SC_CURSOR_DOWN: down=TRUE; break;
+	} else switch (ch) {
+	  case '\n':
+	  case CH_ESC:
+	  case CH_SHIFT_ESC:
+	    goto en;
+	  case 'w': up=TRUE; break;
+	  case 'a': left=TRUE; break;
+	  case 's': down=TRUE; break;
+	  case 'd': right=TRUE; break;
+        }
+        break;case MSG_KEY_UP:
+        ch=m1,sc=m2;
+        if (!ch) switch (sc.u8[0]) {
+            start:
+	    case SC_CURSOR_RIGHT: right=FALSE; break;
+	    case SC_CURSOR_LEFT: left=FALSE; break;
+	    case SC_CURSOR_UP: up=FALSE;break;
+	    case SC_CURSOR_DOWN: down=FALSE; break;
+            end: sc=0;
+	} else switch (ch) {
+	  case 'w': up=FALSE; break;
+	  case 'a': left=FALSE; break;
+	  case 's': down=FALSE; break;
+	  case 'd': right=FALSE; break;
+        }
     }
+    if (up)
+      C2DThingMoveAtAngle(player,
+	    FrogNumNew(GRID_SZ/4),
+	    FrogNumNew(player->angle));
+    if (down)
+      C2DThingMoveAtAngle(player,
+	    FrogNumNew(-GRID_SZ/4),
+	    FrogNumNew(player->angle));
+    if (left)
+      player->angle-=pi/60;
+    if (right)
+      player->angle+=pi/60;
+    if (ms.lb) // mouse input is best handled with ms, not ScanMsg
+      CallScript("fire",FrogSymbol("hand_item")->value);
     w->x=player->x;
     w->y=player->y;
     w->angle=player->angle;
@@ -1183,11 +1210,12 @@ U0 WalkAround() {
     w->angle%=2*pi;
     if(w->angle<0)
       w->angle+=2*pi;
-    if(Bt(kbd.down_bitmap,Char2ScanCode('\n')))
-      break;
     Refresh;
-  }
+//}
+
+  } catch PutExcept;
 en:
+  FlushMsgs;
   Refresh;
   Fs->draw_it=NULL;
 }
