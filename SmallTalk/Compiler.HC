@@ -496,7 +496,7 @@ U0 STRepl(U8 *dft="",Bool interactive=TRUE) {
 //Dont delete,the REPL will need to keep info on Blocks and stuff
     } catch
       PutExcept(TRUE);
-    if(br) break;
+    if(br) break;
     if(ast) {
       doc=DocNew;
       DocPrint(doc,"CFrogThing *REPLFun(CFrogThing *self) {\n");

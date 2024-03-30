@@ -929,7 +929,7 @@ Bool CanSee2DThing(C3DWorld *w,C2DThing *t) {
     }
   }
   Free(ti);
-  return ret;
+  return ret;
 }
 #define THING_DRAW_CUTOFF GRID_SZ/2
 U0 Draw2DThing(C3DWorld *w,C2DThing *thing) {
@@ -943,7 +943,7 @@ U0 Draw2DThing(C3DWorld *w,C2DThing *thing) {
   F64 y0,h,width,x0,cx,cy,;
   I32 dist=Sqrt(Sqr(x)+Sqr(y));
   CDC *use_dc;
-  I64 dc_w=dc->width,frame=ToI64(tS/ANIM_DELAY);
+  I64 dc_w=dc->width,frame=ToI64((tS-thing->animation_start_tS)/ANIM_DELAY);
   I64 to_x,to_y;
   I64 line,col,face;
   U8 *src_ptr,*y_line;
@@ -980,7 +980,10 @@ U0 Draw2DThing(C3DWorld *w,C2DThing *thing) {
   }
   if(!use_dc) return;
 draw:
-  use_dc+=frame%AnimDCCnt(use_dc);
+  if(thing->animation_no_repeat) 
+     use_dc+=MinI64(frame,AnimDCCnt(use_dc)-1);
+  else
+    use_dc+=frame%AnimDCCnt(use_dc);
   angle=Arg(x,y);
 //https://permadi.com/1996/05/ray-casting-tutorial-8/
   if(angle<w->angle)
