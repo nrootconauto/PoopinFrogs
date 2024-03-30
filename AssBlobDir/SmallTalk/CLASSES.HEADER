@@ -175,7 +175,7 @@ class C2DThing:CFrogThing {
   C2DThingTemplate *template;
   F64 x,y,z,angle,health;
   F64 momx,momy,momz,animation_start_tS;
-  Bool no_draw,animation_no_repeat,pad[6];
+  Bool no_draw,animation_no_repeat,pad[6];
 };
 class C3DWorldManager:CFrogThing {
   U8 *world_handle;

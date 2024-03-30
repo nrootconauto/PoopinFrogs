@@ -21,7 +21,7 @@ class CLevelSegment:CQue {
   //<0 for floor
   I16 data[SEGMENT_SZ][SEGMENT_SZ];
   I8 heights[SEGMENT_SZ][SEGMENT_SZ];
-};
+};
 class CLevelThingTemplate:CQue {
   I64 idx;
 //Animation frames will be inserted in ->anim_que

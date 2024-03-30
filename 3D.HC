@@ -991,7 +991,7 @@ draw:
   else
     dist*=Cos(angle-w->angle);
 //Draw Starting from bottom of wall
-  h=Clamp(DIST_SCALE/ToF64(dist),1,GR_HEIGHT*3);
+  h=Clamp(DIST_SCALE/ToF64(dist),1,GR_HEIGHT);
   y0=GR_HEIGHT/2-h*((1+thing->z)-w->cam_height);
   width=ToF64(h)/use_dc->height*use_dc->width;
   angle=NormalizeAngle(angle);
@@ -1139,81 +1139,86 @@ U0 DrawIt(CTask *t,CDC *dc) {
 }
 U0 WalkAround() {
   I64 c,ch=0,sc=0,m1,m2,msg;
+  F64 mouse_angle;
   F64 x=9*GRID_SZ,y=5*GRID_SZ;
   Bool up=FALSE,down=FALSE,right=FALSE,left=FALSE;
   CFrogSymbol *man=FrogSymbol("world");
   C2DThing *player=CallScript("getPlayer",man->value);
   CallScript("makeUI",player);
   WinMax;
-  DocClear;
   WinBorder;
   Fs->draw_it=&DrawIt;
   w->x=x,w->y=y;
   w->cam_height=.8;
   w->angle=0;
   try while (TRUE) {
-    CallScript("update",man->value);
+      CallScript("update",man->value);
 //if (ThingHasClass(player,"CPlayer")) {
-    // set vars for multikey input
-    switch (ScanMsg(&m1,&m2,1<<MSG_KEY_DOWN|1<<MSG_KEY_UP)) {
-        break;case MSG_KEY_DOWN:
-        ch=m1,sc=m2;
-        if (!ch) switch (sc.u8[0]) {
-          case SC_CURSOR_RIGHT: right=TRUE; break;
-          case SC_CURSOR_LEFT: left=TRUE; break;
-          case SC_CURSOR_UP: up=TRUE; break;
-	  case SC_CURSOR_DOWN: down=TRUE; break;
-	} else switch (ch) {
-	  case '\n':
-	  case CH_ESC:
-	  case CH_SHIFT_ESC:
-	    goto en;
-	  case 'w': up=TRUE; break;
-	  case 'a': left=TRUE; break;
-	  case 's': down=TRUE; break;
-	  case 'd': right=TRUE; break;
+      // set vars for multikey input
+      while(msg=ScanMsg(&m1,&m2,1<<MSG_KEY_DOWN|1<<MSG_KEY_UP))
+        switch (msg) {
+	    break;case MSG_KEY_DOWN:
+	    ch=m1,sc=m2;
+	    if (!ch) switch (sc.u8[0]) {
+	        case SC_CURSOR_RIGHT: right=TRUE; break;
+	        case SC_CURSOR_LEFT: left=TRUE; break;
+	        case SC_CURSOR_UP: up=TRUE; break;
+	        case SC_CURSOR_DOWN: down=TRUE; break;
+	      } else switch (ch) {
+	        case '\n':
+	        case CH_ESC:
+	        case CH_SHIFT_ESC:
+		  goto en;
+	        case 'w': up=TRUE; break;
+	        case 'a': left=TRUE; break;
+	        case 's': down=TRUE; break;
+	        case 'd': right=TRUE; break;
+	      }
+	    break;case MSG_KEY_UP:
+	    ch=m1,sc=m2;
+	    if (!ch) switch (sc.u8[0]) {
+	        start:
+		  case SC_CURSOR_RIGHT: right=FALSE; break;
+		  case SC_CURSOR_LEFT: left=FALSE; break;
+		  case SC_CURSOR_UP: up=FALSE;break;
+		  case SC_CURSOR_DOWN: down=FALSE; break;
+	        end: sc=0;
+	      } else switch (ch) {
+	        case 'w': up=FALSE; break;
+	        case 'a': left=FALSE; break;
+	        case 's': down=FALSE; break;
+	        case 'd': right=FALSE; break;
+	      }
         }
-        break;case MSG_KEY_UP:
-        ch=m1,sc=m2;
-        if (!ch) switch (sc.u8[0]) {
-            start:
-	    case SC_CURSOR_RIGHT: right=FALSE; break;
-	    case SC_CURSOR_LEFT: left=FALSE; break;
-	    case SC_CURSOR_UP: up=FALSE;break;
-	    case SC_CURSOR_DOWN: down=FALSE; break;
-            end: sc=0;
-	} else switch (ch) {
-	  case 'w': up=FALSE; break;
-	  case 'a': left=FALSE; break;
-	  case 's': down=FALSE; break;
-	  case 'd': right=FALSE; break;
-        }
-    }
-    if (up)
-      C2DThingMoveAtAngle(player,
-	    FrogNumNew(GRID_SZ/4),
-	    FrogNumNew(player->angle));
-    if (down)
-      C2DThingMoveAtAngle(player,
-	    FrogNumNew(-GRID_SZ/4),
-	    FrogNumNew(player->angle));
-    if (left)
-      player->angle-=pi/60;
-    if (right)
-      player->angle+=pi/60;
-    if (ms.lb) // mouse input is best handled with ms, not ScanMsg
-      CallScript("fire",FrogSymbol("hand_item")->value);
-    w->x=player->x;
-    w->y=player->y;
-    w->angle=player->angle;
-    w->cam_height=player->z+.6;
-    w->angle%=2*pi;
-    if(w->angle<0)
-      w->angle+=2*pi;
-    Refresh;
+      if (up)
+        C2DThingMoveAtAngle(player,
+	      FrogNumNew(GRID_SZ/4),
+	      FrogNumNew(player->angle));
+      if (down)
+        C2DThingMoveAtAngle(player,
+	      FrogNumNew(-GRID_SZ/4),
+	      FrogNumNew(player->angle));
+      if (left)
+        player->angle-=pi/60;
+      if (right)
+        player->angle+=pi/60;
+      if (ms.lb) { // mouse input is best handled with ms, not ScanMsg
+	mouse_angle=(ms.pos.x-GR_WIDTH/2)*(w->fov/GR_WIDTH);
+	player->angle+=mouse_angle;
+        CallScript("fire",FrogSymbol("hand_item")->value);
+	player->angle-=mouse_angle;
+      }
+      w->x=player->x;
+      w->y=player->y;
+      w->angle=player->angle;
+      w->cam_height=player->z+.6;
+      w->angle%=2*pi;
+      if(w->angle<0)
+        w->angle+=2*pi;
+      Refresh;
 //}
 
-  } catch PutExcept;
+    } catch PutExcept;
 en:
   FlushMsgs;
   Refresh;
