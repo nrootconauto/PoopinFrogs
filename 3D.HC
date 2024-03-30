@@ -4,6 +4,10 @@
 #define TEST_3D
 #ifndef ENGINE_3D
 #define ENGINE_3D 1
+
+#define SCRN_TURN_MARGIN 100
+#define SCRN_TURN_RATE (pi/30.)
+
 //
 // From LevelEditor.HC
 //
@@ -143,9 +147,15 @@ C3DWorld *LoadWorldFromFile(U8 *blob_file="ASS",U8 *filename,F64 fov=pi/4) {
     idx=fptr(CFileTexture*)->idx;
     tmp=BlobFileGetLump(blob_file,fptr(CFileTexture*)->blob_name);
     if(idx>0)
-      ret->wall_textures[idx]=AnimDCLoad(tmp);
+      ret->floor_textures[idx]=AnimDCLoad(tmp);
     else
       ret->floor_textures[-idx]=AnimDCLoad(tmp);
+    Free(tmp);
+    tmp=BlobFileGetLump(blob_file,fptr(CFileTexture*)->wall_blob_name);
+    if(idx>0)
+      ret->wall_textures[idx]=AnimDCLoad(tmp);
+    else
+      ret->wall_textures[-idx]=AnimDCLoad(tmp);
     Free(tmp);
     fptr(CFileTexture*)++;
   }
@@ -778,7 +788,14 @@ ent:
         h2=DIST_SCALE/(dist2+1);
         y0=GR_HEIGHT-(GR_HEIGHT/2-h*(height_cap-w->cam_height));
         if(dist>2.&&dist2>2.) {
-	  floor_y=ColorFloor(w,x,height_cap,
+	  if(w->floor_textures[w->world_mat[idx]])
+	     floor_y=ColorFloor(w,x,height_cap,
+	        Max(y0,floor_y),
+	        GR_HEIGHT-(GR_HEIGHT/2-h2*(height_cap-w->cam_height)),
+	        w->floor_textures[w->world_mat[idx]]
+	        );
+	  else
+	     floor_y=ColorFloor(w,x,height_cap,
 	        Max(y0,floor_y),
 	        GR_HEIGHT-(GR_HEIGHT/2-h2*(height_cap-w->cam_height)),
 	        w->wall_textures[w->world_mat[idx]]
@@ -945,8 +962,9 @@ U0 Draw2DThing(C3DWorld *w,C2DThing *thing) {
   CDC *use_dc;
   I64 dc_w=dc->width,frame=ToI64((tS-thing->animation_start_tS)/ANIM_DELAY);
   I64 to_x,to_y;
-  I64 line,col,face;
+  I64 line,col,face,cnt;
   U8 *src_ptr,*y_line;
+  U16 *dst;
 
   Bool flip=FALSE;
   off=off%(2*pi);
@@ -1010,8 +1028,8 @@ draw:
   cy=ClampI64(y0,0,GR_HEIGHT);
   to_x=ClampI64(width+x0,0,GR_WIDTH-1);
   to_y=ClampI64(h+y0,0,GR_HEIGHT-1);
-  for(x=cx;cx<=x<to_x;x++) {
-    for(y=cy;cy<=y<to_y;y++) {
+  for(x=ToI64(cx)&~1;cx-4<=x<to_x;x+=2) {
+    for(y=ToI64(cy)&~1;cy-4<=y<to_y;y+=2) {
       line=ToI64((y-y0)/h*use_dc->height);
       if(0<=line<use_dc->height) {
         y_line=use_dc->body+line*use_dc->width_internal;
@@ -1026,7 +1044,7 @@ draw:
         src_ptr=y_line+col;
         if(*src_ptr==TRANSPARENT)
 	  goto skip;
-        U8 *dst=dc->body+ToI64(y)*dc->width_internal+ToI64(x);
+        dst=dc->body+ToI64(y)*dc->width_internal+ToI64(x);
         I32 *depth_dst=dc->depth_buf;
         if(depth_dst) {
 	  depth_dst+=ToI64(y)*dc->width_internal+ToI64(x);
@@ -1035,9 +1053,13 @@ draw:
 	    goto skip;
 	  }
         } 
-        *dst=*src_ptr;
-        if(depth_dst)
+	for(cnt=2;--cnt>=0;) {
+          *dst=gr.to_8_colors[*src_ptr];
 	  depth_dst[0]=dist;
+	  depth_dst[1]=dist;
+	  dst=dst(U8*)+dc->width_internal;
+	  depth_dst+=dc->width_internal;
+	}
 skip:;
       }
     }
@@ -1198,10 +1220,20 @@ U0 WalkAround() {
         C2DThingMoveAtAngle(player,
 	      FrogNumNew(-GRID_SZ/4),
 	      FrogNumNew(player->angle));
-      if (left)
-        player->angle-=pi/60;
+      if (left) {
+        C2DThingMoveAtAngle(player,
+	      FrogNumNew(GRID_SZ/4),
+	      FrogNumNew(player->angle-pi/2));
+      }
       if (right)
-        player->angle+=pi/60;
+        C2DThingMoveAtAngle(player,
+	      FrogNumNew(GRID_SZ/4),
+	      FrogNumNew(player->angle+pi/2));
+      if(ms.pos.x<SCRN_TURN_MARGIN) {
+	player->angle-=ToF64(SCRN_TURN_MARGIN-ms.pos.x)/SCRN_TURN_MARGIN*SCRN_TURN_RATE;
+      } else if(ms.pos.x>GR_WIDTH-SCRN_TURN_MARGIN) {
+	player->angle+=ToF64(ms.pos.x-(GR_WIDTH-SCRN_TURN_MARGIN))/SCRN_TURN_MARGIN*SCRN_TURN_RATE;
+      }
       if (ms.lb) { // mouse input is best handled with ms, not ScanMsg
 	mouse_angle=(ms.pos.x-GR_WIDTH/2)*(w->fov/GR_WIDTH);
 	player->angle+=mouse_angle;
@@ -1216,8 +1248,6 @@ U0 WalkAround() {
       if(w->angle<0)
         w->angle+=2*pi;
       Refresh;
-//}
-
     } catch PutExcept;
 en:
   FlushMsgs;
@@ -1225,6 +1255,7 @@ en:
   Fs->draw_it=NULL;
 }
 WalkAround;
+//Uf("Draw2DThing");
 #endif
 #endif        i               8      8   ßÿÿÿ   Ýÿÿÿ      	'   öÿÿÿ?   áÿÿÿ
 

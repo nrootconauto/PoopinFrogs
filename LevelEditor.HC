@@ -21,7 +21,7 @@ class CLevelSegment:CQue {
   //<0 for floor
   I16 data[SEGMENT_SZ][SEGMENT_SZ];
   I8 heights[SEGMENT_SZ][SEGMENT_SZ];
-};
+};
 class CLevelThingTemplate:CQue {
   I64 idx;
 //Animation frames will be inserted in ->anim_que
@@ -792,6 +792,8 @@ next:;
 }
 Bool EditDC(U8 *blob,U8 *name,I64 dft_h,I64 dft_w) {
 //TempleOS lexer gets rid of rest of line after #include
+  Bool old_flat=world_edit.flat_mode;
+  world_edit.flat_mode=TRUE;
   PopUpPrint(
         "Cd(\"%Q\");\n"
 	"#include \"TextureEditor.HC\";\n"
@@ -799,6 +801,7 @@ Bool EditDC(U8 *blob,U8 *name,I64 dft_h,I64 dft_w) {
 	__DIR__,
         name,blob,dft_w,dft_h
         );
+  world_edit.flat_mode=old_flat;
 //TODO ensure lump exists
   return TRUE;
 }
