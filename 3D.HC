@@ -670,6 +670,7 @@ I64 *GetTilesInPath(C3DWorld *w,F64 angle,F64 dist) {
   I64 *tiles=MAlloc((dist/GRID_SZ+8)*4*8);
   I64 ptr=0;
   F64 x=w->x,y=w->y,ex,ey,dx,dy,step,i,by,slope,cos,sin,xdist,ydist;
+  F64 res_dist;
   I64 tx=x/GRID_SZ,ty=y/GRID_SZ,idx,old_tx,old_ty,dirx,diry,ix,iy;
   Bool use_x;
   cos=Cos(angle);
@@ -740,8 +741,11 @@ dy_type:
       for(ix=old_tx;TRUE;ix+=dirx) {
         idx=ix+iy*w->world_width;
         if(tiles[ptr-1]!=idx) {
-	  if(PassesThoughBlock(w,slope,ix,iy,NULL,cos,sin))
-	    tiles[ptr++]=idx;
+	  if(PassesThoughBlock(w,slope,ix,iy,&res_dist,cos,sin)) {
+	    if(res_dist<dist) {
+	      tiles[ptr++]=idx;
+	    }
+	  }
         }
         if(ix==tx)
 	  break;
@@ -964,9 +968,9 @@ F64 NormalizeAngle(F64 a) {
 }
 Bool CanSee2DThing(C3DWorld *w,C2DThing *t) {
   Bool ret=TRUE;
-  F64 dist=Sqrt(Sqr(t->x-w->x)+Sqr(t->y-w->y));
+  F64 dist=Sqrt(Sqr(t->x-w->x)+Sqr(t->y-w->y)),rd;
   F64 angle=Arg(t->x-w->x,t->y-w->y);
-  I64 *ti=GetTilesInPath(w,angle,dist+GRID_SZ),idx;
+  I64 *ti=GetTilesInPath(w,angle,dist),idx;
   for(idx=0;ti[idx]!=-1;idx++) {
     if(w->heightmap[ti[idx]]>w->cam_height) {
       ret=FALSE;
