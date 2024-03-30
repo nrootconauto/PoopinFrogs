@@ -66,6 +66,12 @@ U0 InitTables(F64 base,F64 fov) {
   }
 }
 
+class C3DParticle:CQue {
+  F64 x,y,z,born_at;
+  F64 momx,momy,momz;
+  I32 color,size;
+};
+
 #define GRID_SZ 128
 #define THING_RADIUS (GRID_SZ/2)
 #define DIST_SCALE (GR_HEIGHT*GRID_SZ)
@@ -87,8 +93,29 @@ class C3DWorld {
    F64 plane_dist;
    CBlockedView blocked_views[GR_WIDTH][0x80];
    I64 blocked_cnts[GR_WIDTH];
+   CQue particles;
+   I64 particle_cnt;
 };
-
+#define MAX_PARTICLES 64
+U0 NewParticle(C3DWorld *w,I64 color,I64 sz,F64 x,F64 y,F64 z,F64 mx,F64 my,F64 mz) {
+  C3DParticle *p;
+  if(w->particle_cnt>=MAX_PARTICLES) {
+    QueRem(p=w->particles.next);
+    Free(p);
+  }
+  p=MAlloc(sizeof(C3DParticle),w->mem_task);
+  p->color=color;
+  p->size=sz;
+  p->x=x;
+  p->y=y;
+  p->z=z;
+  p->momx=mx;
+  p->momy=my;
+  p->momz=mz;
+  p->born_at=tS;
+  QueIns(p,w->particles.last);
+  w->particle_cnt++;
+}
 #define THINGF_FACE_FORWARD 1
 //These are defined in the blob header.
 U0 C2DThingTemplateDel(C2DThingTemplate *t) {
@@ -127,6 +154,7 @@ C3DWorld *LoadWorldFromFile(U8 *blob_file="ASS",U8 *filename,F64 fov=pi/4) {
   C2DThing *thing;
   C3DWorldManager *man;
   C3DWorldSetFov(ret,fov);
+  QueInit(&ret->particles);
   ret->_2d_things=I64SetNew();
   ret->step_width=4;  
   ret->step_width_y=4;
@@ -948,6 +976,24 @@ Bool CanSee2DThing(C3DWorld *w,C2DThing *t) {
   Free(ti);
   return ret;
 }
+U0 DrawParticle(C3DWorld *w,C3DParticle *p) {
+  I32 dist=Sqrt(Sqr(w->x-p->x)+Sqr(w->y-p->y));
+  I64 x0,y0;
+  F64 h=DIST_SCALE/(1+dist),angle=Arg(p->x-w->x,p->y-w->y);
+  y0=GR_HEIGHT/2-h*((1+p->z)-w->cam_height);
+  if(Sin(angle-w->angle)>0.) {
+    angle=AngleBetween(angle,w->angle);
+    x0=GR_WIDTH/2+angle/((w->fov/GR_WIDTH));
+  } else {
+    angle=AngleBetween(angle,w->angle);
+    x0=GR_WIDTH/2-angle/((w->fov/GR_WIDTH));
+  }
+  h=h/GRID_SZ*p->size;
+  w->to_dc->thick=h;
+  w->to_dc->color=p->color;
+  if(h>=1.)
+    GrPlot3(w->to_dc,x0,y0,dist);
+}
 #define THING_DRAW_CUTOFF GRID_SZ/2
 U0 Draw2DThing(C3DWorld *w,C2DThing *thing) {
   if(thing->no_draw) return;
@@ -1069,6 +1115,16 @@ C3DWorld *w;
 //
 // SmallTalk Section
 //
+CFrogThing *WorldManagerNewParticle(C3DWorldManager *man,...) {
+  F64 x=AsF64(argv[0]);
+  F64 y=AsF64(argv[1]);
+  F64 z=AsF64(argv[2]);
+  F64 spread=AsF64(argv[3]);
+  F64 color=AsF64(argv[4]);
+  NewParticle(w,color,16,x,y,z,spread*(Rand-.5),spread*(Rand-.5),man->gravity);
+}
+FramePtrAdd("C3DWorldManager@newParticleAtX:atY:atZ:withSpread:withColor:",&WorldManagerNewParticle);
+
 //Returns 1. if COLLISION,else 0
 CFrogThing *C2DThingMoveAtAngle(C2DThing *self,...) {
   CFrogThing *dist=argv[0];
@@ -1138,6 +1194,8 @@ w=LoadWorldFromFile(,"Untitled.WORLD");
 #include "UI.HC"
 U0 DrawIt(CTask *t,CDC *dc) {
   CDC *hand_gr;
+  I64 tx,ty;
+  C3DParticle *p,*head,*n;
   CHandItem *hand=FrogSymbol("hand_item")->value;
   dc=DCAlias(dc,t);
   w->to_dc=dc;
@@ -1148,6 +1206,28 @@ U0 DrawIt(CTask *t,CDC *dc) {
   I64 cnt=w->_2d_things->cnt;
   while(--cnt>=0)
       Draw2DThing(w,body[cnt]);
+  head=&w->particles;
+  for(p=head->next;head!=p;p=p->next) {
+    p->x+=p->momx;
+    p->y+=p->momy;
+    p->z+=p->momz;
+    p->momx*=20/30.;
+    p->momy*=20/30.;
+    p->momz-=.2;
+    tx=p->x/GRID_SZ;
+    ty=p->y/GRID_SZ;
+    if(0<=tx<w->world_width)
+      if(0<=ty<w->world_height) {
+	p->z=Max(w->heightmap[tx+ty*w->world_width]-1,p->z);
+      }
+    DrawParticle(w,p);
+    if(tS>1+p->born_at) {
+      n=p->next;
+      QueRem(p);
+      Free(p);
+      w->particle_cnt--;
+    }
+  }
   Free(w->to_dc->depth_buf);
   w->to_dc->depth_buf=NULL;
   if(ThingHasClass(hand,"CHandItem")) {
