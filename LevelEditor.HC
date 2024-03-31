@@ -115,25 +115,6 @@ F64 Lerp(F64 per,F64 min,F64 max) {
   F64 t;
   return Clamp(min+(max-min)*per,Min(min,max),Max(max,min));
 }
-CDC *ScaleDC(CDC *from_dc,I64 w=GRID_SZ,I64 h=GRID_SZ) {
-  I64 x,y,cnt,idx;
-  CDC *ret=CAlloc(((cnt=AnimDCCnt(from_dc))+1)*sizeof(CDC),world_edit.mem_task);
-  CDC *scaled;
-  for(idx=0;idx!=cnt;idx++) {
-    scaled=DCNew(w,h,world_edit.mem_task);
-    for(x=0;x!=w;x++)
-      for(y=0;y!=h;y++) {
-        scaled->color=GrPeek0(from_dc+idx,
-	      ToF64(x)/w*from_dc->width,
-	      ToF64(y)/h*from_dc->height
-        );
-        GrPlot0(scaled,x,y);
-      }
-    MemCpy(ret+idx,scaled,sizeof(CDC));
-    Free(scaled);
-  }
-  return ret;
-}
 CLevelTexture *LoadTexture(CDC *from_dc,I64 idx) {
   I64 len,x;
   I64 greatest=0;
@@ -141,7 +122,7 @@ CLevelTexture *LoadTexture(CDC *from_dc,I64 idx) {
   CLevelTexture *new=CAlloc(sizeof CLevelTexture),*cur;
   if(from_dc) {
     new->orig_dc=AnimDCCopy(from_dc,world_edit.mem_task);
-    scaled=ScaleDC(from_dc);
+    scaled=ScaleDC(from_dc,GRID_SZ,GRID_SZ,world_edit.mem_task);
   } else {
     new->orig_dc=DCNew(128,128,world_edit.mem_task);
     scaled=DCNew(GRID_SZ,GRID_SZ,world_edit.mem_task);
@@ -483,13 +464,13 @@ CLevelThingTemplate *CreateNewThingTemplate(I64 idx) {
   DCFill(template->back_orig_dc,TRANSPARENT);
   template->side_dc=ScaleDC(template->side_orig_dc,
 	THING_WIDTH_SCALED,
-	THING_HEIGHT_SCALED);
+	THING_HEIGHT_SCALED,world_edit.mem_task);
   template->back_dc=ScaleDC(template->back_orig_dc,
 	THING_WIDTH_SCALED,
-	THING_HEIGHT_SCALED);
+	THING_HEIGHT_SCALED,world_edit.mem_task);
   template->front_dc=ScaleDC(template->front_orig_dc,
 	THING_WIDTH_SCALED,
-	THING_HEIGHT_SCALED);
+	THING_HEIGHT_SCALED,world_edit.mem_task);
   template->idx=idx;
   QueIns(template,&world_edit.thing_templates_que);
   world_edit.thing_templates[idx]=template;
@@ -837,7 +818,7 @@ enter:;
       AnimDCDel(template->front_dc);
       template->front_dc=ScaleDC(template->front_orig_dc,
 	    THING_WIDTH_SCALED,
-	    THING_HEIGHT_SCALED);
+	    THING_HEIGHT_SCALED,world_edit.mem_task);
       break;
     case 3:
 //Back
@@ -846,7 +827,7 @@ enter:;
       template->back_orig_dc=LoadGr(blob,template->blob_back_name);
       template->back_dc=ScaleDC(template->back_orig_dc,
 	    THING_WIDTH_SCALED,
-	    THING_HEIGHT_SCALED);
+	    THING_HEIGHT_SCALED,world_edit.mem_task);
       break;
     case 4:
 //Side
@@ -855,7 +836,7 @@ enter:;
       template->side_orig_dc=LoadGr(blob,template->blob_side_name);
       template->side_dc=ScaleDC(template->side_orig_dc,
 	    THING_WIDTH_SCALED,
-	    THING_HEIGHT_SCALED);
+	    THING_HEIGHT_SCALED,world_edit.mem_task);
       break;
     case 5:
 //Use front for all sides
@@ -1050,13 +1031,13 @@ U0 LoadWorld(U8 *blob,U8 *filename) {
     StrCpy(template->blob_back_name,f_template->blob_back_name);
     template->side_dc=ScaleDC(template->side_orig_dc,
 	  THING_WIDTH_SCALED,
-	  THING_HEIGHT_SCALED);
+	  THING_HEIGHT_SCALED,world_edit.mem_task);
     template->back_dc=ScaleDC(template->back_orig_dc,
 	  THING_WIDTH_SCALED,
-	  THING_HEIGHT_SCALED);
+	  THING_HEIGHT_SCALED,world_edit.mem_task);
     template->front_dc=ScaleDC(template->front_orig_dc,
 	  THING_WIDTH_SCALED,
-	  THING_HEIGHT_SCALED);
+	  THING_HEIGHT_SCALED,world_edit.mem_task);
     StrCpy(template->name,f_template->name);
     f_template++;
   }
@@ -1172,7 +1153,7 @@ U0 WorldEdit(U8 *blob,U8 *filename=NULL) {
         EditDC(blob,texture->floor_blob_name,128,128);
       texture->orig_dc=LoadGr(blob,texture->floor_blob_name);
       AnimDCDel(texture->dc);
-      texture->dc=ScaleDC(texture->orig_dc);
+      texture->dc=ScaleDC(texture->orig_dc,GRID_SZ,GRID_SZ,world_edit.mem_task);
       world_edit.edit_texture=NULL;
     }
     if(str=world_edit.edit_thing_template) {

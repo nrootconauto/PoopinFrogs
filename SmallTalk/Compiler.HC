@@ -195,6 +195,8 @@ Bool STIsSelfMember(CLocals *who,U8 *name) {
 CFrogThing **BungisReduce(CFrogThing *self,U64 *s) {
   if(*s&0xffFF==FROG_SMALL_MEMBER_PTR) {
     self=FrogUnSuper(self);
+    while(Bt(&self->thing_flags,THINGf_GC_LOCK))
+      Yield;
     return self(U8*)+*s>>32;
   }
   return s;
@@ -525,6 +527,7 @@ U0 STRepl(U8 *dft="",Bool interactive=TRUE) {
       ExePutS2(str);
       Free(str);
       DocDel(doc);
+      FrogGarbageCollect(FROG_SMALL_NIL);
     }
 skip:;
   }

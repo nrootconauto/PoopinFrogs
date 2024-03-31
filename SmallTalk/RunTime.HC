@@ -57,7 +57,7 @@ U0 AddClassMethod(U8 *cls,U8 *name,U8 *fptr) {
 }
 
 
-extern U0 ThingDel(CFrogThing *thing);
+extern U0 ThingDel(CFrogThing *thing,Bool actual=FALSE);
 extern F64 AsF64(CFrogThing *t);
 extern U32 AsChar(CFrogThing *t);
 extern CFrogThing *ToFrogNum(F64 n);
@@ -407,7 +407,6 @@ CFrogThing *FrogStrNew(U8 *s) {
 
 CFrogThing *CallScriptFast(U8 *key1,U8 *key2,CFrogThing *self,...) {
   U8 *cn=FrogThingClassName(self);
-  U8 *full=NULL;
   CFrogThing *(*fun_ptr)(CFrogThing *,...);
   CFrogThing *ret=NULL;
   CFastLookupKey *k;
@@ -431,7 +430,6 @@ CFrogThing *CallScriptFast(U8 *key1,U8 *key2,CFrogThing *self,...) {
     cls=cls->base_class;
   }
 fin:
-  Free(full);
   if(!ret)
     ret=FROG_SMALL_NIL;
   return ret;
@@ -1038,14 +1036,16 @@ CFrogThing *FrogWhileFalse(CFrogBlock *self,...) {
 }
 AddMethod("CFrogBlock","whileFalse:",&FrogWhileFalse);
 
-U0 ThingDel(CFrogThing *thing) {
+extern U0 FrogGarbageCollect(CFrogThing *root);
+U0 ThingDel(CFrogThing *thing,Bool actual=FALSE) {
+//Nroot needs to adjsut "Free'ing" on the fly
+  if(!actual) return;
   U8 *del;
   I64 idx;
   CLocalsGeneric *g,*parent;
   if(!thing||thing&1) return; //bit 0 is set for special "SMALL" type
   if(--thing->ref_cnt<=0) {
     if(thing->thing_flags&THINGF_FRAME_TYPE) {
-//TODOfree contents
       g=thing;
       QueRem(thing);
       idx=g->item_cnt;
@@ -1078,12 +1078,20 @@ CFrogUndefined *FrogNil() {
 U0 FrogGarbageCollectThing(CFrogThing *root) {
   if(!root||root&1) return; //bit 0 is set for special "small" values
   I64 idx;
+  CLocalsGeneric *g,*p;
   CFrogThing **body,dummy;
   CHashClass *cls,*cls2;
   CMemberLst *mlst;
-  root->ref_cnt++;
-  root->thing_flags&=~THINGF_TO_DELETE;
+  lock root->shadow_ref_cnt++;
+  if(LBts(&root->thing_flags,THINGf_GC_LOCK))
+    return;
+  LBtr(&root->thing_flags,THINGf_TO_DELETE);
   if(ThingHasClass(root,"CFrogFrame")) {
+    g=root;
+    idx=g->item_cnt;
+    while(--idx>=0) {
+      FrogGarbageCollectThing(g->body[idx]); 
+    }
     FrogGarbageCollectThing(root(CLocalsGeneric*)->parent);
   } else if(ThingHasClass(root,"CFrogArray")) {
     body=root(CFrogArray*)->items->body;
@@ -1116,18 +1124,25 @@ U0 FrogGarbageCollect(CFrogThing *root=FROG_SMALL_NIL) {
   CFrogThing *head=&allocs_head,*cur,*next;
   for(cur=head->next;cur!=head;cur=cur->next) {
     if(!ThingHasClass(cur,"CFrogSymbol")) {
-      cur->thing_flags|=THINGF_TO_DELETE;
-      cur->ref_cnt=0;
+      LBts(&cur->thing_flags,THINGf_TO_DELETE);
+      cur->shadow_ref_cnt=0;
     }
   } 
+  for(cur=head->next;cur!=head;cur=cur->next) {
+    if(ThingHasClass(cur,"CFrogSymbol")) {
+      FrogGarbageCollectThing(cur(CFrogSymbol*)->value);
+    }
+  }
   FrogGarbageCollectThing(root);
   for(cur=head->next;cur!=head;cur=next) {
     next=cur->next;
-    if(!ThingHasClass(cur,"CFrogSymbol"))
-      FrogGarbageCollectThing(cur);
-    else if(cur->thing_flags&THINGF_TO_DELETE) {
+    if(ThingHasClass(cur,"CFrogSymbol")) {
+    } else if(LBtr(&cur->thing_flags,THINGf_TO_DELETE)) {
       cur->ref_cnt=1;
-      ThingDel(cur);
+      ThingDel(cur,TRUE);
+    } else {
+      lock cur->ref_cnt=cur->shadow_ref_cnt;
+      LBtr(&cur->thing_flags,THINGf_GC_LOCK);
     }
   }
 }

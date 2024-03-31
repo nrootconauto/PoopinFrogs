@@ -17,7 +17,7 @@ class CFrogChr:CFrogThing {
 };
 class CFrogBlock:CFrogThing {
   CFrogThing *self;
-  U8 *frame;
+  CFrogThing *frame;
   U8 (*fun_ptr)(CFrogThing *self,U8 *);//CSTFrame
   U8 *destroy dft "FrogBlockDel";
 };
@@ -194,6 +194,7 @@ class CHandItem:CFrogThing {
   I64  xoff,yoff;
   I64 ammo;
   F64 timeout;
+  CUIGridItem *inventory_item;
   CFrogBlock *on_click;
 };
 

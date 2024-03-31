@@ -89,4 +89,24 @@ CDC *AnimDCResize(CDC *copy,I64 w,I64 h,I64 cx=0,I64 cy=0,CTask *mem_task=NULL) 
   Free(heap);
   return ret;
 }
+CDC *ScaleDC(CDC *from_dc,I64 w,I64 h,CTask *mem_task=NULL) {
+  I64 x,y,cnt,idx;
+  CDC *ret=CAlloc(((cnt=AnimDCCnt(from_dc))+1)*sizeof(CDC),mem_task);
+  CDC *scaled;
+  for(idx=0;idx!=cnt;idx++) {
+    scaled=DCNew(w,h,mem_task);
+    for(x=0;x!=w;x++)
+      for(y=0;y!=h;y++) {
+        scaled->color=GrPeek0(from_dc+idx,
+	      ToF64(x)/w*from_dc->width,
+	      ToF64(y)/h*from_dc->height
+        );
+        GrPlot0(scaled,x,y);
+      }
+    MemCpy(ret+idx,scaled,sizeof(CDC));
+    Free(scaled);
+  }
+  return ret;
+}
+
 #endif

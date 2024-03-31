@@ -1,7 +1,10 @@
 class CFrogThing:CQue {
 #define THINGF_TO_DELETE 1
 #define THINGF_FRAME_TYPE 2
-  I32 thing_flags,pad;
+#define THINGF_GC_LOCK 4
+#define THINGf_TO_DELETE 0
+#define THINGf_GC_LOCK 2
+  I32 thing_flags,shadow_ref_cnt;
   I32 id,ref_cnt;
   U8 class_name[STR_LEN];
 };
@@ -23,7 +26,7 @@ class CFrogChr:CFrogThing {
 };
 class CFrogBlock:CFrogThing {
   CFrogThing *self;
-  U8 *frame;
+  CFrogThing *frame;
   U8 (*fun_ptr)(CFrogThing *self,U8 *,...);//CSTFrame
 };
 #ifndef CI64Set 

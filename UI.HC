@@ -223,7 +223,7 @@ pass:
 	        FrogIncRefCnt(update),
 	        FrogNumNew(m1-x),
 	        FrogNumNew(m2-y),
-	        got
+	        drag
 	        ));
 	  FramePtrDel(UI_GRID_DRAG_FPTR);
 	  ret_code=TRUE;
@@ -554,6 +554,25 @@ U0 UICenterDraw(CDC *dc,I64 xoff,I64 yoff,CUICenter *center) {
 //
 #define UI_GRID_WIDTH 32
 #define UI_GRID_PAD 8
+CFrogThing *UIGridItemSetGr(CUIGridItem *self,...) {
+  CFrogStr *who=argv[0];
+  U8 *name=AsString(who),*l;
+  CDC *raw;
+  l=BlobFileGetLump("ASS",name);
+  if(self->graphics) AnimDCDel(self->graphics);
+  raw=AnimDCLoad(l);
+  self->graphics=ScaleDC(raw,24,24,frog_mem_task);
+  Free(l);
+  Free(name);
+  AnimDCDel(raw);
+  ThingDel(who);
+  return FROG_SMALL_NIL;
+}
+AddMethod("CUIGridItem","setGraphics:",&UIGridItemSetGr);
+U0 UIGridItemDel(CUIGridItem *i) {
+  AnimDCDel(i->graphics);
+  Free(i);
+}
 U0 UIGridItemDraw(CDC *dc,I64 x,I64 y,CUIGridItem *self) {
   U8 *str;
   if(ThingHasClass(self->parent,"CUIGrid"))
