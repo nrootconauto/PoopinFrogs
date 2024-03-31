@@ -472,7 +472,7 @@ C2DThing *BumpsIntoThing(C2DThing *self,...) {
     return FrogNumNew(1);
   return FrogNumNew(0);
 } 
-FramePtrAdd("C2DThing@hitsThing:");
+AddMethod("C2DThing","hitsThing:",&BumpsIntoThing);
 //Returns true on wall hit
 Bool C3DWorldMoveWithCollision(C3DWorld *w,F64 angle,F64 dist,F64 *x,F64 *y,Bool walk_along_wall=TRUE,I64 height=0) {
   F64 dist2;
@@ -1127,7 +1127,7 @@ CFrogThing *WorldManagerNewParticle(C3DWorldManager *man,...) {
   F64 color=AsF64(argv[4]);
   NewParticle(w,color,16,x,y,z,spread*(Rand-.5),spread*(Rand-.5),man->gravity);
 }
-FramePtrAdd("C3DWorldManager@newParticleAtX:atY:atZ:withSpread:withColor:",&WorldManagerNewParticle);
+AddMethod("C3DWorldManager","newParticleAtX:atY:atZ:withSpread:withColor:",&WorldManagerNewParticle);
 
 //Returns 1. if COLLISION,else 0
 CFrogThing *C2DThingMoveAtAngle(C2DThing *self,...) {
@@ -1140,7 +1140,7 @@ fin:
   ThingDel(angle);
   return FrogNumNew(hit_wall);
 }
-FramePtrAdd("C2DThing@move:atAngle:",&C2DThingMoveAtAngle);
+AddMethod("C2DThing","move:atAngle:",&C2DThingMoveAtAngle);
 
 CFrogThing *WorldManagerWidth(C3DWorldManager *self,...) {
   return FrogNumNew(self->world_handle(C3DWorld*)->world_width);
@@ -1148,8 +1148,8 @@ CFrogThing *WorldManagerWidth(C3DWorldManager *self,...) {
 CFrogThing *WorldManagerHeight(C3DWorldManager *self,...) {
   return FrogNumNew(self->world_handle(C3DWorld*)->world_height);
 }
-FramePtrAdd("C3DWorldManager@width",&WorldManagerWidth);
-FramePtrAdd("C3DWorldManager@height",&WorldManagerHeight);
+AddMethod("C3DWorldManager","width",&WorldManagerWidth);
+AddMethod("C3DWorldManager","height",&WorldManagerHeight);
 CFrogThing *WorldManagerTileHeightAtXAtY(C3DWorldManager *self,...) {
   I64 x=AsF64(argv[0]);
   I64 y=AsF64(argv[1]);
@@ -1160,7 +1160,7 @@ CFrogThing *WorldManagerTileHeightAtXAtY(C3DWorldManager *self,...) {
     }
   return FrogNumNew(I16_MAX);
 }
-FramePtrAdd("C3DWorldManager@tileHeightAtX:atY:",&WorldManagerTileHeightAtXAtY);
+AddMethod("C3DWorldManager","tileHeightAtX:atY:",&WorldManagerTileHeightAtXAtY);
 CFrogThing *HandItemSetGr(CHandItem *self,...) {
   U8 *name=AsString(argv[0]);
   U8 *grl=BlobFileGetLump("ASS.BLOB",name);
@@ -1174,7 +1174,7 @@ CFrogThing *HandItemSetGr(CHandItem *self,...) {
   Free(name);
   return FROG_SMALL_NIL;
 }
-FramePtrAdd("CHandItem@setGraphics:",&HandItemSetGr);
+AddMethod("CHandItem","setGraphics:",&HandItemSetGr);
 CFrogThing *ThingCanSeeThing(C2DThing *self,...) {
   F64 old_x=w->x,old_y=w->y,old_z=w->cam_height;
   CFrogThing *ret;
@@ -1189,7 +1189,7 @@ CFrogThing *ThingCanSeeThing(C2DThing *self,...) {
   ThingDel(other);
   return ret;
 }
-FramePtrAdd("C2DThing@canSeeThing:",&ThingCanSeeThing);
+AddMethod("C2DThing","canSeeThing:",&ThingCanSeeThing);
 //
 // Test section
 //

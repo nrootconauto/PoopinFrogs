@@ -293,7 +293,10 @@ pass:
         CompileAST(doc,cur,locals,stack_depth+1+idx);
         cur=cur->next;
       }
-      DocPrint(doc,"  retval=CallScript(\"%Q\",%s\n",ast->op_name,StackFrame2Var(stack_depth));
+      DocPrint(doc,"  retval=CallScriptFast(\n");
+      DocPrint(doc,"#exe{ExeKey2StringLiteral(\"%s\");},\n",ast->op_name);
+      DocPrint(doc,"#exe{ExeKey2StringLiteral(\".%s\");},\n",ast->op_name);
+      DocPrint(doc,"%s\n",StackFrame2Var(stack_depth));
       for(idx=0;idx<cnt;idx++) {
 	DocPrint(doc,",");
 	DocPrint(doc,"%s",StackFrame2Var(stack_depth+1+idx));
@@ -462,9 +465,9 @@ U0 CompileToHolyC(U8 *src,U8 *class_name,U8 *src_path=NULL,Bool class_method=FAL
   DocPrint(doc,"  return retval;\n");
   DocPrint(doc,"};\n");
   if(!class_method) {
-    DocPrint(doc,"FramePtrAdd(\"%Q@%Q\",&%s);",class_name,m->name,fun_name);
+    DocPrint(doc,"AddMethod(\"%Q\",\"%Q\",&%s);",class_name,m->name,fun_name);
   } else {
-    DocPrint(doc,"FramePtrAdd(\".%Q@%Q\",&%s);",class_name,m->name,fun_name);
+    DocPrint(doc,"AddClassMethod(\"%Q\",\"%Q\",&%s);",class_name,m->name,fun_name);
   }
   ret=DocSave(doc);
   ExePutS(ret);

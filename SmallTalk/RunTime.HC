@@ -3,6 +3,7 @@ $BK,0$
 #include "Parser.HC";
 #include "RunTime.HH";
 #include "Set.HC";
+#include "FastLookup.HC";
 //MAlloc'ed variables are aligned  to 8 0b1000,so we set bit 0 for "Small Var"
 #define FROG_SMALL_NUM 0b1
 #define FROG_SMALL_NIL 0b11
@@ -45,6 +46,17 @@ class CFrogSuper:CFrogThing {
 CTask *frog_mem_task=Fs;
 CQue allocs_head;
 QueInit(&allocs_head);
+
+U0 AddMethod(U8 *cls,U8 *name,U8 *fptr) {
+  FastLookupAddValue(name,fptr,cls);
+}
+U0 AddClassMethod(U8 *cls,U8 *name,U8 *fptr) {
+  name=MStrPrint(".%s",name);
+  FastLookupAddValue(name,fptr,cls);
+  Free(name);
+}
+
+
 extern U0 ThingDel(CFrogThing *thing);
 extern F64 AsF64(CFrogThing *t);
 extern U32 AsChar(CFrogThing *t);
@@ -393,38 +405,72 @@ CFrogThing *FrogStrNew(U8 *s) {
   return str;
 }
 
-
-CFrogThing *CallScript(U8 *name,CFrogThing *self,...) {
+CFrogThing *CallScriptFast(U8 *key1,U8 *key2,CFrogThing *self,...) {
   U8 *cn=FrogThingClassName(self);
-  U8 *full;
+  U8 *full=NULL;
   CFrogThing *(*fun_ptr)(CFrogThing *,...);
   CFrogThing *ret=NULL;
+  CFastLookupKey *k;
   CHashClass *cls=HashFind(cn,frog_mem_task->hash_table,HTT_CLASS);
   if(ThingHasClass(self,"CFrogClass")) {
     cls=HashFind(self(CFrogClass*)->name,frog_mem_task->hash_table,HTT_CLASS);
     while(!ret&&cls) {
-      full=MStrPrint(".%s@%s",cls->str,name);
-      if(fun_ptr=FramePtr(full)) {
+      if(fun_ptr=FastLookupGet(key2,cls->str)) {
         ret=CallVaArgs(fun_ptr,argc,argv,self);
-        Free(full);
 	break;
       }
       cls=cls->base_class;
-      Free(full);
     }
     goto fin;
   }
   while(!ret&&cls) {
-    full=MStrPrint("%s@%s",cls->str,name);
-    if(fun_ptr=FramePtr(full)) {
-     ret=CallVaArgs(fun_ptr,argc,argv,self);
-      Free(full);
+    if(fun_ptr=FastLookupGet(key1,cls->str)) {
+      ret=CallVaArgs(fun_ptr,argc,argv,self);
       break;
     }
     cls=cls->base_class;
-    Free(full);
   }
 fin:
+  Free(full);
+  if(!ret)
+    ret=FROG_SMALL_NIL;
+  return ret;
+}
+
+
+
+CFrogThing *CallScript(U8 *name,CFrogThing *self,...) {
+  U8 *cn=FrogThingClassName(self);
+  U8 *full=NULL;
+  CFrogThing *(*fun_ptr)(CFrogThing *,...);
+  CFrogThing *ret=NULL;
+  CFastLookupKey *k;
+  CHashClass *cls=HashFind(cn,frog_mem_task->hash_table,HTT_CLASS);
+  full=MStrPrint(".%s",name);
+  k=FastLookupKeyNew(full);
+  if(ThingHasClass(self,"CFrogClass")) {
+    cls=HashFind(self(CFrogClass*)->name,frog_mem_task->hash_table,HTT_CLASS);
+    while(!ret&&cls) {
+      if(fun_ptr=FastLookupGet(k,cls->str)) {
+        ret=CallVaArgs(fun_ptr,argc,argv,self);
+	break;
+      }
+      cls=cls->base_class;
+    }
+    goto fin;
+  }
+  Free(k);
+  k=FastLookupKeyNew(name);
+  while(!ret&&cls) {
+    if(fun_ptr=FastLookupGet(k,cls->str)) {
+      ret=CallVaArgs(fun_ptr,argc,argv,self);
+      break;
+    }
+    cls=cls->base_class;
+  }
+fin:
+  Free(k);
+  Free(full);
   if(!ret)
     ret=FROG_SMALL_NIL;
   return ret;
@@ -644,7 +690,7 @@ U0 ConstructBuiltin(U8 *code,U8 *type,U8 *name,...) {
   }
   StreamPrint("return ret;\n");
   StreamPrint("};\n");
-  StreamPrint("FramePtrAdd(\"%Q@%Q\",&%s);\n",type,name,uniq);
+  StreamPrint("AddMethod(\"%Q\",\"%Q\",&%s);\n",type,name,uniq);
 };
 #exe {
 //Object
@@ -731,11 +777,11 @@ CFrogThing *FrogBlockValue(CFrogBlock *s,...) {
 }
 
 #exe {
-  StreamPrint("FramePtrAdd(\"CFrogBlock@value\",&FrogBlockValue);\n");
+  StreamPrint("AddMethod(\"CFrogBlock\",\"value\",&FrogBlockValue);\n");
   //args are delegated to block's code
   I64 i,j;
   for (i=1;i<=5;++i) {
-    StreamPrint("FramePtrAdd(\"CFrogBlock@");
+    StreamPrint("AddMethod(\"CFrogBlock\",\"");
     for (j=0;j<i;++j)
       StreamPrint("value:");
     StreamPrint("\",&FrogBlockValue);\n");
@@ -759,7 +805,7 @@ CFrogThing *FrogBlockOnDo(CFrogBlock *self,...) {
   ThingDel(err_class);
   return ret;
 }
-FramePtrAdd("CFrogBlock@on:do:",&FrogBlockOnDo);
+AddMethod("CFrogBlock","on:do:",&FrogBlockOnDo);
 
 
 CFrogThing *FrogIfTrue(CFrogNum *self,...) {
@@ -780,7 +826,7 @@ CFrogThing *FrogIfTrue(CFrogNum *self,...) {
   ThingDel(cond);
   return ret;
 }
-FramePtrAdd("CFrogNum@ifTrue:",&FrogIfTrue);
+AddMethod("CFrogNum","ifTrue:",&FrogIfTrue);
 
 CFrogThing *FrogIfFalse(CFrogNum *self,...) {
   CFrogBlock *cond=argv[0];
@@ -800,7 +846,7 @@ CFrogThing *FrogIfFalse(CFrogNum *self,...) {
   ThingDel(cond);
   return ret;
 }
-FramePtrAdd("CFrogNum@ifFalse:",&FrogIfFalse);
+AddMethod("CFrogNum","ifFalse:",&FrogIfFalse);
 
 CFrogThing *FrogIfTrueIfFalse(CFrogNum *self,...) {
   CFrogBlock *cond=argv[0];
@@ -825,7 +871,7 @@ CFrogThing *FrogIfTrueIfFalse(CFrogNum *self,...) {
   ThingDel(cond2);
   return ret;
 }
-FramePtrAdd("CFrogNum@ifTrue:ifFalse:",&FrogIfTrueIfFalse);
+AddMethod("CFrogNum","ifTrue:ifFalse:",&FrogIfTrueIfFalse);
 
 CFrogThing *FrogThingShow(CFrogStr *self,...) {
   I64 attempt;
@@ -872,7 +918,7 @@ CFrogThing *FrogThingShow(CFrogStr *self,...) {
   }
   return FROG_SMALL_NIL;
 }
-FramePtrAdd("CFrogThing@show",&FrogThingShow);
+AddMethod("CFrogThing","show",&FrogThingShow);
 
 
 CFrogThing *FrogNumTimesRepeat(CFrogNum *self,...) {
@@ -898,7 +944,7 @@ CFrogThing *FrogNumTimesRepeat(CFrogNum *self,...) {
   ThingDel(block);
   return ret;
 }
-FramePtrAdd("CFrogNum@timesRepeat:",&FrogNumTimesRepeat);
+AddMethod("CFrogNum","timesRepeat:",&FrogNumTimesRepeat);
 
 
 CFrogThing *FrogWhileTrue(CFrogBlock *self,...) {
@@ -944,7 +990,7 @@ on_true:
   ThingDel(pass);
   return ret;
 }
-FramePtrAdd("CFrogBlock@whileTrue:",&FrogWhileTrue);
+AddMethod("CFrogBlock","whileTrue:",&FrogWhileTrue);
 
 
 CFrogThing *FrogWhileFalse(CFrogBlock *self,...) {
@@ -990,7 +1036,7 @@ CFrogThing *FrogWhileFalse(CFrogBlock *self,...) {
   ThingDel(pass);
   return ret;
 }
-FramePtrAdd("CFrogBlock@whileFalse:",&FrogWhileFalse);
+AddMethod("CFrogBlock","whileFalse:",&FrogWhileFalse);
 
 U0 ThingDel(CFrogThing *thing) {
   U8 *del;
@@ -1138,7 +1184,7 @@ CFrogThing *FrogThingNew(CFrogClass *cls,...) {
 fin:
   return t;
 }
-FramePtrAdd(".CFrogThing@basicNew",&FrogThingNew);
+AddClassMethod("CFrogThing","basicNew",&FrogThingNew);
 
 CFrogNum *FrogHasClass(CFrogClass *self,...) {
   CFrogClass *c=argv[0];
@@ -1149,14 +1195,14 @@ CFrogNum *FrogHasClass(CFrogClass *self,...) {
   ThingDel(c);
   return ret;
 }
-FramePtrAdd("CFrogThing@hasClass:",&FrogHasClass);
+AddMethod("CFrogThing","hasClass:",&FrogHasClass);
 
 
 CFrogStr *FrogClassName(CFrogClass *cls,...) {
   return FrogStrNew(cls->name);
 }
 //This is a class method
-FramePtrAdd(".CFrogThing@name",&FrogClassName);
+AddClassMethod("CFrogThing","name",&FrogClassName);
 
 
 
@@ -1212,7 +1258,7 @@ CFrogThing *FrogBlobFileOpen(CFrogBlobFile *f,...) {
   ThingDel(name);
   return FROG_SMALL_NIL;
 }
-FramePtrAdd("CFrogBlobFile@open:",&FrogBlobFileOpen);
+AddMethod("CFrogBlobFile","open:",&FrogBlobFileOpen);
 CFrogThing *FrogBlobFileReadLump(CFrogBlobFile *f,...) {
   CFrogStr *lump=argv[0];
   U8 *blob_name=AsString(f->filename),*lump_name=AsString(lump);
@@ -1228,15 +1274,15 @@ CFrogThing *FrogBlobFileReadLump(CFrogBlobFile *f,...) {
   Free(lump_name);
   Free(blob_name);
   return ret;
-}
-FramePtrAdd("CFrogBlobFile@readLump:",&FrogBlobFileReadLump);
+} 
+AddMethod("CFrogBlobFile","readLump:",&FrogBlobFileReadLump);
 
 CFrogThing *FrogTimeNow(CFrogThing *ul,...) {
   CFrogTime *t=ConstructThing("CFrogTime");
   t->ts=FrogNumNew(tS);
   return t;
 }
-FramePtrAdd(".CFrogTime@now",&FrogTimeNow);
+AddClassMethod("CFrogTime","now",&FrogTimeNow);
 
 
 U0 FrogBinDel(CFrogBin *bin) {
