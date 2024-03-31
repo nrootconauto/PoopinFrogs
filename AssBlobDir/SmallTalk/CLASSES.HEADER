@@ -15,7 +15,7 @@ class CFrogClass:CFrogThing {
 class CFrogChr:CFrogThing {
   U64 ch;
 };
-class CFrogBlock:CFrogThing {
+class CFrogBlock:CFrogThing {
   CFrogThing *self;
   CFrogThing *frame;
   U8 (*fun_ptr)(CFrogThing *self,U8 *);//CSTFrame

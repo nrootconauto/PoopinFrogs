@@ -1199,6 +1199,7 @@ AddMethod("C2DThing","canSeeThing:",&ThingCanSeeThing);
 //
 #ifdef TEST_3D
 #include "UI.HC"
+DocClear;
 w=LoadWorldFromFile(,"Untitled.WORLD");
 U0 DrawIt(CTask *t,CDC *dc) {
   CDC *hand_gr;
@@ -1258,7 +1259,6 @@ U0 WalkAround() {
   CUIElem *ui_root=FrogSymbol("ui_root")->value;
   WinMax;
   WinBorder;
-  DocClear;
   Fs->draw_it=&DrawIt;
   w->x=x,w->y=y;
   w->cam_height=.8;
