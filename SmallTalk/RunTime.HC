@@ -1044,6 +1044,9 @@ U0 ThingDel(CFrogThing *thing,Bool recurse=TRUE) {
   U8 *del;
   I64 idx;
   CLocalsGeneric *g,*parent;
+  CFrogThing **f,dummy;
+  CMemberLst *mlst;
+  CHashClass *cls;
   if(!thing||thing&1) return; //bit 0 is set for special "SMALL" type
   if(--thing->ref_cnt==0) {
     if(thing->thing_flags&THINGF_FRAME_TYPE) {
@@ -1071,10 +1074,32 @@ U0 ThingDel(CFrogThing *thing,Bool recurse=TRUE) {
     if(del=GetClassMemberValI64(thing,"destroy")) {
       if(HashFind(del,frog_mem_task->hash_table,HTT_FUN))
         CallExtStr(del,thing);
-      else
+      else {
+normal:
+        if(recurse) {
+	  cls=HashFind(thing->class_name,frog_mem_task->hash_table,HTT_CLASS);
+	  MemSet(&dummy,0,sizeof CFrogThing);
+	  while(cls) {
+	    mlst=cls->member_lst_and_root;
+	    while(mlst) {
+	      if(mlst->member_class->ptr_stars_cnt==1) {
+	        StrCpy(dummy.class_name,mlst->member_class[-1].str);
+	        if(ThingHasClass(&dummy,"CFrogThing")) {
+		  idx=mlst->dim.total_cnt;
+		  f=thing(U8*)+mlst->offset;
+		  while(--idx>=0)
+		    ThingDel(f[idx]);
+	        }
+	      }
+	        mlst=mlst->next;
+	    }
+	      cls=cls->base_class;
+	  }
+        }
         Free(thing);
+      }
     } else
-      Free(thing);
+      goto normal;
   }
   if(thing->ref_cnt<0) throw('asdas');
 }
