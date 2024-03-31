@@ -804,7 +804,7 @@ ent:
       dist*=cos2_lookup_table[x];
       h=DIST_SCALE/dist;
 //Color the floor tile
-      if(height_cap<=0.) {
+      if(height_cap<=w->cam_height) {
         FindRayWall(w,
 	      tan_lookup_table[x],
 	      cos_lookup_table[x],
@@ -814,7 +814,7 @@ ent:
 	      &side,
 	      I8_MIN,
 	      idx,
-	      TRUE //Far side of tile
+	      TRUE //Far side of tile
 	      );
         dist2*=cos2_lookup_table[x];
         h2=DIST_SCALE/(dist2+1);
@@ -1175,6 +1175,10 @@ CFrogThing *HandItemSetGr(CHandItem *self,...) {
   return FROG_SMALL_NIL;
 }
 AddMethod("CHandItem","setGraphics:",&HandItemSetGr);
+U0 HandItemDel(CHandItem *i) {
+  DCDel(i->gr);
+  Free(i);
+}
 CFrogThing *ThingCanSeeThing(C2DThing *self,...) {
   F64 old_x=w->x,old_y=w->y,old_z=w->cam_height;
   CFrogThing *ret;
@@ -1244,7 +1248,7 @@ U0 DrawIt(CTask *t,CDC *dc) {
   DCDel(dc);
 }
 U0 WalkAround() {
-  I64 c,ch=0,sc=0,m1,m2,msg;
+  I64 c,ch=0,sc=0,m1,m2,msg,jump=FALSE;
   F64 mouse_angle;
   F64 x=9*GRID_SZ,y=5*GRID_SZ;
   Bool up=FALSE,down=FALSE,right=FALSE,left=FALSE;
@@ -1275,6 +1279,7 @@ U0 WalkAround() {
 	        case CH_ESC:
 	        case CH_SHIFT_ESC:
 		  goto en;
+		case ' ': jump=TRUE; break;
 	        case 'w': up=TRUE; break;
 	        case 'a': left=TRUE; break;
 	        case 's': down=TRUE; break;
@@ -1296,6 +1301,10 @@ U0 WalkAround() {
 	        case 'd': right=FALSE; break;
 	      }
         }
+      if (jump) {
+         CallScript("jump",player);
+         jump=FALSE;
+      }
       if (up)
         C2DThingMoveAtAngle(player,
 	      FrogNumNew(GRID_SZ/4),

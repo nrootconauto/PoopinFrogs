@@ -173,7 +173,7 @@ class C2DThingTemplate:CFrogThing {
 };
 class C2DThing:CFrogThing {
   C2DThingTemplate *template;
-  F64 x,y,z,angle,health;
+  F64 x,y,z,angle,health;
   F64 momx,momy,momz,animation_start_tS;
   Bool no_draw,animation_no_repeat,pad[6];
 };
@@ -189,6 +189,7 @@ class C3DWorldManager:CFrogThing {
 
 class CHandItem:CFrogThing {
   CDC *gr;
+  U8 *destroy dft "HandItemDel";
   I64  x,y;
   I64  xoff,yoff;
   I64 ammo;
