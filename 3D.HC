@@ -96,6 +96,7 @@ class C3DWorld {
    CQue particles;
    I64 particle_cnt;
 };
+extern U0 Draw2DThing(C3DWorld *w,C2DThing *thing);
 #define MAX_PARTICLES 64
 U0 NewParticle(C3DWorld *w,I64 color,I64 sz,F64 x,F64 y,F64 z,F64 mx,F64 my,F64 mz) {
   C3DParticle *p;
@@ -1007,12 +1008,13 @@ U0 Draw2DThing(C3DWorld *w,C2DThing *thing) {
   CDC *dc=w->to_dc;
   F64 x=thing->x-w->x,y=thing->y-w->y;
   F64 off=thing->angle-w->angle+pi,angle,diff,gap;
-  F64 y0,h,width,x0,cx,cy,;
+  F64 y0,h,width,x0,cx,cy,vis_h;
   I32 dist=Sqrt(Sqr(x)+Sqr(y));
   CDC *use_dc;
   I64 dc_w=dc->width,frame=ToI64((tS-thing->animation_start_tS)/ANIM_DELAY);
   I64 to_x,to_y;
   I64 line,col,face,cnt;
+  F64 wall_height_ratio;
   U8 *src_ptr,*y_line;
   U16 *dst;
 
@@ -1059,9 +1061,18 @@ draw:
   else
     dist*=Cos(angle-w->angle);
 //Draw Starting from bottom of wall
-  h=Clamp(DIST_SCALE/ToF64(dist),1,GR_HEIGHT);
-  y0=GR_HEIGHT/2-h*((1+thing->z)-w->cam_height);
-  width=ToF64(h)/use_dc->height*use_dc->width;
+//
+// The differnece between h an vis_h s vis_h is clamped to avoid massive sprites when up close
+//
+// I will use h for computing position,then vis_h for dimenisons of the drawn_sprite
+//
+  wall_height_ratio=(use_dc->height/ToF64(GR_HEIGHT));
+  vis_h=Clamp(h=DIST_SCALE/(5.+ToF64(dist)),1,GR_HEIGHT*.75)*wall_height_ratio;
+  y0=GR_HEIGHT/2-h*((wall_height_ratio+thing->z)-w->cam_height);
+//I will now scale vis_h by 1.5 to look pretty,we will need to adjust y0 accordingly
+  y0-=vis_h*1.5-vis_h;
+  vis_h*=1.5;
+  width=ToF64(vis_h)/use_dc->height*use_dc->width;
   angle=NormalizeAngle(angle);
   w->angle=NormalizeAngle(w->angle);
 //Check direction
@@ -1072,28 +1083,37 @@ draw:
     angle=AngleBetween(angle,w->angle);
     x0=GR_WIDTH/2-angle/((w->fov/GR_WIDTH))-width/2;
   }
+
 //clamp'ed x
   cx=ClampI64(x0,0,GR_WIDTH);
 //ditto
   cy=ClampI64(y0,0,GR_HEIGHT);
   to_x=ClampI64(width+x0,0,GR_WIDTH-1);
-  to_y=ClampI64(h+y0,0,GR_HEIGHT-1);
+  to_y=ClampI64(vis_h+y0,0,GR_HEIGHT-1);
   for(x=ToI64(cx)&~1;cx-4<=x<to_x;x+=2) {
-    for(y=ToI64(cy)&~1;cy-4<=y<to_y;y+=2) {
-      line=ToI64((y-y0)/h*use_dc->height);
+    if(!flip) {
+      col=(x-x0)/width*use_dc->width;
+      src_ptr=y_line;
+    } else {
+      col=(width-(x-x0)-1)/width*use_dc->width;
+    }
+    if(0>col||col>=use_dc->width)
+     goto skip2;
+    for(y=ToI64(cy)&~1;cy-4<=y<to_y;y+=3) {
+      line=ToI64((y-y0)/vis_h*use_dc->height);
       if(0<=line<use_dc->height) {
         y_line=use_dc->body+line*use_dc->width_internal;
-        if(!flip) {
-	  col=(x-x0)/width*use_dc->width;
-	  src_ptr=y_line;
-        } else {
-	  col=(width-(x-x0)-1)/width*use_dc->width;
-        }
-        if(0>col||col>=use_dc->width)
-	  goto skip;
         src_ptr=y_line+col;
-        if(*src_ptr==TRANSPARENT)
+        if(*src_ptr==TRANSPARENT) {
+	  while(line<use_dc->height) {
+	    if(*src_ptr!=TRANSPARENT)
+	     break;
+	    src_ptr+=use_dc->width_internal;
+	    line++;
+	  }
+	  y=MaxI64(Lerp(ToF64(line)/use_dc->height,cy,to_y)-3,y);
 	  goto skip;
+	}
         dst=dc->body+ToI64(y)*dc->width_internal+ToI64(x);
         I32 *depth_dst=dc->depth_buf;
         if(depth_dst) {
@@ -1103,7 +1123,7 @@ draw:
 	    goto skip;
 	  }
         } 
-	for(cnt=2;--cnt>=0;) {
+	for(cnt=3;--cnt>=0;) {
           *dst=gr.to_8_colors[*src_ptr];
 	  depth_dst[0]=dist;
 	  depth_dst[1]=dist;
@@ -1112,6 +1132,7 @@ draw:
 	}
 skip:;
       }
+skip2:;
     }
   }
 }
@@ -1201,9 +1222,21 @@ AddMethod("C2DThing","canSeeThing:",&ThingCanSeeThing);
 #include "UI.HC"
 DocClear;
 w=LoadWorldFromFile(,"Untitled.WORLD");
+I64 mp_thing_done=0;
+/*U0 MPDrawThings(C3DWorld *w) {
+ I64 mpc=mp_cnt-1,idx=w->_2d_things->cnt;
+  C2DThing *t,**body=w->_2d_things->body;
+  LBtr(&mp_thing_done,Gs->num);
+  while(--idx>=0) {
+    if(idx%mpc==Gs->num) {
+      Draw2DThing(w,body[idx]);
+    }
+  }
+  LBts(&mp_thing_done,Gs->num);
+}*/
 U0 DrawIt(CTask *t,CDC *dc) {
   CDC *hand_gr;
-  I64 tx,ty;
+  I64 tx,ty,c;
   C3DParticle *p,*head,*n;
   CHandItem *hand=FrogSymbol("hand_item")->value;
   dc=DCAlias(dc,t);
@@ -1211,10 +1244,19 @@ U0 DrawIt(CTask *t,CDC *dc) {
   DCDepthBufAlloc(dc);
   InitTables(w->angle,w->fov);
   C3DWorldCastRays(w);   
-  C2DThing **body=w->_2d_things->body;
-  I64 cnt=w->_2d_things->cnt;
-  while(--cnt>=0)
-      Draw2DThing(w,body[cnt]);
+  mp_thing_done=0;
+/*  for(c=1;c!=mp_cnt;c++) {
+    JobQue(&MPDrawThings,w,c);
+  }
+  for(c=0;c!=mp_cnt;c++) { 
+    while(!Bt(&mp_thing_done,c))
+      Sleep(1);
+  }*/
+  CFrogThing ***body=w->_2d_things->body;
+  I64 idx=w->_2d_things->cnt;
+  while(--idx>=0)
+    Draw2DThing(w,body[idx]);
+  
   head=&w->particles;
   for(p=head->next;head!=p;p=p->next) {
     p->x+=p->momx;
