@@ -155,7 +155,6 @@ C3DWorld *LoadWorldFromFile(U8 *blob_file="ASS",U8 *filename,F64 fov=pi/4) {
   C3DWorldManager *man;
   C3DWorldSetFov(ret,fov);
   QueInit(&ret->particles);
-  ret->_2d_things=I64SetNew();
   ret->step_width=4;  
   ret->step_width_y=4;
   ret->world_width=world->w;
@@ -169,6 +168,7 @@ C3DWorld *LoadWorldFromFile(U8 *blob_file="ASS",U8 *filename,F64 fov=pi/4) {
   MemCpy(ret->heightmap,ToI64(world+1)+2*world->h*world->w,world->h*world->w);
   man=ConstructThing("C3DWorldManager","world_handle",ret);
   CallScript("init",man);
+  ret->_2d_things=man->things->items;
   fptr=world(U8*)+world->textures_where.ptr;
   to=fptr+world->textures_where.len;
   while(fptr<to) {
@@ -468,7 +468,7 @@ C2DThing *BumpsIntoThing(C2DThing *self,...) {
   F64 x,y;
   x=who->x-self->x;
   y=who->y-self->y;
-  if(radius<=x*x+y+y)
+  if(radius>=x*x+y+y)
     return FrogNumNew(1);
   return FrogNumNew(0);
 } 
@@ -1265,6 +1265,7 @@ U0 WalkAround() {
   w->angle=0;
   try while (cont) {
       CallScript("update",man->value);
+
 //if (ThingHasClass(player,"CPlayer")) {
       // set vars for multikey input
       while(msg=ScanMsg(&m1,&m2)) {        

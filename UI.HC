@@ -115,6 +115,7 @@ class CUIGrid:CUIElem {
 };
 #endif
 U0 RenderUI(CDC *dc,CUIElem *e,I64 left_x=0,I64 left_y=0,I64 right_x=GR_WIDTH,I64 right_y=GR_HEIGHT) {
+  if(!ThingHasClass(e,"CUIElem")) return;
   CUIElem *draw,**body=e->sub_elems->items->body;
   I64 x,y;
   U8 *draw_it;

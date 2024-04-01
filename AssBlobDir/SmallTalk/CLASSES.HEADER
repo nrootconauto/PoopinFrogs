@@ -15,7 +15,7 @@ class CFrogClass:CFrogThing {
 class CFrogChr:CFrogThing {
   U64 ch;
 };
-class CFrogBlock:CFrogThing {
+class CFrogBlock:CFrogThing {
   CFrogThing *self;
   CFrogThing *frame;
   U8 (*fun_ptr)(CFrogThing *self,U8 *);//CSTFrame
@@ -149,6 +149,7 @@ class CUIGridItem:CUIElem {
   CFrogThing *parent;
   U8 *constructor dft "UIElemInit";
   U8 *draw_it dft "UIGridItemDraw";
+  CFrogThing *item;
 };
 
 class CUIGrid:CUIElem {
@@ -183,7 +184,7 @@ class C3DWorldManager:CFrogThing {
   CFrogDictionary *thing_templates;
   CFrogDictionary *tile_templates;
   F64 gravity;
-//A grid of things having the things(128*128 size)
+//A grid of things having the things(128*128 size)
   CFrogArray *grid;
 };
 
@@ -202,6 +203,16 @@ class CHandItem:CFrogThing {
 //
 // Game Section
 //
+
+//This [redacted for GH] is for picking up items in the world
+class CPickup:C2DThing {
+  CFrogClass *item_class;
+  I64 count;
+};
+class CGun1Pickup:CPickup {
+};
+
+
 class CGun1:CHandItem {
 };
 class CFrogNPC:C2DThing {
