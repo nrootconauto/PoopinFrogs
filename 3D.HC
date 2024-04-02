@@ -456,13 +456,13 @@ final:
       x=t2*cos+w->x;
       y=wall_y;
       wall_x=x;
-      if(side) *side=cos>0;
+      if(side) *side=2+(sin<0);
       if(segment) *segment=SegmentModulo(x,ix);
     } else{
       x=wall_x;
       y=t1*sin+w->y;
       wall_y=y;
-      if(side) *side=2+(sin>0);
+      if(side) *side=cos<0;
       if(segment) *segment=SegmentModulo(y,iy);
     }
     dist2=check_dist;
@@ -497,20 +497,20 @@ Bool C3DWorldMoveWithCollision(C3DWorld *w,F64 angle,F64 dist,F64 *x,F64 *y,Bool
     hit_wall=TRUE;
     switch(side) {
       start:
-      case 0: //Left
+      case 2: //Left
 	deflect_angle=pi;
 	break;
-      case 1: //Right
+      case 3: //Right
 	deflect_angle=0;
 	break;
       end:
         C3DWorldMoveWithCollision(w,deflect_angle,Abs(dist*Cos(angle)),x,y,FALSE,height);
 	break;
       start:
-      case 2://Top
+      case 1://Top
 	deflect_angle=2*pi-pi/2;
 	break;
-      case 3://Bottom
+      case 0://Bottom
 	deflect_angle=pi/2;
         break;
       end:
@@ -551,11 +551,11 @@ CDC *WallStain(C3DWorld *w,I64 tile_idx,F64 h,I64 side,I64 *offx,I64 *offy) {
   while(--idx>=0) {
     stain=body[idx];
     if(!stain->dc) goto skip;
-    if(stain->side==side||1)  {
+    if(stain->side==side)  {
       have=stain->tile_x+stain->tile_y*w->world_width;
       if(tile_idx==have) {
-	*offx=stain->x-stain->dc->width/2;
-	*offy=stain->y+h*GRID_SZ-stain->dc->height/2;
+	*offx=stain->x-stain->center_x;
+	*offy=stain->y+h*GRID_SZ-stain->center_y;
 	return stain->dc;
       } else {
 	switch(side) {
@@ -564,8 +564,8 @@ CDC *WallStain(C3DWorld *w,I64 tile_idx,F64 h,I64 side,I64 *offx,I64 *offy) {
 	    for(dx=-1;dx<2;dx++) {
 	      tile_idx2=tile_idx+dx;
 	      if(tile_idx2==have) {
-		*offx=stain->x+dx*GRID_SZ-stain->dc->width/2;
-		*offy=stain->y+h*GRID_SZ-stain->dc->height/2;
+		*offx=stain->x+dx*GRID_SZ-stain->center_x;
+		*offy=stain->y+h*GRID_SZ-stain->center_y;
 		return stain->dc;
 	      }
 	    }
@@ -575,8 +575,8 @@ CDC *WallStain(C3DWorld *w,I64 tile_idx,F64 h,I64 side,I64 *offx,I64 *offy) {
 	    for(dy=-1;dy<2;dy++) {
 	      tile_idx2=tile_idx+dy*w->world_width;
 	      if(tile_idx2==have) {
-		*offx=stain->x-stain->dc->width/2+dy*GRID_SZ;
-		*offy=stain->y+h*GRID_SZ-stain->dc->height/2;
+		*offx=stain->x-stain->center_x+dy*GRID_SZ;
+		*offy=stain->y+h*GRID_SZ-stain->center_y;
 		return stain->dc;
 	      }
 	    }
@@ -1212,6 +1212,8 @@ CFrogThing *WallStainSetGr(CWallStain *self,...) {
   if(raw) {
     if(self->dc) AnimDCDel(self->dc);
     self->dc=AnimDCLoad(raw);
+    self->center_x=self->dc->width/2;
+    self->center_y=self->dc->height/2;
     Free(raw);
   }
   Free(name);
@@ -1219,7 +1221,34 @@ CFrogThing *WallStainSetGr(CWallStain *self,...) {
   return FROG_SMALL_NIL;
 }
 AddMethod("CWallStain","setGraphics:",&WallStainSetGr);
-
+CFrogThing *WallStainMerge(CWallStain *self,...) {
+  CWallStain *other=argv[0];
+  CWallStain *ret=FROG_SMALL_NIL;
+  if(!ThingHasClass(other,"CWallStain"))
+    goto fin;
+  if(!other->dc||!self->dc)
+    goto fin;
+  I64 x1=0,y1=0,x2=0,y2=0;
+  x1=MinI64(self->x-self->center_x,other->x-other->center_x);
+  x2=MaxI64(self->x-self->center_x+self->dc->width,other->x-other->center_x+other->dc->width);
+  y1=MinI64(self->y-self->center_y,other->y-other->center_y);
+  y2=MaxI64(self->y-self->center_y+self->dc->height,other->y-other->center_y+other->dc->height);
+  CDC *new=DCNew(x2-x1+1,y2-y1+1);
+  ret=ConstructThing("CWallStain");
+  ret->dc=new;
+  ret->x=x1;
+  ret->y=y1;
+  ret->side=self->side;
+  ret->tile_x=self->tile_x;
+  ret->tile_y=self->tile_y;
+  DCFill(new,TRANSPARENT);
+  GrBlot(new,self->x-self->center_x-x1,self->y-self->center_y-y1,self->dc);
+  GrBlot(new,other->x-other->center_x-x1,other->y-other->center_y-y1,other->dc);
+fin:;
+  ThingDel(other);
+  return ret;
+}
+AddMethod("CWallStain","mergeWith:",&WallStainMerge);
 
 
 CFrogThing *WorldManagerNewParticle(C3DWorldManager *man,...) {
@@ -1266,13 +1295,14 @@ CFrogThing *WorldManagerTileHeightAtXAtY(C3DWorldManager *self,...) {
 AddMethod("C3DWorldManager","tileHeightAtX:atY:",&WorldManagerTileHeightAtXAtY);
 
 
-CFrogThing *WorldManagerRayDist(C3DWorldManager *self,...) {
+CFrogThing *WorldManagerRaySideForTile(C3DWorldManager *self,...) {
   F64 x=AsF64(argv[0]);
   F64 y=AsF64(argv[1]);
   F64 a=AsF64(argv[2]);
   F64 h=AsF64(argv[3]);
+  F64 force_tile=AsF64(argv[4]);
   F64 oldx=w->x,oldy=w->y;
-  F64 dist;
+  I64 side;
   w->x=x;
   w->y=y;
   FindRayWall(w,
@@ -1280,15 +1310,16 @@ CFrogThing *WorldManagerRayDist(C3DWorldManager *self,...) {
 	    Cos(a),
 	    Sin(a),
 	    NULL,
-	    &dist,
 	    NULL,
+	    &side,
 	    h,
+	    force_tile
 	    );
   w->x=oldx;
   w->y=oldy;
-  return FrogNumNew(dist);
+  return FrogNumNew(side);
 }
-AddMethod("C3DWorldManager","rayDistAtX:atY:atAngle:atHeight:",&WorldManagerRayDist);
+AddMethod("C3DWorldManager","raySideAtX:atY:atAngle:atHeight:forTile:",&WorldManagerRaySideForTile);
 
 CFrogThing *WorldManagerRayTile(C3DWorldManager *self,...) {
   F64 x=AsF64(argv[0]);

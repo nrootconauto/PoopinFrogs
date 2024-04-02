@@ -205,8 +205,9 @@ class CHandItem:CFrogThing {
 class CWallStain:CFrogThing {
   I64 tile_x,tile_y,side;
   F64 x,y;
+  F64 center_x,center_y;
  CDC *dc;
-  U8 *destroy dft "WallStainDel";
+  U8 *destroy dft "WallStainDel";
 };
 //
 // Game Section
