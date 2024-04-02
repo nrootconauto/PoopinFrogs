@@ -88,6 +88,7 @@ class C3DWorld {
    CQue _2d_thing_templates; 
    CI64Set *_2d_things;
    CI64Set *_wall_stains;
+   CI64Set *_floor_stains;
    CTask *mem_task;
    F64 cam_height;
 //Private
@@ -172,6 +173,7 @@ C3DWorld *LoadWorldFromFile(U8 *blob_file="ASS",U8 *filename,F64 fov=pi/4) {
   man=ConstructThing("C3DWorldManager","world_handle",ret);
   CallScript("init",man);
   ret->_wall_stains=man->wall_stains->items;
+  ret->_floor_stains=man->floor_stains->items;
   ret->_2d_things=man->things->items;
   fptr=world(U8*)+world->textures_where.ptr;
   to=fptr+world->textures_where.len;
@@ -663,16 +665,36 @@ ent:
       break;
   }
 }
+CDC *FloorStain(C3DWorld *w,I64 tx,I64 ty,I64 *xoff,I64 *yoff) {
+  CFloorStain **body=w->_floor_stains->body,*f;
+  I64 idx=w->_floor_stains->cnt;
+  I64 adjx,adjy;
+  while(--idx>=0) {
+    f=body[idx];
+//    if(ThingHasClass(f,"CFloorStain"))
+      for(adjx=-1;adjx<=1;adjx++)
+        for(adjy=-1;adjy<=1;adjy++) {
+          if(f->tile_x==tx+adjx&&f->tile_y==ty+adjy&&f->dc) {
+  	    if(xoff) *xoff=f->x-f->center_x+adjx*GRID_SZ;
+ 	    if(yoff) *yoff=f->y-f->center_y+adjy*GRID_SZ;
+            return f->dc;
+          }
+        }
+  }
+  return NULL;
+}
 I64 ColorFloor(C3DWorld *w,I64 view_x,I64 floor_height,I64 sy,I64 ey,CDC *texture) {
-  CDC *dc=w->to_dc;
+  CDC *dc=w->to_dc,*stain;
   F64 angley=0;
   F64 step;
   F64 dist;
-  I64 y,fx,fy,anim_frame=ToI64(tS/ANIM_DELAY),idx,which;
+  I64 y,fx,fy,anim_frame=ToI64(tS/ANIM_DELAY)%AnimDCCnt(texture),idx,which,tx,ty;
+  I64 old_tx=-1,old_ty=-1;
   U64 colors,width=dc->width_internal,cnt;
   U8 *dst;
   I32 *db_z;
   U64 idist;
+  I64 poopx,poopy;
   ey=ClampI64(ey,0,w->to_dc->height-4);
   sy=ClampI64(sy,0,w->to_dc->height-4);
   for(y=sy;y<ey;y+=w->step_width_y) {
@@ -685,11 +707,24 @@ I64 ColorFloor(C3DWorld *w,I64 view_x,I64 floor_height,I64 sy,I64 ey,CDC *textur
 
     fx=w->x+cos_lookup_table[view_x]*dist;
     fy=w->y+sin_lookup_table[view_x]*dist;
-      if(texture) {
+    tx=fx/GRID_SZ;
+    ty=fy/GRID_SZ;
+//TODOcache
+    if(old_tx!=tx||old_ty!=ty) {
+      stain=FloorStain(w,tx,ty,&poopx,&poopy);
+      old_tx=tx;
+      old_ty=ty;
+    }
+    if(texture) {
         colors=gr.to_8_colors[GrPeek0(
-	      texture+anim_frame%AnimDCCnt(texture),
+	      texture+anim_frame,
 	      (fx&(GRID_SZ-1))/ToF64(GRID_SZ)*texture->width,
 	      (fy&(GRID_SZ-1))/ToF64(GRID_SZ)*texture->height)];
+	if(stain) {
+	  which=GrPeek(stain,fx&(GRID_SZ-1)-poopx,fy&(GRID_SZ-1)-poopy);
+	  if(TRANSPARENT!=which&&which>=0)
+	    colors=gr.to_8_colors[which];
+        }
         if(0<=y<dc->height) {
 	  dst=dc->body+(dc->height-y-4)*width+view_x;
 	  db_z=dc->depth_buf+(dc->height-y-4)*width+view_x;
@@ -1206,6 +1241,68 @@ U0 WallStainDel(CWallStain *s) {
 //
 // SmallTalk Section
 //
+CFrogThing *FloorStainSetGr(CFloorStain *self,...) {
+  CFrogStr *str=argv[0];
+  F64 angle=AsF64(argv[1]);
+  U8 *name=AsString(str),*raw=BlobFileGetLump("ASS",name);
+  CDC *orig,*rotated;
+  if(raw) {
+    if(self->dc) AnimDCDel(self->dc);
+    orig=AnimDCLoad(raw);
+    rotated=AnimDCNew(orig->width*1.4,orig->height*1.4);
+    self->dc=rotated;
+    rotated->flags|=DCF_TRANSFORMATION;
+    DCFill(rotated,TRANSPARENT);
+    Mat4x4IdentEqu(rotated->r);
+    Mat4x4TranslationAdd(rotated->r,-orig->width/2,-orig->height/2,0);
+    Mat4x4RotZ(rotated->r,angle);
+    Mat4x4TranslationAdd(rotated->r,orig->width/2,orig->height/2,0);
+    GrBlot3(rotated,0,0,0,orig);
+    self->center_x=self->dc->width/2;
+    self->center_y=self->dc->height/2;
+    AnimDCDel(orig);
+    Free(raw);
+  }
+  Free(name);
+  ThingDel(str);
+  return FROG_SMALL_NIL;
+}
+AddMethod("CFloorStain","setGraphics:atAngle:",&FloorStainSetGr);
+CFrogThing *FloorStainMerge(CFloorStain *self,...) {
+  CFloorStain *other=argv[0];
+  CFloorStain *ret=FROG_SMALL_NIL;
+  if(!ThingHasClass(other,"CFloorStain"))
+    goto fin;
+  if(!other->dc||!self->dc)
+    goto fin;
+  I64 x1=0,y1=0,x2=0,y2=0;
+  x1=MinI64(self->x-self->center_x,other->x-other->center_x);
+  x2=MaxI64(self->x-self->center_x+self->dc->width,other->x-other->center_x+other->dc->width);
+  y1=MinI64(self->y-self->center_y,other->y-other->center_y);
+  y2=MaxI64(self->y-self->center_y+self->dc->height,other->y-other->center_y+other->dc->height);
+  CDC *new=DCNew(x2-x1+1,y2-y1+1);
+  ret=ConstructThing("CFloorStain");
+  ret->dc=new;
+  ret->x=x1;
+  ret->y=y1;
+  ret->tile_x=self->tile_x;
+  ret->tile_y=self->tile_y;
+  DCFill(new,TRANSPARENT);
+  GrBlot(new,self->x-self->center_x-x1,self->y-self->center_y-y1,self->dc);
+  GrBlot(new,other->x-other->center_x-x1,other->y-other->center_y-y1,other->dc);
+fin:;
+  ThingDel(other);
+  return ret;
+}
+AddMethod("CFloorStain","mergeWith:",&FloorStainMerge);
+U0 FloorStainDel(CFloorStain *s) {
+  if(s->dc) AnimDCDel(s->dc);
+  Free(s);
+}
+
+
+
+
 CFrogThing *WallStainSetGr(CWallStain *self,...) {
   CFrogStr *str=argv[0];
   U8 *name=AsString(str),*raw=BlobFileGetLump("ASS",name);

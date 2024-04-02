@@ -183,6 +183,7 @@ class C3DWorldManager:CFrogThing {
   CFrogArray *things;
 //See CWallStain mofo
   CFrogArray *wall_stains;
+  CFrogArray *floor_stains;
   CFrogDictionary *thing_templates;
   CFrogDictionary *tile_templates;
   F64 gravity;
@@ -201,6 +202,14 @@ class CHandItem:CFrogThing {
   CFrogBlock *on_click;
 };
 
+class CFloorStain:CFrogThing {
+  I64 tile_x,tile_y;
+  F64 x,y;
+  F64 center_x,center_y;
+  CDC*dc;
+  U8 *destroy dft "FloorStainDel";
+};
+
 //Things like bullet holes or piss stains on the walls
 class CWallStain:CFrogThing {
   I64 tile_x,tile_y,side;
@@ -215,7 +224,7 @@ class CShellCasing:CFrogThing {
   F64 momx,momy;
   F64 gravity;
   CDC *dc;
-  U8 *destroy dft "ShellCasingDel";
+  U8 *destroy dft "ShellCasingDel";
 };
 
 //
@@ -244,4 +253,7 @@ class CPlayer:C2DThing {
   CUIMeter *ammo_meter;
   CUIGrid *quick_inventory;
   CUIButton *open_inventory_button;
+//How many bloody footprints will be made
+  F64 last_x,last_y;
+  F64 bloody_foot_count;
 }; 
