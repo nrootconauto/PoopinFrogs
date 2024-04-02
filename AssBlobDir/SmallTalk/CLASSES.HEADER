@@ -181,10 +181,12 @@ class C2DThing:CFrogThing {
 class C3DWorldManager:CFrogThing {
   U8 *world_handle;
   CFrogArray *things;
+//See CWallStain mofo
+  CFrogArray *wall_stains;
   CFrogDictionary *thing_templates;
   CFrogDictionary *tile_templates;
   F64 gravity;
-//A grid of things having the things(128*128 size)
+//A grid of things having the things(128*128 size)
   CFrogArray *grid;
 };
 
@@ -199,7 +201,13 @@ class CHandItem:CFrogThing {
   CFrogBlock *on_click;
 };
 
-
+//Things like bullet holes or piss stains on the walls
+class CWallStain:CFrogThing {
+  I64 tile_x,tile_y,side;
+  F64 x,y;
+ CDC *dc;
+  U8 *destroy dft "WallStainDel";
+};
 //
 // Game Section
 //

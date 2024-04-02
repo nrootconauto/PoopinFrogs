@@ -87,6 +87,7 @@ class C3DWorld {
    I64 mp_done,dc_lock;
    CQue _2d_thing_templates; 
    CI64Set *_2d_things;
+   CI64Set *_wall_stains;
    CTask *mem_task;
    F64 cam_height;
 //Private
@@ -151,6 +152,7 @@ C3DWorld *LoadWorldFromFile(U8 *blob_file="ASS",U8 *filename,F64 fov=pi/4) {
   F64 xoff,yoff;
   U8 *fptr=world,*to,*tmp;
   I64 idx;
+  CDC *unscaled;
   C2DThingTemplate **templates=CAlloc(0x10000*8),*template;
   C2DThing *thing;
   C3DWorldManager *man;
@@ -169,22 +171,27 @@ C3DWorld *LoadWorldFromFile(U8 *blob_file="ASS",U8 *filename,F64 fov=pi/4) {
   MemCpy(ret->heightmap,ToI64(world+1)+2*world->h*world->w,world->h*world->w);
   man=ConstructThing("C3DWorldManager","world_handle",ret);
   CallScript("init",man);
+  ret->_wall_stains=man->wall_stains->items;
   ret->_2d_things=man->things->items;
   fptr=world(U8*)+world->textures_where.ptr;
   to=fptr+world->textures_where.len;
   while(fptr<to) {
     idx=fptr(CFileTexture*)->idx;
     tmp=BlobFileGetLump(blob_file,fptr(CFileTexture*)->blob_name);
+    unscaled=AnimDCLoad(tmp);
     if(idx>0)
-      ret->floor_textures[idx]=AnimDCLoad(tmp);
+      ret->floor_textures[idx]=ScaleDC(unscaled,GRID_SZ,GRID_SZ);
     else
-      ret->floor_textures[-idx]=AnimDCLoad(tmp);
+      ret->floor_textures[-idx]=ScaleDC(unscaled,GRID_SZ,GRID_SZ);
+    AnimDCDel(unscaled);
     Free(tmp);
     tmp=BlobFileGetLump(blob_file,fptr(CFileTexture*)->wall_blob_name);
+    unscaled=AnimDCLoad(tmp);
     if(idx>0)
-      ret->wall_textures[idx]=AnimDCLoad(tmp);
+      ret->wall_textures[idx]=ScaleDC(unscaled,GRID_SZ,GRID_SZ);
     else
-      ret->wall_textures[-idx]=AnimDCLoad(tmp);
+      ret->wall_textures[-idx]=ScaleDC(unscaled,GRID_SZ,GRID_SZ);
+    AnimDCDel(unscaled);
     Free(tmp);
     fptr(CFileTexture*)++;
   }
@@ -536,17 +543,65 @@ fin:
 F64 Lerp(F64 per,F64 min,F64 max) {
   return Clamp(per*(max-min)+min,min,max);
 }
-U0 DrawWallSegment(C3DWorld *w,I64 segment,I64 x,I64 start_y,CDC *texture,I64 height,I64 dist) {
+
+CDC *WallStain(C3DWorld *w,I64 tile_idx,F64 h,I64 side,I64 *offx,I64 *offy) {
+  CWallStain **body=w->_wall_stains->body,*stain;
+  I64 idx=w->_wall_stains->cnt,dx,dy,tile_idx2,have;
+  Bool changed=FALSE;
+  while(--idx>=0) {
+    stain=body[idx];
+    if(!stain->dc) goto skip;
+    if(stain->side==side||1)  {
+      have=stain->tile_x+stain->tile_y*w->world_width;
+      if(tile_idx==have) {
+	*offx=stain->x-stain->dc->width/2;
+	*offy=stain->y+h*GRID_SZ-stain->dc->height/2;
+	return stain->dc;
+      } else {
+	switch(side) {
+	  case 0 ... 1:
+//Hits left/right,so check top/bottom tile
+	    for(dx=-1;dx<2;dx++) {
+	      tile_idx2=tile_idx+dx;
+	      if(tile_idx2==have) {
+		*offx=stain->x+dx*GRID_SZ-stain->dc->width/2;
+		*offy=stain->y+h*GRID_SZ-stain->dc->height/2;
+		return stain->dc;
+	      }
+	    }
+	    break;
+	  case 2 ... 3:
+//Hits top/bottom,so check left/right tile
+	    for(dy=-1;dy<2;dy++) {
+	      tile_idx2=tile_idx+dy*w->world_width;
+	      if(tile_idx2==have) {
+		*offx=stain->x-stain->dc->width/2+dy*GRID_SZ;
+		*offy=stain->y+h*GRID_SZ-stain->dc->height/2;
+		return stain->dc;
+	      }
+	    }
+	    break;
+        }
+      }
+    }
+skip:;
+  }
+en:;
+  return NULL;
+}
+U0 DrawWallSegment(C3DWorld *w,I64 segment,I64 x,I64 start_y,CDC *texture,I64 height,I64 dist,I64 z,I64 tile_idx,I64 side) {
+  I64 offx,offy,stain_color;
+  CDC *stain=WallStain(w,tile_idx,z,side,&offx,&offy);
   if(!texture||!height) return;
   U8 *dst=w->to_dc->body;
   I32 *depth_dst;
-  I64 tmp,i,segment_y,width=w->to_dc->width_internal,anim_frame=ToI64(tS/ANIM_DELAY)%AnimDCCnt(texture);
+  I64 tmp,i,segment_y,width=w->to_dc->width_internal,anim_frame=ToI64(tS/ANIM_DELAY)%AnimDCCnt(texture),xp;
   dst+=x+MaxI64(start_y,0)*width;
   if(w->to_dc->depth_buf)
     depth_dst=w->to_dc->depth_buf+x+MaxI64(start_y,0)*width;
   else
     depth_dst=NULL;
-
+  xp=Lerp(segment/ToF64(GRID_SZ),0,texture->width-1);
 ent:
   for(i=0;i<=height;i+=4) {
     tmp=VisSkipTo(w,x,i+start_y,dist)-start_y;
@@ -560,9 +615,15 @@ ent:
       segment_y=height/(DIST_SCALE/ToF64(dist+1))*(i/ToF64(height))*texture->height;
       tmp=gr.to_8_colors[GrPeek0(
 	    texture+anim_frame,
-	    Lerp(segment/ToF64(GRID_SZ),0,texture->width-1),
+	    xp,
 	    segment_y%texture->height)];
-      if(depth_dst[0]>dist) {
+      if(stain) {
+	if(0<=(stain_color=GrPeek(stain,xp-offx,segment_y-offy))) {
+	  if(stain_color!=TRANSPARENT)
+	    tmp=gr.to_8_colors[stain_color];
+        }
+      }
+      if(depth_dst[0]>=dist) {
         dst(U32*)[0]=tmp;
         dst+=width;
         dst(U32*)[0]=tmp;
@@ -868,8 +929,9 @@ ent:
 	  }
         }
       }
-      for(idx3=0;idx3<AbsI64(height_cap-adj_height);idx3++)
-        DrawWallSegment(w,segment,x,y0+h*idx3,w->wall_textures[w->world_mat[idx]],h,dist);
+      for(idx3=0;idx3<AbsI64(height_cap-adj_height);idx3++) {
+        DrawWallSegment(w,segment,x,y0+h*idx3,w->wall_textures[w->world_mat[idx]],h,dist,height_cap-1-idx3,idx,side);
+      }
       goto ent;
     }
 fin:
@@ -1137,9 +1199,29 @@ skip2:;
   }
 }
 C3DWorld *w;
+U0 WallStainDel(CWallStain *s) {
+  AnimDCDel(s->dc);
+  Free(s);
+}
 //
 // SmallTalk Section
 //
+CFrogThing *WallStainSetGr(CWallStain *self,...) {
+  CFrogStr *str=argv[0];
+  U8 *name=AsString(str),*raw=BlobFileGetLump("ASS",name);
+  if(raw) {
+    if(self->dc) AnimDCDel(self->dc);
+    self->dc=AnimDCLoad(raw);
+    Free(raw);
+  }
+  Free(name);
+  ThingDel(str);
+  return FROG_SMALL_NIL;
+}
+AddMethod("CWallStain","setGraphics:",&WallStainSetGr);
+
+
+
 CFrogThing *WorldManagerNewParticle(C3DWorldManager *man,...) {
   F64 x=AsF64(argv[0]);
   F64 y=AsF64(argv[1]);
@@ -1182,6 +1264,57 @@ CFrogThing *WorldManagerTileHeightAtXAtY(C3DWorldManager *self,...) {
   return FrogNumNew(I16_MAX);
 }
 AddMethod("C3DWorldManager","tileHeightAtX:atY:",&WorldManagerTileHeightAtXAtY);
+
+
+CFrogThing *WorldManagerRayDist(C3DWorldManager *self,...) {
+  F64 x=AsF64(argv[0]);
+  F64 y=AsF64(argv[1]);
+  F64 a=AsF64(argv[2]);
+  F64 h=AsF64(argv[3]);
+  F64 oldx=w->x,oldy=w->y;
+  F64 dist;
+  w->x=x;
+  w->y=y;
+  FindRayWall(w,
+	    Tan(a),
+	    Cos(a),
+	    Sin(a),
+	    NULL,
+	    &dist,
+	    NULL,
+	    h,
+	    );
+  w->x=oldx;
+  w->y=oldy;
+  return FrogNumNew(dist);
+}
+AddMethod("C3DWorldManager","rayDistAtX:atY:atAngle:atHeight:",&WorldManagerRayDist);
+
+CFrogThing *WorldManagerRayTile(C3DWorldManager *self,...) {
+  F64 x=AsF64(argv[0]);
+  F64 y=AsF64(argv[1]);
+  F64 a=AsF64(argv[2]);
+  F64 h=AsF64(argv[3]);
+  F64 oldx=w->x,oldy=w->y;
+  F64 tile;
+  w->x=x;
+  w->y=y;
+  tile=FindRayWall(w,
+	    Tan(a),
+	    Cos(a),
+	    Sin(a),
+	    NULL,
+	    NULL,
+	    NULL,
+	    h,
+	    );
+  w->x=oldx;
+  w->y=oldy;
+  return FrogNumNew(tile);
+}
+AddMethod("C3DWorldManager","rayTileAtX:atY:atAngle:atHeight:",&WorldManagerRayTile);
+
+
 CFrogThing *HandItemSetGr(CHandItem *self,...) {
   U8 *name=AsString(argv[0]);
   U8 *grl=BlobFileGetLump("ASS.BLOB",name);
@@ -1215,6 +1348,7 @@ CFrogThing *ThingCanSeeThing(C2DThing *self,...) {
   return ret;
 }
 AddMethod("C2DThing","canSeeThing:",&ThingCanSeeThing);
+
 //
 // Test section
 //
@@ -1411,6 +1545,7 @@ en:
   Refresh;
   Fs->draw_it=NULL;
 }
+//Uf("StainWall");
 WalkAround;
 //Uf("Draw2DThing");
 #endif

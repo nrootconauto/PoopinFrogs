@@ -1,0 +1,23 @@
+placeAtAngle: a fromX: xx fromY: yy atHeight: zz | tile X Y rando h |
+  tile _ #world rayTileAtX: xx atY: yy atAngle: a atHeight: zz .
+  tile_x _ tile rem: #world width .
+  tile_y _ tile / #world width .
+  'Heres the deal,floating point reounding may give an improper'
+  'tile so be sure to check if the stain hit the wall'.
+  h _ #world tileHeightAtX: tile_x atY: tile_y .
+  h < zz ifTrue: [
+    -1 to: 2 do: [:ox|
+      -1 to: 2 do: [:oy|
+        h _ #world tileHeightAtX: tile_x + ox atY: tile_y + oy .
+        h > zz ifTrue: [
+          tile_x _ tile_x + ox .
+          tile_y _ tile_y + oy .
+        ]
+      ]
+    ]
+  ].
+'TODO' .
+  side _ 0 . 
+  rando _ CFrogRandom new .
+  x _ rando next * 128 .
+  y _ (rando next * 128) - (zz * 128) .
