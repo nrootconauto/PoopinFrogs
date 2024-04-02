@@ -74,13 +74,6 @@ CDC *AnimDCCopy(CDC *copy,CTask *mem_task,I64 exclude=-1) {
   Free(heap);
   return ret;
 }
-CDC *AnimDCNew(I64 w,I64 h,CTask *mem_task=NULL) {
-  CDC *ret=DCNew(w,h,mem_task);
-  CDC *ret2=CAlloc(sizeof(CDC)*2,mem_task);
-  MemCpy(ret2,ret,sizeof(CDC));
-  Free(ret);
-  return ret2;
-}
 CDC *AnimDCResize(CDC *copy,I64 w,I64 h,I64 cx=0,I64 cy=0,CTask *mem_task=NULL) {
   I64 cnt=AnimDCCnt(copy);
   CDC *ret=CAlloc(sizeof(CDC)*(cnt+1),mem_task),*tmp,*heap=CAlloc(sizeof(CDC));

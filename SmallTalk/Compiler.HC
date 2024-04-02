@@ -35,7 +35,7 @@ class CLocalsGeneric0:CFrogFrame {
 
 
 CLocalsGeneric *STNewBlockFrame(U8 *frame_title,CLocalsGeneric *parent) {
-  CHashClass *as=HashFind(frame_title,Fs->hash_table,HTT_CLASS);
+  CHashClass *as=HashFind(frame_title,frog_mem_task->hash_table,HTT_CLASS);
   CLocalsGeneric *fr2,*fr=MAlloc(as->size,frog_mem_task);
   MemSetI64(fr,FROG_SMALL_NIL,as->size/8);
   QueIns(fr,&allocs_head);
@@ -54,7 +54,7 @@ CLocalsGeneric *STNewBlockFrame(U8 *frame_title,CLocalsGeneric *parent) {
 }
 
 CLocalsGeneric *STAddMethodFrame(CMethod *method,U8 *frame_title,Bool *ret_flag,U8*class_name) {
-  CHashClass *as=HashFind(frame_title,Fs->hash_table,HTT_CLASS);
+  CHashClass *as=HashFind(frame_title,frog_mem_task->hash_table,HTT_CLASS);
   CHashClass *cls;
   CMemberLst *mlst,*mlst2;
   CLocalsGeneric *fr=MAlloc(as->size,frog_mem_task);
@@ -75,7 +75,7 @@ CLocalsGeneric *STAddMethodFrame(CMethod *method,U8 *frame_title,Bool *ret_flag,
 //Returns string of raw type to access,otherwise returns NULL
 //DO NOT FREE
 U8 *RawAccessType(U8 *cls,U8 *name) {
-  CHashClass *c=HashFind(cls,Fs->hash_table,HTT_CLASS);
+  CHashClass *c=HashFind(cls,frog_mem_task->hash_table,HTT_CLASS);
   CMemberLst *mlst=MemberFind(name,c);
   if(mlst) {
     c=mlst->member_class;
@@ -93,7 +93,7 @@ CLocals *GenerateLocalsFromMethod(CMethod *method,U8 *for_class) {
   static I64 cnt=0;
   CDoc *dummy=DocNew;
   CHashGeneric *gen;
-  CHashClass *cls=HashFind(for_class,Fs->hash_table,HTT_CLASS);
+  CHashClass *cls=HashFind(for_class,frog_mem_task->hash_table,HTT_CLASS);
   CMemberLst *mlst,*mlst2;
   StrPrint(ret->name,"CMethodLocals@%d",cnt++);
   ret->vars=HashTableNew(0x10);
@@ -421,7 +421,7 @@ U0 CompileToHolyC(U8 *src,U8 *class_name,U8 *src_path=NULL,Bool class_method=FAL
   CAST *var,*head;
   CLexer *lex=LexerNew(src,src_path);
   Lex(lex);
-  CMethod *m=ParseMethod(lex,HashFind(class_name,Fs->hash_table,HTT_CLASS));
+  CMethod *m=ParseMethod(lex,HashFind(class_name,frog_mem_task->hash_table,HTT_CLASS));
   CLocals *locals=GenerateLocalsFromMethod(m,class_name);
   LexerDel(lex);
 //MUST SET THIS

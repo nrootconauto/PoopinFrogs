@@ -497,20 +497,20 @@ Bool C3DWorldMoveWithCollision(C3DWorld *w,F64 angle,F64 dist,F64 *x,F64 *y,Bool
     hit_wall=TRUE;
     switch(side) {
       start:
-      case 2: //Left
+      case 2:
 	deflect_angle=pi;
 	break;
-      case 3: //Right
+      case 3:
 	deflect_angle=0;
 	break;
       end:
         C3DWorldMoveWithCollision(w,deflect_angle,Abs(dist*Cos(angle)),x,y,FALSE,height);
 	break;
       start:
-      case 1://Top
+      case 1:
 	deflect_angle=2*pi-pi/2;
 	break;
-      case 0://Bottom
+      case 0:
 	deflect_angle=pi/2;
         break;
       end:
@@ -591,8 +591,8 @@ en:;
 }
 U0 DrawWallSegment(C3DWorld *w,I64 segment,I64 x,I64 start_y,CDC *texture,I64 height,I64 dist,I64 z,I64 tile_idx,I64 side) {
   I64 offx,offy,stain_color;
-  if(!texture||!height) return;
   CDC *stain=WallStain(w,tile_idx,z,side,&offx,&offy);
+  if(!texture||!height) return;
   U8 *dst=w->to_dc->body;
   I32 *depth_dst;
   I64 tmp,i,segment_y,width=w->to_dc->width_internal,anim_frame=ToI64(tS/ANIM_DELAY)%AnimDCCnt(texture),xp;
@@ -1200,8 +1200,7 @@ skip2:;
 }
 C3DWorld *w;
 U0 WallStainDel(CWallStain *s) {
-  if(s->dc)
-    AnimDCDel(s->dc);
+  AnimDCDel(s->dc);
   Free(s);
 }
 //
@@ -1234,7 +1233,7 @@ CFrogThing *WallStainMerge(CWallStain *self,...) {
   x2=MaxI64(self->x-self->center_x+self->dc->width,other->x-other->center_x+other->dc->width);
   y1=MinI64(self->y-self->center_y,other->y-other->center_y);
   y2=MaxI64(self->y-self->center_y+self->dc->height,other->y-other->center_y+other->dc->height);
-  CDC *new=AnimDCNew(x2-x1+1,y2-y1+1);
+  CDC *new=DCNew(x2-x1+1,y2-y1+1);
   ret=ConstructThing("CWallStain");
   ret->dc=new;
   ret->x=x1;
@@ -1259,7 +1258,6 @@ CFrogThing *WorldManagerNewParticle(C3DWorldManager *man,...) {
   F64 spread=AsF64(argv[3]);
   F64 color=AsF64(argv[4]);
   NewParticle(w,color,16,x,y,z,spread*(Rand-.5),spread*(Rand-.5),man->gravity);
-  return FROG_SMALL_NIL;
 }
 AddMethod("C3DWorldManager","newParticleAtX:atY:atZ:withSpread:withColor:",&WorldManagerNewParticle);
 
@@ -1347,7 +1345,22 @@ CFrogThing *WorldManagerRayTile(C3DWorldManager *self,...) {
 }
 AddMethod("C3DWorldManager","rayTileAtX:atY:atAngle:atHeight:",&WorldManagerRayTile);
 
-
+CFrogThing *ShellCasingSetGr(CShellCasing *self,...) {
+  U8 *name=AsString(argv[0]);
+  U8 *grl=BlobFileGetLump("ASS.BLOB",name);
+  if(grl) {
+    if(self->dc) AnimDCDel(self->dc);
+    self->dc=AnimDCLoad(grl); 
+  }
+  Free(name),Free(grl); 
+  ThingDel(argv[0]);
+  return FROG_SMALL_NIL;
+}
+AddMethod("CShellCasing","setGraphics:",&ShellCasingSetGr);
+U0 ShellCasingDel(CShellCasing *c) {
+  if(c->dc) AnimDCDel(c->dc);
+  Free(c);
+}
 CFrogThing *HandItemSetGr(CHandItem *self,...) {
   U8 *name=AsString(argv[0]);
   U8 *grl=BlobFileGetLump("ASS.BLOB",name);
@@ -1404,7 +1417,11 @@ I64 mp_thing_done=0;
 U0 DrawIt(CTask *t,CDC *dc) {
   CDC *hand_gr;
   I64 tx,ty,c;
+  CI64Set *s;
   C3DParticle *p,*head,*n;
+  CShellCasing *shellc;
+  CPlayer *player;
+  CFrogSymbol *man=FrogSymbol("world");
   CHandItem *hand=FrogSymbol("hand_item")->value;
   dc=DCAlias(dc,t);
   w->to_dc=dc;
@@ -1448,10 +1465,29 @@ U0 DrawIt(CTask *t,CDC *dc) {
   }
   Free(w->to_dc->depth_buf);
   w->to_dc->depth_buf=NULL;
+
+  
+  Fs->user_data=0;
+  player=CallScript("getPlayer",man->value);
+  if(ThingHasClass(player,"CPlayer")) {
+    if(ThingHasClass(player->shell_casings,"CFrogArray")) {
+      s=player->shell_casings->items;
+      body=s->body;
+      idx=s->cnt;
+      while(--idx>=0) {
+        shellc=body[idx];
+	if(ThingHasClass(shellc,"CShellCasing")) {
+	  if(shellc->dc)
+	   GrBlot(dc,shellc->x,shellc->y,shellc->dc);
+	}
+      }
+   }
+  } 
+
   if(ThingHasClass(hand,"CHandItem")) {
     hand->x=ms.pos.x;
     if(hand_gr=hand->gr) {
-     GrBlot(dc,hand->x+hand->xoff-hand_gr->width/2,hand->y+hand->yoff-hand_gr->height/2,hand_gr);
+      GrBlot(dc,hand->x+hand->xoff-hand_gr->width/2,hand->y+hand->yoff-hand_gr->height/2,hand_gr);
     }
   }
   DrawUIRoot(t,dc);
@@ -1464,14 +1500,17 @@ U0 WalkAround() {
   F64 x=9*GRID_SZ,y=5*GRID_SZ;
   Bool up=FALSE,down=FALSE,right=FALSE,left=FALSE,cont=TRUE;
   CFrogSymbol *man=FrogSymbol("world");
-  C2DThing *player=CallScript("getPlayer",man->value);
+  CPlayer *player=CallScript("getPlayer",man->value);
   CUIElem *ui_root=FrogSymbol("ui_root")->value;
+  CShellCasing *shellc;
   WinMax;
   WinBorder;
   Fs->draw_it=&DrawIt;
   w->x=x,w->y=y;
   w->cam_height=.8;
   w->angle=0;
+  CFrogThing **body;
+  I64 idx;
   try while (cont) {
       CallScript("update",man->value);
 
@@ -1570,6 +1609,16 @@ next:;
       w->angle%=2*pi;
       if(w->angle<0)
         w->angle+=2*pi;
+      if(ThingHasClass(player->shell_casings,"CFrogArray")) {
+        body=player->shell_casings->items->body;
+        idx=player->shell_casings->items->cnt;
+        while(--idx>=0) {
+          shellc=body[idx];
+	  if(ThingHasClass(shellc,"CShellCasing")) {
+	    CallScript("update",shellc);
+	  }
+        }
+     }
       Refresh;
       FrogGarbageCollect;
     } catch PutExcept;

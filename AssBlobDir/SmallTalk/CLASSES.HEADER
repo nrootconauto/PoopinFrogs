@@ -209,6 +209,15 @@ class CWallStain:CFrogThing {
  CDC *dc;
   U8 *destroy dft "WallStainDel";
 };
+
+class CShellCasing:CFrogThing {
+  F64 x,y;
+  F64 momx,momy;
+  F64 gravity;
+  CDC *dc;
+  U8 *destroy dft "ShellCasingDel";
+};
+
 //
 // Game Section
 //
@@ -230,6 +239,7 @@ class CFrogNPC:C2DThing {
 };
 class CPlayer:C2DThing {
   CFrogArray *items;
+  CFrogArray *shell_casings;
   CUIMeter *health_meter;
   CUIMeter *ammo_meter;
   CUIGrid *quick_inventory;
