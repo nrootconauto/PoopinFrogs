@@ -500,7 +500,7 @@ Bool C3DWorldMoveWithCollision(C3DWorld *w,F64 angle,F64 dist,F64 *x,F64 *y,Bool
       case 2: //Left
 	deflect_angle=pi;
 	break;
-      case 3: //Right
+      case 3: //Right
 	deflect_angle=0;
 	break;
       end:
@@ -591,8 +591,8 @@ en:;
 }
 U0 DrawWallSegment(C3DWorld *w,I64 segment,I64 x,I64 start_y,CDC *texture,I64 height,I64 dist,I64 z,I64 tile_idx,I64 side) {
   I64 offx,offy,stain_color;
-  CDC *stain=WallStain(w,tile_idx,z,side,&offx,&offy);
   if(!texture||!height) return;
+  CDC *stain=WallStain(w,tile_idx,z,side,&offx,&offy);
   U8 *dst=w->to_dc->body;
   I32 *depth_dst;
   I64 tmp,i,segment_y,width=w->to_dc->width_internal,anim_frame=ToI64(tS/ANIM_DELAY)%AnimDCCnt(texture),xp;
@@ -1200,7 +1200,8 @@ skip2:;
 }
 C3DWorld *w;
 U0 WallStainDel(CWallStain *s) {
-  AnimDCDel(s->dc);
+  if(s->dc)
+    AnimDCDel(s->dc);
   Free(s);
 }
 //
@@ -1233,7 +1234,7 @@ CFrogThing *WallStainMerge(CWallStain *self,...) {
   x2=MaxI64(self->x-self->center_x+self->dc->width,other->x-other->center_x+other->dc->width);
   y1=MinI64(self->y-self->center_y,other->y-other->center_y);
   y2=MaxI64(self->y-self->center_y+self->dc->height,other->y-other->center_y+other->dc->height);
-  CDC *new=DCNew(x2-x1+1,y2-y1+1);
+  CDC *new=AnimDCNew(x2-x1+1,y2-y1+1);
   ret=ConstructThing("CWallStain");
   ret->dc=new;
   ret->x=x1;
@@ -1258,6 +1259,7 @@ CFrogThing *WorldManagerNewParticle(C3DWorldManager *man,...) {
   F64 spread=AsF64(argv[3]);
   F64 color=AsF64(argv[4]);
   NewParticle(w,color,16,x,y,z,spread*(Rand-.5),spread*(Rand-.5),man->gravity);
+  return FROG_SMALL_NIL;
 }
 AddMethod("C3DWorldManager","newParticleAtX:atY:atZ:withSpread:withColor:",&WorldManagerNewParticle);
 
