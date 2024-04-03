@@ -270,7 +270,6 @@ U0 LevelEditorExport(U8 *blob,U8 *filename) {
 	template!=&world_edit.thing_templates_que;
 	template=template->next) {
     fptr(CFileThingTemplate*)->idx=template->idx;
-    PrintI(template->name,1);
     StrCpy(fptr(CFileThingTemplate*)->name,template->name);
     StrCpy(fptr(CFileThingTemplate*)->blob_side_name,template->blob_side_name);
     StrCpy(fptr(CFileThingTemplate*)->blob_front_name,template->blob_front_name);
@@ -926,12 +925,9 @@ U0 FreeEditorData() {
     AnimDCDel(template->front_orig_dc);
     AnimDCDel(template->back_orig_dc);
     AnimDCDel(template->side_orig_dc);
-PrintI(template->name,123);
     template=template->next;
   }
-PrintI("1",1);
   QueDel(&world_edit.thing_templates_que);
-PrintI("2",2);
 
   texture=world_edit.textures_que.next;
   while(texture!=&world_edit.textures_que) {

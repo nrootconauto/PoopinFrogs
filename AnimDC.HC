@@ -110,7 +110,7 @@ CDC *ScaleDC(CDC *from_dc,I64 w,I64 h,CTask *mem_task=NULL) {
 }
 
 CDC *AnimDCNew(I64 w,I64 h,CTask *mem_task=NULL) {
-  CDC *ret=DCNew(w,h,mem_task);
+  CDC *ret=DCNew(w,h,mem_task);
   CDC *ret2=CAlloc(sizeof(CDC)*2,mem_task);
   MemCpy(ret2,ret,sizeof(CDC));
   Free(ret);

@@ -290,20 +290,24 @@ I64 PassesThoughBlock(C3DWorld *w,F64 slope,I64 x,I64 y,F64 *dist,F64 cos,F64 si
   cy1=(cy1-w->y)/GRID_SZ;
   cy2=(cy2-w->y)/GRID_SZ;
   if(cos==0.) {
+    x=x*GRID_SZ;
+    y=y*GRID_SZ;
     if(sin>0.) {
-      if(dist) *dist=cy1-w->y;
-      return cx1<=w->x<=cx2&&w->y<=cy1;
+      if(dist) *dist=y*GRID_SZ-w->y;
+      return x<=w->x<=x+GRID_SZ&&w->y<=y;
     }
-    if(dist) *dist=w->y-cy2;
-    return cx1<=w->x<=cx2&&w->y>=cy2;
+    if(dist) *dist=w->y-(y+1)*GRID_SZ;
+    return x<=w->x<=x+GRID_SZ&&w->y>=y+GRID_SZ;
   }
   if(sin==0.) {
+    x=x*GRID_SZ;
+    y=y*GRID_SZ;
     if(cos>0.) {
-      if(dist) *dist=cx1-w->x;
-      return cy1<=w->y<=cy2&&w->x<=cx1;
+      if(dist) *dist=x*GRID_SZ-w->x;
+      return y<=w->y<=y+GRID_SZ&&w->x<=x;
     }
-    if(dist) *dist=w->x-cx2;
-    return cy1<=w->y<=cy2&&w->x>=cx2;
+    if(dist) *dist=w->x-(x+1)*GRID_SZ;
+    return y<=w->y<=y+GRID_SZ&&w->x>=x+GRID_SZ;
   }
   if(cos>0.^^far_side) {
 //Left side
@@ -451,8 +455,8 @@ final:
       wall_y=(iy+1)*GRID_SZ;
     else
       wall_y=iy*GRID_SZ;
-    t1=(wall_x-w->x)/cos;
-    t2=(wall_y-w->y)/sin;
+    t1=(wall_x-w->x)/(cos+.0001);
+    t2=(wall_y-w->y)/(sin+.0001);
 
     if(t1<t2) {
       x=t2*cos+w->x;
@@ -596,7 +600,7 @@ U0 DrawWallSegment(C3DWorld *w,I64 segment,I64 x,I64 start_y,CDC *texture,I64 he
   CDC *stain=WallStain(w,tile_idx,z,side,&offx,&offy);
   if(!texture||!height) return;
   U8 *dst=w->to_dc->body;
-  I32 *depth_dst;
+  I32 *depth_dst,idist;
   I64 tmp,i,segment_y,width=w->to_dc->width_internal,anim_frame=ToI64(tS/ANIM_DELAY)%AnimDCCnt(texture),xp;
   dst+=x+MaxI64(start_y,0)*width;
   if(w->to_dc->depth_buf)
@@ -605,7 +609,7 @@ U0 DrawWallSegment(C3DWorld *w,I64 segment,I64 x,I64 start_y,CDC *texture,I64 he
     depth_dst=NULL;
   xp=Lerp(segment/ToF64(GRID_SZ),0,texture->width-1);
 ent:
-  for(i=0;i<=height;i+=4) {
+  for(i=0;i<=height;i+=w->step_width) {
     tmp=VisSkipTo(w,x,i+start_y,dist)-start_y;
     if(tmp) {
       i=tmp;
@@ -613,7 +617,7 @@ ent:
       if(w->to_dc->depth_buf)
 	depth_dst=w->to_dc->depth_buf+(start_y+i)*width+x;
     }
-    if(0<=i+start_y<GR_HEIGHT-4) {
+    if(0<=i+start_y<GR_HEIGHT-w->step_width) {
       segment_y=height/(DIST_SCALE/ToF64(dist+1))*(i/ToF64(height))*texture->height;
       tmp=gr.to_8_colors[GrPeek0(
 	    texture+anim_frame,
@@ -625,43 +629,63 @@ ent:
 	    tmp=gr.to_8_colors[stain_color];
         }
       }
-      if(depth_dst[0]>=dist) {
-        dst(U32*)[0]=tmp;
-        dst+=width;
-        dst(U32*)[0]=tmp;
-        dst+=width;
-        dst(U32*)[0]=tmp;
-        dst+=width;
-        dst(U32*)[0]=tmp;
-        dst+=width;
-
-        if(depth_dst) {
-	  depth_dst[0]=dist;
-	  depth_dst[1]=dist;
-	  depth_dst[2]=dist;
-	  depth_dst[3]=dist;
-	  depth_dst+=width;
-	  depth_dst[0]=dist;
-	  depth_dst[1]=dist;
-	  depth_dst[2]=dist;
-	  depth_dst[3]=dist;
-	  depth_dst+=width;
-	  depth_dst[0]=dist;
-	  depth_dst[1]=dist;
-	  depth_dst[2]=dist;
-	  depth_dst[3]=dist;
-	  depth_dst+=width;
-	  depth_dst[0]=dist;
-	  depth_dst[1]=dist;
-	  depth_dst[2]=dist;
-	  depth_dst[3]=dist;
-	  depth_dst+=width;
+      idist=dist;
+      if(w->step_width==2) {
+        if(depth_dst[0]>=dist) {
+          dst(U16*)[0]=tmp;
+          dst+=width;
+          dst(U16*)[0]=tmp;
+          dst+=width;
+          if(depth_dst) {
+	    depth_dst[0]=idist;
+	    depth_dst[1]=idist;
+	    depth_dst+=width;
+	    depth_dst[0]=idist;
+	    depth_dst[1]=idist;
+	    depth_dst+=width;
+          }
+        } else  {
+          depth_dst+=width*2;
+	  dst+=width*2;
         }
-      } else  {
-        depth_dst+=width*4;
-	dst+=width*4;
+      } else if(w->step_width==4) {
+        if(depth_dst[0]>=dist) {
+          dst(U32*)[0]=tmp;
+          dst+=width;
+          dst(U32*)[0]=tmp;
+          dst+=width;
+          dst(U32*)[0]=tmp;
+          dst+=width;
+          dst(U32*)[0]=tmp;
+          dst+=width;
+          if(depth_dst) {
+	    depth_dst[0]=idist;
+	    depth_dst[1]=idist;
+	    depth_dst[2]=idist;
+	    depth_dst[3]=idist;
+	    depth_dst+=width;
+	    depth_dst[0]=idist;
+	    depth_dst[1]=idist;
+	    depth_dst[2]=idist;
+	    depth_dst[3]=idist;
+	    depth_dst+=width;
+	    depth_dst[0]=idist;
+	    depth_dst[1]=idist;
+	    depth_dst[2]=idist;
+	    depth_dst[3]=idist;
+	    depth_dst+=width;
+	    depth_dst[0]=idist;
+	    depth_dst[1]=idist;
+	    depth_dst[2]=idist;
+	    depth_dst[3]=idist;
+	    depth_dst+=width;
+          }
+        } else  {
+          depth_dst+=width*4;
+	  dst+=width*4;
+        }
       }
-    } else if(i+start_y>=w->to_dc->height-4)
+    } else if(i+start_y>=w->to_dc->height-w->step_width)
       break;
   }
 }
@@ -695,9 +719,9 @@ I64 ColorFloor(C3DWorld *w,I64 view_x,I64 floor_height,I64 sy,I64 ey,CDC *textur
   I32 *db_z;
   U64 idist;
   I64 poopx,poopy;
-  ey=ClampI64(ey,0,w->to_dc->height-4);
-  sy=ClampI64(sy,0,w->to_dc->height-4);
-  for(y=sy;y<ey;y+=w->step_width_y) {
+  ey=ClampI64(ey,0,w->to_dc->height-2);
+  sy=ClampI64(sy,0,w->to_dc->height-2);
+  for(y=sy;y<ey;y+=w->step_width) {
     if(y-GR_HEIGHT/2==0)
       dist=I16_MAX;
     else {
@@ -726,30 +750,43 @@ I64 ColorFloor(C3DWorld *w,I64 view_x,I64 floor_height,I64 sy,I64 ey,CDC *textur
 	    colors=gr.to_8_colors[which];
         }
         if(0<=y<dc->height) {
-	  dst=dc->body+(dc->height-y-4)*width+view_x;
-	  db_z=dc->depth_buf+(dc->height-y-4)*width+view_x;
+	  dst=dc->body+(dc->height-y-w->step_width)*width+view_x;
+	  db_z=dc->depth_buf+(dc->height-y-w->step_width)*width+view_x;
 	  if(dist<*db_z) {
 	    idist=dist;
 	    //Make 64bit pair
 	    idist=(idist&0xffFFffFF)|idist<<32;
-	    dst(U32*)[0]=colors;
-	    db_z[0](U64)=idist;
-	    db_z[2](U64)=idist;
-	    dst+=width;
-	    db_z+=width;
-	    dst(U32*)[0]=colors;
-	    db_z[0](U64)=idist;
-	    db_z[2](U64)=idist;
-	    dst+=width;
-	    db_z+=width;
-	    dst(U32*)[0]=colors;
-	    db_z[0](U64)=idist;
-	    db_z[2](U64)=idist;
-	    dst+=width;
-	    db_z+=width;
-	    dst(U32*)[0]=colors;
-	    db_z[0](U64)=idist;
-	    db_z[2](U64)=idist;
+	    if(w->step_width==2){ 
+	      dst(U16*)[0]=colors;
+	      db_z[0](U64)=idist;
+	      dst+=width;
+	      db_z+=width;
+	      dst(U16*)[0]=colors;
+	      db_z[0](U64)=idist;
+	      dst+=width;
+	      db_z+=width;
+	    } else if(w->step_width==4) {
+	      dst(U32*)[0]=colors;
+	      db_z[0](U64)=idist;
+	      db_z[2](U64)=idist;
+	      dst+=width;
+	      db_z+=width;
+	      dst(U32*)[0]=colors;
+	      db_z[0](U64)=idist;
+	      db_z[2](U64)=idist;
+	      dst+=width;
+	      db_z+=width;
+	      dst(U32*)[0]=colors;
+	      db_z[0](U64)=idist;
+	      db_z[2](U64)=idist;
+	      dst+=width;
+	      db_z+=width;
+	      dst(U32*)[0]=colors;
+	      db_z[0](U64)=idist;
+	      db_z[2](U64)=idist;
+	      dst+=width;
+	      db_z+=width;
+	    }
 	  }
         }
       }
@@ -952,7 +989,7 @@ ent:
       y=GR_HEIGHT/2;
       y0=GR_HEIGHT/2-h*(height_cap-w->cam_height);
 
-      for(idx3=w->step_width;--idx3>=0;) {
+      for(idx3=2;--idx3>=0;) {
         if(0<=x+idx3<w->to_dc->width) {
 	  ptr=w->blocked_cnts[x+idx3];
 	  if(ptr<0x80) {
@@ -1296,7 +1333,7 @@ fin:;
 }
 AddMethod("CFloorStain","mergeWith:",&FloorStainMerge);
 U0 FloorStainDel(CFloorStain *s) {
-  if(s->dc) AnimDCDel(s->dc);
+  if(s->dc) AnimDCDel(s->dc);
   Free(s);
 }
 
