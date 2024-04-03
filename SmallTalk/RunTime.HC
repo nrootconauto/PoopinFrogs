@@ -722,6 +722,7 @@ U0 ConstructBuiltin(U8 *code,U8 *type,U8 *name,...) {
   ConstructBuiltin("FrogNumNew(-AsF64(self))","CFrogNum","negated");
   ConstructBuiltin("FrogNumNew(AsF64(self)`AsF64(a))","CFrogNum","raisedTo:","CFrogNum","a");
   ConstructBuiltin("FrogNumNew(Floor(AsF64(self)))","CFrogNum","floor");
+  ConstructBuiltin("FrogNumNew(Round(AsF64(self)))","CFrogNum","round");
   ConstructBuiltin("FrogNumNew(Ceil(AsF64(self)))","CFrogNum","ceil");
   ConstructBuiltin("FrogNumNew(Log10(AsF64(self)))","CFrogNum","log");
   ConstructBuiltin("FrogNumNew(Sin(AsF64(self)))","CFrogNum","sin");

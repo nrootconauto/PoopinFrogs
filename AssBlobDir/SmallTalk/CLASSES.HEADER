@@ -1,4 +1,4 @@
-class CFrogThing:CQue {
+class CFrogThing:CQue {
 #define SRV_THINGF_TO_DELETE 1
   I32 thing_flags,pad;
   I32 id,ref_cnt;
@@ -164,6 +164,9 @@ class CUIGrid:CUIElem {
 //
 //See /3D.HC
 //
+class C2DPoint:CFrogThing {
+  I64 x,y;
+};
 class C2DThingTemplate:CFrogThing {
   I64 flags;
   CFrogStr *name;
@@ -187,6 +190,7 @@ class C3DWorldManager:CFrogThing {
   CFrogDictionary *thing_templates;
   CFrogDictionary *tile_templates;
   F64 gravity;
+  I64 screen_x,screen_y;
 //A grid of things having the things(128*128 size)
   CFrogArray *grid;
 };
@@ -212,7 +216,8 @@ class CFloorStain:CFrogThing {
 
 //Things like bullet holes or piss stains on the walls
 class CWallStain:CFrogThing {
-  I64 tile_x,tile_y,side;
+  C2DPoint *tile;
+  I64 side;
   F64 x,y;
   F64 center_x,center_y;
  CDC *dc;

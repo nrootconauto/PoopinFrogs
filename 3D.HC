@@ -127,7 +127,7 @@ U0 C2DThingTemplateDel(C2DThingTemplate *t) {
   DCDel(t->back);
   Free(t);
 }
-U0 C3DWorldSetFov(C3DWorld *w,F64 fov=pi/4) {$IV,0$
+U0 C3DWorldSetFov(C3DWorld *w,F64 fov=pi/4) {
   w->fov=fov;
   w->plane_dist=(GR_WIDTH/2)/(Tan(fov/2));
 }
@@ -547,7 +547,9 @@ fin:
 }
 
 F64 Lerp(F64 per,F64 min,F64 max) {
-  return Clamp(per*(max-min)+min,min,max);
+  if(min<max)
+    return Clamp(per*(max-min)+min,min,max);
+  return Clamp(per*(max-min)+min,max,min);
 }
 
 CDC *WallStain(C3DWorld *w,I64 tile_idx,F64 h,I64 side,I64 *offx,I64 *offy) {
@@ -558,7 +560,7 @@ CDC *WallStain(C3DWorld *w,I64 tile_idx,F64 h,I64 side,I64 *offx,I64 *offy) {
     stain=body[idx];
     if(!stain->dc) goto skip;
     if(stain->side==side)  {
-      have=stain->tile_x+stain->tile_y*w->world_width;
+      have=stain->tile->x+stain->tile->y*w->world_width;
       if(tile_idx==have) {
 	*offx=stain->x-stain->center_x;
 	*offy=stain->y+h*GRID_SZ-stain->center_y;
@@ -707,6 +709,7 @@ CDC *FloorStain(C3DWorld *w,I64 tx,I64 ty,I64 *xoff,I64 *yoff) {
   }
   return NULL;
 }
+
 I64 ColorFloor(C3DWorld *w,I64 view_x,I64 floor_height,I64 sy,I64 ey,CDC *texture) {
   CDC *dc=w->to_dc,*stain;
   F64 angley=0;
@@ -899,6 +902,59 @@ fin:
   return tiles;
 }
 I64 mp_done=0;
+F64 ScreenCordsToDist(C3DWorld *w,I64 x,I64 y,F64 max=GRID_SZ*128,F64 *height=NULL) {
+  F64 angle=w->angle+w->fov*((x-GR_WIDTH/2)/ToF64(GR_WIDTH));
+  I64 *tiles=GetTilesInPath(w,angle,max),idx;
+  I64 total,xoff,yoff,adj_height;
+  if(height) *height=w->cam_height;
+  F64 d=-1,dist,h,y0;
+  I64 tile2,tile;
+  for(idx=0;tiles[idx]!=-1;idx++) {
+    tile=tiles[idx];
+    FindRayWall(w,
+	  tan_lookup_table[x],
+	  cos_lookup_table[x],
+	  sin_lookup_table[x],
+	  NULL,
+	  &dist,
+	  NULL,
+	  Floor(w->cam_height),
+	  tile
+	  );
+
+    adj_height=w->heightmap[tile];
+    for(xoff=-1;xoff<=1;xoff++)
+      for(yoff=-1;yoff<=1;yoff++) {
+	tile2=xoff+yoff*w->world_width+tile;
+	if(0<=tile2<w->world_width*w->world_height&&(xoff^^yoff)) {
+	  adj_height=MinI64(adj_height,w->heightmap[tile2]);
+	}
+      }
+
+    h=DIST_SCALE/(dist*cos2_lookup_table[x]);
+    y0=GR_HEIGHT/2-h*(w->heightmap[tile]-w->cam_height);
+    if(y0<=y<y0+h*(w->heightmap[tile]-adj_height)) {
+//TODOtest floor intersection
+      if(height) *height=Lerp((y-y0)/(h*(w->heightmap[tile]-adj_height)),w->heightmap[tile],adj_height);
+      d=dist;
+      break;
+    }
+  }
+  if(d<0) {
+    FindRayWall(w,
+	  tan_lookup_table[x],
+	  cos_lookup_table[x],
+	  sin_lookup_table[x],
+	  NULL,
+	  &d,
+	  NULL,
+	  w->cam_height
+	  );
+  }
+  Free(tiles);
+  return d;
+}
+
 U0 MPCastCol(C3DWorld *w) {
   F64 angle=w->angle-w->fov/2;
   I64 wall_segment_start,wall_segment_end;
@@ -1373,8 +1429,9 @@ CFrogThing *WallStainMerge(CWallStain *self,...) {
   ret->x=x1;
   ret->y=y1;
   ret->side=self->side;
-  ret->tile_x=self->tile_x;
-  ret->tile_y=self->tile_y;
+  ret->tile=ConstructThing("C2DPoint");
+  ret->tile->x=self->tile->x;
+  ret->tile->y=self->tile->y;
   DCFill(new,TRANSPARENT);
   GrBlot(new,self->x-self->center_x-x1,self->y-self->center_y-y1,self->dc);
   GrBlot(new,other->x-other->center_x-x1,other->y-other->center_y-y1,other->dc);
@@ -1427,6 +1484,18 @@ CFrogThing *WorldManagerTileHeightAtXAtY(C3DWorldManager *self,...) {
   return FrogNumNew(I16_MAX);
 }
 AddMethod("C3DWorldManager","tileHeightAtX:atY:",&WorldManagerTileHeightAtXAtY);
+CFrogThing *WorldManagerTileHeightAt(C3DWorldManager *self,...) {
+  C2DPoint *p=argv[0];
+  CFrogThing *ret=FrogNumNew(I16_MAX);
+  C3DWorld *w=self->world_handle;
+  if(0<=p->x<w->world_width)
+    if(0<=p->y<w->world_height) {
+      ret=FrogNumNew(w->heightmap[p->x+p->y*w->world_width]);
+    }
+  ThingDel(p);
+  return ret;
+}
+AddMethod("C3DWorldManager","tileHeightAt:",&WorldManagerTileHeightAt);
 
 
 CFrogThing *WorldManagerRaySideForTile(C3DWorldManager *self,...) {
@@ -1434,7 +1503,8 @@ CFrogThing *WorldManagerRaySideForTile(C3DWorldManager *self,...) {
   F64 y=AsF64(argv[1]);
   F64 a=AsF64(argv[2]);
   F64 h=AsF64(argv[3]);
-  F64 force_tile=AsF64(argv[4]);
+  C2DPoint *p=argv[4];
+  I64 force_tile=p->x+p->y*w->world_width;
   F64 oldx=w->x,oldy=w->y;
   I64 side;
   w->x=x;
@@ -1451,9 +1521,39 @@ CFrogThing *WorldManagerRaySideForTile(C3DWorldManager *self,...) {
 	    );
   w->x=oldx;
   w->y=oldy;
+  ThingDel(p);
   return FrogNumNew(side);
 }
 AddMethod("C3DWorldManager","raySideAtX:atY:atAngle:atHeight:forTile:",&WorldManagerRaySideForTile);
+
+CFrogThing *WorldManagerRaySegmentForTile(C3DWorldManager *self,...) {
+  F64 x=AsF64(argv[0]);
+  F64 y=AsF64(argv[1]);
+  F64 a=AsF64(argv[2]);
+  F64 h=AsF64(argv[3]);
+  F64 oldx=w->x,oldy=w->y;
+  C2DPoint *p=argv[4];
+  I64 force_tile=p->x+p->y*w->world_width;
+  I64 segment;
+  w->x=x;
+  w->y=y;
+  FindRayWall(w,
+	    Tan(a),
+	    Cos(a),
+	    Sin(a),
+	    &segment,
+	    NULL,
+	    NULL,
+	    h,
+	    force_tile
+	    );
+  w->x=oldx;
+  w->y=oldy;
+  ThingDel(p);
+  return FrogNumNew(segment);
+}
+AddMethod("C3DWorldManager","raySegmentAtX:atY:atAngle:atHeight:forTile:",&WorldManagerRaySegmentForTile);
+
 
 CFrogThing *WorldManagerRayTile(C3DWorldManager *self,...) {
   F64 x=AsF64(argv[0]);
@@ -1461,7 +1561,7 @@ CFrogThing *WorldManagerRayTile(C3DWorldManager *self,...) {
   F64 a=AsF64(argv[2]);
   F64 h=AsF64(argv[3]);
   F64 oldx=w->x,oldy=w->y;
-  F64 tile;
+  I64 tile;
   w->x=x;
   w->y=y;
   tile=FindRayWall(w,
@@ -1471,11 +1571,14 @@ CFrogThing *WorldManagerRayTile(C3DWorldManager *self,...) {
 	    NULL,
 	    NULL,
 	    NULL,
-	    h,
+	    Floor(h),
 	    );
   w->x=oldx;
   w->y=oldy;
-  return FrogNumNew(tile);
+  C2DPoint *p=ConstructThing("C2DPoint");
+  p->x=tile%w->world_width;
+  p->y=tile/w->world_width;
+  return p;
 }
 AddMethod("C3DWorldManager","rayTileAtX:atY:atAngle:atHeight:",&WorldManagerRayTile);
 
@@ -1529,6 +1632,30 @@ CFrogThing *ThingCanSeeThing(C2DThing *self,...) {
 }
 AddMethod("C2DThing","canSeeThing:",&ThingCanSeeThing);
 
+CFrogThing *ScreenCoordToDist(C3DWorldManager *self,...) {
+  return FrogNumNew(ScreenCordsToDist(w,self->screen_x,self->screen_y));
+}
+AddMethod("C3DWorldManager","screenCoordToDist",&ScreenCoordToDist);
+CFrogThing *ScreenCoordToX(C3DWorldManager *self,...) {
+  I64 x=self->screen_x;
+  F64 angle=w->angle+w->fov/2*((x-GR_WIDTH/2)/ToF64(GR_WIDTH)),dist;
+  dist=ScreenCordsToDist(w,self->screen_x,self->screen_y);
+  return FrogNumNew(w->x+dist*Cos(angle));
+}
+AddMethod("C3DWorldManager","screenCoordToX",&ScreenCoordToX);
+CFrogThing *ScreenCoordToY(C3DWorldManager *self,...) {
+  I64 x=self->screen_x;
+  F64 angle=w->angle+w->fov/2*((x-GR_WIDTH/2)/ToF64(GR_WIDTH)),dist;
+  dist=ScreenCordsToDist(w,self->screen_x,self->screen_y);
+  return FrogNumNew(w->y+dist*Sin(angle));
+}
+AddMethod("C3DWorldManager","screenCoordToY",&ScreenCoordToY);
+CFrogThing *ScreenCoordToZ(C3DWorldManager *self,...) {
+  F64 h;
+  ScreenCordsToDist(w,self->screen_x,self->screen_y,,&h);
+  return FrogNumNew(h);
+}
+AddMethod("C3DWorldManager","screenCoordToZ",&ScreenCoordToZ);
 //
 // Test section
 //
@@ -1637,6 +1764,7 @@ U0 WalkAround() {
   CPlayer *player=CallScript("getPlayer",man->value);
   CUIElem *ui_root=FrogSymbol("ui_root")->value;
   CShellCasing *shellc;
+  C3DWorldManager *wm=man->value;
   WinMax;
   WinBorder;
   Fs->draw_it=&DrawIt;
@@ -1736,6 +1864,8 @@ next:;
         CallScript("fire",FrogSymbol("hand_item")->value);
 	player->angle-=mouse_angle;
       }
+      wm->screen_x=ms.pos.x;
+      wm->screen_y=ms.pos.y;
       w->x=player->x;
       w->y=player->y;
       w->angle=player->angle+.001;
