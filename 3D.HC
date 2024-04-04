@@ -1449,7 +1449,8 @@ CFrogThing *WorldManagerNewParticle(C3DWorldManager *man,...) {
   F64 spread=AsF64(argv[3]);
   F64 color=AsF64(argv[4]);
   NewParticle(w,color,16,x,y,z,spread*(Rand-.5),spread*(Rand-.5),man->gravity);
-}
+  return FROG_SMALL_NIL;
+}
 AddMethod("C3DWorldManager","newParticleAtX:atY:atZ:withSpread:withColor:",&WorldManagerNewParticle);
 
 //Returns 1. if COLLISION,else 0
