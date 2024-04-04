@@ -216,7 +216,7 @@ class CFloorStain:CFrogThing {
 
 //Things like bullet holes or piss stains on the walls
 class CWallStain:CFrogThing {
-  C2DPoint *tile;
+  C2DPoint *tile;
   I64 side;
   F64 x,y;
   F64 center_x,center_y;
@@ -244,12 +244,20 @@ class CPickup:C2DThing {
 class CGun1Pickup:CPickup {
 };
 
+class CFrogTongue:CFrogThing {
+  C2DThing *from;
+  F64 start_tS;
+  F64 x,y,z;
+  F64 target_x,target_y,target_z;
+};
+
 
 class CGun1:CHandItem {
 };
 class CFrogNPC:C2DThing {
   CFrogRandom *random_generator;
   F64 speed;
+  CFrogTongue *tongue;
 };
 class CPlayer:C2DThing {
   CFrogArray *items;

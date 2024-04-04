@@ -1,6 +1,7 @@
 #include "AnimDC.HC"
 #include "BlobFile.HC";
 #include "SmallTalk/Load.HC"
+#include "Intersect.HC";
 #define TEST_3D
 #ifndef ENGINE_3D
 #define ENGINE_3D 1
@@ -77,7 +78,7 @@ class C3DParticle:CQue {
 #define DIST_SCALE (GR_HEIGHT*GRID_SZ)
 #define EMPTY_SPACE 0
 class C3DWorld {
-   F64 fov,x,y,h,angle,step_width,step_width_y;
+   F64 fov,x,y,h,angle,step_width,step_width_y;
    I64 world_width;
    I64 world_height;
    I16 *world_mat; //0 is for EMPTY_SPACE
@@ -1190,6 +1191,106 @@ U0 DrawParticle(C3DWorld *w,C3DParticle *p) {
     GrPlot3(w->to_dc,x0,y0,dist);
 }
 #define THING_DRAW_CUTOFF GRID_SZ/2
+U0 PointToScrn(C3DWorld *w,F64 x,F64 y,F64 z,CD3 *res) {
+  F64 angle;
+  F64 dist=Sqrt(Sqr(x-w->x)+Sqr(y-w->y));
+  angle=Arg(x-w->x,y-w->y);
+//https://permadi.com/1996/05/ray-casting-tutorial-8/
+  if(angle<w->angle)
+    dist*=Cos(w->angle-angle);
+  else
+    dist*=Cos(angle-w->angle);
+  F64 h=DIST_SCALE/(dist+16);
+  res->y=GR_HEIGHT/2-h*(z-w->cam_height+.1);
+//Check direction
+  angle=NormalizeAngle(angle);
+  if(Sin(angle-w->angle)>0.) {
+    angle=AngleBetween(angle,w->angle);
+    res->x=GR_WIDTH/2+angle/((w->fov/GR_WIDTH));
+  } else {
+    angle=AngleBetween(angle,w->angle);
+    res->x=GR_WIDTH/2-angle/((w->fov/GR_WIDTH));
+  }
+  res->z=dist;
+}
+Bool IsLeftSide(CD2 *a,CD2 *b,CD2 *c) {
+  return (b->x-a->x)*(c->y-a->y)-(b->y-a->y)*(c->x-a->x)>=0.;
+}
+Bool ClipLineToCamera(C3DWorld *w,CD3 *a,CD3 *b) {
+  CD2 cam,left,right;
+  CD2 dst;
+  CD3 oa,ob;
+  F64 aa=Sin(AngleBetween(Arg(a->x-cam.x,a->y-cam.y),w->angle));
+  F64 ba=Sin(AngleBetween(Arg(b->x-cam.x,b->y-cam.y),w->angle));
+  F64 dist=Sqrt(Sqr(b->x-a->x)+Sqr(b->y-a->y));
+  Bool in_view=FALSE;
+  oa.x=a->x;
+  oa.y=a->y;
+  oa.z=a->z;
+  ob.x=b->x;
+  ob.y=b->y;
+  ob.z=b->z;
+  cam.x=w->x;
+  cam.y=w->y;
+  left.x=cam.x+I16_MAX*Cos(w->fov/2+w->angle);
+  left.y=cam.y+I16_MAX*Sin(w->fov/2+w->angle);
+  right.x=cam.x+I16_MAX*Cos(-w->fov/2+w->angle);
+  right.y=cam.y+I16_MAX*Sin(-w->fov/2+w->angle);
+  if(PlaneIntersect(&dst,a,b,&cam,&left)) {
+     if(aa>0.) {
+       a->z=Lerp(Sqrt(Sqr(dst.x-oa.x)+Sqr(dst.y-oa.y))/dist,oa.z,ob.z);
+       a->x=dst.x;
+       a->y=dst.y;
+     } else if(ba>0.){
+       b->x=dst.x;
+       b->y=dst.y;
+       b->z=Lerp(Sqrt(Sqr(dst.x-oa.x)+Sqr(dst.y-oa.y))/dist,oa.z,ob.z);
+     }
+    in_view=TRUE;
+  }
+  if(PlaneIntersect(&dst,a,b,&cam,&right)) {
+     if(aa<0.) {
+       a->x=dst.x;
+       a->y=dst.y;
+       a->z=Lerp(Sqrt(Sqr(dst.x-oa.x)+Sqr(dst.y-oa.y))/dist,oa.z,ob.z);
+     } else if(ba<0.){
+       b->x=dst.x;
+       b->y=dst.y;
+       b->z=Lerp(Sqrt(Sqr(dst.x-oa.x)+Sqr(dst.y-oa.y))/dist,oa.z,ob.z);
+     }
+    in_view=TRUE;
+  }
+  return in_view||!IsLeftSide(&cam,&left,a)||!IsLeftSide(&cam,&left,b)
+	||IsLeftSide(&cam,&right,a)||IsLeftSide(&cam,&right,b);
+}
+U0 DrawFrogTongue(C3DWorld *w,CFrogTongue *t) {
+  if(!ThingHasClass(t,"CFrogTongue"))
+    return;
+  if(!ThingHasClass(t->from,"C2DThing"))
+    return;
+//TODO check in view
+  CD3 st,en;
+  CD3 stp,enp;
+  CDC *dc=w->to_dc;
+  F64 stz,enz;
+  stp.x=t->x;
+  stp.y=t->y;
+  stp.z=t->z;
+  enp.x=t->from->x;
+  enp.y=t->from->y;
+  enp.z=t->from->z+.8;
+  if(ClipLineToCamera(w,&stp,&enp)){
+    PointToScrn(w,stp.x,stp.y,stp.z,&en);
+    PointToScrn(w,enp.x,enp.y,enp.z,&st);
+    dc->color=LTRED;
+    dc->thick=4;
+    stz=Sqrt(Sqr(stp.x-w->x)+Sqr(stp.y-w->y));
+    enz=Sqrt(Sqr(enp.x-w->x)+Sqr(enp.y-w->y));
+    GrLine3(dc,st.x,st.y,stz,en.x,en.y,enz);
+    dc->thick=8;
+    GrPlot3(dc,en.x,en.y,en.z);
+  }
+}
 U0 Draw2DThing(C3DWorld *w,C2DThing *thing) {
   if(thing->no_draw) return;
   C2DThingTemplate *template=thing->template;
@@ -1325,6 +1426,9 @@ skip:;
 skip2:;
     }
   }
+  if(ThingHasClass(thing,"CFrogNPC")) {
+    DrawFrogTongue(w,thing(CFrogNPC*)->tongue);
+  }
 }
 C3DWorld *w;
 U0 WallStainDel(CWallStain *s) {
@@ -1449,6 +1553,7 @@ CFrogThing *WorldManagerNewParticle(C3DWorldManager *man,...) {
   F64 spread=AsF64(argv[3]);
   F64 color=AsF64(argv[4]);
   NewParticle(w,color,16,x,y,z,spread*(Rand-.5),spread*(Rand-.5),man->gravity);
+  return FROG_SMALL_NIL;
 }
 AddMethod("C3DWorldManager","newParticleAtX:atY:atZ:withSpread:withColor:",&WorldManagerNewParticle);
 
@@ -1891,9 +1996,7 @@ en:
   Refresh;
   Fs->draw_it=NULL;
 }
-//Uf("StainWall");
 WalkAround;
-//Uf("Draw2DThing");
 #endif
 #endif        i               8      8   ßÿÿÿ   Ýÿÿÿ      	'   öÿÿÿ?   áÿÿÿ
 

@@ -4,7 +4,7 @@ Bool InRange(F64 low,F64 x,F64 high) {
   return high-.01<=x<=low+.01;
 }
 
-Bool PlaneIntersect(CD2 *dst,CD2 *a,CD2 *b,CD2 *a2,CD2 *b2,Bool check=TRUE) {  
+Bool PlaneIntersect(CD2 *dst,CD2 *a,CD2 *b,CD2 *a2,CD2 *b2,Bool check=TRUE) {  
 /*
 * Nroot here,Heres the deal,I make a system of 2 linear equations and solve for an intersect
 * I solve for the intersect and check if they are in bounds of points
