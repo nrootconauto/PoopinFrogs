@@ -1106,7 +1106,7 @@ U0 LoadMapFromSprite(C3DWorld *world,U8 *sprite,I64 px_width=1) {
 U0 LoadTextureFromSprite(C3DWorld *world,I64 color,U8 *sprite) {
   I64 x1,y1,x2,y2,w,h,x,y;
   F64 interp_x,interp_y;
-  CDC *raw,*texture=DCNew(GRID_SZ,GRID_SZ);
+  CDC *raw,*texture=AnimDCNew(GRID_SZ,GRID_SZ);
   SpriteExtents(sprite,&x1,&x2,&y1,&y2);
   raw=Sprite2DC(sprite);
   w=(x2-x1+1);
@@ -1127,7 +1127,7 @@ U0 LoadTextureFromSprite(C3DWorld *world,I64 color,U8 *sprite) {
 U0 LoadFloorFromSprite(C3DWorld *world,I64 color,U8 *sprite) {
   I64 x1,y1,x2,y2,w,h,x,y;
   F64 interp_x,interp_y;
-  CDC *raw,*texture=DCNew(GRID_SZ,GRID_SZ);
+  CDC *raw,*texture=AnimDCNew(GRID_SZ,GRID_SZ);
   SpriteExtents(sprite,&x1,&x2,&y1,&y2);
   raw=Sprite2DC(sprite);
   w=(x2-x1+1);
@@ -1529,7 +1529,7 @@ CFrogThing *WallStainMerge(CWallStain *self,...) {
   x2=MaxI64(self->x-self->center_x+self->dc->width,other->x-other->center_x+other->dc->width);
   y1=MinI64(self->y-self->center_y,other->y-other->center_y);
   y2=MaxI64(self->y-self->center_y+self->dc->height,other->y-other->center_y+other->dc->height);
-  CDC *new=DCNew(x2-x1+1,y2-y1+1);
+  CDC *new=AnimDCNew(x2-x1+1,y2-y1+1);
   ret=ConstructThing("CWallStain");
   ret->dc=new;
   ret->x=x1;
