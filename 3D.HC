@@ -4,7 +4,6 @@
 #define TEST_3D
 #ifndef ENGINE_3D
 #define ENGINE_3D 1
-
 #define SCRN_TURN_MARGIN 100
 #define SCRN_TURN_RATE (pi/30.)
 
@@ -77,7 +76,8 @@ class C3DParticle:CQue {
 #define DIST_SCALE (GR_HEIGHT*GRID_SZ)
 #define EMPTY_SPACE 0
 class C3DWorld {
-   F64 fov,x,y,h,angle,step_width,step_width_y;
+   F64 fov,x,y,h,angle;
+   I64 step_width,step_width_y;
    I64 world_width;
    I64 world_height;
    I16 *world_mat; //0 is for EMPTY_SPACE
@@ -1373,7 +1373,7 @@ CFrogThing *FloorStainMerge(CFloorStain *self,...) {
   x2=MaxI64(self->x-self->center_x+self->dc->width,other->x-other->center_x+other->dc->width);
   y1=MinI64(self->y-self->center_y,other->y-other->center_y);
   y2=MaxI64(self->y-self->center_y+self->dc->height,other->y-other->center_y+other->dc->height);
-  CDC *new=DCNew(x2-x1+1,y2-y1+1);
+  CDC *new=AnimDCNew(x2-x1+1,y2-y1+1);
   ret=ConstructThing("CFloorStain");
   ret->dc=new;
   ret->x=x1;
@@ -1450,7 +1450,7 @@ CFrogThing *WorldManagerNewParticle(C3DWorldManager *man,...) {
   F64 color=AsF64(argv[4]);
   NewParticle(w,color,16,x,y,z,spread*(Rand-.5),spread*(Rand-.5),man->gravity);
   return FROG_SMALL_NIL;
-}
+}
 AddMethod("C3DWorldManager","newParticleAtX:atY:atZ:withSpread:withColor:",&WorldManagerNewParticle);
 
 //Returns 1. if COLLISION,else 0
