@@ -13,7 +13,7 @@ class CFastLookup {
 };
 #define FAST_LOOKUP_SZ 0x4000
 CFastLookup *fast_lookup_table[FAST_LOOKUP_SZ];
-MemSetU64(fast_lookup_table,NULL,FAST_LOOKUP_SZ);
+MemSetI64(fast_lookup_table,NULL,FAST_LOOKUP_SZ);
 CTask *fast_lookup_mem_task=Fs;
 CFastLookup *FastLookupGetLU(CFastLookupKey *k,U8 *str2) {
   CFastLookup *h=fast_lookup_table[k->hash&(FAST_LOOKUP_SZ-1)];
