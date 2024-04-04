@@ -79,7 +79,7 @@ class C3DParticle:CQue {
 class C3DWorld {
    F64 fov,x,y,h,angle;
    I64 step_width,step_width_y;
-   I64 world_width;
+   I64 world_width;
    I64 world_height;
    I16 *world_mat; //0 is for EMPTY_SPACE
    I8 *heightmap;
@@ -1196,12 +1196,6 @@ U0 PointToScrn(C3DWorld *w,F64 x,F64 y,F64 z,CD3 *res) {
   F64 dist=Sqrt(Sqr(x-w->x)+Sqr(y-w->y));
   angle=Arg(x-w->x,y-w->y);
 //https://permadi.com/1996/05/ray-casting-tutorial-8/
-  if(angle<w->angle)
-    dist*=Cos(w->angle-angle);
-  else
-    dist*=Cos(angle-w->angle);
-  F64 h=DIST_SCALE/(dist+16);
-  res->y=GR_HEIGHT/2-h*(z-w->cam_height+.1);
 //Check direction
   angle=NormalizeAngle(angle);
   if(Sin(angle-w->angle)>0.) {
@@ -1211,6 +1205,9 @@ U0 PointToScrn(C3DWorld *w,F64 x,F64 y,F64 z,CD3 *res) {
     angle=AngleBetween(angle,w->angle);
     res->x=GR_WIDTH/2-angle/((w->fov/GR_WIDTH));
   }
+  dist*=cos2_lookup_table[ClampI64(res->x,0,GR_WIDTH-1)];
+  F64 h=DIST_SCALE/(dist+.1);
+  res->y=GR_HEIGHT/2-h*(z-w->cam_height+.01);
   res->z=dist;
 }
 Bool IsLeftSide(CD2 *a,CD2 *b,CD2 *c) {
@@ -1220,8 +1217,10 @@ Bool ClipLineToCamera(C3DWorld *w,CD3 *a,CD3 *b) {
   CD2 cam,left,right;
   CD2 dst;
   CD3 oa,ob;
-  F64 aa=Sin(AngleBetween(Arg(a->x-cam.x,a->y-cam.y),w->angle));
-  F64 ba=Sin(AngleBetween(Arg(b->x-cam.x,b->y-cam.y),w->angle));
+  F64 a_angle=Arg(a->x-cam.x,a->y-cam.y);
+  F64 b_angle=Arg(b->x-cam.x,b->y-cam.y);
+  F64 aa=Sin(AngleBetween(a_angle,w->angle));
+  F64 ba=Sin(AngleBetween(b_angle,w->angle));
   F64 dist=Sqrt(Sqr(b->x-a->x)+Sqr(b->y-a->y));
   Bool in_view=FALSE;
   oa.x=a->x;
@@ -1232,10 +1231,10 @@ Bool ClipLineToCamera(C3DWorld *w,CD3 *a,CD3 *b) {
   ob.z=b->z;
   cam.x=w->x;
   cam.y=w->y;
-  left.x=cam.x+I16_MAX*Cos(w->fov/2+w->angle);
-  left.y=cam.y+I16_MAX*Sin(w->fov/2+w->angle);
-  right.x=cam.x+I16_MAX*Cos(-w->fov/2+w->angle);
-  right.y=cam.y+I16_MAX*Sin(-w->fov/2+w->angle);
+  left.x=cam.x+I16_MAX*Cos(w->fov+w->angle);
+  left.y=cam.y+I16_MAX*Sin(w->fov+w->angle);
+  right.x=cam.x+I16_MAX*Cos(-w->fov+w->angle);
+  right.y=cam.y+I16_MAX*Sin(-w->fov+w->angle);
   if(PlaneIntersect(&dst,a,b,&cam,&left)) {
      if(aa>0.) {
        a->z=Lerp(Sqrt(Sqr(dst.x-oa.x)+Sqr(dst.y-oa.y))/dist,oa.z,ob.z);
@@ -1260,9 +1259,18 @@ Bool ClipLineToCamera(C3DWorld *w,CD3 *a,CD3 *b) {
      }
     in_view=TRUE;
   }
+  if(Cos(a_angle)<0&&Cos(b_angle)<0)
+    return FALSE;
   return in_view||!IsLeftSide(&cam,&left,a)||!IsLeftSide(&cam,&left,b)
 	||IsLeftSide(&cam,&right,a)||IsLeftSide(&cam,&right,b);
 }
+U0 Line3D(C3DWorld *w,CDC *dc,CD3 *st,CD3 *en) {
+  CD3 res,res2;
+  PointToScrn(w,st->x,st->y,st->z,&res);
+  PointToScrn(w,en->x,en->y,en->z,&res2);
+  GrLine3(dc,res.x,res.y,res.z,res2.x,res2.y,res2.z);
+}
+
 U0 DrawFrogTongue(C3DWorld *w,CFrogTongue *t) {
   if(!ThingHasClass(t,"CFrogTongue"))
     return;
@@ -1280,15 +1288,9 @@ U0 DrawFrogTongue(C3DWorld *w,CFrogTongue *t) {
   enp.y=t->from->y;
   enp.z=t->from->z+.8;
   if(ClipLineToCamera(w,&stp,&enp)){
-    PointToScrn(w,stp.x,stp.y,stp.z,&en);
-    PointToScrn(w,enp.x,enp.y,enp.z,&st);
     dc->color=LTRED;
-    dc->thick=4;
-    stz=Sqrt(Sqr(stp.x-w->x)+Sqr(stp.y-w->y));
-    enz=Sqrt(Sqr(enp.x-w->x)+Sqr(enp.y-w->y));
-    GrLine3(dc,st.x,st.y,stz,en.x,en.y,enz);
-    dc->thick=8;
-    GrPlot3(dc,en.x,en.y,en.z);
+    dc->thick=4;   
+    Line3D(w,dc,&stp,&enp);
   }
 }
 U0 Draw2DThing(C3DWorld *w,C2DThing *thing) {
@@ -1872,6 +1874,7 @@ U0 WalkAround() {
   C3DWorldManager *wm=man->value;
   WinMax;
   WinBorder;
+  AutoComplete;
   Fs->draw_it=&DrawIt;
   w->x=x,w->y=y;
   w->cam_height=.8;
