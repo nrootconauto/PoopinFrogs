@@ -79,6 +79,9 @@ found:
   Free(filename);
   return ret;
 }
+I64 BlobLumpSort(CLumpHeader *a,CLumpHeader *b) {
+  return StrCmp(a->name,b->name);
+}
 //dlen can be -1 for delete
 U0 BlobFileAddLump(U8 *filename,U8 *name,U8 *data,I64 dlen,U64 type='DATA') {
   I64 ofsz,want_sz,idx,idx2;
@@ -140,6 +143,7 @@ U0 BlobFileAddLump(U8 *filename,U8 *name,U8 *data,I64 dlen,U64 type='DATA') {
     StrCpy(lump_hdr->name,name);
     MemCpy(write_to,data,dlen);
   }
+  QSort(ret->lump_table,ret->lump_cnt,sizeof(CLumpHeader),&BlobLumpSort);
   FileWrite(filename,ret,want_sz);
 #ifdef DEVELOPMENT_MODE
   DumpBlobFile(filename,DEVELOPMENT_DIR);

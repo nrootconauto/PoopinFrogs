@@ -868,7 +868,7 @@ enter:;
         break;
       else if(resp==INVALID_PTR) {
         str=PopUpGetStr("New state name:");
-        for(idx=U16_MAX/2;idx<I16_MAX;idx++) {
+        for(idx=I16_MAX/2;idx<I16_MAX;idx++) {
 	  if(!world_edit.thing_templates[idx]) {
 	    cur=CreateNewThingTemplate(idx);
 	    StrPrint(cur->name,"%s/%s",template->name,str);

@@ -176,7 +176,7 @@ class C2DThingTemplate:CFrogThing {
   U8 *destroy dft "C2DThingTemplateDel";
 };
 class C2DThing:CFrogThing {
-  C2DThingTemplate *template;
+  C2DThingTemplate *template;
   F64 x,y,z,angle,health;
   F64 momx,momy,momz,animation_start_tS;
   Bool no_draw,animation_no_repeat,pad[6];
