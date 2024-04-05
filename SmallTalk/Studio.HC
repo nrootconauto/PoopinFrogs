@@ -20,7 +20,7 @@ U0 SanitizeStr(U8 *tmp) {
   for(idx2=0;idx2!=len;idx2++) {
 //Raw DolDoc editor likes to put in weird charactyors
     if(tmp[idx2]=='\n'||Bt(char_bmp_displayable,tmp[idx2])) {
-      *tmp2++=tmp[idx2];
+      *tmp2++=tmp[idx2];
     }
   }
   *tmp2=0;
@@ -306,8 +306,8 @@ again:;
     Free(en);
     PopUpPrint("FramePtrAdd(\"SAVED?\",DocEd(%d),%d);\n",edit,Fs);
     if(FramePtr("SAVED?")) {
-      en=DocSave(edit,&len);
-      BlobFileAddLump(blob_file,ST_ROOT"CLASSES",en,len,'HEADER');
+      en=DocSave(edit);
+      BlobFileAddLump(blob_file,ST_ROOT"CLASSES",en,StrLen(en),'HEADER');
       Free(en);
     }
     DocDel(edit);
@@ -322,10 +322,10 @@ again:;
       edit=DocNew;
       PopUpPrint("FramePtrAdd(\"SAVED?\",SynView(%d),%d);\n",edit,Fs);
       if(FramePtr("SAVED?")) {
-        tmp=DocSave(edit,&len);
+        tmp=DocSave(edit);
         prefix=MStrPrint(ST_CLASS_ROOT"%s",en);
         SanitizeStr(tmp); //raw DolDoc puts in werid cahractors
-        BlobFileAddLump(blob_file,prefix,tmp,len,'SCRIPT');
+        BlobFileAddLump(blob_file,prefix,tmp,StrLen(tmp),'SCRIPT');
         STValidateCode(blob_file,tmp,prefix);
 	Free(prefix);
       }
@@ -346,10 +346,10 @@ again:;
       edit=DocNew;
       PopUpPrint("FramePtrAdd(\"SAVED?\",SynView(%d),%d);\n",edit,Fs);
       if(FramePtr("SAVED?")) {
-        tmp=DocSave(edit,&len);
+        tmp=DocSave(edit);
         prefix=MStrPrint(ST_ROOT"%s",en);
         SanitizeStr(tmp); //raw DolDoc puts in werid cahractors
-        BlobFileAddLump(blob_file,prefix,tmp,len,'SCRIPT');
+        BlobFileAddLump(blob_file,prefix,tmp,StrLen(tmp),'SCRIPT');
         STValidateCode(blob_file,tmp,prefix);
 	Free(prefix);
       }
@@ -362,7 +362,7 @@ again:;
       if(FramePtr("SAVED?")) {
         en=DocSave(edit,&len);
         SanitizeStr(en); //raw DolDoc puts in werid cahractors
-        BlobFileAddLump(blob_file,lumps->lump_table[code].name,en,len,'SCRIPT');
+        BlobFileAddLump(blob_file,lumps->lump_table[code].name,en,StrLen(en),'SCRIPT');
         STValidateCode(blob_file,en,lumps->lump_table[code].name);
         Free(en);
       }

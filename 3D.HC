@@ -160,6 +160,8 @@ C3DWorld *LoadWorldFromFile(U8 *blob_file="ASS",U8 *filename,F64 fov=pi/4) {
   C3DWorldManager *man;
   C3DWorldSetFov(ret,fov);
   QueInit(&ret->particles);
+  ret->to_dc=DCNew(GR_WIDTH,GR_HEIGHT);
+  DCDepthBufAlloc(ret->to_dc);
   ret->step_width=4;  
   ret->step_width_y=4;
   ret->world_width=world->w;
@@ -903,26 +905,48 @@ fin:
   return tiles;
 }
 I64 mp_done=0;
-F64 ScreenCordsToDist(C3DWorld *w,I64 x,I64 y,F64 max=GRID_SZ*128,F64 *height=NULL) {
+F64 ScreenCordsToDist(C3DWorld *w,I64 x,I64 y,F64 max=GRID_SZ*128,F64 *height=NULL,Bool *hit_floor=FALSE) {
   F64 angle=w->angle+w->fov*((x-GR_WIDTH/2)/ToF64(GR_WIDTH));
+  CDC *to_dc=w->to_dc;
+  I32 have=I32_MAX;
+  F64 wx,wy;
+  F64 d=-1,dist,h,y0,dist2,h2,y1;
+  I64 tile2,tile;
+//Check for floor from ZBuf
+  if(0<=x<GR_WIDTH)
+    if(0<=y<GR_HEIGHT) {
+      have=to_dc->depth_buf[y*to_dc->width_internal+x];
+    }
   I64 *tiles=GetTilesInPath(w,angle,max),idx;
   I64 total,xoff,yoff,adj_height;
   if(height) *height=w->cam_height;
-  F64 d=-1,dist,h,y0;
-  I64 tile2,tile;
+  if(hit_floor) *hit_floor=FALSE;
   for(idx=0;tiles[idx]!=-1;idx++) {
     tile=tiles[idx];
-    FindRayWall(w,
-	  tan_lookup_table[x],
-	  cos_lookup_table[x],
-	  sin_lookup_table[x],
-	  NULL,
-	  &dist,
-	  NULL,
-	  Floor(w->cam_height),
-	  tile
-	  );
-
+    wx=(w->x+have*cos_lookup_table[x])/GRID_SZ;
+    wy=(w->y+have*sin_lookup_table[x])/GRID_SZ;
+	FindRayWall(w,
+	      tan_lookup_table[x],
+	      cos_lookup_table[x],
+	      sin_lookup_table[x],
+	      NULL,
+	      &dist2,
+	      NULL,
+	      I8_MIN,
+	      tile,
+	      TRUE //Far side of tile
+	      );
+	FindRayWall(w,
+	      tan_lookup_table[x],
+	      cos_lookup_table[x],
+	      sin_lookup_table[x],
+	      NULL,
+	      &dist,
+	      NULL,
+	      I8_MIN,
+	      tile,
+	      FALSE //Near side of tile
+	      );
     adj_height=w->heightmap[tile];
     for(xoff=-1;xoff<=1;xoff++)
       for(yoff=-1;yoff<=1;yoff++) {
@@ -934,6 +958,16 @@ F64 ScreenCordsToDist(C3DWorld *w,I64 x,I64 y,F64 max=GRID_SZ*128,F64 *height=NU
 
     h=DIST_SCALE/(dist*cos2_lookup_table[x]);
     y0=GR_HEIGHT/2-h*(w->heightmap[tile]-w->cam_height);
+    h2=DIST_SCALE/(dist2*cos2_lookup_table[x]);
+    y1=GR_HEIGHT/2-h2*(w->heightmap[tile]-w->cam_height);    
+    if(have<dist2) {
+      if(y1-2<=y<=y0+2) {
+	if(height) *height=w->heightmap[tile];
+	if(hit_floor) *hit_floor=TRUE;
+	d=have;
+	break;
+      }
+    }
     if(y0<=y<y0+h*(w->heightmap[tile]-adj_height)) {
 //TODOtest floor intersection
       if(height) *height=Lerp((y-y0)/(h*(w->heightmap[tile]-adj_height)),w->heightmap[tile],adj_height);
@@ -1106,7 +1140,7 @@ U0 LoadMapFromSprite(C3DWorld *world,U8 *sprite,I64 px_width=1) {
 U0 LoadTextureFromSprite(C3DWorld *world,I64 color,U8 *sprite) {
   I64 x1,y1,x2,y2,w,h,x,y;
   F64 interp_x,interp_y;
-  CDC *raw,*texture=AnimDCNew(GRID_SZ,GRID_SZ);
+  CDC *raw,*texture=DCNew(GRID_SZ,GRID_SZ);
   SpriteExtents(sprite,&x1,&x2,&y1,&y2);
   raw=Sprite2DC(sprite);
   w=(x2-x1+1);
@@ -1127,7 +1161,7 @@ U0 LoadTextureFromSprite(C3DWorld *world,I64 color,U8 *sprite) {
 U0 LoadFloorFromSprite(C3DWorld *world,I64 color,U8 *sprite) {
   I64 x1,y1,x2,y2,w,h,x,y;
   F64 interp_x,interp_y;
-  CDC *raw,*texture=AnimDCNew(GRID_SZ,GRID_SZ);
+  CDC *raw,*texture=DCNew(GRID_SZ,GRID_SZ);
   SpriteExtents(sprite,&x1,&x2,&y1,&y2);
   raw=Sprite2DC(sprite);
   w=(x2-x1+1);
@@ -1463,7 +1497,7 @@ CFrogThing *FloorStainSetGr(CFloorStain *self,...) {
     Free(raw);
   }
   Free(name);
-  ThingDel(str);
+  ThingDel(str);
   return FROG_SMALL_NIL;
 }
 AddMethod("CFloorStain","setGraphics:atAngle:",&FloorStainSetGr);
@@ -1529,7 +1563,7 @@ CFrogThing *WallStainMerge(CWallStain *self,...) {
   x2=MaxI64(self->x-self->center_x+self->dc->width,other->x-other->center_x+other->dc->width);
   y1=MinI64(self->y-self->center_y,other->y-other->center_y);
   y2=MaxI64(self->y-self->center_y+self->dc->height,other->y-other->center_y+other->dc->height);
-  CDC *new=AnimDCNew(x2-x1+1,y2-y1+1);
+  CDC *new=DCNew(x2-x1+1,y2-y1+1);
   ret=ConstructThing("CWallStain");
   ret->dc=new;
   ret->x=x1;
@@ -1763,6 +1797,13 @@ CFrogThing *ScreenCoordToZ(C3DWorldManager *self,...) {
   return FrogNumNew(h);
 }
 AddMethod("C3DWorldManager","screenCoordToZ",&ScreenCoordToZ);
+CFrogThing *ScreenCoordOnFloor(C3DWorldManager *self,...) {
+  Bool of=1;
+  ScreenCordsToDist(w,self->screen_x,self->screen_y,,,&of);
+"%d\n",of;
+  return FrogNumNew(of);
+}
+AddMethod("C3DWorldManager","screenCoordIsOnFloor",&ScreenCoordOnFloor);
 //
 // Test section
 //
@@ -1784,6 +1825,8 @@ I64 mp_thing_done=0;
 }*/
 U0 DrawIt(CTask *t,CDC *dc) {
   CDC *hand_gr;
+  CDC *odc=dc;
+  I32 *odepth_buf;
   I64 tx,ty,c;
   CI64Set *s;
   C3DParticle *p,*head,*n;
@@ -1791,9 +1834,11 @@ U0 DrawIt(CTask *t,CDC *dc) {
   CPlayer *player;
   CFrogSymbol *man=FrogSymbol("world");
   CHandItem *hand=FrogSymbol("hand_item")->value;
-  dc=DCAlias(dc,t);
-  w->to_dc=dc;
-  DCDepthBufAlloc(dc);
+
+  dc=w->to_dc;
+  DCFill(dc,TRANSPARENT);
+  DCDepthBufRst(dc);
+  odepth_buf=dc->depth_buf;
   InitTables(w->angle,w->fov);
   C3DWorldCastRays(w);   
   mp_thing_done=0;
@@ -1831,7 +1876,6 @@ U0 DrawIt(CTask *t,CDC *dc) {
       w->particle_cnt--;
     }
   }
-  Free(w->to_dc->depth_buf);
   w->to_dc->depth_buf=NULL;
 
   
@@ -1859,7 +1903,8 @@ U0 DrawIt(CTask *t,CDC *dc) {
     }
   }
   DrawUIRoot(t,dc);
-  DCDel(dc);
+  DCBlotColor8(odc,dc);
+  dc->depth_buf=odepth_buf;
 }
 U0 WalkAround() {
   I64 c,ch=0,sc=0,m1,m2,msg,jump=FALSE;
