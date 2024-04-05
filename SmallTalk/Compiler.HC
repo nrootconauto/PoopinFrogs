@@ -344,7 +344,7 @@ assign_raw:
         }
       }else
         throw('Compile');
-      DocPrint(doc,"  retval=FROG_SMALL_NIL;\n");
+      DocPrint(doc,"  stk[0]=retval=FROG_SMALL_NIL;\n");
       break;case AST_STR:
       DocPrint(doc,"  %s=FrogStrNew(\"%Q\");\n",StackFrame2Var(stack_depth),ast->str);
       break;case AST_VAR:

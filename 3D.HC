@@ -701,8 +701,17 @@ CDC *FloorStain(C3DWorld *w,I64 tx,I64 ty,I64 *xoff,I64 *yoff) {
   while(--idx>=0) {
     f=body[idx];
 //    if(ThingHasClass(f,"CFloorStain"))
-      for(adjx=-1;adjx<=1;adjx++)
-        for(adjy=-1;adjy<=1;adjy++) {
+    if(f->tile_x==tx&&f->tile_y==ty&&f->dc) {
+      if(xoff) *xoff=f->x-f->center_x;
+      if(yoff) *yoff=f->y-f->center_y;
+      return f->dc;
+    }
+  }
+//Check adjacents
+  idx=w->_floor_stains->cnt;
+  while(--idx>=0) {
+      for(adjx=-1;adjx<=1;adjx+=1)
+        for(adjy=-1;adjy<=1;adjy+=1) {
           if(f->tile_x==tx+adjx&&f->tile_y==ty+adjy&&f->dc) {
   	    if(xoff) *xoff=f->x-f->center_x+adjx*GRID_SZ;
  	    if(yoff) *yoff=f->y-f->center_y+adjy*GRID_SZ;
@@ -1497,7 +1506,7 @@ CFrogThing *FloorStainSetGr(CFloorStain *self,...) {
     Free(raw);
   }
   Free(name);
-  ThingDel(str);
+  ThingDel(str);
   return FROG_SMALL_NIL;
 }
 AddMethod("CFloorStain","setGraphics:atAngle:",&FloorStainSetGr);
@@ -1506,23 +1515,27 @@ CFrogThing *FloorStainMerge(CFloorStain *self,...) {
   CFloorStain *ret=FROG_SMALL_NIL;
   if(!ThingHasClass(other,"CFloorStain"))
     goto fin;
-  if(!other->dc||!self->dc)
-    goto fin;
-  I64 x1=0,y1=0,x2=0,y2=0;
-  x1=MinI64(self->x-self->center_x,other->x-other->center_x);
-  x2=MaxI64(self->x-self->center_x+self->dc->width,other->x-other->center_x+other->dc->width);
-  y1=MinI64(self->y-self->center_y,other->y-other->center_y);
-  y2=MaxI64(self->y-self->center_y+self->dc->height,other->y-other->center_y+other->dc->height);
+    I64 x1=0,y1=0,x2=0,y2=0,
+	xoff=GRID_SZ*(other->tile_x-self->tile_x),
+	yoff=GRID_SZ*(other->tile_y-self->tile_y);
+  x1=MinI64(self->x-self->center_x,xoff+other->x-other->center_x);
+  x2=MaxI64(self->x-self->center_x+self->dc->width,xoff+other->x-other->center_x+other->dc->width);
+  y1=MinI64(self->y-self->center_y,yoff+other->y-other->center_y);
+  y2=MaxI64(self->y-self->center_y+self->dc->height,yoff+other->y-other->center_y+other->dc->height);
   CDC *new=AnimDCNew(x2-x1+1,y2-y1+1);
   ret=ConstructThing("CFloorStain");
   ret->dc=new;
   ret->x=x1;
   ret->y=y1;
+  ret->center_x=0;
+  ret->center_y=0;
   ret->tile_x=self->tile_x;
   ret->tile_y=self->tile_y;
   DCFill(new,TRANSPARENT);
-  GrBlot(new,self->x-self->center_x-x1,self->y-self->center_y-y1,self->dc);
-  GrBlot(new,other->x-other->center_x-x1,other->y-other->center_y-y1,other->dc);
+  if(self->dc)
+    GrBlot(new,self->x-self->center_x-x1,self->y-self->center_y-y1,self->dc);
+  if(other->dc)
+    GrBlot(new,xoff+other->x-other->center_x-x1,yoff+other->y-other->center_y-y1,other->dc);
 fin:;
   ThingDel(other);
   return ret;
@@ -1800,7 +1813,6 @@ AddMethod("C3DWorldManager","screenCoordToZ",&ScreenCoordToZ);
 CFrogThing *ScreenCoordOnFloor(C3DWorldManager *self,...) {
   Bool of=1;
   ScreenCordsToDist(w,self->screen_x,self->screen_y,,,&of);
-"%d\n",of;
   return FrogNumNew(of);
 }
 AddMethod("C3DWorldManager","screenCoordIsOnFloor",&ScreenCoordOnFloor);

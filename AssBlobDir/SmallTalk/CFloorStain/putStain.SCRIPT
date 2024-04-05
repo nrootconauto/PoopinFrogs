@@ -3,5 +3,3 @@ putAtX:xx atY: yy| |
   y _ yy rem: 128 .
   tile_x _ xx / 128 .
   tile_y _ yy / 128 .
-  tile_y show.
-  tile_x show .

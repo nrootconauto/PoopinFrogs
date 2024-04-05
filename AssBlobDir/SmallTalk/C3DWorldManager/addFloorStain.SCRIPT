@@ -1,13 +1,20 @@
-addFloorStain: s| new |
-  floor_stains do: [:s2|
-    (s getTileX = s2 getTileX and: s getTileY = s2 getTileY) ifTrue: [
-      new _ s2 mergeWith: s .
-      floor_stains remove: s2 .
-      floor_stains add: new .
-      ^ 1 .
+addFloorStain: s | other add new_set|
+  add _ s .
+'Make a new set to avoid modifying the set while we work on it'.
+  new_set _floor_stains copy .
+  new_set do: [:s2|
+    ((s getTileX - s2 getTileX) abs <= 1 and: (s getTileY - s2 getTileY ) abs  <= 1 ) ifTrue: [
+      ((s getTileX = s2 getTileX ) and:  (s getTileY = s2 getTileY )) ifTrue: [
+        add _ s2 mergeWith: s .
+        floor_stains remove: s2 .
+      ] ifFalse: [
+        other _ s2 mergeWith: s .
+        floor_stains add: other .
+        floor_stains remove: s2 .
+      ] .
     ] .
   ].
-  floor_stains size > 32 ifTrue: [
-    floor_stains removeAt: 0 
-  ] . 
-  floor_stains add: s
+  floor_stains add: add  .
+  floor_stains size > 64 ifTrue: [
+     floor_stains removeAt: 0 
+  ] .
