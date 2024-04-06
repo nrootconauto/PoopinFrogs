@@ -1066,7 +1066,7 @@ ent:
 	     floor_y=ColorFloor(w,x,height_cap,
 	        0,
 	        GR_HEIGHT-(GR_HEIGHT/2-h2*(height_cap-w->cam_height)),
-	        use_dc,
+	        use_dc
 	        );
 	  } else {
 	     floor_y=ColorFloor(w,x,height_cap,
@@ -1615,7 +1615,7 @@ CFrogThing *WallStainMerge(CWallStain *self,...) {
   x2=MaxI64(self->x-self->center_x+self->dc->width,other->x-other->center_x+other->dc->width);
   y1=MinI64(self->y-self->center_y,other->y-other->center_y);
   y2=MaxI64(self->y-self->center_y+self->dc->height,other->y-other->center_y+other->dc->height);
-  CDC *new=DCNew(x2-x1+1,y2-y1+1);
+  CDC *new=AnimDCNew(x2-x1+1,y2-y1+1);
   ret=ConstructThing("CWallStain");
   ret->dc=new;
   ret->x=x1;
