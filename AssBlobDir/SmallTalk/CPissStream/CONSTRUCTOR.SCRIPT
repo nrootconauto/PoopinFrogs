@@ -1,0 +1,3 @@
+init | |
+  links _ #() .
+  ^ self

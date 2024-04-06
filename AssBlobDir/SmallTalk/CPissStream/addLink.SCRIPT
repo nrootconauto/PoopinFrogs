@@ -1,0 +1,5 @@
+addLink:l | tmp |
+  'newest pisses come firstr in the stream' .
+  tmp _  #( l ) .
+  tmp addAll: links .
+  links _ tmp .

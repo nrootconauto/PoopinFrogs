@@ -5,5 +5,7 @@ init | |
   no_draw _ 1 .
   shell_casings _ #() .
   self makeUI .
+  piss_stream _ CPissStream new .
   #hand_item _ CGun1 new .
+  CFrogDick new .
   ^ self

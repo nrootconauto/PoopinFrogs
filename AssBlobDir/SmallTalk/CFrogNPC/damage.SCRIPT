@@ -1,6 +1,6 @@
 damage: amt | |
   'blood' .
   1 to: amt / 6 + 5 do:[ 
-    #world newParticleAtX: x atY: y atZ: z + .8 withSpread: 64 withColor: #color_RED 
+    #world newParticleAtX: x atY: y atZ: z + .5 withSpread: 64 withColor: #color_RED 
   ] .
   super damage: amt . 

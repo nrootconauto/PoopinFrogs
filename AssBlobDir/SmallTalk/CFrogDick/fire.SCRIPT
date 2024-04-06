@@ -1,0 +1,27 @@
+fire |player piss a force piss_stream cur_ts step rand |
+  player _ #world getPlayer .
+  cur_ts _ CFrogTime now asSeconds .
+  step _ 10 .
+  ammo ifTrue: [
+    timeout < cur_ts ifTrue: [
+      rand _ CFrogRandom new .
+      piss_stream _ player getPissStream .
+      'Make 3 pisses updated with weight for smooter looks' .
+      0 to: step do: [:v|
+        a _ player getAngle + (3.14 / 100 * rand next )  .
+        piss _ CPissLink new .
+        piss setX: player xPos + (16 * a cos ) .
+        piss setY: player yPos + (16 * a sin ) .
+        piss setZ: player zPos + .3 .
+        force _ 64  .
+        piss setMomX: (force * a cos).
+        piss setMomY: (force * a sin).
+        piss setMomZ: .35 .
+        (piss updateWithWeight:  1  / step * ( step - v )  makeParticles: 0) ifTrue: [ 
+          'test if wee havent hit the ground '.
+          piss_stream addLink: piss .
+        ]
+      ] .
+      timeout _ cur_ts + .1 .
+    ] .
+  ] .

@@ -23,4 +23,5 @@ update | rand foot_print move_angle |
   ] .
   last_x _ x .
   last_y _ y .
+  piss_stream update .
   super update

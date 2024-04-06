@@ -163,7 +163,7 @@ I64 *UpdateUI(CUIElem *update,I64 msg_type,I64 m1,I64 m2,I64 right_x=GR_WIDTH,I6
   CUIElem *chain,**body=update->sub_elems->items->body,*drag;
   I64 x,y,got,cnt=update->sub_elems->items->cnt,idx;
   U8 *cb;
-  static I64 ret_code=0;
+  static I64 ret_code=0,drag_start_x=0,drag_start_y=0;
   ret_code=0;
 //Keyboard events only happen on focused elems
   switch(msg_type) {
@@ -219,17 +219,25 @@ pass:
       goto ms_cb;
     case MSG_MS_L_UP:
       if(ThingHasClass(update->drag_end,"CFrogBlock")) {
-        if(drag=FramePtr(UI_GRID_DRAG_FPTR)) {
-	  ThingDel(FrogBlockValue(update->drag_end,
-	        FrogIncRefCnt(update),
-	        FrogNumNew(m1-x),
-	        FrogNumNew(m2-y),
-	        drag
-	        ));
-	  FramePtrDel(UI_GRID_DRAG_FPTR);
-	  ret_code=TRUE;
-	  return &ret_code;
-        }
+        if(m1!=drag_start_x||m2!=drag_start_y) {
+	  if(drag=FramePtr(UI_GRID_DRAG_FPTR)) {
+	    ThingDel(FrogBlockValue(update->drag_end,
+		  FrogIncRefCnt(update),
+		  FrogNumNew(m1-x),
+		  FrogNumNew(m2-y),
+		  drag
+		  ));
+	    FramePtrDel(UI_GRID_DRAG_FPTR);
+	    ret_code=TRUE;
+	    return &ret_code;
+	  }
+        } else  {
+	  if(drag=FramePtr(UI_GRID_DRAG_FPTR)) {
+	    cb=drag->ms_lup;
+	    FramePtrDel(UI_GRID_DRAG_FPTR);
+	    goto ms_cb;
+	  }
+	}
       }
       cb=update->ms_lup;
       goto ms_cb;
@@ -242,6 +250,8 @@ pass:
 	        FrogNumNew(m1-x),
 	        FrogNumNew(m2-y)
 	  );
+	  drag_start_x=m1;
+	  drag_start_y=m2;
 	  if(ThingHasClass(drag,"CUIGridItem"))
 	    FramePtrAdd(UI_GRID_DRAG_FPTR,drag);
 	  else

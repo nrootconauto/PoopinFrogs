@@ -1,0 +1,8 @@
+update | tmp |
+  tmp _ links.
+  links _ #() .
+  tmp do:[:l |
+    (l updateWithWeight: 1 makeParticles: 1) ifTrue: [
+      links add: l  .
+    ] 
+  ] .

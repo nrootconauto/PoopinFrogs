@@ -15,6 +15,6 @@ addFloorStain: s | other add new_set|
     ] .
   ].
   floor_stains add: add  .
-  floor_stains size > 64 ifTrue: [
+  floor_stains size > 32 ifTrue: [
      floor_stains removeAt: 0 
   ] .

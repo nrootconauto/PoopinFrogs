@@ -104,6 +104,7 @@ extern U0 Draw2DThing(C3DWorld *w,C2DThing *thing);
 U0 NewParticle(C3DWorld *w,I64 color,I64 sz,F64 x,F64 y,F64 z,F64 mx,F64 my,F64 mz) {
   C3DParticle *p;
   if(w->particle_cnt>=MAX_PARTICLES) {
+    w->particle_cnt--;
     QueRem(p=w->particles.next);
     Free(p);
   }
@@ -1007,7 +1008,9 @@ U0 MPCastCol(C3DWorld *w) {
   I64 segment=0,idx,idx2,ptr,x=0,cap,side,side2,segment2,x0,y0,old_d,idx3,xoff,yoff;
   CBlockedView *block_view;
   I64 height_cap,adj_height,last_height,floor_y;
+  CDC *use_dc;
   I64 *tiles;
+  I64 standing_at;
   idx=GR_WIDTH/mp_cnt*Gs->num;
   cap=GR_WIDTH/mp_cnt*(Gs->num+1);
   angle+=(w->fov/GR_WIDTH)*w->step_width*idx/w->step_width;
@@ -1053,20 +1056,26 @@ ent:
         dist2*=cos2_lookup_table[x];
         h2=DIST_SCALE/(dist2+1);
         y0=GR_HEIGHT-(GR_HEIGHT/2-h*(height_cap-w->cam_height));
-        if(dist>2.&&dist2>2.) {
+        if(dist>.2&&dist2>.2) {
+	  standing_at=ToI64(w->x)/GRID_SZ+ToI64(w->y)/GRID_SZ*w->world_width;
 	  if(w->floor_textures[w->world_mat[idx]])
-	     floor_y=ColorFloor(w,x,height_cap,
-	        Max(y0,floor_y),
-	        GR_HEIGHT-(GR_HEIGHT/2-h2*(height_cap-w->cam_height)),
-	        w->floor_textures[w->world_mat[idx]]
-	        );
+	     use_dc=w->floor_textures[w->world_mat[idx]];
 	  else
+	     use_dc=w->wall_textures[w->world_mat[idx]];
+	  if(standing_at==idx) {
+	     floor_y=ColorFloor(w,x,height_cap,
+	        0,
+	        GR_HEIGHT-(GR_HEIGHT/2-h2*(height_cap-w->cam_height)),
+	        use_dc,
+	        );
+	  } else {
 	     floor_y=ColorFloor(w,x,height_cap,
 	        Max(y0,floor_y),
 	        GR_HEIGHT-(GR_HEIGHT/2-h2*(height_cap-w->cam_height)),
-	        w->wall_textures[w->world_mat[idx]]
+	        use_dc
 	        );
-        }
+          }
+	}
       }
 
 
@@ -1219,7 +1228,7 @@ U0 DrawParticle(C3DWorld *w,C3DParticle *p) {
   I32 dist=Sqrt(Sqr(w->x-p->x)+Sqr(w->y-p->y));
   I64 x0,y0;
   F64 h=DIST_SCALE/(1+dist),angle=Arg(p->x-w->x,p->y-w->y);
-  y0=GR_HEIGHT/2-h*((1+p->z)-w->cam_height);
+  y0=GR_HEIGHT/2-h*((p->z)-w->cam_height);
   if(Sin(angle-w->angle)>0.) {
     angle=AngleBetween(angle,w->angle);
     x0=GR_WIDTH/2+angle/((w->fov/GR_WIDTH));
@@ -1249,7 +1258,7 @@ U0 PointToScrn(C3DWorld *w,F64 x,F64 y,F64 z,CD3 *res) {
     res->x=GR_WIDTH/2-angle/((w->fov/GR_WIDTH));
   }
   dist*=cos2_lookup_table[ClampI64(res->x,0,GR_WIDTH-1)];
-  F64 h=DIST_SCALE/(dist+.1);
+  F64 h=DIST_SCALE/(dist+1);
   res->y=GR_HEIGHT/2-h*(z-w->cam_height+.01);
   res->z=dist;
 }
@@ -1319,8 +1328,6 @@ U0 DrawFrogTongue(C3DWorld *w,CFrogTongue *t) {
     return;
   if(!ThingHasClass(t->from,"C2DThing"))
     return;
-//TODO check in view
-  CD3 st,en;
   CD3 stp,enp;
   CDC *dc=w->to_dc;
   F64 stz,enz;
@@ -1336,8 +1343,34 @@ U0 DrawFrogTongue(C3DWorld *w,CFrogTongue *t) {
     Line3D(w,dc,&stp,&enp);
   }
 }
+U0 DrawPissStream(C3DWorld *w,CPissStream *ps) {
+  CDC *dc=w->to_dc;
+  CD3 stp,enp,last;
+  CPissLink **links=ps->links(CFrogArray*)->items->body;
+  I64 idx,cnt=ps->links(CFrogArray*)->items->cnt;
+  if(cnt<1) return;
+  last.x=links[0]->x;
+  last.y=links[0]->y;
+  last.z=links[0]->z;
+//Massive piss
+  dc->color=YELLOW;
+  dc->thick=4;
+  for(idx=1;idx!=cnt;idx++) {
+    stp.x=last.x;
+    stp.y=last.y;
+    stp.z=last.z;
+    enp.x=links[idx]->x;
+    enp.y=links[idx]->y;
+    enp.z=links[idx]->z;
+    ClipLineToCamera(w,&stp,&enp);
+    Line3D(w,dc,&stp,&enp);
+    last.x=links[idx]->x;
+    last.y=links[idx]->y;
+    last.z=links[idx]->z;
+  }
+}
 U0 Draw2DThing(C3DWorld *w,C2DThing *thing) {
-  if(thing->no_draw) return;
+  if(thing->no_draw) goto fin;
   C2DThingTemplate *template=thing->template;
   if(!ThingHasClass(template,"C2DThingTemplate"))
     return;
@@ -1471,8 +1504,12 @@ skip:;
 skip2:;
     }
   }
+fin:
   if(ThingHasClass(thing,"CFrogNPC")) {
     DrawFrogTongue(w,thing(CFrogNPC*)->tongue);
+  }
+  if(ThingHasClass(thing,"CPlayer")) {
+    DrawPissStream(w,thing(CPlayer*)->piss_stream);
   }
 }
 C3DWorld *w;
@@ -1515,7 +1552,9 @@ CFrogThing *FloorStainMerge(CFloorStain *self,...) {
   CFloorStain *ret=FROG_SMALL_NIL;
   if(!ThingHasClass(other,"CFloorStain"))
     goto fin;
-    I64 x1=0,y1=0,x2=0,y2=0,
+  if(!self->dc||!other->dc)
+   goto fin;
+  I64 x1=0,y1=0,x2=0,y2=0,
 	xoff=GRID_SZ*(other->tile_x-self->tile_x),
 	yoff=GRID_SZ*(other->tile_y-self->tile_y);
   x1=MinI64(self->x-self->center_x,xoff+other->x-other->center_x);
@@ -1601,7 +1640,7 @@ CFrogThing *WorldManagerNewParticle(C3DWorldManager *man,...) {
   F64 z=AsF64(argv[2]);
   F64 spread=AsF64(argv[3]);
   F64 color=AsF64(argv[4]);
-  NewParticle(w,color,16,x,y,z,spread*(Rand-.5),spread*(Rand-.5),man->gravity);
+  NewParticle(w,color,16,x,y,z,spread*(Rand-.5),spread*(Rand-.5),man->gravity*3);
   return FROG_SMALL_NIL;
 }
 AddMethod("C3DWorldManager","newParticleAtX:atY:atZ:withSpread:withColor:",&WorldManagerNewParticle);

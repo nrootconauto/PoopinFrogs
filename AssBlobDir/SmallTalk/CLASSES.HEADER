@@ -235,6 +235,19 @@ class CShellCasing:CFrogThing {
 //
 // Game Section
 //
+class CFrogDick:CHandItem {
+};
+
+class CPissLink:CFrogThing {
+  F64 oldx,oldy,oldz;
+  F64 x,y,z;
+  F64 momx,momy,momz;
+};
+class CPissStream:CFrogThing {
+  C2DThing *from;
+//CPissLink
+  CFrogArray *links;
+};
 
 //This [redacted for GH] is for picking up items in the world
 class CPickup:C2DThing {
@@ -266,7 +279,8 @@ class CPlayer:C2DThing {
   CUIMeter *ammo_meter;
   CUIGrid *quick_inventory;
   CUIButton *open_inventory_button;
-//How many bloody footprints will be made
+  CPissStream *piss_stream;
   F64 last_x,last_y;
+//How many bloody footprints will be made
   F64 bloody_foot_count;
 }; 
