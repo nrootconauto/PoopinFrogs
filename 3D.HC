@@ -19,7 +19,7 @@ class CFileTexture {
   I64 idx;
   U8 blob_name[STR_LEN];
   U8 wall_blob_name[STR_LEN];
-  U8 ceil_blob_name[STR_LEN];
+  U8 ceil_blob_name[STR_LEN];
 };
 
 class CFileThingTemplate {
@@ -88,6 +88,7 @@ class C3DWorld {
    I8 *heightmap,*ceilmap;
    CDC *wall_textures[0x10000/2],*to_dc;
    CDC *floor_textures[0x10000/2];
+   CDC *ceil_textures[0x10000/2];
    I64 mp_done,dc_lock;
    CQue _2d_thing_templates; 
    CI64Set *_2d_things;
@@ -204,6 +205,16 @@ C3DWorld *LoadWorldFromFile(U8 *blob_file="ASS",U8 *filename,F64 fov=pi/4) {
       ret->wall_textures[-idx]=ScaleDC(unscaled,GRID_SZ,GRID_SZ);
     AnimDCDel(unscaled);
     Free(tmp);
+    tmp=BlobFileGetLump(blob_file,fptr(CFileTexture*)->ceil_blob_name);
+    if(tmp) {
+      unscaled=AnimDCLoad(tmp);
+      if(idx>0)
+        ret->ceil_textures[idx]=ScaleDC(unscaled,GRID_SZ,GRID_SZ);
+      else
+        ret->ceil_textures[-idx]=ScaleDC(unscaled,GRID_SZ,GRID_SZ);
+      AnimDCDel(unscaled);
+      Free(tmp);
+    }
     fptr(CFileTexture*)++;
   }
   fptr=world(U8*)+world->thing_templates_where.ptr;
@@ -740,6 +751,8 @@ I64 ColorFloor(C3DWorld *w,I64 view_x,I64 floor_height,I64 sy,I64 ey,CDC *textur
   I32 *db_z;
   U64 idist;
   I64 poopx,poopy;
+  ey=GR_HEIGHT-ey;
+  sy=GR_HEIGHT-sy;
   ey=ClampI64(ey,0,w->to_dc->height-2);
   sy=ClampI64(sy,0,w->to_dc->height-2);
   for(y=sy;y<ey;y+=w->step_width) {
@@ -812,7 +825,7 @@ I64 ColorFloor(C3DWorld *w,I64 view_x,I64 floor_height,I64 sy,I64 ey,CDC *textur
         }
       }
     }
-  return y;
+  return GR_HEIGHT-sy;
 }
 //-1 terminated
 //https://en.wikipedia.org/wiki/Digital_differential_analyzer_(graphics_algorithm)
@@ -1005,6 +1018,22 @@ F64 ScreenCordsToDist(C3DWorld *w,I64 x,I64 y,F64 max=GRID_SZ*128,F64 *height=NU
   return d;
 }
 
+I64 TilesAboveCeil(C3DWorld *w,I64 x,I64 y) {
+  I64 h;
+  I64 idx=x+y*w->world_width,idx2;
+  I64 xoff,yoff;
+  I64 adj_height=w->ceilmap[idx];
+  for(xoff=-1;xoff<=1;xoff++)
+    for(yoff=-1;yoff<=1;yoff++) {
+     idx2=xoff+yoff*w->world_width+idx;
+     if(0<=idx2<w->world_width*w->world_height&&(xoff^^yoff)) {
+       h=w->heightmap[idx2];
+       if(h!=I8_MAX)
+         adj_height=MaxI64(adj_height,h);
+     }
+   }
+  return adj_height-w->ceilmap[idx];
+}
 U0 MPCastCol(C3DWorld *w) {
   F64 angle=w->angle-w->fov/2;
   I64 wall_segment_start,wall_segment_end;
@@ -1012,7 +1041,7 @@ U0 MPCastCol(C3DWorld *w) {
   F64 s_angle1,s_angle2;
   I64 segment=0,idx,idx2,ptr,x=0,cap,side,side2,segment2,x0,y0,old_d,idx3,xoff,yoff;
   CBlockedView *block_view;
-  I64 height_cap,adj_height,last_height,floor_y;
+  I64 height_cap,adj_height,last_height,floor_y,ceily,ceil;
   CDC *use_dc;
   I64 *tiles;
   I64 standing_at;
@@ -1022,15 +1051,22 @@ U0 MPCastCol(C3DWorld *w) {
   for(x=idx;x<cap;angle+=(w->fov/GR_WIDTH)*w->step_width,x+=w->step_width) {
     idx2=0;
     dist=0;
-    floor_y=0;
+    floor_y=GR_HEIGHT;
+    ceily=GR_HEIGHT;
     last_height=I64_MIN;
-    tiles=GetTilesInPath(w,angle,I16_MAX);
+    tiles=GetTilesInPath(w,angle,128*GRID_SZ);
     if(tiles[0]==-1)
       goto fin;
 ent:
     idx=tiles[idx2];
     if(idx!=-1) {
       height_cap=w->heightmap[idx];
+//Dont straight lines on blocks with same height(hidden)
+      if(last_height>w->cam_height)
+        if(last_height>height_cap) {
+          idx2++;
+          goto ent;
+        }
       FindRayWall(w,
 	    tan_lookup_table[x],
 	    cos_lookup_table[x],
@@ -1046,7 +1082,7 @@ ent:
       dist*=cos2_lookup_table[x];
       h=DIST_SCALE/dist;
 //Color the floor tile
-      if(height_cap<=w->cam_height) {
+      if(height_cap<w->cam_height) {
         FindRayWall(w,
 	      tan_lookup_table[x],
 	      cos_lookup_table[x],
@@ -1060,26 +1096,38 @@ ent:
 	      );
         dist2*=cos2_lookup_table[x];
         h2=DIST_SCALE/(dist2+1);
-        y0=GR_HEIGHT-(GR_HEIGHT/2-h*(height_cap-w->cam_height));
+        y0=GR_HEIGHT/2-h*(height_cap-w->cam_height);
         if(dist>.2&&dist2>.2) {
 	  standing_at=ToI64(w->x)/GRID_SZ+ToI64(w->y)/GRID_SZ*w->world_width;
 	  if(w->floor_textures[w->world_mat[idx]])
-	     use_dc=w->floor_textures[w->world_mat[idx]];
+	    use_dc=w->floor_textures[w->world_mat[idx]];
 	  else
-	     use_dc=w->wall_textures[w->world_mat[idx]];
+	    use_dc=w->wall_textures[w->world_mat[idx]];
 	  if(standing_at==idx) {
 	     floor_y=ColorFloor(w,x,height_cap,
-	        0,
-	        GR_HEIGHT-(GR_HEIGHT/2-h2*(height_cap-w->cam_height)),
+	        GR_HEIGHT/2-h2*(height_cap-w->cam_height),
+	        GR_HEIGHT,
 	        use_dc,
 	        );
 	  } else {
 	     floor_y=ColorFloor(w,x,height_cap,
-	        Max(y0,floor_y),
-	        GR_HEIGHT-(GR_HEIGHT/2-h2*(height_cap-w->cam_height)),
-	        use_dc
+	        MinI64(y0,floor_y),
+	        GR_HEIGHT/2-h2*(height_cap-w->cam_height),
+		use_dc
 	        );
           }
+//Draw Ceil
+	  use_dc=w->ceil_textures[w->world_mat[idx]];
+          if(use_dc) {
+	    ceil=w->ceilmap[idx];
+	    if(ceil!=I8_MAX) {
+	      ColorFloor(w,x,ceil,
+	        GR_HEIGHT/2-h2*(ceil-w->cam_height),
+	        GR_HEIGHT/2-h*(ceil-w->cam_height),
+	        use_dc
+	        );
+	    }
+	  }
 	}
       }
 
@@ -1388,6 +1436,7 @@ U0 Draw2DThing(C3DWorld *w,C2DThing *thing) {
   I64 dc_w=dc->width,frame=ToI64((tS-thing->animation_start_tS)/ANIM_DELAY);
   I64 to_x,to_y;
   I64 line,col,face,cnt;
+  I64 ix,iy;
   F64 wall_height_ratio;
   U8 *src_ptr,*y_line;
   U16 *dst;
@@ -1462,19 +1511,22 @@ draw:
   cx=ClampI64(x0,0,GR_WIDTH);
 //ditto
   cy=ClampI64(y0,0,GR_HEIGHT);
-  to_x=ClampI64(width+x0,0,GR_WIDTH-1);
-  to_y=ClampI64(vis_h+y0,0,GR_HEIGHT-1);
-  for(x=ToI64(cx)&~1;cx-4<=x<to_x;x+=2) {
+  to_x=ClampI64(width+x0,0,GR_WIDTH-2);
+  to_y=ClampI64(vis_h+y0,0,GR_HEIGHT-3);
+  for(ix=ToI64(cx)&~1;cx-4<=ix<to_x;ix+=2) {
     if(!flip) {
-      col=(x-x0)/width*use_dc->width;
+      col=(ix-x0)/width*use_dc->width;
       src_ptr=y_line;
     } else {
-      col=(width-(x-x0)-1)/width*use_dc->width;
+      col=(width-(ix-x0)-1)/width*use_dc->width;
     }
     if(0>col||col>=use_dc->width)
      goto skip2;
-    for(y=ToI64(cy)&~1;cy-4<=y<to_y;y+=3) {
-      line=ToI64((y-y0)/vis_h*use_dc->height);
+    iy=ToI64(cy)&~1;
+    dst=dc->body+ToI64(iy)*dc->width_internal+ToI64(ix);
+    I32 *depth_dst=dc->depth_buf+ToI64(iy)*dc->width_internal+ToI64(ix);
+    for(;cy-4<=iy<to_y;iy+=3) {
+      line=ToI64((iy-y0)/vis_h*use_dc->height);
       if(0<=line<use_dc->height) {
         y_line=use_dc->body+line*use_dc->width_internal;
         src_ptr=y_line+col;
@@ -1485,18 +1537,18 @@ draw:
 	    src_ptr+=use_dc->width_internal;
 	    line++;
 	  }
-	  y=MaxI64(Lerp(ToF64(line)/use_dc->height,cy,to_y)-3,y);
+	  iy=MaxI64(Lerp(ToF64(line)/use_dc->height,cy,to_y)-3,iy);
+          dst=dc->body+ToI64(iy)*dc->width_internal+ToI64(ix);
+	  depth_dst=dc->depth_buf+ToI64(iy)*dc->width_internal+ToI64(ix);
 	  goto skip;
 	}
-        dst=dc->body+ToI64(y)*dc->width_internal+ToI64(x);
-        I32 *depth_dst=dc->depth_buf;
-        if(depth_dst) {
-	  depth_dst+=ToI64(y)*dc->width_internal+ToI64(x);
-	  if(dist>*depth_dst) {
-	    y=VisSkipTo(w,x,y,dist);
-	    goto skip;
-	  }
-        } 
+	if(dist>*depth_dst) {
+	  cnt=VisSkipTo(w,ix,iy,dist)-iy;
+	  iy+=cnt;
+	  dst=dst(U8*)+dc->width_internal*cnt;
+	  depth_dst+=dc->width_internal*cnt;  
+	  goto skip;
+	}
 	for(cnt=3;--cnt>=0;) {
           *dst=gr.to_8_colors[*src_ptr];
 	  depth_dst[0]=dist;

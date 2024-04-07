@@ -1048,6 +1048,7 @@ U0 LoadWorld(U8 *blob,U8 *filename) {
     texture=LoadTexture(str,f_texture->idx);
     StrCpy(texture->wall_blob_name,f_texture->wall_blob_name);
     StrCpy(texture->floor_blob_name,f_texture->floor_blob_name);
+    StrCpy(texture->ceil_blob_name,f_texture->ceil_blob_name);
     Free(str);
     f_texture++;
   }
