@@ -1,19 +1,25 @@
-fire |player piss a force piss_stream cur_ts step rand |
+fire |player piss a force piss_stream cur_ts step rand targetd targetz total launch_angle |
   player _ #world getPlayer .
   cur_ts _ CFrogTime now asSeconds .
-  step _ 10 .
+  step _ 5 .
   ammo ifTrue: [
     timeout < cur_ts ifTrue: [
       rand _ CFrogRandom new .
       piss_stream _ player getPissStream .
+      targetd _ #world screenCoordToDist .
+      targetz _ .5  .
+
+      'https://en.wikipedia.org/wiki/Trajectory' .
+      launch_angle _ .35 arctan .
+      force _ (((#world gravity / 3 * ( 1 / (launch_angle cos squared ) )) / (((targetz - (targetd * launch_angle tan ))) / (targetd * targetd ) ))/2 ) negated.
+
       'Make 3 pisses updated with weight for smooter looks' .
+      a _ player getAngle + (3.14 / 100 * rand next )  .
       0 to: step do: [:v|
-        a _ player getAngle + (3.14 / 100 * rand next )  .
         piss _ CPissLink new .
         piss setX: player xPos + (16 * a cos ) .
         piss setY: player yPos + (16 * a sin ) .
         piss setZ: player zPos + .3 .
-        force _ 64  .
         piss setMomX: (force * a cos).
         piss setMomY: (force * a sin).
         piss setMomZ: .35 .
