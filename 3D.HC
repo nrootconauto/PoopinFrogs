@@ -19,6 +19,7 @@ class CFileTexture {
   I64 idx;
   U8 blob_name[STR_LEN];
   U8 wall_blob_name[STR_LEN];
+  U8 ceil_blob_name[STR_LEN];
 };
 
 class CFileThingTemplate {
@@ -41,6 +42,8 @@ class CFileWorld {
   CFilePtrLen textures_where;
   CFilePtrLen thing_templates_where;
   CFilePtrLen things_where;
+  CFilePtrLen heightmap;
+  CFilePtrLen ceilmap;
 }; 
 
 
@@ -82,7 +85,7 @@ class C3DWorld {
    I64 world_width;
    I64 world_height;
    I16 *world_mat; //0 is for EMPTY_SPACE
-   I8 *heightmap;
+   I8 *heightmap,*ceilmap;
    CDC *wall_textures[0x10000/2],*to_dc;
    CDC *floor_textures[0x10000/2];
    I64 mp_done,dc_lock;
@@ -169,11 +172,13 @@ C3DWorld *LoadWorldFromFile(U8 *blob_file="ASS",U8 *filename,F64 fov=pi/4) {
   ret->world_height=world->h;
   ret->world_mat=MAlloc(2*world->h*world->w);
   ret->heightmap=MAlloc(world->h*world->w);
+  ret->ceilmap=MAlloc(world->h*world->w);
   xoff=GRID_SZ*world->startx;
   yoff=GRID_SZ*world->starty;
   QueInit(&ret->_2d_thing_templates);
   MemCpy(ret->world_mat,world+1,2*world->h*world->w);
-  MemCpy(ret->heightmap,ToI64(world+1)+2*world->h*world->w,world->h*world->w);
+  MemCpy(ret->heightmap,world(U8*)+world->heightmap.ptr,world->h*world->w);
+  MemCpy(ret->ceilmap,world(U8*)+world->ceilmap.ptr,world->h*world->w);
   man=ConstructThing("C3DWorldManager","world_handle",ret);
   CallScript("init",man);
   ret->_wall_stains=man->wall_stains->items;
@@ -1066,7 +1071,7 @@ ent:
 	     floor_y=ColorFloor(w,x,height_cap,
 	        0,
 	        GR_HEIGHT-(GR_HEIGHT/2-h2*(height_cap-w->cam_height)),
-	        use_dc
+	        use_dc,
 	        );
 	  } else {
 	     floor_y=ColorFloor(w,x,height_cap,
@@ -1615,7 +1620,7 @@ CFrogThing *WallStainMerge(CWallStain *self,...) {
   x2=MaxI64(self->x-self->center_x+self->dc->width,other->x-other->center_x+other->dc->width);
   y1=MinI64(self->y-self->center_y,other->y-other->center_y);
   y2=MaxI64(self->y-self->center_y+self->dc->height,other->y-other->center_y+other->dc->height);
-  CDC *new=AnimDCNew(x2-x1+1,y2-y1+1);
+  CDC *new=DCNew(x2-x1+1,y2-y1+1);
   ret=ConstructThing("CWallStain");
   ret->dc=new;
   ret->x=x1;
@@ -1824,6 +1829,7 @@ CFrogThing *ThingCanSeeThing(C2DThing *self,...) {
   return ret;
 }
 AddMethod("C2DThing","canSeeThing:",&ThingCanSeeThing);
+
 
 CFrogThing *ScreenCoordToDist(C3DWorldManager *self,...) {
   return FrogNumNew(ScreenCordsToDist(w,self->screen_x,self->screen_y));
