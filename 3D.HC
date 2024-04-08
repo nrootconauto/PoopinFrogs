@@ -2051,6 +2051,7 @@ U0 WalkAround() {
   w->angle=0;
   CFrogThing **body;
   I64 idx;
+//  Prof(10);
   try while (cont) {
       CallScript("update",man->value);
 //if (ThingHasClass(player,"CPlayer")) {
@@ -2162,8 +2163,9 @@ next:;
      }
       Refresh;
       FrogGarbageCollect;
-    } catch PutExcept;
+    } catch PutExcept(TRUE);
 en:
+//  ProfRep;
   FlushMsgs;
   Refresh;
   Fs->draw_it=NULL;

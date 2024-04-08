@@ -2,7 +2,7 @@ class CFrogThing:CQue {
 #define SRV_THINGF_TO_DELETE 1
   I32 thing_flags,pad;
   I32 id,ref_cnt;
-  U8 class_name[STR_LEN];
+  U8 class_name[32];
 };
 class CFrogNum:CFrogThing {
   F64 num;

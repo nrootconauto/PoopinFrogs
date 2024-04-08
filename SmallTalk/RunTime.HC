@@ -47,6 +47,13 @@ CTask *frog_mem_task=Fs;
 CQue allocs_head;
 QueInit(&allocs_head);
 
+class CConstructorPair {
+  U8 *dft;
+  U8 *constructor;
+  U8 *destroy;
+};
+
+
 U0 AddMethod(U8 *cls,U8 *name,U8 *fptr) {
   FastLookupAddValue(name,fptr,cls);
 }
@@ -296,6 +303,8 @@ F64 GetClassMemberValF64(CFrogThing *t,U8 *member) {
 }
 extern CFrogThing *CallScript(U8 *name,CFrogThing *self,...);
 
+
+
 CFrogThing *_ConstructThing(U8 *class_name,I64 argc,I64 *argv) {
   CTask *mem_task=frog_mem_task;
   I64 idx;
@@ -364,7 +373,32 @@ fin:
   return t;
 }
 CFrogThing *ConstructThing(U8 *name,...) {
-  return _ConstructThing(name,argc,argv);
+  CConstructorPair *p;
+  CFrogThing *ret;
+  if(!StrCmp(name,"CFrogSuper"))
+    return _ConstructThing(name,argc,argv);
+  if(!argc)
+    if(p=FastLookupByStr(".dft",name)) {
+      ret=MAllocIdent(p->dft);
+      ret->ref_cnt=1;
+      QueIns(ret,allocs_head.next);
+      if(p->constructor) {
+         CallExtStr(p->constructor,ret);
+      }
+      return ret;
+    }
+  ret=_ConstructThing(name,argc,argv);
+  if(!argc) {
+    p=MAlloc(sizeof(CConstructorPair),frog_mem_task);
+    p->dft=ret;
+    QueRem(ret);//This is a template for new creation
+    p->constructor=GetClassMemberValI64(ret,"constructor");
+    p->destroy=GetClassMemberValI64(ret,"destroy");
+    FastLookupAddValue(".dft",p,name);
+    //Make a new one from the template
+    ret=ConstructThing(name);
+  }
+  return ret;
 }
 
 CFrogSymbol *FrogSymbol(U8 *name) {
@@ -1040,16 +1074,17 @@ AddMethod("CFrogBlock","whileFalse:",&FrogWhileFalse);
 
 extern U0 FrogGarbageCollect(CFrogThing *root);
 U0 ThingDel(CFrogThing *thing,Bool recurse=TRUE) {
-//Nroot needs to adjsut "Free'ing" on the fly
-  //  if(!actual) return;
   U8 *del;
   I64 idx;
   CLocalsGeneric *g,*parent;
   CFrogThing **f,dummy;
+//This has the destroy in it
+  CConstructorPair *cpair;
   CMemberLst *mlst;
   CHashClass *cls;
   if(!thing||thing&1) return; //bit 0 is set for special "SMALL" type
   if(--thing->ref_cnt==0) {
+  if(thing->ref_cnt<0) throw('asdas');
     if(thing->thing_flags&THINGF_FRAME_TYPE) {
       g=thing;
       if(g->type=='Repl')
@@ -1072,9 +1107,9 @@ U0 ThingDel(CFrogThing *thing,Bool recurse=TRUE) {
       return;
     }
     QueRem(thing);
-    if(del=GetClassMemberValI64(thing,"destroy")) {
-      if(HashFind(del,frog_mem_task->hash_table,HTT_FUN))
-        CallExtStr(del,thing);
+    if(cpair=FastLookupByStr(".dft",thing->class_name)) {
+      if(cpair->destroy)
+        CallExtStr(cpair->destroy,thing);
       else {
 normal:
         if(recurse) {
@@ -1102,7 +1137,6 @@ normal:
     } else
       goto normal;
   }
-  if(thing->ref_cnt<0) throw('asdas');
 }
 
 CFrogUndefined *FrogNil() {
