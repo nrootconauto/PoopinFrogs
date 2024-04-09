@@ -290,7 +290,7 @@ U0 NumPrim2(CDoc *doc,I64 stack_depth,U8 *op,U8*alt_name=NULL) {
 U0 NumPrim1(CDoc *doc,I64 stack_depth,U8 *op,U8 *alt_name=NULL) {
   if(!alt_name) alt_name=op;
   DocPrint(doc,"if(%s&0xff==FROG_SMALL_NUM) {\n",StackFrame2Var(stack_depth));
-  DocPrint(doc,"  %s=FrogNumNew(%s(AsF64(%s)));",StackFrame2Var(stack_depth),op,StackFrame2Var(stack_depth));
+  DocPrint(doc,"  %s=FrogNumNew(%s(AsF64(%s)));",StackFrame2Var(stack_depth),op,StackFrame2Var(stack_depth));
   DocPrint(doc,"} else {");
   DftCall(doc,stack_depth,alt_name,0);
   DocPrint(doc,"}\n");

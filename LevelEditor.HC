@@ -5,7 +5,7 @@ THIS IS A WIP FILE!!!
 #include "AnimDC.HC"
 #include "BlobFile.HC"
 #define GRID_SZ 16
-#define DIST_SCALE (GRID_SZ*2200)
+#define DIST_SCALE (GRID_SZ*GR_WIDTH)
 
 #define SEGMENT_SZ 32
 #define GRID_SZ 16
@@ -140,10 +140,17 @@ CLevelTexture *LoadTexture(CDC *from_dc,I64 idx) {
 }
 U0 WorldExtents(I64 *minx,I64 *maxx,I64 *miny,I64 *maxy) {
   CLevelSegment *cur=world_edit.segments.next;
-  *minx=0;
-  *miny=0;
-  *maxx=0;
-  *maxy=0;
+  if(!QueCnt(cur)) {
+    *minx=0;
+    *miny=0;
+    *maxx=0;
+    *maxy=0;
+    return;
+  }
+  *minx=I64_MAX;
+  *miny=I64_MAX;
+  *maxx=I64_MIN;
+  *maxy=I64_MIN;
   while(cur!=&world_edit.segments) {
     I64 x=cur->xoff,y=cur->yoff;
     if(minx) *minx=MinI64(x,*minx);
@@ -365,17 +372,18 @@ CLevelSegment *LevelEditorNewSegment(I64 at_x,I64 at_y) {
 CLevelSegment *GetSegmentForPos(I64 at_x,I64 at_y) {
   static I64 at_x_cache,at_y_cache;
   static CLevelSegment *ret_cache=NULL;
-  if(at_x==at_x_cache)
-    if(at_y==at_y_cache)
-      if(ret_cache)
+  if(FloorI64(at_x,SEGMENT_SZ)==at_x_cache)
+    if(FloorI64(at_y,SEGMENT_SZ)==at_y_cache)
+      if(ret_cache) {
         return ret_cache;
+}
   CLevelSegment *cur;
   for(cur=world_edit.segments.next;cur!=&world_edit.segments;cur=cur->next) {
-    if(cur->xoff<=at_x<=cur->xoff+SEGMENT_SZ)
-      if(cur->yoff<=at_y<=cur->yoff+SEGMENT_SZ) {
+    if(cur->xoff<=at_x<cur->xoff+SEGMENT_SZ)
+      if(cur->yoff<=at_y<cur->yoff+SEGMENT_SZ) {
         ret_cache=cur;
-        at_x_cache=at_x;
-        at_y_cache=at_y;
+        at_x_cache=FloorI64(at_x,SEGMENT_SZ);
+        at_y_cache=FloorI64(at_y,SEGMENT_SZ);
         return cur;
       }
   }
@@ -597,15 +605,16 @@ U0 DrawThingBar(CDC *dc,CTask *task) {
 }
 U0 DrawThingSexy(CDC *dc,I64 dispx,I64 dispy,F64 x,F64 y,CDC *thing) {
   CLevelSegment *segment=GetSegmentForPos(x/GRID_SZ,y/GRID_SZ);
-  I64 height=segment->heights[x/GRID_SZ-segment->xoff][y/GRID_SZ-segment->yoff];
-  I64 idist=(world_edit.cam_height-height)*GRID_SZ+1024;
+  if(!segment) return;
+  I64 height=segment->heights[ToI64(x/GRID_SZ)-segment->xoff][ToI64(y/GRID_SZ)-segment->yoff];
+  I64 idist=(world_edit.cam_height-height)*GRID_SZ;
   F64 width=DIST_SCALE/ToF64(idist);
   x=(x-GR_WIDTH/2+dispx)*width/16+GR_WIDTH/2;
   y=(y-GR_HEIGHT/2+dispy)*width/16+GR_HEIGHT/2;
   GrBlot(dc,x-thing->width/2,y-thing->height/2,thing); 
 }
 U0 DrawThingDumb(CDC *dc,I64 dispx,I64 dispy,I64 x,I64 y,CDC *thing) {
-GrBlot(dc,x-thing->width/2+dispx,y-thing->height/2+dispy,thing); 
+  GrBlot(dc,x-thing->width/2+dispx,y-thing->height/2+dispy,thing); 
 }
 U0 DrawSegmentThings(CTask *t,CDC *dc) {
   CLevelSegment *segment;
@@ -634,8 +643,6 @@ U0 DrawSegmentThings(CTask *t,CDC *dc) {
     }
   }
 }
-#define GRID_SZ 16
-#define DIST_SCALE (GRID_SZ*2200)
 U0 DrawTexturedQuad(CDC *dc,CD3I32 *poly,CDC *texture=NULL) {
   dc->color=BLUE;
   GrFillTri0(dc,poly,poly+2,poly+1);
@@ -644,7 +651,7 @@ U0 DrawTexturedQuad(CDC *dc,CD3I32 *poly,CDC *texture=NULL) {
 // xoff/yoff specify which wall
 U0 DrawWall(CDC *dc,I64 dispx,I64 dispy,I64 tx,I64 ty,I64 xoff,I64 yoff,CDC *side,F64 height,I64 start_height=INVALID_PTR) {
   if(xoff&&yoff) return;
-  I64 idist=(world_edit.cam_height-height)*GRID_SZ+1024;
+  I64 idist=(world_edit.cam_height-height)*GRID_SZ;
   F64 width=DIST_SCALE/ToF64(idist);
 
   F64 h,w,width2;
@@ -658,7 +665,7 @@ U0 DrawWall(CDC *dc,I64 dispx,I64 dispy,I64 tx,I64 ty,I64 xoff,I64 yoff,CDC *sid
   } else {
     h=start_height;
   }
-  width2=DIST_SCALE/((world_edit.cam_height-h)*GRID_SZ+1024);
+  width2=DIST_SCALE/((world_edit.cam_height-h)*GRID_SZ);
 //Use higher wall texture for side
   if(width-width2<1.) return;
   I64 x2=((tx+xoff)*16-GR_WIDTH/2+dispx)*width2/16+GR_WIDTH/2;
@@ -684,6 +691,10 @@ U0 DrawWall(CDC *dc,I64 dispx,I64 dispy,I64 tx,I64 ty,I64 xoff,I64 yoff,CDC *sid
     points[1].y=ey;
     points[2].y=ey2;
     points[3].y=sy2;
+    points[0].z=world_edit.cam_height-height;
+    points[1].z=world_edit.cam_height-height;
+    points[2].z=world_edit.cam_height-start_height;
+    points[3].z=world_edit.cam_height-start_height;
     DrawTexturedQuad(dc,points);
   } else if(xoff==-1&&x>GR_WIDTH/2) {
     points[0].x=sx;
@@ -694,6 +705,10 @@ U0 DrawWall(CDC *dc,I64 dispx,I64 dispy,I64 tx,I64 ty,I64 xoff,I64 yoff,CDC *sid
     points[1].y=sy;
     points[2].y=sy2;
     points[3].y=ey2;
+    points[0].z=world_edit.cam_height-height;
+    points[1].z=world_edit.cam_height-height;
+    points[2].z=world_edit.cam_height-start_height;
+    points[3].z=world_edit.cam_height-start_height;
     DrawTexturedQuad(dc,points);
   } else if(yoff==1&&y<GR_HEIGHT/2) {
     points[0].y=ey;
@@ -704,6 +719,10 @@ U0 DrawWall(CDC *dc,I64 dispx,I64 dispy,I64 tx,I64 ty,I64 xoff,I64 yoff,CDC *sid
     points[1].x=ex;
     points[2].x=ex2;
     points[3].x=sx2;
+    points[0].z=world_edit.cam_height-height;
+    points[1].z=world_edit.cam_height-height;
+    points[2].z=world_edit.cam_height-start_height;
+    points[3].z=world_edit.cam_height-start_height;
     DrawTexturedQuad(dc,points);
   } else if(yoff==-1&&y>GR_HEIGHT/2) {
     points[0].y=sy;
@@ -714,13 +733,17 @@ U0 DrawWall(CDC *dc,I64 dispx,I64 dispy,I64 tx,I64 ty,I64 xoff,I64 yoff,CDC *sid
     points[1].x=sx;
     points[2].x=sx2;
     points[3].x=ex2;
+    points[0].z=world_edit.cam_height-height;
+    points[1].z=world_edit.cam_height-height;
+    points[2].z=world_edit.cam_height-start_height;
+    points[3].z=world_edit.cam_height-start_height;
     DrawTexturedQuad(dc,points);
   }
 }
 U0 DrawTileSexy(CDC *dc,I64 dispx,I64 dispy,F64 height,CDC *top,CDC *side,I64 tx,I64 ty,I64 ceil_height2=INVALID_PTR) {
   if(world_edit.cam_height<=height)
     return;
-  I64 idist=(world_edit.cam_height-height)*GRID_SZ+1024,wi;
+  I64 idist=(world_edit.cam_height-height)*GRID_SZ,wi;
   F64 width=DIST_SCALE/ToF64(idist);
   I64 x=(tx*16-GR_WIDTH/2+dispx)*width/16+GR_WIDTH/2;
   I64 y=(ty*16-GR_HEIGHT/2+dispy)*width/16+GR_HEIGHT/2;
@@ -730,11 +753,15 @@ U0 DrawTileSexy(CDC *dc,I64 dispx,I64 dispy,F64 height,CDC *top,CDC *side,I64 tx
   I64 xoff,yoff;
   U8 *base,*base2;
   wi=top->width_internal;
+  sx=MaxI64(sx,0);
+  sy=MaxI64(sy,0);
+  ex=MinI64(ex,GR_WIDTH);
+  ey=MinI64(ey,GR_HEIGHT);
   for(yoff=sy;yoff<ey;yoff++) {
     base=&top->body[ToI64((yoff-sy)/width*top->height)*wi];
     for(xoff=sx;xoff<ex;xoff++) {
       dc->color=base[ToI64((xoff-sx)/width*top->width)];
-      GrPlot3(dc,xoff,yoff,idist);
+      GrPlot3(dc,xoff,yoff,world_edit.cam_height-height);
     }
   }
   if(side)
@@ -761,7 +788,7 @@ U0 MouseToPos(I64 ms_x,I64 ms_y,I64 *_x,I64 *_y) {
     return;
   }
   for(height=I8_MAX;height>=I8_MIN;height--) {
-    idist=(world_edit.cam_height-height)*GRID_SZ+1024;
+    idist=(world_edit.cam_height-height)*GRID_SZ;
     width=DIST_SCALE/ToF64(idist);
     x=((ms_x+width/2-GR_WIDTH/2)*16/width-dispx+GR_WIDTH/2)/16;
     y=((ms_y+width/2-GR_HEIGHT/2)*16/width-dispy+GR_HEIGHT/2)/16;
@@ -783,28 +810,29 @@ U0 LevelEditorDraw(CTask *t,CDC *dc) {
   I64 theight,cheight,ch2;
 //Tile offsets
   I64 t_xoff=world_edit.base_x/GRID_SZ,t_yoff=world_edit.base_y/GRID_SZ;
-  I64 x,y;
+  I64 x,y,minx,maxx,miny,maxy;
   U8 *str;
-  for(x=-64;x!=64;x++) {
-    for(y=-64;y!=64;y++) {
-      seg=GetSegmentForPos(x+t_xoff,y+t_yoff);
+  WorldExtents(&minx,&maxx,&miny,&maxy);
+  for(x=minx;x!=maxx;x++) {
+    for(y=miny;y!=maxy;y++) {
+      seg=GetSegmentForPos(x,y);
       if(!seg) goto next;
       texture=world_edit.textures[seg->data
-	    [(t_xoff+x)-seg->xoff]
-	    [(t_yoff+y)-seg->yoff]-I16_MIN];
-      theight=seg->heights[(t_xoff+x)-seg->xoff][(t_yoff+y)-seg->yoff];
+	    [(x)-seg->xoff]
+	    [(y)-seg->yoff]-I16_MIN];
+      theight=seg->heights[(x)-seg->xoff][(y)-seg->yoff];
       if(texture) {
         if(!world_edit.flat_mode) {
-	  DrawTileSexy(dc,world_edit.base_x,world_edit.base_y,theight,texture->orig_dc,texture->orig_dc,t_xoff+x,t_yoff+y);
+	  DrawTileSexy(dc,world_edit.base_x,world_edit.base_y,theight,texture->orig_dc,texture->orig_dc,x,y);
 //DRAWCEILING TILE
 	  if(Blink) {
-	    cheight=seg->ceil_heights[(t_xoff+x)-seg->xoff][(t_yoff+y)-seg->yoff];
-	    ch2=seg->ceil_heights2[(t_xoff+x)-seg->xoff][(t_yoff+y)-seg->yoff];
+	    cheight=seg->ceil_heights[x-seg->xoff][y-seg->yoff];
+	    ch2=seg->ceil_heights2[x-seg->xoff][y-seg->yoff];
 	    if(cheight!=I8_MAX&&cheight>theight)
-	      DrawTileSexy(dc,world_edit.base_x,world_edit.base_y,cheight+ch2,texture->orig_dc,texture->orig_dc,t_xoff+x,t_yoff+y,cheight);
+	      DrawTileSexy(dc,world_edit.base_x,world_edit.base_y,cheight+ch2,texture->orig_dc,texture->orig_dc,x,y,cheight);
 	  }
         } else
-	  DrawTileDumb(dc,world_edit.base_x,world_edit.base_y,texture->dc,t_xoff+x,t_yoff+y);
+	  DrawTileDumb(dc,world_edit.base_x,world_edit.base_y,texture->dc,x,y);
       }
 next:;
     }
@@ -1034,6 +1062,7 @@ U0 LoadWorld(U8 *blob,U8 *filename) {
   I8 *ceilmap2;
   I64 width,height,cap;
   I64 x,y,oldf=world_edit.floor_height,oldc=world_edit.ceil_height;
+  I64 sx,sy;
   U64 type;
   I64 tsz;
   CLevelThingTemplate *template;
@@ -1060,14 +1089,16 @@ U0 LoadWorld(U8 *blob,U8 *filename) {
   heightmap=w(U8*)+w->heightmap.ptr;
   ceilmap=w(U8*)+w->ceilmap.ptr;
   ceilmap2=w(U8*)+w->ceilmap2.ptr;
+  sx=w->startx;
+  sy=w->starty;
   for(x=0;x!=width;x++)
     for(y=0;y!=height;y++) {
       world_edit.ceil_height=ceilmap[x+y*width];
       world_edit.floor_height=heightmap[x+y*width];
       world_edit.ceil_height2=ceilmap2[x+y*width];
-      WorldInsertTileAt(x,y,w->data[x+y*width]);
-      WorldInsertTileAt(x,y,w->data[x+y*width],1);
-      WorldInsertTileAt(x,y,w->data[x+y*width],2);
+      WorldInsertTileAt(x+sx,y+sy,w->data[x+y*width]);
+      WorldInsertTileAt(x+sx,y+sy,w->data[x+y*width],1);
+      WorldInsertTileAt(x+sx,y+sy,w->data[x+y*width],2);
     }
   f_texture=textures;
   cap=w->textures_where.len;
@@ -1313,6 +1344,10 @@ save:
 	      PopUpOk("Unable to open file!!!");
 	    }
 	    Free(str);
+	  } else if(m2&0xff==SC_PAGE_DOWN) {
+	    world_edit.cam_height-=5;
+	  } else if(m2&0xff==SC_PAGE_UP) {
+	    world_edit.cam_height+=5;
 	  }
 	  if(which_key) *which_key=TRUE;
 	  break;
