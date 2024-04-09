@@ -1,5 +1,5 @@
 /*
-  THIS IS A WIP FILE!!!
+THIS IS A WIP FILE!!!
 */
 
 #include "AnimDC.HC"
@@ -17,18 +17,19 @@ class CLevelSegment:CQue {
   CLevelSegment *top,*bottom,*left,*right;
   I64 xoff,yoff;
   CQue things;
-  //>0 for wall
+//>0 for wall
   //<0 for floor
   I16 data[SEGMENT_SZ][SEGMENT_SZ];
   I8 heights[SEGMENT_SZ][SEGMENT_SZ];
   I8 ceil_heights[SEGMENT_SZ][SEGMENT_SZ];
+  I8 ceil_heights2[SEGMENT_SZ][SEGMENT_SZ];
 };
 class CLevelThingTemplate:CQue {
   I64 idx;
 //Animation frames will be inserted in ->anim_que
-//They will share the same idx
-//ANIMATION FRAMES WILL NOT BE IN world_edit.thing_templates_que
-#define TEMPLATEF_ANIM_FRAME 1
+  //They will share the same idx
+  //ANIMATION FRAMES WILL NOT BE IN world_edit.thing_templates_que
+  #define TEMPLATEF_ANIM_FRAME 1
   I64 flags;
   CQue anim_que;
   CDC *side_orig_dc;
@@ -97,7 +98,7 @@ class CWorldEditor {
   Bool ms_wheel_down;
   Bool ms_wheel_up;
   Bool flat_mode;
-  I8 ceil_height,floor_height;
+  I8 ceil_height,floor_height,ceil_height2;
 } world_edit;
 CDC *LoadGr(U8 *blob,U8 *name) {
   U8 *body=BlobFileGetLump(blob,name);
@@ -187,15 +188,16 @@ class CWorld {
     CFilePtrLen textures_where;
   };
   union {
-   CFileThingTemplate *thing_templates;
-   CFilePtrLen thing_templates_where;
+    CFileThingTemplate *thing_templates;
+    CFilePtrLen thing_templates_where;
   };
   union {
-   U8 *things;
-   CFilePtrLen things_where;
+    U8 *things;
+    CFilePtrLen things_where;
   };
   CFilePtrLen heightmap;
   CFilePtrLen ceilmap;
+  CFilePtrLen ceilmap2;
   U0 start;
 }; 
 U0 _DumpSegment(CWorld *world,CLevelSegment *seg) {
@@ -231,6 +233,17 @@ U0 _DumpSegmentCeil(CWorld *world,CLevelSegment *seg) {
     ptr+=world->w;
   }
 }
+U0 _DumpSegmentCeil2(CWorld *world,CLevelSegment *seg) {
+  I8 *ptr=world->data(I8*)+4*(world->h*world->w)+((seg->xoff-world->startx)+world->w*(seg->yoff-world->starty));
+  I64 x,y;
+  for(y=0;y!=SEGMENT_SZ;y++) {
+    for(x=0;x!=SEGMENT_SZ;x++) {
+      *ptr++=seg->ceil_heights2[x][y];
+    }
+    ptr-=SEGMENT_SZ;
+    ptr+=world->w;
+  }
+}
 U0 LevelEditorExport(U8 *blob,U8 *filename) {
   I64 minx=0,miny=0,maxx=0,maxy=0,idx;
   CLevelTexture *texture;
@@ -241,26 +254,26 @@ U0 LevelEditorExport(U8 *blob,U8 *filename) {
   WorldExtents(&minx,&maxx,&miny,&maxy);
   I64 textures_sz=0,tsz,templates_sz=0,things_sz=0;
   for(
-	template=world_edit.thing_templates_que.next;
-	template!=&world_edit.thing_templates_que;
-	template=template->next) {
+        template=world_edit.thing_templates_que.next;
+        template!=&world_edit.thing_templates_que;
+        template=template->next) {
     templates_sz+=sizeof(CFileThingTemplate);
   }
   for(
-	cur=world_edit.segments.next;
-	cur!=&world_edit.segments;
-	cur=cur->next) {
+        cur=world_edit.segments.next;
+        cur!=&world_edit.segments;
+        cur=cur->next) {
     things_sz+=sizeof(CFileThing)*QueCnt(&cur->things);
   }
   textures_sz=sizeof(CFileTexture)*QueCnt(&world_edit.textures_que);
   I64 w=maxx-minx,h=maxy-miny;
-  I64 fsz=(w*h)+(w*h)+2*(w*h)+sizeof(CWorld)+textures_sz+templates_sz+things_sz;
+  I64 fsz=(w*h)+(w*h)+(w*h)+2*(w*h)+sizeof(CWorld)+textures_sz+templates_sz+things_sz;
   CWorld *data=CAlloc(fsz);
   data->startx=minx;
   data->starty=miny;
   data->w=w,data->h=h;
   data->data=data+1;
-  data->textures=data->data(U8*)+(w*h)*4;
+  data->textures=data->data(U8*)+(w*h)*5;
   data->thing_templates=data->textures(U8*)+textures_sz;
   data->things=data->thing_templates(U8*)+sizeof(CFileThingTemplate)*QueCnt(&world_edit.thing_templates_que);
   fptr2=data->things(U8*)+things_sz;
@@ -268,14 +281,15 @@ U0 LevelEditorExport(U8 *blob,U8 *filename) {
     _DumpSegment(data,cur);
     _DumpSegmentHeight(data,cur);
     _DumpSegmentCeil(data,cur);
+    _DumpSegmentCeil2(data,cur);
   }
   texture=world_edit.textures_que.next;
   idx=0;
   fptr=data->textures;
   for(
-	texture=world_edit.textures_que.next;
-	texture!=&world_edit.textures_que;
-	texture=texture->next) {
+        texture=world_edit.textures_que.next;
+        texture!=&world_edit.textures_que;
+        texture=texture->next) {
     fptr(CFileTexture*)->idx=texture->idx;
     StrCpy(fptr(CFileTexture*)->wall_blob_name,texture->wall_blob_name);
     StrCpy(fptr(CFileTexture*)->floor_blob_name,texture->floor_blob_name);
@@ -285,9 +299,9 @@ U0 LevelEditorExport(U8 *blob,U8 *filename) {
   if(fptr-data->textures(U8*)!=textures_sz)
     throw('Save');
   for(
-	template=world_edit.thing_templates_que.next;
-	template!=&world_edit.thing_templates_que;
-	template=template->next) {
+        template=world_edit.thing_templates_que.next;
+        template!=&world_edit.thing_templates_que;
+        template=template->next) {
     fptr(CFileThingTemplate*)->idx=template->idx;
     StrCpy(fptr(CFileThingTemplate*)->name,template->name);
     StrCpy(fptr(CFileThingTemplate*)->blob_side_name,template->blob_side_name);
@@ -299,9 +313,9 @@ U0 LevelEditorExport(U8 *blob,U8 *filename) {
     throw('Save');
   }
   for(
-	cur=world_edit.segments.next;
-	cur!=&world_edit.segments;
-	cur=cur->next) {
+        cur=world_edit.segments.next;
+        cur!=&world_edit.segments;
+        cur=cur->next) {
     for(thing=cur->things.next;thing!=&cur->things;thing=thing->next) {
       fptr(U16*)[0]=thing->thing_template_idx;
       fptr+=2;
@@ -322,8 +336,10 @@ U0 LevelEditorExport(U8 *blob,U8 *filename) {
   data->things_where.len=things_sz;
   data->heightmap.len=w*h;
   data->ceilmap.len=w*h;
+  data->ceilmap2.len=w*h;
   data->heightmap.ptr=(data->data(U8*)-data(U8*))+sizeof(U16)*(w*h);
   data->ceilmap.ptr=data->heightmap.ptr+w*h;
+  data->ceilmap2.ptr=data->ceilmap.ptr+w*h;
 //  MemSet(data(U8*)+data->ceilmap.ptr,I8_MAX,w*h);
   data->data=w*h;
   BlobFileAddLump(blob,filename,data,fsz,'LEVEL');
@@ -379,7 +395,7 @@ F64 SidebarScroll(I64 direction,Bool wall=TRUE) {
     }
     texture=texture->next;
   }
-  //Dude,there are 3 textures in a row
+//Dude,there are 3 textures in a row
   cnt/=3;
   if(wall)
     cur_scroll=&world_edit.wall_texture_scroll;
@@ -487,14 +503,14 @@ CLevelThingTemplate *CreateNewThingTemplate(I64 idx) {
   DCFill(template->side_orig_dc,TRANSPARENT);
   DCFill(template->back_orig_dc,TRANSPARENT);
   template->side_dc=ScaleDC(template->side_orig_dc,
-	THING_WIDTH_SCALED,
-	THING_HEIGHT_SCALED,world_edit.mem_task);
+        THING_WIDTH_SCALED,
+        THING_HEIGHT_SCALED,world_edit.mem_task);
   template->back_dc=ScaleDC(template->back_orig_dc,
-	THING_WIDTH_SCALED,
-	THING_HEIGHT_SCALED,world_edit.mem_task);
+        THING_WIDTH_SCALED,
+        THING_HEIGHT_SCALED,world_edit.mem_task);
   template->front_dc=ScaleDC(template->front_orig_dc,
-	THING_WIDTH_SCALED,
-	THING_HEIGHT_SCALED,world_edit.mem_task);
+        THING_WIDTH_SCALED,
+        THING_HEIGHT_SCALED,world_edit.mem_task);
   template->idx=idx;
   QueIns(template,&world_edit.thing_templates_que);
   world_edit.thing_templates[idx]=template;
@@ -512,23 +528,23 @@ U0 DrawThingBar(CDC *dc,CTask *task) {
   CLevelThingTemplate *template;
   x=SIDEBAR_WIDTH+4;
   y=task->pix_height-THING_BAR_HEIGHT+8+4-8; //-8 for status bar
-  //Scroll
+//Scroll
   if(world_edit.ms_scroll_delta)
-  if(SIDEBAR_WIDTH<=world_edit.ms_x<task->pix_width-SIDEBAR_WIDTH) {
-    idx=0;
-    for(
-	template=world_edit.thing_templates_que.next;
-	template!=&world_edit.thing_templates_que;
-	template=template->next
-	) {
-       idx=MaxI64(idx,template->idx);
+    if(SIDEBAR_WIDTH<=world_edit.ms_x<task->pix_width-SIDEBAR_WIDTH) {
+      idx=0;
+      for(
+	    template=world_edit.thing_templates_que.next;
+	    template!=&world_edit.thing_templates_que;
+	    template=template->next
+      ) {
+        idx=MaxI64(idx,template->idx);
+      }
+      world_edit.thingbar_scroll=ClampI64(
+	    world_edit.thingbar_scroll+world_edit.ms_scroll_delta,
+	    0,
+	    idx);
     }
-    world_edit.thingbar_scroll=ClampI64(
-	world_edit.thingbar_scroll+world_edit.ms_scroll_delta,
-	0,
-	idx);
-  }
-  //
+//
   idx=world_edit.thingbar_scroll;
   for(;x+20<=task->pix_width-SIDEBAR_WIDTH&&idx<0x10000;idx++) {
     if(world_edit.cur_thing_template_idx==idx) {
@@ -557,7 +573,7 @@ U0 DrawThingBar(CDC *dc,CTask *task) {
     }
     if(x-4<=world_edit.ms_x<x+16+8)
       if(y-4<=world_edit.ms_y<y+32+8) {
-	if(template) title=template->name;
+        if(template) title=template->name;
         if(world_edit.ms_left_down) {
 	  if(template)
 	    world_edit.cur_thing_template_idx=idx;
@@ -589,7 +605,7 @@ U0 DrawThingSexy(CDC *dc,I64 dispx,I64 dispy,F64 x,F64 y,CDC *thing) {
   GrBlot(dc,x-thing->width/2,y-thing->height/2,thing); 
 }
 U0 DrawThingDumb(CDC *dc,I64 dispx,I64 dispy,I64 x,I64 y,CDC *thing) {
-  GrBlot(dc,x-thing->width/2+dispx,y-thing->height/2+dispy,thing); 
+GrBlot(dc,x-thing->width/2+dispx,y-thing->height/2+dispy,thing); 
 }
 U0 DrawSegmentThings(CTask *t,CDC *dc) {
   CLevelSegment *segment;
@@ -626,7 +642,7 @@ U0 DrawTexturedQuad(CDC *dc,CD3I32 *poly,CDC *texture=NULL) {
   GrFillTri0(dc,poly,poly+2,poly+3);
 }
 // xoff/yoff specify which wall
-U0 DrawWall(CDC *dc,I64 dispx,I64 dispy,I64 tx,I64 ty,I64 xoff,I64 yoff,CDC *side,F64 height) {
+U0 DrawWall(CDC *dc,I64 dispx,I64 dispy,I64 tx,I64 ty,I64 xoff,I64 yoff,CDC *side,F64 height,I64 start_height=INVALID_PTR) {
   if(xoff&&yoff) return;
   I64 idist=(world_edit.cam_height-height)*GRID_SZ+1024;
   F64 width=DIST_SCALE/ToF64(idist);
@@ -637,7 +653,11 @@ U0 DrawWall(CDC *dc,I64 dispx,I64 dispy,I64 tx,I64 ty,I64 xoff,I64 yoff,CDC *sid
   CLevelSegment *seg=GetSegmentForPos(tx+xoff,ty+yoff);
   if(!seg)
     return;
-  h=seg->heights[(tx+xoff)-seg->xoff][(ty+yoff)-seg->yoff];
+  if(start_height==INVALID_PTR) {
+    h=seg->heights[(tx+xoff)-seg->xoff][(ty+yoff)-seg->yoff];
+  } else {
+    h=start_height;
+  }
   width2=DIST_SCALE/((world_edit.cam_height-h)*GRID_SZ+1024);
 //Use higher wall texture for side
   if(width-width2<1.) return;
@@ -697,7 +717,7 @@ U0 DrawWall(CDC *dc,I64 dispx,I64 dispy,I64 tx,I64 ty,I64 xoff,I64 yoff,CDC *sid
     DrawTexturedQuad(dc,points);
   }
 }
-U0 DrawTileSexy(CDC *dc,I64 dispx,I64 dispy,F64 height,CDC *top,CDC *side,I64 tx,I64 ty) {
+U0 DrawTileSexy(CDC *dc,I64 dispx,I64 dispy,F64 height,CDC *top,CDC *side,I64 tx,I64 ty,I64 ceil_height2=INVALID_PTR) {
   if(world_edit.cam_height<=height)
     return;
   I64 idist=(world_edit.cam_height-height)*GRID_SZ+1024,wi;
@@ -720,7 +740,7 @@ U0 DrawTileSexy(CDC *dc,I64 dispx,I64 dispy,F64 height,CDC *top,CDC *side,I64 tx
   if(side)
     for(xoff=-1;xoff<2;xoff++)
       for(yoff=-1;yoff<2;yoff++)
-        DrawWall(dc,dispx,dispy,tx,ty,xoff,yoff,side,height);
+        DrawWall(dc,dispx,dispy,tx,ty,xoff,yoff,side,height,ceil_height2);
 }
 U0 DrawTileDumb(CDC *dc,I64 dispx,I64 dispy,CDC *top,I64 tx,I64 ty) {
   GrBlot(dc,tx*GRID_SZ+dispx,ty*GRID_SZ+dispy,top);
@@ -745,13 +765,13 @@ U0 MouseToPos(I64 ms_x,I64 ms_y,I64 *_x,I64 *_y) {
     width=DIST_SCALE/ToF64(idist);
     x=((ms_x+width/2-GR_WIDTH/2)*16/width-dispx+GR_WIDTH/2)/16;
     y=((ms_y+width/2-GR_HEIGHT/2)*16/width-dispy+GR_HEIGHT/2)/16;
-        if(seg=GetSegmentForPos(x,y)) {
-	  if(seg->heights[ToI64(x)-seg->xoff][ToI64(y)-seg->yoff]==height) {
-	    if(_x) *_x=x*16;
-	    if(_y) *_y=y*16;
-	    return;
-	  }
-        }
+    if(seg=GetSegmentForPos(x,y)) {
+      if(seg->heights[ToI64(x)-seg->xoff][ToI64(y)-seg->yoff]==height) {
+        if(_x) *_x=x*16;
+        if(_y) *_y=y*16;
+        return;
+      }
+    }
   }
   if(_x) *_x=x;
   if(_x) *_y=y;
@@ -760,7 +780,7 @@ U0 LevelEditorDraw(CTask *t,CDC *dc) {
   DCDepthBufAlloc(dc);
   CLevelSegment *seg;
   CLevelTexture *texture;
-  I64 theight,cheight;
+  I64 theight,cheight,ch2;
 //Tile offsets
   I64 t_xoff=world_edit.base_x/GRID_SZ,t_yoff=world_edit.base_y/GRID_SZ;
   I64 x,y;
@@ -770,19 +790,20 @@ U0 LevelEditorDraw(CTask *t,CDC *dc) {
       seg=GetSegmentForPos(x+t_xoff,y+t_yoff);
       if(!seg) goto next;
       texture=world_edit.textures[seg->data
-	[(t_xoff+x)-seg->xoff]
-	[(t_yoff+y)-seg->yoff]-I16_MIN];
+	    [(t_xoff+x)-seg->xoff]
+	    [(t_yoff+y)-seg->yoff]-I16_MIN];
       theight=seg->heights[(t_xoff+x)-seg->xoff][(t_yoff+y)-seg->yoff];
       if(texture) {
-	if(!world_edit.flat_mode) {
+        if(!world_edit.flat_mode) {
 	  DrawTileSexy(dc,world_edit.base_x,world_edit.base_y,theight,texture->orig_dc,texture->orig_dc,t_xoff+x,t_yoff+y);
 //DRAWCEILING TILE
 	  if(Blink) {
-            cheight=seg->ceil_heights[(t_xoff+x)-seg->xoff][(t_yoff+y)-seg->yoff];
+	    cheight=seg->ceil_heights[(t_xoff+x)-seg->xoff][(t_yoff+y)-seg->yoff];
+	    ch2=seg->ceil_heights2[(t_xoff+x)-seg->xoff][(t_yoff+y)-seg->yoff];
 	    if(cheight!=I8_MAX&&cheight>theight)
-	      DrawTileSexy(dc,world_edit.base_x,world_edit.base_y,cheight,texture->orig_dc,NULL,t_xoff+x,t_yoff+y);
+	      DrawTileSexy(dc,world_edit.base_x,world_edit.base_y,cheight+ch2,texture->orig_dc,texture->orig_dc,t_xoff+x,t_yoff+y,cheight);
 	  }
-	} else
+        } else
 	  DrawTileDumb(dc,world_edit.base_x,world_edit.base_y,texture->dc,t_xoff+x,t_yoff+y);
       }
 next:;
@@ -791,33 +812,34 @@ next:;
   DrawSidebar(dc,0);
   DrawSidebar(dc,t->pix_width-SIDEBAR_WIDTH,TRUE);
   dc->color=BLUE;
-  GrRect(dc,SIDEBAR_WIDTH,t->pix_height-8,t->pix_width-SIDEBAR_WIDTH*2,8);
+  GrRect(dc,SIDEBAR_WIDTH,t->pix_height-16,t->pix_width-SIDEBAR_WIDTH*2,16);
   str=MStrPrint("Floor Height(%d),Ceil Height(%d)(Shift+Wheel == Change Floor Height)",
-	world_edit.floor_height,
-	world_edit.ceil_height
-  );
+        world_edit.floor_height,
+        world_edit.ceil_height
+        );
   DrawSegmentThings(t,dc);
   DrawThingBar(dc,t);
   dc->color=YELLOW;
-  GrPutS(dc,SIDEBAR_WIDTH,t->pix_height-8,str);
+  GrPutS(dc,SIDEBAR_WIDTH,t->pix_height-16,str);
   Free(str);
+  GrPutS(dc,SIDEBAR_WIDTH,t->pix_height-8,"Use [Shift+]Right Click make sexy ceilings");
   Free(dc->depth_buf);
   dc->depth_buf=NULL;
 }
 Bool EditDC(U8 *blob,U8 *name,I64 dft_h,I64 dft_w) {
 //TempleOS lexer gets rid of rest of line after #include
-  Bool old_flat=world_edit.flat_mode;
-  world_edit.flat_mode=TRUE;
-  PopUpPrint(
-        "Cd(\"%Q\");\n"
-	"#include \"TextureEditor.HC\";\n"
-	"StrCpy(%d,TextureEdit(\"%Q\",,%d,%d));\n",
-	__DIR__,
-        name,blob,dft_w,dft_h
-        );
-  world_edit.flat_mode=old_flat;
+Bool old_flat=world_edit.flat_mode;
+world_edit.flat_mode=TRUE;
+PopUpPrint(
+"Cd(\"%Q\");\n"
+"#include \"TextureEditor.HC\";\n"
+"StrCpy(%d,TextureEdit(\"%Q\",,%d,%d));\n",
+__DIR__,
+name,blob,dft_w,dft_h
+);
+world_edit.flat_mode=old_flat;
 //TODO ensure lump exists
-  return TRUE;
+return TRUE;
 }
 U0 EditThingTemplate(U8 *blob,CLevelThingTemplate *template) {
 enter:;
@@ -981,14 +1003,16 @@ U0 FreeEditorData() {
   QueInit(&world_edit.segments);
   QueInit(&world_edit.textures_que);
 }
-U0 WorldInsertTileAt(I64 x,I64 y,I64 thing,Bool ceil=FALSE) {
+U0 WorldInsertTileAt(I64 x,I64 y,I64 thing,I64 floor_ceil_ceil2=0) {
   CLevelSegment *seg=GetSegmentForPos(x,y);
   if(!seg)
     seg=LevelEditorNewSegment(x,y);
   x-=seg->xoff;
   y-=seg->yoff;
   seg->data[x][y]=AbsI64(thing);
-  if(ceil) {
+  if(floor_ceil_ceil2==2) {
+    seg->ceil_heights2[x][y]=world_edit.ceil_height2;
+  } else if(floor_ceil_ceil2==1) {
     seg->ceil_heights[x][y]=world_edit.ceil_height;
   } else 
     seg->heights[x][y]=world_edit.floor_height;
@@ -1007,6 +1031,7 @@ U0 LoadWorld(U8 *blob,U8 *filename) {
   U8 *templates;
   I8 *heightmap;
   I8 *ceilmap;
+  I8 *ceilmap2;
   I64 width,height,cap;
   I64 x,y,oldf=world_edit.floor_height,oldc=world_edit.ceil_height;
   U64 type;
@@ -1034,12 +1059,15 @@ U0 LoadWorld(U8 *blob,U8 *filename) {
   templates=w(U8*)+w->thing_templates_where.ptr;
   heightmap=w(U8*)+w->heightmap.ptr;
   ceilmap=w(U8*)+w->ceilmap.ptr;
+  ceilmap2=w(U8*)+w->ceilmap2.ptr;
   for(x=0;x!=width;x++)
     for(y=0;y!=height;y++) {
       world_edit.ceil_height=ceilmap[x+y*width];
       world_edit.floor_height=heightmap[x+y*width];
+      world_edit.ceil_height2=ceilmap2[x+y*width];
       WorldInsertTileAt(x,y,w->data[x+y*width]);
-      WorldInsertTileAt(x,y,w->data[x+y*width],TRUE);
+      WorldInsertTileAt(x,y,w->data[x+y*width],1);
+      WorldInsertTileAt(x,y,w->data[x+y*width],2);
     }
   f_texture=textures;
   cap=w->textures_where.len;
@@ -1116,7 +1144,7 @@ U0 FloodFillFloor(I64 at_x,I64 at_y,I64 with,I64 target_tile=I64_MAX) {
   stk_ptr++;
   while(stk_ptr) {
     stk_ptr--;
-    
+
     at_x=stk[stk_ptr].at_x;
     at_y=stk[stk_ptr].at_y;
     *GetTilePtrAt(at_x,at_y)=with;
@@ -1160,12 +1188,13 @@ I64 WallCeilFloor() {
   DocPrint(doc,"\n\n$$BT+CX,\"Ceil\",LE=2$$\n\n");
   I64 wall=PopUpMenu(doc);
   DocDel(doc);
- return wall;
+  return wall;
 }
 
 U0 WorldEdit(U8 *blob,U8 *filename=NULL) {
   I64 m1,m2;
   I64 tx,ty;
+  I64 ch2,old;
   I64 last_wheel=ms.pos.z;
   CLevelTexture *texture;
   CLevelSegment *segment;
@@ -1193,17 +1222,17 @@ U0 WorldEdit(U8 *blob,U8 *filename=NULL) {
     if(texture=world_edit.edit_texture) {
       world_edit.ms_right_down=FALSE;
       switch(WallCeilFloor) {
-      case 2:
-        EditDC(blob,texture->ceil_blob_name,128,128);
-	break;
-      case 1:
-        EditDC(blob,texture->wall_blob_name,128,128);
-	break;
-      case 0:
-        EditDC(blob,texture->floor_blob_name,128,128);
-	break;
-      default:
-	goto no_edit_tile;
+        case 2:
+	  EditDC(blob,texture->ceil_blob_name,128,128);
+	  break;
+        case 1:
+	  EditDC(blob,texture->wall_blob_name,128,128);
+	  break;
+        case 0:
+	  EditDC(blob,texture->floor_blob_name,128,128);
+	  break;
+        default:
+	  goto no_edit_tile;
       }
       texture->orig_dc=LoadGr(blob,texture->floor_blob_name);
       AnimDCDel(texture->dc);
@@ -1220,13 +1249,13 @@ no_edit_tile:;
       default:
         world_edit.ms_scroll_delta=ms.pos.z-last_wheel;
         last_wheel=ms.pos.z;
-	if(SIDEBAR_WIDTH<world_edit.ms_x<=Fs->pix_width-SIDEBAR_WIDTH) {
+        if(SIDEBAR_WIDTH<world_edit.ms_x<=Fs->pix_width-SIDEBAR_WIDTH) {
 	  if(Bt(kbd.down_bitmap,SC_SHIFT))
 	    world_edit.floor_height-=world_edit.ms_scroll_delta;
-          else
+	  else
 	    world_edit.ceil_height-=world_edit.ms_scroll_delta;
 	  world_edit.ms_scroll_delta=0;
-	}
+        }
         Refresh;
         goto next;
       case MSG_MS_MOVE:
@@ -1308,17 +1337,17 @@ save:
       if(Bt(kbd.down_bitmap,SC_SHIFT)) {
 //This is for toggling the "flat mode" then
       } else {
-      if(world_edit.ms_y<Fs->pix_height-THING_BAR_HEIGHT-8)
-        if(SIDEBAR_WIDTH<=world_edit.ms_x<Fs->pix_width-SIDEBAR_WIDTH) {
-	  MouseToPos(world_edit.ms_x,world_edit.ms_y,&tx,&ty);
-	  tx/=16;
-	  ty/=16;
-	  FloodFillFloor(tx,
-	        ty,
-	        world_edit.floor_texture); 
-	  floor_fill=FALSE;
-        }
-	}
+        if(world_edit.ms_y<Fs->pix_height-THING_BAR_HEIGHT-8)
+	  if(SIDEBAR_WIDTH<=world_edit.ms_x<Fs->pix_width-SIDEBAR_WIDTH) {
+	    MouseToPos(world_edit.ms_x,world_edit.ms_y,&tx,&ty);
+	    tx/=16;
+	    ty/=16;
+	    FloodFillFloor(tx,
+		  ty,
+		  world_edit.floor_texture); 
+	    floor_fill=FALSE;
+	  }
+      }
     } else if(world_edit.ms_left_down) {
       if(world_edit.ms_y<Fs->pix_height-THING_BAR_HEIGHT-8)
         if(SIDEBAR_WIDTH<=world_edit.ms_x<Fs->pix_width-SIDEBAR_WIDTH) {
@@ -1351,33 +1380,78 @@ save:
       if(world_edit.ms_y<Fs->pix_height-THING_BAR_HEIGHT-8)
         if(SIDEBAR_WIDTH<=world_edit.ms_x<Fs->pix_width-SIDEBAR_WIDTH) {
 	  MouseToPos(world_edit.ms_x,world_edit.ms_y,&tx,&ty);
-	  if(Bt(kbd.down_bitmap,SC_SHIFT)) {
-//Eraser
-	    //For for things first
-	    segment=GetSegmentForPos(tx/GRID_SZ,ty/GRID_SZ);
-	    if(segment) {
-	      for(thing=segment->things.next;thing!=&segment->things;thing=thing->next) {
-	        if(ToI64(thing->x)<=tx/16<ToI64(thing->x)+16)
-		  if(ToI64(thing->y)<=ty/16<ToI64(thing->y)+32) {
-		    QueRem(thing);
-		    Free(thing);
-		    goto next;
+//Right click will decrease/increase ceil2 height or make/erase a ceiling
+	  segment=GetSegmentForPos(tx/GRID_SZ,ty/GRID_SZ);
+	  if(segment) {
+	    if(segment->ceil_heights[tx/GRID_SZ-segment->xoff][ty/GRID_SZ-segment->yoff]==I8_MAX) {
+//Add a new ceil
+	      if(!Bt(kbd.down_bitmap,SC_SHIFT)) {
+ 	        WorldInsertTileAt(
+		      tx/16,
+		      ty/16,
+		      world_edit.floor_texture,
+		      1
+		      );
+//Set Ceil-height2
+	        world_edit.ceil_height2=1;
+	        WorldInsertTileAt(
+		      tx/16,
+		      ty/16,
+		      world_edit.floor_texture,
+		      2
+		      );
+	      } else {
+//For for things first
+	        segment=GetSegmentForPos(tx/GRID_SZ,ty/GRID_SZ);
+	        if(segment) {
+		  for(thing=segment->things.next;thing!=&segment->things;thing=thing->next) {
+		    if(ToI64(thing->x)<=tx/16<ToI64(thing->x)+16)
+		      if(ToI64(thing->y)<=ty/16<ToI64(thing->y)+32) {
+		        QueRem(thing);
+		        Free(thing);
+		        goto next;
+		      }
 		  }
+	        }
+	      }
+	    } else {
+	      ch2=segment->ceil_heights2[tx/GRID_SZ-segment->xoff][ty/GRID_SZ-segment->yoff];
+	      if(Bt(kbd.down_bitmap,SC_SHIFT))
+	        world_edit.ceil_height2=ch2-1;
+	      else
+	        world_edit.ceil_height2=ch2+1;
+	      if(world_edit.ceil_height2<=0) {
+//Erase if we remove all ceil_heights
+		old=world_edit.ceil_height;
+	        world_edit.ceil_height=I8_MAX;
+	        world_edit.ceil_height2=0;
+	        WorldInsertTileAt(
+		      tx/16,
+		      ty/16,
+		      world_edit.floor_texture,
+		      1
+		      );
+	        world_edit.ceil_height2=0;
+	        WorldInsertTileAt(
+		      tx/16,
+		      ty/16,
+		      world_edit.floor_texture,
+		      2
+		      );
+		world_edit.ceil_height=old;
+	      } else {
+	        WorldInsertTileAt(
+		      tx/16,
+		      ty/16,
+		      world_edit.floor_texture,
+		      2
+		      );
 	      }
 	    }
-	  } else {
-	    tx/=16;
-	    ty/=16;
-	    WorldInsertTileAt(
-		  tx,
-		  ty,
-		  world_edit.floor_texture,
-		  TRUE
-		  );
 	  }
         }
-    }
 next:;
+    }
   }
   Fs->draw_it=NULL;
   FreeEditorData;

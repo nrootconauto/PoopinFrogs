@@ -208,6 +208,7 @@ Bool STGetLocal(CDoc *doc,CLocals *who,U8 *name) {
     who=who->next;
   }
   if(!gen) {
+"%s\n",name;
     throw('STVar');
   }
   DocPrint(doc,"->_body[%d]",gen->user_data0);
@@ -281,7 +282,7 @@ U0 DftCall(CDoc *doc,I64 stack_depth,U8 *op,I64 cnt=2) {
 U0 NumPrim2(CDoc *doc,I64 stack_depth,U8 *op,U8*alt_name=NULL) {
   if(!alt_name) alt_name=op;
   DocPrint(doc,"if(%s&0xff==FROG_SMALL_NUM&&%s&0xff==FROG_SMALL_NUM) {\n",StackFrame2Var(stack_depth),StackFrame2Var(stack_depth+1));
-  DocPrint(doc,"  %s=FrogNumNew(AsF64(%s)%sAsF64(%s));",StackFrame2Var(stack_depth),StackFrame2Var(stack_depth),op,StackFrame2Var(stack_depth+1));
+  DocPrint(doc,"  %s=FrogNumNew(((%s>>16)/ToF64(I16_MAX))%s((%s>>16)/ToF64(I16_MAX)));",StackFrame2Var(stack_depth),StackFrame2Var(stack_depth),op,StackFrame2Var(stack_depth+1));
   DocPrint(doc,"} else {");
   DftCall(doc,stack_depth,alt_name,1);
   DocPrint(doc,"}\n");
@@ -289,7 +290,7 @@ U0 NumPrim2(CDoc *doc,I64 stack_depth,U8 *op,U8*alt_name=NULL) {
 U0 NumPrim1(CDoc *doc,I64 stack_depth,U8 *op,U8 *alt_name=NULL) {
   if(!alt_name) alt_name=op;
   DocPrint(doc,"if(%s&0xff==FROG_SMALL_NUM) {\n",StackFrame2Var(stack_depth));
-  DocPrint(doc,"  %s=FrogNumNew(%s(AsF64(%s)));",StackFrame2Var(stack_depth),op,StackFrame2Var(stack_depth));
+  DocPrint(doc,"  %s=FrogNumNew(%s(%s>>16/ToF64(I16_MAX)));",StackFrame2Var(stack_depth),op,StackFrame2Var(stack_depth));
   DocPrint(doc,"} else {");
   DftCall(doc,stack_depth,alt_name,0);
   DocPrint(doc,"}\n");
@@ -772,5 +773,6 @@ STRunStmt(
 "  #fib _ #Y value: [:f| [:i| i <= 1 ifTrue: [i] ifFalse: [(f value: i - 1) + (f value: i - 2)] ] ]."
 " (#fib value: 10 ) show ."
 );
+DocMax;
 #endif
 #endif

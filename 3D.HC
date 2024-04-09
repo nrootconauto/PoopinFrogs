@@ -44,6 +44,7 @@ class CFileWorld {
   CFilePtrLen things_where;
   CFilePtrLen heightmap;
   CFilePtrLen ceilmap;
+  CFilePtrLen ceilmap2;
 }; 
 
 
@@ -85,7 +86,7 @@ class C3DWorld {
    I64 world_width;
    I64 world_height;
    I16 *world_mat; //0 is for EMPTY_SPACE
-   I8 *heightmap,*ceilmap;
+   I8 *heightmap,*ceilmap,*ceilmap2;
    CDC *wall_textures[0x10000/2],*to_dc;
    CDC *floor_textures[0x10000/2];
    CDC *ceil_textures[0x10000/2];
@@ -174,12 +175,14 @@ C3DWorld *LoadWorldFromFile(U8 *blob_file="ASS",U8 *filename,F64 fov=pi/4) {
   ret->world_mat=MAlloc(2*world->h*world->w);
   ret->heightmap=MAlloc(world->h*world->w);
   ret->ceilmap=MAlloc(world->h*world->w);
-  xoff=GRID_SZ*world->startx;
+  ret->ceilmap2=MAlloc(world->h*world->w);
+   xoff=GRID_SZ*world->startx;
   yoff=GRID_SZ*world->starty;
   QueInit(&ret->_2d_thing_templates);
   MemCpy(ret->world_mat,world+1,2*world->h*world->w);
   MemCpy(ret->heightmap,world(U8*)+world->heightmap.ptr,world->h*world->w);
   MemCpy(ret->ceilmap,world(U8*)+world->ceilmap.ptr,world->h*world->w);
+  MemCpy(ret->ceilmap2,world(U8*)+world->ceilmap2.ptr,world->h*world->w);
   man=ConstructThing("C3DWorldManager","world_handle",ret);
   CallScript("init",man);
   ret->_wall_stains=man->wall_stains->items;
@@ -1018,22 +1021,6 @@ F64 ScreenCordsToDist(C3DWorld *w,I64 x,I64 y,F64 max=GRID_SZ*128,F64 *height=NU
   return d;
 }
 
-I64 TilesAboveCeil(C3DWorld *w,I64 idx) {
-  I64 h;
-  I64 idx2;
-  I64 xoff,yoff;
-  I64 adj_height=w->ceilmap[idx];
-  for(xoff=-1;xoff<=1;xoff++)
-    for(yoff=-1;yoff<=1;yoff++) {
-     idx2=xoff+yoff*w->world_width+idx;
-     if(0<=idx2<w->world_width*w->world_height&&(xoff^^yoff)) {
-       h=w->heightmap[idx2];
-       if(h!=I8_MAX)
-         adj_height=MaxI64(adj_height,h);
-     }
-   }
-  return adj_height-w->ceilmap[idx];
-}
 U0 MPCastCol(C3DWorld *w) {
   F64 angle=w->angle-w->fov/2;
   I64 wall_segment_start,wall_segment_end;
@@ -1106,7 +1093,7 @@ ent:
 	     floor_y=ColorFloor(w,x,height_cap,
 	        GR_HEIGHT,
 	        GR_HEIGHT/2-h2*(height_cap-w->cam_height),
-	        use_dc
+	        use_dc,
 	        );
 	  } else {
 	     floor_y=ColorFloor(w,x,height_cap,
@@ -1119,7 +1106,7 @@ ent:
       }
       adj_height=I64_MAX;
       for(xoff=-1;xoff<=1;xoff++)
-        for(yoff=-1;yoff<=1;yoff++) {
+        for(yoff=-1;yoff<=1;yoff++) {
 	  idx3=xoff+yoff*w->world_width+idx;
 	  if(0<=idx3<w->world_width*w->world_height&&(xoff^^yoff)) {
 	    adj_height=MinI64(adj_height,w->heightmap[idx3]);
@@ -1153,14 +1140,15 @@ ent:
       }
 ceil2:      
       ceil=w->ceilmap[idx];
+      adj_height=w->ceilmap2[idx];
       //Draw Ceil
       if(ceil!=I8_MAX&&ceil>w->cam_height) {
         if(use_dc=w->ceil_textures[w->world_mat[idx]]) {
 	  standing_at=ToI64(w->x)/GRID_SZ+ToI64(w->y)/GRID_SZ*w->world_width;
 	  if(standing_at==idx) {
             ColorFloor(w,x,ceil,
+              GR_HEIGHT/2-h2*(ceil-w->cam_height),
               0,
-              GR_HEIGHT/2-h*(ceil-w->cam_height),
               use_dc
             );
 	  } else
@@ -1170,17 +1158,23 @@ ceil2:
               use_dc
             );
 	}
+      } else if(ceil!=I8_MAX&&ceil+adj_height<w->cam_height) {
+         use_dc=w->wall_textures[w->world_mat[idx]];
+	 if(use_dc)
+          ColorFloor(w,x,ceil+adj_height,
+            GR_HEIGHT/2-h*(ceil+adj_height-w->cam_height),
+            GR_HEIGHT/2-h2*(ceil+adj_height-w->cam_height),
+            use_dc
+          );
       }
 
-//last_ceil!=ceil prevents drawing ceiling walls hidden by tiles
-      if(ceil!=I8_MAX&&last_ceil!=ceil) {
-        adj_height=TilesAboveCeil(w,idx);
+//      if(ceil!=I8_MAX&&last_ceil!=ceil) {
         y0=GR_HEIGHT/2-h*(ceil+adj_height-w->cam_height);
         for(idx3=0;idx3<adj_height;idx3++) {
           DrawWallSegment(w,segment,x,y0+h*idx3,w->wall_textures[w->world_mat[idx]],h,dist,height_cap-1-idx3,idx,side);
         }
         last_ceil=ceil;
-      }
+//      }
       goto ent;
     }
 fin:
@@ -1202,68 +1196,6 @@ U0 C3DWorldCastRays(C3DWorld *w) {
     while(!Bt(&mp_done,idx))
       Sleep(1);
   }
-}
-U0 LoadMapFromSprite(C3DWorld *world,U8 *sprite,I64 px_width=1) {
-  CDC*map;
-  I64 x1,y1,x2,y2,x,y,w,h;
-  SpriteExtents(sprite,&x1,&x2,&y1,&y2);
-  map=Sprite2DC(sprite);
-  w=(x2-x1+1)/px_width;
-  h=(y2-y1+1)/px_width;
-  world->x=(w/2)*GRID_SZ;
-  world->y=(h/2)*GRID_SZ;
-  Free(world->world_mat);
-  world->world_height=h,world->world_width=w;
-  world->world_mat=CAlloc(w*h);
-  for(x=0;x!=w;x++) {
-    for(y=0;y!=h;y++) {
-      world->world_mat[x+y*w]=
-	GrPeek(map,x*px_width,y*px_width);
-    } 
-  }
-  DCDel(map);
-}
-U0 LoadTextureFromSprite(C3DWorld *world,I64 color,U8 *sprite) {
-  I64 x1,y1,x2,y2,w,h,x,y;
-  F64 interp_x,interp_y;
-  CDC *raw,*texture=DCNew(GRID_SZ,GRID_SZ);
-  SpriteExtents(sprite,&x1,&x2,&y1,&y2);
-  raw=Sprite2DC(sprite);
-  w=(x2-x1+1);
-  h=(y2-y1+1);
-  for(x=0;x!=GRID_SZ;x++) {
-    interp_x=ToF64(w)/GRID_SZ*x;
-    for(y=0;y!=GRID_SZ;y++) {
-      interp_y=ToF64(h)/GRID_SZ*y;
-      texture->color=GrPeek(raw,interp_x,interp_y);
-      GrPlot(texture,x,y);
-    }
-  }
-  DCDel(raw);
-  if(world->wall_textures[color])
-    DCDel(world->wall_textures[color]);
-  world->wall_textures[color]=texture;
-}
-U0 LoadFloorFromSprite(C3DWorld *world,I64 color,U8 *sprite) {
-  I64 x1,y1,x2,y2,w,h,x,y;
-  F64 interp_x,interp_y;
-  CDC *raw,*texture=DCNew(GRID_SZ,GRID_SZ);
-  SpriteExtents(sprite,&x1,&x2,&y1,&y2);
-  raw=Sprite2DC(sprite);
-  w=(x2-x1+1);
-  h=(y2-y1+1);
-  for(x=0;x!=GRID_SZ;x++) {
-    interp_x=ToF64(w)/GRID_SZ*x;
-    for(y=0;y!=GRID_SZ;y++) {
-      interp_y=ToF64(h)/GRID_SZ*y;
-      texture->color=GrPeek(raw,interp_x,interp_y);
-      GrPlot(texture,x,y);
-    }
-  }
-  DCDel(raw);
-  if(world->floor_textures[color])
-    DCDel(world->floor_textures[color]);
-  world->floor_textures[color]=texture;
 }
 F64 AngleBetween(F64 a,F64 b) {
 //https://stackoverflow.com/questions/1878907/how-can-i-find-the-smallest-difference-between-two-angles-around-a-point
@@ -1543,7 +1475,7 @@ draw:
     I32 *depth_dst=dc->depth_buf+ToI64(iy)*dc->width_internal+ToI64(ix);
     for(;cy-4<=iy<to_y;iy+=3) {
       line=ToI64((iy-y0)/vis_h*use_dc->height);
-      if(0<=line<use_dc->height) {
+      if(0<=line<use_dc->height-3) {
         y_line=use_dc->body+line*use_dc->width_internal;
         src_ptr=y_line+col;
         if(*src_ptr==TRANSPARENT) {
@@ -1750,6 +1682,17 @@ CFrogThing *WorldManagerTileHeightAtXAtY(C3DWorldManager *self,...) {
   return FrogNumNew(I16_MAX);
 }
 AddMethod("C3DWorldManager","tileHeightAtX:atY:",&WorldManagerTileHeightAtXAtY);
+CFrogThing *WorldManagerCeilHeightAtXAtY(C3DWorldManager *self,...) {
+  I64 x=AsF64(argv[0]);
+  I64 y=AsF64(argv[1]);
+  C3DWorld *w=self->world_handle;
+  if(0<=x<w->world_width)
+    if(0<=y<w->world_height) {
+      return FrogNumNew(w->ceilmap[x+y*w->world_width]);
+    }
+  return FrogNumNew(I16_MAX);
+}
+AddMethod("C3DWorldManager","ceilHeightAtX:atY:",&WorldManagerCeilHeightAtXAtY);
 CFrogThing *WorldManagerTileHeightAt(C3DWorldManager *self,...) {
   C2DPoint *p=argv[0];
   CFrogThing *ret=FrogNumNew(I16_MAX);
