@@ -18,6 +18,7 @@
 class CAST:CQue {
   CQue args;
   I32 type,is_literal;
+  I64 switch_num; //For compiler
   union {
     U8 op_name[STR_LEN];
     U8 name[STR_LEN];

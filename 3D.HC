@@ -2162,7 +2162,7 @@ next:;
         }
      }
       Refresh;
-      FrogGarbageCollect;
+      FrogGarbageCollect;
     } catch PutExcept(TRUE);
 en:
 //  ProfRep;
