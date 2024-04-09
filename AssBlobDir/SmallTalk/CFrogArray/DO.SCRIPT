@@ -5,4 +5,3 @@ do: block | idx sz |
    idx _ idx + 1 .
    ( idx - 1 ) < sz
   ] whileTrue: [ block value: (self at: (idx - 1 )) ] .
-  'Retarded loop'.

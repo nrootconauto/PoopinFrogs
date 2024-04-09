@@ -1106,7 +1106,7 @@ ent:
 	     floor_y=ColorFloor(w,x,height_cap,
 	        GR_HEIGHT,
 	        GR_HEIGHT/2-h2*(height_cap-w->cam_height),
-	        use_dc,
+	        use_dc
 	        );
 	  } else {
 	     floor_y=ColorFloor(w,x,height_cap,
@@ -1119,7 +1119,7 @@ ent:
       }
       adj_height=I64_MAX;
       for(xoff=-1;xoff<=1;xoff++)
-        for(yoff=-1;yoff<=1;yoff++) {
+        for(yoff=-1;yoff<=1;yoff++) {
 	  idx3=xoff+yoff*w->world_width+idx;
 	  if(0<=idx3<w->world_width*w->world_height&&(xoff^^yoff)) {
 	    adj_height=MinI64(adj_height,w->heightmap[idx3]);
@@ -2162,7 +2162,7 @@ next:;
         }
      }
       Refresh;
-      FrogGarbageCollect;
+      FrogGarbageCollect;
     } catch PutExcept(TRUE);
 en:
 //  ProfRep;
