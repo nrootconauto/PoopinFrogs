@@ -1,4 +1,4 @@
-updateWithWeight: w makeParticles: part | h stain |
+updateWithWeight: w makeParticles: part | h stain ch rise |
   oldx _ x .
   oldy _ y .
   oldz _ z .
@@ -8,6 +8,7 @@ updateWithWeight: w makeParticles: part | h stain |
   momz _ momz - (#world gravity / 3 * w ).
   'Use the old positions to ensure the entire piss stream in under the ground/wwal' .
   h _ #world tileHeightAtX: oldx / 128 atY: oldy / 128 .
+  ch _ #world ceilHeightAtX: oldx / 128 atY: oldy / 128 .
   (h >= oldz and: part) ifTrue: [
     1 to: 3 do:  [
       #world newParticleAtX: x atY: y atZ: h withSpread: 8 withColor: #color_YELLOW
@@ -27,5 +28,23 @@ updateWithWeight: w makeParticles: part | h stain |
         atHeight: oldz + z / 2. 
     ] .
     ^ 0 .
+  ].
+  (z >= ch) ifTrue: [
+    rise _ #world ceilRiseAtX: oldx / 128 atY: oldy / 128 .
+    ((rise + ch) > z ) ifTrue: [
+      stain  _ CCeilStain new .
+      stain setGraphics: 'GR/Dick/PISS_STAIN' atAngle: #world getPlayer getAngle .
+      stain putAtX: x atY: y .
+      #world addFloorStain: stain . 
+
+      stain _ CWallStain new .
+      stain setGraphics: 'GR/Dick/PISS_STAIN' .
+      stain placeAtAngle: (momx arg: momy)
+        fromX: oldx - momx 
+        fromY: oldy - momy
+        atHeight: oldz + z / 2. 
+      .   
+      ^ 0
+    ].
   ].
   ^ 1.

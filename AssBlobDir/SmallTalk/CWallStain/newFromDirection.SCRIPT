@@ -7,5 +7,5 @@ placeAtAngle: a fromX: xx fromY: yy atHeight: zz | X Y rando h seg found |
   seg _ #world raySegmentAtX: xx atY: yy atAngle: a atHeight: zz forTile: tile .
   rando _ CFrogRandom new .
   x _ ((rando next - .5) * 16)  + seg  .
-  y _ ((rando next - .5) * 16) - (zz floor * 128) + ((zz abs rem: 1. ) * 128) . 
+  y _ ((rando next - .5) * 16) - (zz floor * 128) + 128 - ((zz abs rem: 1. ) * 128) . 
   #world addWallStain: self .

@@ -1,0 +1,3 @@
+init | |
+  is_ceil_wall _ 1 .
+  ^ self

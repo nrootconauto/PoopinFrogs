@@ -378,13 +378,21 @@ I64 PassesThoughBlock(C3DWorld *w,F64 slope,I64 x,I64 y,F64 *dist,F64 cos,F64 si
   }
   return found;
 }
-Bool HeightPasses(C3DWorld *w,I64 ix,I64 iy,I64 above) {
+Bool HeightPasses(C3DWorld *w,I64 ix,I64 iy,I64 above,Bool allow_ceil) {
+  I64 c,idx=iy*w->world_width+ix;
   if(0<=ix<w->world_width)
-    if(0<=iy<w->world_height)
-      return above<w->heightmap[iy*w->world_width+ix];
+    if(0<=iy<w->world_height) {
+      if(above<w->heightmap[idx])
+	return TRUE;
+      c=w->ceilmap[idx];
+      if(c!=I8_MAX)
+        if(c<above<=c+w->ceilmap2[idx]) {
+	  return TRUE;
+      }
+    }
   return FALSE;
 }
-I64 FindRayWall(C3DWorld *w,F64 slope,F64 cos,F64 sin,I64 *segment=NULL,F64 *dist=NULL,I64 *side=NULL,I64 above=I8_MIN,I64 force_tile=INVALID_PTR,Bool far_side=FALSE) {
+I64 FindRayWall(C3DWorld *w,F64 slope,F64 cos,F64 sin,I64 *segment=NULL,F64 *dist=NULL,I64 *side=NULL,I64 above=I8_MIN,I64 force_tile=INVALID_PTR,Bool far_side=FALSE,Bool allow_ceil=FALSE) {
   F64 x=w->x;
   F64 y=w->y;
   Bool found_hit=FALSE;
@@ -409,7 +417,7 @@ I64 FindRayWall(C3DWorld *w,F64 slope,F64 cos,F64 sin,I64 *segment=NULL,F64 *dis
     x=w->x+check_dist*cos;
     y=w->y+check_dist*sin;
     ix=x/GRID_SZ,iy=y/GRID_SZ;
-    if(HeightPasses(w,ix,iy,above)&&PassesThoughBlock(w,slope,ix,iy,&res_dist,cos,sin)) {
+    if(HeightPasses(w,ix,iy,above,allow_ceil)&&PassesThoughBlock(w,slope,ix,iy,&res_dist,cos,sin)) {
       found_hit=TRUE;
       if(res_dist<smallest) {
         smallest=res_dist;
@@ -418,7 +426,7 @@ I64 FindRayWall(C3DWorld *w,F64 slope,F64 cos,F64 sin,I64 *segment=NULL,F64 *dis
       }
     }
     if(check_dist>ToF64(GRID_SZ)) {
-      if(HeightPasses(w,ix-sign_c,iy,above)&&PassesThoughBlock(w,slope,ix-sign_c,iy,&res_dist,cos,sin)) {
+      if(HeightPasses(w,ix-sign_c,iy,above,allow_ceil)&&PassesThoughBlock(w,slope,ix-sign_c,iy,&res_dist,cos,sin)) {
         found_hit=TRUE;
         if(res_dist<smallest) {
 	  smallest=res_dist;
@@ -426,7 +434,7 @@ I64 FindRayWall(C3DWorld *w,F64 slope,F64 cos,F64 sin,I64 *segment=NULL,F64 *dis
 	  iy2=iy;
         }
       }
-      if(HeightPasses(w,ix,iy-sign_s,above)&&PassesThoughBlock(w,slope,ix,iy-sign_s,&res_dist,cos,sin)) {
+      if(HeightPasses(w,ix,iy-sign_s,above,allow_ceil)&&PassesThoughBlock(w,slope,ix,iy-sign_s,&res_dist,cos,sin)) {
         found_hit=TRUE;
         if(res_dist<smallest) {
 	  smallest=res_dist;
@@ -714,7 +722,7 @@ ent:
       break;
   }
 }
-CDC *FloorStain(C3DWorld *w,I64 tx,I64 ty,I64 *xoff,I64 *yoff) {
+CDC *FloorStain(C3DWorld *w,I64 tx,I64 ty,I64 *xoff,I64 *yoff,Bool ceil) {
   CFloorStain **body=w->_floor_stains->body,*f;
   I64 idx=w->_floor_stains->cnt;
   I64 adjx,adjy;
@@ -742,7 +750,7 @@ CDC *FloorStain(C3DWorld *w,I64 tx,I64 ty,I64 *xoff,I64 *yoff) {
   return NULL;
 }
 
-I64 ColorFloor(C3DWorld *w,I64 view_x,I64 floor_height,I64 sy,I64 ey,CDC *texture) {
+I64 ColorFloor(C3DWorld *w,I64 view_x,I64 floor_height,I64 sy,I64 ey,CDC *texture,Bool ceil=FALSE) {
   CDC *dc=w->to_dc,*stain;
   F64 angley=0;
   F64 step;
@@ -772,7 +780,7 @@ I64 ColorFloor(C3DWorld *w,I64 view_x,I64 floor_height,I64 sy,I64 ey,CDC *textur
     ty=fy/GRID_SZ;
 //TODOcache
     if(old_tx!=tx||old_ty!=ty) {
-      stain=FloorStain(w,tx,ty,&poopx,&poopy);
+      stain=FloorStain(w,tx,ty,&poopx,&poopy,ceil);
       old_tx=tx;
       old_ty=ty;
     }
@@ -965,7 +973,8 @@ F64 ScreenCordsToDist(C3DWorld *w,I64 x,I64 y,F64 max=GRID_SZ*128,F64 *height=NU
 	      NULL,
 	      I8_MIN,
 	      tile,
-	      TRUE //Far side of tile
+	      TRUE, //Far side of tile
+	      TRUE //allow ceil
 	      );
 	FindRayWall(w,
 	      tan_lookup_table[x],
@@ -976,7 +985,8 @@ F64 ScreenCordsToDist(C3DWorld *w,I64 x,I64 y,F64 max=GRID_SZ*128,F64 *height=NU
 	      NULL,
 	      I8_MIN,
 	      tile,
-	      FALSE //Near side of tile
+	      FALSE, //Near side of tile
+	      TRUE //allow ceil
 	      );
     adj_height=w->heightmap[tile];
     for(xoff=-1;xoff<=1;xoff++)
@@ -1004,6 +1014,16 @@ F64 ScreenCordsToDist(C3DWorld *w,I64 x,I64 y,F64 max=GRID_SZ*128,F64 *height=NU
       d=dist;
       break;
     }
+    if(w->ceilmap[tile]!=I8_MAX) {
+      adj_height=w->ceilmap2[tile];
+      total=w->ceilmap[tile];
+      y0=GR_HEIGHT/2-h*(total+adj_height-w->cam_height);
+      if(y0<=y<=y0+h*adj_height) {
+        if(height) *height=Lerp((y-y0)/(h*adj_height),total+adj_height+1,total+1);
+	d=dist;
+	break;
+      }
+    }
   }
   if(d<0) {
     FindRayWall(w,
@@ -1013,7 +1033,10 @@ F64 ScreenCordsToDist(C3DWorld *w,I64 x,I64 y,F64 max=GRID_SZ*128,F64 *height=NU
 	  NULL,
 	  &d,
 	  NULL,
-	  w->cam_height
+	  w->cam_height,
+	  ,
+	  ,
+	  TRUE //allow ceil
 	  );
   }
   Free(tiles);
@@ -1170,7 +1193,7 @@ ceil2:
 //      if(ceil!=I8_MAX&&last_ceil!=ceil) {
         y0=GR_HEIGHT/2-h*(ceil+adj_height-w->cam_height);
         for(idx3=0;idx3<adj_height;idx3++) {
-          DrawWallSegment(w,segment,x,y0+h*idx3,w->wall_textures[w->world_mat[idx]],h,dist,height_cap-1-idx3,idx,side);
+          DrawWallSegment(w,segment,x,y0+h*idx3,w->wall_textures[w->world_mat[idx]],h,dist,ceil+adj_height-idx3,idx,side);
         }
         last_ceil=ceil;
 //      }
@@ -1692,6 +1715,17 @@ CFrogThing *WorldManagerCeilHeightAtXAtY(C3DWorldManager *self,...) {
   return FrogNumNew(I16_MAX);
 }
 AddMethod("C3DWorldManager","ceilHeightAtX:atY:",&WorldManagerCeilHeightAtXAtY);
+CFrogThing *WorldManagerCeilRiseAtXAtY(C3DWorldManager *self,...) {
+  I64 x=AsF64(argv[0]);
+  I64 y=AsF64(argv[1]);
+  C3DWorld *w=self->world_handle;
+  if(0<=x<w->world_width)
+    if(0<=y<w->world_height) {
+      return FrogNumNew(w->ceilmap2[x+y*w->world_width]);
+    }
+  return FrogNumNew(I16_MAX);
+}
+AddMethod("C3DWorldManager","ceilRiseAtX:atY:",&WorldManagerCeilRiseAtXAtY);
 CFrogThing *WorldManagerTileHeightAt(C3DWorldManager *self,...) {
   C2DPoint *p=argv[0];
   CFrogThing *ret=FrogNumNew(I16_MAX);
@@ -1725,7 +1759,9 @@ CFrogThing *WorldManagerRaySideForTile(C3DWorldManager *self,...) {
 	    NULL,
 	    &side,
 	    h,
-	    force_tile
+	    force_tile,
+	    FALSE,
+	    TRUE //Allow ceilings
 	    );
   w->x=oldx;
   w->y=oldy;
@@ -1747,13 +1783,15 @@ CFrogThing *WorldManagerRaySegmentForTile(C3DWorldManager *self,...) {
   w->y=y;
   FindRayWall(w,
 	    Tan(a),
-	    Cos(a),
+  	    Cos(a),
 	    Sin(a),
 	    &segment,
 	    NULL,
 	    NULL,
 	    h,
-	    force_tile
+	    force_tile,
+	    FALSE,
+	    TRUE //Allow ceilings
 	    );
   w->x=oldx;
   w->y=oldy;
@@ -1780,6 +1818,9 @@ CFrogThing *WorldManagerRayTile(C3DWorldManager *self,...) {
 	    NULL,
 	    NULL,
 	    Floor(h),
+	    ,
+	    FALSE,
+	    TRUE //Allow ceilings
 	    );
   w->x=oldx;
   w->y=oldy;

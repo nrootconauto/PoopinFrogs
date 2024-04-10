@@ -210,8 +210,11 @@ class CFloorStain:CFrogThing {
   I64 tile_x,tile_y;
   F64 x,y;
   F64 center_x,center_y;
+  I64 is_ceil;
   CDC*dc;
   U8 *destroy dft "FloorStainDel";
+};
+class CCeilStain:CFloorStain {
 };
 
 //Things like bullet holes or piss stains on the walls
@@ -220,8 +223,11 @@ class CWallStain:CFrogThing {
   I64 side;
   F64 x,y;
   F64 center_x,center_y;
+  I64 is_ceil_wall; //If hits the ceiling wall
  CDC *dc;
   U8 *destroy dft "WallStainDel";
+};
+class CCeilWallStain:CFloorStain {
 };
 
 class CShellCasing:CFrogThing {
