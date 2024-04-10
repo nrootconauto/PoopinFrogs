@@ -176,7 +176,7 @@ C3DWorld *LoadWorldFromFile(U8 *blob_file="ASS",U8 *filename,F64 fov=pi/4) {
   ret->heightmap=MAlloc(world->h*world->w);
   ret->ceilmap=MAlloc(world->h*world->w);
   ret->ceilmap2=MAlloc(world->h*world->w);
-   xoff=GRID_SZ*world->startx;
+  xoff=GRID_SZ*world->startx;
   yoff=GRID_SZ*world->starty;
   QueInit(&ret->_2d_thing_templates);
   MemCpy(ret->world_mat,world+1,2*world->h*world->w);
@@ -249,8 +249,8 @@ C3DWorld *LoadWorldFromFile(U8 *blob_file="ASS",U8 *filename,F64 fov=pi/4) {
       tmp=AsString(template->name);
       if(thing=ConstructThing(tmp)) {
         if(ThingHasClass(thing,"C2DThing")) {
-	  thing->x=fptr(CFileThing*)->x*GRID_SZ+xoff;
-	  thing->y=fptr(CFileThing*)->y*GRID_SZ+yoff;
+	  thing->x=fptr(CFileThing*)->x*GRID_SZ-xoff;
+	  thing->y=fptr(CFileThing*)->y*GRID_SZ-yoff;
 	  thing->angle=fptr(CFileThing*)->rot;
 	  CallScript("init",thing);
 	  I64SetAdd(ret->_2d_things,thing);
@@ -395,7 +395,7 @@ I64 FindRayWall(C3DWorld *w,F64 slope,F64 cos,F64 sin,I64 *segment=NULL,F64 *dis
   static F64 step=GRID_SZ-1;
   if(force_tile!=INVALID_PTR) {
     ix=force_tile%w->world_width;
-    iy=force_tile/w->world_height;
+    iy=force_tile/w->world_width;
     PassesThoughBlock(w,slope,ix,iy,&res_dist,cos,sin,far_side);
     smallest=res_dist;
     check_dist=res_dist;
@@ -986,7 +986,6 @@ F64 ScreenCordsToDist(C3DWorld *w,I64 x,I64 y,F64 max=GRID_SZ*128,F64 *height=NU
 	  adj_height=MinI64(adj_height,w->heightmap[tile2]);
 	}
       }
-
     h=DIST_SCALE/(dist*cos2_lookup_table[x]);
     y0=GR_HEIGHT/2-h*(w->heightmap[tile]-w->cam_height);
     h2=DIST_SCALE/(dist2*cos2_lookup_table[x]);
