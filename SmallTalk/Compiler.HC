@@ -29,7 +29,7 @@ class CLocalsGeneric0:CFrogFrame {
   CLocalsGeneric0 *_next;
   CLocalsGeneric0 *_parent;
   U8 *_return_flag;
-  I64 _item_cnt;
+  I32 _item_cnt,_ret_flag;
   CFrogThing *_body[0];
 };
 
@@ -53,7 +53,7 @@ CLocalsGeneric *STNewBlockFrame(U8 *frame_title,CLocalsGeneric *parent) {
   return fr;
 }
 
-CLocalsGeneric *STAddMethodFrame(CMethod *method,U8 *frame_title,Bool *ret_flag,U8*class_name) {
+CLocalsGeneric *STAddMethodFrame(CMethod *method,U8 *frame_title,U8*class_name) {
   CHashClass *as=HashFind(frame_title,frog_mem_task->hash_table,HTT_CLASS);
   CHashClass *cls;
   CMemberLst *mlst,*mlst2;
@@ -64,7 +64,7 @@ CLocalsGeneric *STAddMethodFrame(CMethod *method,U8 *frame_title,Bool *ret_flag,
   fr->thing_flags=THINGF_FRAME_TYPE;
   fr->ref_cnt=1;
   fr->type='Method';
-  fr->return_flag=ret_flag;
+  fr->return_flag=&fr->ret_flag;
   fr->next=Fs->user_data;
   fr->parent=Fs->user_data;
   Fs->user_data=fr;
@@ -224,7 +224,7 @@ U8 *CompileThunk(CAST *block,CLocals *parent=NULL) {
   locals->next=parent;
   CAST *var,*head;
   DocPrint(doc,"CFrogThing *Thunk@@%d(CFrogThing *self,CLocalsGeneric0 *parent_frame,...) {\n",thunk_idx);
-  DocPrint(doc,"  CFrogThing *stk[0x100],*retval,**tmp;\n");
+  DocPrint(doc,"  CFrogThing *stk[0x100],*retval=FROG_SMALL_NIL,**tmp;\n");
   DocPrint(doc,"  Bool false=FALSE;\n");
   DocPrint(doc,"  Bool *return_flag=STNewBlockFrame(\"%Q\",parent_frame)->return_flag;\n",locals->name,block);
   DocPrint(doc,"  if(!return_flag) return_flag=&false;\n");
@@ -661,9 +661,8 @@ U0 CompileToHolyC(U8 *src,U8 *class_name,U8 *src_path=NULL,Bool class_method=FAL
 //MUST SET THIS
   fun_name=MStrPrint("%s@%d",class_name,fun_num++);
   DocPrint(doc,"CFrogThing *%s(CFrogThing *self,...) {\n",fun_name);
-  DocPrint(doc,"  CFrogThing *stk[0x100],*retval,**tmp;\n");
-  DocPrint(doc,"  Bool st_return=FALSE;\n");
-  DocPrint(doc,"  Bool *return_flag=STAddMethodFrame(%d,\"%Q\",&st_return,\"%Q\")->return_flag;\n",m,locals->name,class_name);
+  DocPrint(doc,"  CFrogThing *stk[0x100],*retval=FROG_SMALL_NIL,**tmp;\n");
+  DocPrint(doc,"  Bool *return_flag=STAddMethodFrame(%d,\"%Q\",\"%Q\")->return_flag;\n",m,locals->name,class_name);
   DocPrint(doc,"  CLocalsGeneric0 *parent_frame=Fs->user_data;\n");
   DocPrint(doc,"  I64 unwind=0,next_case=%d;\n",ast_case_num);
   head=&m->args;
@@ -689,6 +688,7 @@ U0 CompileToHolyC(U8 *src,U8 *class_name,U8 *src_path=NULL,Bool class_method=FAL
   idx=0;
   DocPrint(doc,"}ret:\n");
   DocPrint(doc,"  while(--unwind>=0) ThingDel(stk[unwind]);");
+  DocPrint(doc,"  *return_flag=0;\n"); //Allow blocks made in the method to be called agian
   DocPrint(doc,"  STFrameDel;\n");
   DocPrint(doc,"  return retval;\n");
   DocPrint(doc,"}");
@@ -732,7 +732,7 @@ U0 STRepl(U8 *dft="",Bool interactive=TRUE) {
     if(ast) {
       doc=DocNew;
       DocPrint(doc,"CFrogThing *REPLFun(CFrogThing *self) {\n");
-      DocPrint(doc,"  CFrogThing *stk[0x100],*retval;\n");
+      DocPrint(doc,"  CFrogThing *stk[0x100],*retval=FROG_SMALL_NIL;\n");
       DocPrint(doc,"  static Bool st_return=FALSE;\n");
       DocPrint(doc,"  Bool *return_flag=STNewReplFrame(&st_return)->return_flag;\n");
       DocPrint(doc,"  CLocalsGeneric0 *parent_frame=Fs->user_data;\n");

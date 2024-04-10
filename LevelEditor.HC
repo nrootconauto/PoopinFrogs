@@ -1474,7 +1474,7 @@ save:
 	        world_edit.ceil_height2=0;
 	        WorldInsertTileAt(
 		      FloorI64(tx,16)/16,
-		      FloorI64(ty,16)/16,
+		      FloorI64(ty,16)/16,
 		      world_edit.floor_texture,
 		      2
 		      );

@@ -512,7 +512,7 @@ class CLocalsGeneric:CFrogFrame {
   CLocalsGeneric *next;
   CLocalsGeneric *parent;
   U8 *return_flag;
-  I64 item_cnt;
+  I32 item_cnt,ret_flag;
   CFrogThing *body[0];
 };
 U0 STFrameDel() {

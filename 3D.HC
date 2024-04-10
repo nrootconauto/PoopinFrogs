@@ -1123,7 +1123,7 @@ ent:
       y0=GR_HEIGHT/2-h*(height_cap-w->cam_height);
 
       for(idx3=2;--idx3>=0;) {
-        if(0<=x+idx3<w->to_dc->width) {
+        if(0<=x+idx3<w->to_dc->width) {
 	  ptr=w->blocked_cnts[x+idx3];
 	  if(ptr<0x80) {
 	    w->blocked_cnts[x+idx3]=ptr+1;
