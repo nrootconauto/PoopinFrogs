@@ -784,7 +784,7 @@ U0 MouseToPos(I64 ms_x,I64 ms_y,I64 *_x,I64 *_y) {
   CLevelSegment *seg;
   if(world_edit.flat_mode) {
     if(_x) *_x=ms_x-dispx;
-    if(_x) *_y=ms_y-dispy;
+    if(_y) *_y=ms_y-dispy;
     return;
   }
   for(height=I8_MAX;height>=I8_MIN;height--) {
@@ -800,8 +800,13 @@ U0 MouseToPos(I64 ms_x,I64 ms_y,I64 *_x,I64 *_y) {
       }
     }
   }
-  if(_x) *_x=x;
-  if(_x) *_y=y;
+//Assume new tile at 0
+  idist=(world_edit.cam_height-0)*GRID_SZ;
+  width=DIST_SCALE/ToF64(idist);
+  x=((ms_x+width/2-GR_WIDTH/2)*16/width-dispx+GR_WIDTH/2)/16;
+  y=((ms_y+width/2-GR_HEIGHT/2)*16/width-dispy+GR_HEIGHT/2)/16;
+  if(_x) *_x=x*16;
+  if(_y) *_y=y*16;
 }
 U0 LevelEditorDraw(CTask *t,CDC *dc) {
   DCDepthBufAlloc(dc);
@@ -1375,8 +1380,8 @@ save:
         if(world_edit.ms_y<Fs->pix_height-THING_BAR_HEIGHT-8)
 	  if(SIDEBAR_WIDTH<=world_edit.ms_x<Fs->pix_width-SIDEBAR_WIDTH) {
 	    MouseToPos(world_edit.ms_x,world_edit.ms_y,&tx,&ty);
-	    tx/=16;
-	    ty/=16;
+	    tx=FloorI64(tx,GRID_SZ)/16;
+	    ty=FloorI64(ty,GRID_SZ)/16;
 	    FloodFillFloor(tx,
 		  ty,
 		  world_edit.floor_texture); 
@@ -1402,8 +1407,8 @@ save:
 	  } else  {
 //Place a tile
 	    MouseToPos(world_edit.ms_x,world_edit.ms_y,&tx,&ty);
-	    tx/=16;
-	    ty/=16;
+	    tx=FloorI64(tx,16)/16;
+	    ty=FloorI64(ty,16)/16;
 	    WorldInsertTileAt(
 		  tx,
 		  ty,
@@ -1422,16 +1427,16 @@ save:
 //Add a new ceil
 	      if(!Bt(kbd.down_bitmap,SC_SHIFT)) {
  	        WorldInsertTileAt(
-		      tx/16,
-		      ty/16,
+		      FloorI64(tx,16)/16,
+		      FloorI64(ty,16)/16,
 		      world_edit.floor_texture,
 		      1
 		      );
 //Set Ceil-height2
 	        world_edit.ceil_height2=1;
 	        WorldInsertTileAt(
-		      tx/16,
-		      ty/16,
+		      FloorI64(tx,16)/16,
+		      FloorI64(ty,16)/16,
 		      world_edit.floor_texture,
 		      2
 		      );
@@ -1461,23 +1466,23 @@ save:
 	        world_edit.ceil_height=I8_MAX;
 	        world_edit.ceil_height2=0;
 	        WorldInsertTileAt(
-		      tx/16,
-		      ty/16,
+		      FloorI64(tx,16)/16,
+		      FloorI64(ty,16)/16,
 		      world_edit.floor_texture,
 		      1
 		      );
 	        world_edit.ceil_height2=0;
 	        WorldInsertTileAt(
-		      tx/16,
-		      ty/16,
+		      FloorI64(tx,16)/16,
+		      FloorI64(ty,16)/16,
 		      world_edit.floor_texture,
 		      2
 		      );
 		world_edit.ceil_height=old;
 	      } else {
 	        WorldInsertTileAt(
-		      tx/16,
-		      ty/16,
+		      FloorI64(tx,16)/16,
+		      FloorI64(ty,16)/16,
 		      world_edit.floor_texture,
 		      2
 		      );
