@@ -1,15 +1,11 @@
 physics | th angle ch |
   th _ #world tileHeightAtX: x / 128 atY: y / 128 .
   ch _ #world ceilHeightAtX: x / 128 atY: y / 128 .
-  z _ (z + momz) max: th . 
-  z > th ifTrue: [
-    momz _ momz - #world gravity .
-  ] ifFalse: [
+
+  (self moveZ: momz ) ifTrue: [
     momz _  0 .
-  ] .
-  ch < (z + .8 ) ifTrue: [
-    z _ ch - .8 .
-    momz _ 0 .
+  ] ifFalse: [
+    momz _ momz - #world gravity .
   ] .
   (momx or: momy) ifTrue: [
     angle _ momx arg: momy.
