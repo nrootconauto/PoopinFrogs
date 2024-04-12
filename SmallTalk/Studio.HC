@@ -1,7 +1,7 @@
 #include "Compiler.HC";
 #include "../BlobFile.HC";
 #define STS_ADD_CLASS -100
-#define ST_ROOT		"SmallTalk/" //Must be same length
+#define ST_ROOT	"SmallTalk/" //Must be same length
 #define ST_CLASS_ROOT	"STClsRoot/"
 U8 *LumpNameToPath(U8 *str) {
   str+=StrLen(ST_ROOT);

@@ -19,7 +19,7 @@ update | hit_wall new_t player |
   ] ifFalse: [
     'Try to eat the player' .
     player _ #world getPlayer .
-    random_generator next < ( 1 / 30 ) ifTrue: [
+    random_generator next < ( .10 / 30 ) ifTrue: [
       tongue _ CFrogTongue new .
       tongue eatTarget: player fromFrog: self .
       'Populate with values' .
@@ -38,7 +38,7 @@ update | hit_wall new_t player |
     angle _ angle + (3.14 * random_generator next ) .
   ] .
   z = (#world tileHeightAtX: x / 128 atY: y / 128 ) ifTrue: [
-     random_generator next < (.2 / 30) ifTrue: [
+     random_generator next < (.75 / 30) ifTrue: [
        momz _ #world gravity * 3 .
      ]
   ] .

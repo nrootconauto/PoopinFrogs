@@ -36,7 +36,7 @@ class CFileThing {
   F64 x,y,rot;
 }
 class CFileWorld {
-  I64 w,h;
+   I64 w,h;
   I64 startx,starty;
   I16 *data;
   CFilePtrLen textures_where;

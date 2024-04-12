@@ -15,14 +15,16 @@
 #define AST_RETURN 14
 #define AST_SELF 15
 #define AST_SUPER 16
+
 class CAST:CQue {
   CQue args;
   I32 type,is_literal;
-  I64 switch_num; //For compiler
+  I32 switch_num,is_f64; //For compiler
   union {
-    U8 op_name[STR_LEN];
-    U8 name[STR_LEN];
+    U8 op_name[STR_LEN/2];
+    U8 name[STR_LEN/2];
   };
+  U8 var_class_name[STR_LEN/2];
   union {
     F64 num;
     CAST *cascade_head;
@@ -45,6 +47,31 @@ U0 AddToScope(U8 *name) {
 }
 U0 RemFromScope(U8 *name) {
  FramePtrDel(name);
+}
+CAST *ParseVarWithType(CLexer *l) {
+  CAST *ret=NULL;
+  if(l->tok==TOK_NAME) {
+    ret=CAlloc(sizeof CAST);
+    ret->type=AST_VAR;
+    StrCpy(ret->name,l->str);
+    Lex(l);
+    switch(l->tok) {
+      case '=':
+	Lex(l);
+	if(l->tok==TOK_NAME)
+ 	  StrCpy(ret->var_class_name,l->str);
+	else
+	  LexExcept(l,"Expected a type name");
+	Lex(l);
+	break;
+      case '*':
+	Lex(l);
+	break;
+      default:
+;//	LexWarn(l,"Untyped variable!");
+    }
+  }
+  return ret;
 }
 CAST *ParseLiteral(CLexer *l) {
   CAST *ret,*item;
@@ -99,17 +126,13 @@ CAST *ParseLiteral(CLexer *l) {
     if(l->tok==':') {
       while(l->tok!='|') {
         if(l->tok==':') {
-	  if(Lex(l)!=TOK_NAME) {
-	    LexExcept(l,"Put away you 50 inch nigger shlong and give me and argument.");
-	  }
-	  AddToScope(l->str);
-	  item=CAlloc(sizeof CAST);
-	  item->type=AST_VAR;
-	  StrCpy(item->name,l->str);
-	  QueInit(&item->args);
-	  QueInit(item);
-	  QueIns(item,ret->args.last);
 	  Lex(l);
+	  item=ParseVarWithType(l);
+	  if(!item)
+	    LexExcept(l,"Put away you 50 inch nigger shlong and give me and argument.");
+	  AddToScope(item->name);
+	  QueInit(&item->args);
+	  QueIns(item,ret->args.last);
         } else
 	  LexExcept(l,"Nigger please,expected a ':'");
       }
@@ -405,15 +428,12 @@ CMethod *ParseMethod(CLexer *l,CHashClass *cls=NULL) {
 
       if(Lex(l)==':') {
         CatPrint(m->name,":"); 
-        Lex(l);
-        if(l->tok!=TOK_NAME)
-	  LexExcept(l,"I expected a name nigga.");
         m->arity++;
-        name=CAlloc(sizeof CAST);
-        StrCpy(name->name,l->str);
-        AddToScope(l->str);
+	Lex(l);
+	name=ParseVarWithType(l);
+	if(!name) LexExcept(l,"Expected a name here");
+        AddToScope(name->name);
         QueIns(name,m->args.last);
-        Lex(l);
       } else if(m->arity>1) {
         LexExcept(l,"I expected a ':' asswipe.");
       } else {// is unop

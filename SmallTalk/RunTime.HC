@@ -55,6 +55,14 @@ class CConstructorPair {
 
 
 U0 AddMethod(U8 *cls,U8 *name,U8 *fptr) {
+//See GenerateMethodCall
+  U8 *canon=MStrPrint("METHOD_%s.%s",cls,name);
+//Replace(possibly dummy) method.
+  if(FramePtr(canon))
+    FramePtrSet(canon,fptr);
+  else
+    FramePtrAdd(canon,fptr);
+  Free(canon);
   FastLookupAddValue(name,fptr,cls);
 }
 U0 AddClassMethod(U8 *cls,U8 *name,U8 *fptr) {
@@ -441,14 +449,14 @@ CFrogThing *FrogStrNew(U8 *s) {
 
 CFrogThing *CallScriptFast(U8 *key1,U8 *key2,CFrogThing *self,...) {
   U8 *cn=FrogThingClassName(self);
-  CFrogThing *(*fun_ptr)(CFrogThing *,...);
+ CFrogThing *(*fun_ptr)(CFrogThing *,...);
   CFrogThing *ret=NULL;
   CFastLookupKey *k;
   CHashClass *cls=HashFind(cn,frog_mem_task->hash_table,HTT_CLASS);
   if(ThingHasClass(self,"CFrogClass")) {
     cls=HashFind(self(CFrogClass*)->name,frog_mem_task->hash_table,HTT_CLASS);
     while(!ret&&cls) {
-      if(fun_ptr=FastLookupGet(key2,cls->str)) {
+       if(fun_ptr=FastLookupGet(key2,cls->str)) {
         ret=CallVaArgs(fun_ptr,argc,argv,self);
 	break;
       }
@@ -469,6 +477,12 @@ fin:
   return ret;
 }
 
+CFrogThing *CallPtr(U8 *fun_ptr,CFrogThing *self,...) {
+  CFrogThing *ret=CallVaArgs(fun_ptr,argc,argv,self);
+  if(!ret)
+    ret=FROG_SMALL_NIL;
+  return ret;
+}
 
 
 CFrogThing *CallScript(U8 *name,CFrogThing *self,...) {
