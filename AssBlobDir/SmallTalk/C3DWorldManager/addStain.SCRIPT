@@ -1,5 +1,5 @@
 addWallStain: s| new |
-  wall_stains do: [:s2|
+  wall_stains do: [:s2=CWallStain |
     (s getTileX = s2 getTileX and: s getTileY = s2 getTileY) ifTrue: [
       s getSide = s2 getSide ifTrue: [
         new _ s2 mergeWith: s .

@@ -1,8 +1,8 @@
-printString | ret |
+printString | ret=CFrogString |
   ret _ '#(' .
-  self do:[:v|
+  self do:[:v* |
     ret addAll: v printString .
-    ret add:$ .
+    ret addAll: ' ' .
   ] .
-  ret add: $) .
+  ret addAll: ')' .
   ^ ret

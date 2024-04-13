@@ -11,8 +11,8 @@ init | dick |
   inventory_item setCount: ammo .
   inventory_item setItem: self .
   dick _ self .
-  inventory_item onLeftUp: [:x :y |
+  inventory_item onLeftUp: [:x=CFrogNum :y=CFrogNum |
     #hand_item _ dick .
   ].
   #world getPlayer addInventoryItem: inventory_item.
- ^ self
+  ^ self

@@ -1,8 +1,8 @@
-addFloorStain: s | other add new_set|
+addFloorStain: s | other=CFloorStain add=CFloorStain new_set=CFrogArray |
   add _ s .
 'Make a new set to avoid modifying the set while we work on it'.
   new_set _floor_stains copy .
-  new_set do: [:s2|
+  new_set do: [:s2=CFloorStain |
     ((s getTileX - s2 getTileX) abs <= 1 and: (s getTileY - s2 getTileY ) abs  <= 1 ) ifTrue: [
       ((s getTileX = s2 getTileX ) and:  (s getTileY = s2 getTileY )) ifTrue: [
         add _ s2 mergeWith: s .

@@ -133,12 +133,27 @@ U0 GenerateMethodCall(CDoc *doc,U8 *class_name,U8 *method_name) {
     FramePtrAdd(canon,&Useless);
   }
   gen=HashFind(canon,Fs->hash_table,HTT_FRAME_PTR);
-  if(gen->user_data0!=&Useless)
-    DocPrint(doc,"CallPtr(%d,",gen->user_data0);
-  else
-    DocPrint(doc,"CallPtr(%d(I64**)[0],",&gen->user_data0);
+  if(!StrCmp("CFrogNum",class_name)) {
+//Checking numbers will be too tiresome
+    if(gen->user_data0!=&Useless)
+      DocPrint(doc,"CallPtr(%d,NULL,",gen->user_data0);
+    else
+      DocPrint(doc,"CallPtr(%d(I64**)[0],NULL,",&gen->user_data0);
+  } else {
+    if(gen->user_data0!=&Useless)
+      DocPrint(doc,"CallPtr(%d,\"%Q\",",gen->user_data0,class_name);
+    else
+      DocPrint(doc,"CallPtr(%d(I64**)[0],\"%Q\",",&gen->user_data0,class_name);
+  }
   Free(canon);
 
+}
+U0 GenerateUselessMethod(U8 *class_name,U8 *method_name)  {
+  U8 *canon=MStrPrint("METHOD_%s.%s",class_name,method_name);
+  if(!FramePtr(canon)) {
+    FramePtrAdd(canon,&Useless);
+  }
+  Free(canon);
 }
 CLocals *GenerateLocalsFromMethod(CMethod *method,U8 *for_class) {
   CLocals *ret=CAlloc(sizeof CLocals);
@@ -302,7 +317,6 @@ U8 *CompileThunk(CAST *block,CLocals *parent=NULL) {
     DocPrint(doc,"  tmp=BungisReduce(self,&");
     STGetLocal(doc,locals,var->name);
     DocPrint(doc,");\n");
-    DocPrint(doc,"  ThingDel(*tmp);\n");
     DocPrint(doc,"  *tmp=argv[%d];\n",idx);
     idx++;
   }
@@ -343,6 +357,14 @@ U0 DftCall(CDoc *doc,CLocals *l,CAST *ast,I64 stack_depth,U8 *op,I64 cnt=2) {
   } else if(self->is_f64) {
     DocPrint(doc,"  retval=");
     GenerateMethodCall(doc,"CFrogNum",op);
+    goto args;
+  } else if(self->type==AST_BLOCK) {
+    DocPrint(doc,"  retval=");
+    GenerateMethodCall(doc,"CFrogBlock",op);
+    goto args;
+  } else if(self->type==AST_ARRAY) {
+    DocPrint(doc,"  retval=");
+    GenerateMethodCall(doc,"CFrogArray",op);
     goto args;
   }
 //TODO static return-type of method
@@ -480,7 +502,7 @@ pass:
         ent=DocPrint(doc,"if(AsF64(%s)==0.) {next_case=$$LK,\"dummy1\"$$;goto enter;}",StackFrame2Var(stack_depth));
         UnrollBlock(doc,locals,stack_depth,ast->args.last,idx);
         ReplaceElem(doc,ent,"%d",ast_case_num);
-	break;
+	return;
       }
       if(!StrCmp(ast->op_name,"whileFalse:")) {
         idx=ast_case_num;
@@ -490,6 +512,7 @@ pass:
         ent=DocPrint(doc,"if(AsF64(%s)) {next_case=$$LK,\"dummy2\"$$;goto enter;}",StackFrame2Var(stack_depth));
         UnrollBlock(doc,locals,stack_depth,ast->args.last,idx);
         ReplaceElem(doc,ent,"%d",ast_case_num);
+	return;
 	break;
       }
       if(!StrCmp(ast->op_name,"ifTrue:")) {
@@ -820,7 +843,7 @@ assign_raw:
     DocPrint(doc,"next_case=%d;\n",ast_case_num);
   DocPrint(doc,"goto enter;\n");
 }
-U0 CompileToHolyC(U8 *src,U8 *class_name,U8 *src_path=NULL,Bool class_method=FALSE) {
+U0 CompileToHolyC(U8 *src,U8 *class_name,U8 *src_path=NULL,Bool class_method=FALSE,Bool register_method=FALSE) {
   FramePtrAdd("MethodClass",class_name);
   Bool old=Option(OPTf_WARN_UNUSED_VAR,FALSE);
   CDoc *doc=DocNew;
@@ -831,8 +854,12 @@ U0 CompileToHolyC(U8 *src,U8 *class_name,U8 *src_path=NULL,Bool class_method=FAL
   CLexer *lex=LexerNew(src,src_path);
   Lex(lex);
   CMethod *m=ParseMethod(lex,HashFind(class_name,frog_mem_task->hash_table,HTT_CLASS));
-  CLocals *locals=GenerateLocalsFromMethod(m,class_name);
   LexerDel(lex);
+  if(register_method) {
+    GenerateUselessMethod(class_name,m->name);
+    goto fin;
+  }
+  CLocals *locals=GenerateLocalsFromMethod(m,class_name);
 //MUST SET THIS
   fun_name=MStrPrint("%s@%d",class_name,fun_num++);
   DocPrint(doc,"CFrogThing *%s(CFrogThing *self,...) {\n",fun_name);
@@ -846,7 +873,6 @@ U0 CompileToHolyC(U8 *src,U8 *class_name,U8 *src_path=NULL,Bool class_method=FAL
     DocPrint(doc,"  tmp=BungisReduce(self,&");
     STGetLocal(doc,locals,var->name);
     DocPrint(doc,");\n");
-    DocPrint(doc,"  ThingDel(*tmp);\n");
     DocPrint(doc,"  *tmp=argv[%d];\n",idx);
     idx++;
   }
@@ -880,6 +906,7 @@ U0 CompileToHolyC(U8 *src,U8 *class_name,U8 *src_path=NULL,Bool class_method=FAL
   LocalsDel(locals);
   Option(OPTf_WARN_UNUSED_VAR,old);
 //DONE WITH IT
+fin:
   MethodDel(m);
   FramePtrDel("MethodClass");
 }
@@ -944,7 +971,7 @@ U0 STRunStmt(U8 *str) {
 }
 #include "Studio.HC";;
 STRunStmt(
-"  #Y _ [:f| [:x| x value: x] value: [:g| f value: [:x| (g value: g) value: x] ] ]."
+"  #Y _ [:f=CFrogBlock | [:x=CFrogBlock | x value: x] value: [:g=CFrogBlock| f value: [:x| (g value: g) value: x] ] ]."
 "  #fib _ #Y value: [:f| [:i=CFrogNum | i <= 1 ifTrue: [i] ifFalse: [(f value: i - 1) + (f value: i - 2)] ] ]."
 " (#fib value: 10 ) show ."
 );

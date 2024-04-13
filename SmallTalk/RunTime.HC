@@ -53,7 +53,6 @@ class CConstructorPair {
   U8 *destroy;
 };
 
-
 U0 AddMethod(U8 *cls,U8 *name,U8 *fptr) {
 //See GenerateMethodCall
   U8 *canon=MStrPrint("METHOD_%s.%s",cls,name);
@@ -323,6 +322,8 @@ CFrogThing *_ConstructThing(U8 *class_name,I64 argc,I64 *argv) {
   CFrogThing *t=CAlloc(cls->size,mem_task);
   QueInit(t);
   StrCpy(t->class_name,class_name);
+  CHashFun *fun;
+  U0 (*init)(CFrogThing*);
   for(cls=ocls;cls;cls=cls->base_class)
     for(mlst=cls->member_lst_and_root;mlst;mlst=mlst->next) {
       idx=GetClassMeta(class_name,mlst->str,"dft");
@@ -373,7 +374,11 @@ CFrogThing *_ConstructThing(U8 *class_name,I64 argc,I64 *argv) {
     }
   }
   if(constructor=GetClassMemberValI64(t,"constructor")) {
-    CallExtStr(constructor,t);
+    fun=HashFind(constructor,frog_mem_task->hash_table,HTT_FUN);
+    if(fun) {
+      init=fun->exe_addr;
+      init(t);
+    }
   }
 fin:
   t->ref_cnt=1;
@@ -383,6 +388,8 @@ fin:
 CFrogThing *ConstructThing(U8 *name,...) {
   CConstructorPair *p;
   CFrogThing *ret;
+  CHashFun *fun;
+  U0 (*init)(CFrogThing*);
   if(!StrCmp(name,"CFrogSuper"))
     return _ConstructThing(name,argc,argv);
   if(!argc)
@@ -391,7 +398,11 @@ CFrogThing *ConstructThing(U8 *name,...) {
       ret->ref_cnt=1;
       QueIns(ret,allocs_head.next);
       if(p->constructor) {
-         CallExtStr(p->constructor,ret);
+        fun=HashFind(p->constructor,frog_mem_task->hash_table,HTT_FUN);
+        if(fun) {
+          init=fun->exe_addr;
+	  init(ret);
+	}
       }
       return ret;
     }
@@ -449,7 +460,7 @@ CFrogThing *FrogStrNew(U8 *s) {
 
 CFrogThing *CallScriptFast(U8 *key1,U8 *key2,CFrogThing *self,...) {
   U8 *cn=FrogThingClassName(self);
- CFrogThing *(*fun_ptr)(CFrogThing *,...);
+  CFrogThing *(*fun_ptr)(CFrogThing *,...);
   CFrogThing *ret=NULL;
   CFastLookupKey *k;
   CHashClass *cls=HashFind(cn,frog_mem_task->hash_table,HTT_CLASS);
@@ -477,7 +488,11 @@ fin:
   return ret;
 }
 
-CFrogThing *CallPtr(U8 *fun_ptr,CFrogThing *self,...) {
+CFrogThing *CallPtr(U8 *fun_ptr,U8 *must_have,CFrogThing *self,...) {
+  if(must_have) {
+   if(!ThingHasClass(self,must_have))
+     return FROG_SMALL_NIL;
+  }
   CFrogThing *ret=CallVaArgs(fun_ptr,argc,argv,self);
   if(!ret)
     ret=FROG_SMALL_NIL;
@@ -1096,6 +1111,8 @@ U0 ThingDel(CFrogThing *thing,Bool recurse=TRUE) {
   CConstructorPair *cpair;
   CMemberLst *mlst;
   CHashClass *cls;
+  CHashFun *fun;
+  U0 (*destroy)(CFrogThing*);
   if(!thing||thing&1) return; //bit 0 is set for special "SMALL" type
   if(--thing->ref_cnt==0) {
   if(thing->ref_cnt<0) throw('asdas');
@@ -1122,9 +1139,13 @@ U0 ThingDel(CFrogThing *thing,Bool recurse=TRUE) {
     }
     QueRem(thing);
     if(cpair=FastLookupByStr(".dft",thing->class_name)) {
-      if(cpair->destroy)
-        CallExtStr(cpair->destroy,thing);
-      else {
+      if(cpair->destroy) {
+        fun=HashFind(cpair->destroy,frog_mem_task->hash_table,HTT_FUN);
+        if(fun) {
+          destroy=fun->exe_addr;
+	  destroy(thing);
+	}
+      } else {
 normal:
         if(recurse) {
 	  cls=HashFind(thing->class_name,frog_mem_task->hash_table,HTT_CLASS);

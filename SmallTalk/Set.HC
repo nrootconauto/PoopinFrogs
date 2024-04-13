@@ -19,7 +19,7 @@ CI64Set *I64SetNew(CTask *mem_task=NULL) {
 U0 I64SetAdd(CI64Set *s,I64 v) {
   I64 *new;
   if(s->cnt+1>=s->cap) {
-     new=CAlloc(MSize(s->body)+16*8,s->mem_task);
+     new=CAlloc(s->cap*8+16*8,s->mem_task);
      s->cap+=16;
      MemCpy(new,s->body,s->cnt*8);
      Free(s->body);

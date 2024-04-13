@@ -1,8 +1,8 @@
-do: block | idx sz |
+do: block=CFrogBlock | idx=CFrogNum sz=CFrogNum copy=CFrogArray|
   sz _ self size .
+  copy _ #() .
+  'Make a copy to avoid items disappearing in loop' .
   idx _ 0 .
-  [ 
-   idx _ idx + 1 .
-   ( idx - 1 ) < sz
-  ] whileTrue: [ block value: (self at: (idx - 1 )) ] .
-  'Retarded loop'.
+  [ idx < sz ] whileTrue: [idx _ idx + 1 . copy add: (self at: idx - 1 )] .
+  idx _ 0 .
+  [ idx < sz ] whileTrue: [idx _ idx + 1 . block value: (copy at: idx - 1 )] .

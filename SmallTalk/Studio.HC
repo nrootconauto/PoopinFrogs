@@ -387,37 +387,39 @@ U0 LoadMethodsFromBlob(U8 *blob_file="../ASS") {
   U8 *tmp,*tmp2;
   U8 name[STR_LEN],method[STR_LEN];
   U8 *name_ptr=name,*method_ptr=method;
-  I64 idx,len,idx2;
+  I64 idx,len,idx2,dry;
   tmp=BlobFileGetLump(blob_file,ST_ROOT"CLASSES");
   ExePutS(tmp);
   Free(tmp);
-  for(idx=0;idx!=lumps->lump_cnt;idx++) {
-    hdr=&lumps->lump_table[idx];
-    if(!StrNCmp(hdr->name,ST_ROOT,StrLen(ST_ROOT))) {
-      if(StrOcc(hdr->name,'/')==2) { //1 is in ST_ROOT
-        StrScan(hdr->name,ST_ROOT"%s/%s",&name_ptr,&method_ptr);
-        try {
-	  tmp=BlobFileGetLump(blob_file,hdr->name);
-	  SanitizeStr(tmp);
-	  CompileToHolyC(tmp,name,hdr->name);
-	  Free(tmp);
-        } catch {
-	  "In %s:",hdr->name;
-	  PutExcept(TRUE);
-	}
-      } 
-    } else if(!StrNCmp(hdr->name,ST_CLASS_ROOT,StrLen(ST_CLASS_ROOT))) {
-      if(StrOcc(hdr->name,'/')==2) { //Check for class method
-        StrScan(hdr->name,ST_CLASS_ROOT"%s/%s",&name_ptr,&method_ptr);
-        try {
-	  tmp=BlobFileGetLump(blob_file,hdr->name);
-	  SanitizeStr(tmp);
-	  CompileToHolyC(tmp,name,hdr->name,TRUE);
-	  Free(tmp);
-        } catch {
-	  "In %s:",hdr->name;
-	  PutExcept(TRUE);
-	}
+  for(dry=1;dry>=0;dry--) {
+    for(idx=0;idx!=lumps->lump_cnt;idx++) {
+      hdr=&lumps->lump_table[idx];
+      if(!StrNCmp(hdr->name,ST_ROOT,StrLen(ST_ROOT))) {
+        if(StrOcc(hdr->name,'/')==2) { //1 is in ST_ROOT
+	  StrScan(hdr->name,ST_ROOT"%s/%s",&name_ptr,&method_ptr);
+	  try {
+	    tmp=BlobFileGetLump(blob_file,hdr->name);
+	    SanitizeStr(tmp);
+	    CompileToHolyC(tmp,name,hdr->name,,dry);
+	    Free(tmp);
+	  } catch {
+	    "In %s:",hdr->name;
+	    PutExcept(TRUE);
+	  }
+        } 
+      } else if(!StrNCmp(hdr->name,ST_CLASS_ROOT,StrLen(ST_CLASS_ROOT))) {
+        if(StrOcc(hdr->name,'/')==2) { //Check for class method
+	  StrScan(hdr->name,ST_CLASS_ROOT"%s/%s",&name_ptr,&method_ptr);
+	  try {
+	    tmp=BlobFileGetLump(blob_file,hdr->name);
+	    SanitizeStr(tmp);
+	    CompileToHolyC(tmp,name,hdr->name,TRUE,dry);
+	    Free(tmp);
+	  } catch {
+	    "In %s:",hdr->name;
+	    PutExcept(TRUE);
+	  }
+        }
       }
     }
   }

@@ -1,2 +1,2 @@
 addAll: vec | |
-  vec do: [:v| self add: v ]
+  vec do: [:v=CFrogThing | self add: v ]

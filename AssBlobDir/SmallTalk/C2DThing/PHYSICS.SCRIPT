@@ -1,4 +1,4 @@
-physics | th angle ch |
+physics | th=CFrogNum angle=CFrogNum ch=CFrogNum |
   th _ #world tileHeightAtX: x / 128 atY: y / 128 .
   ch _ #world ceilHeightAtX: x / 128 atY: y / 128 .
 

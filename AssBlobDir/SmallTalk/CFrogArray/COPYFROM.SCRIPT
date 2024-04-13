@@ -1,4 +1,4 @@
-copyFrom: s to: e | ret |
+copyFrom: s to: e | ret=CFrogArray |
   ret = #( ) .
   [
     s < e

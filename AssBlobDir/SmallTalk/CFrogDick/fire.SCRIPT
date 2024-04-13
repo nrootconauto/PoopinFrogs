@@ -1,4 +1,17 @@
-fire |player piss a force piss_stream cur_ts step rand targetd targetz total launch_angle |
+fire |
+  player=CPlayer
+  piss=CPissLink
+  a=CFrogNum
+  force=CFrogNum
+  piss_stream=CPissStream
+  cur_ts=CFrogNum
+  step=CFrogNum
+  rand=CFrogRandom
+  targetd=CFrogNum
+  targetz=CFrogNum
+  total*
+  launch_angle=CFrogNum
+ |
   player _ #world getPlayer .
   cur_ts _ CFrogTime now asSeconds .
   step _ 5 .

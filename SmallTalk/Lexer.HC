@@ -72,6 +72,13 @@ U0 LexExcept(CLexer *l,U8 *fmt,...) {
   }
   throw('Shlong');
 }
+U0 LexWarn(CLexer *l,U8 *fmt,...) {
+  if(!(l->flags&LEXF_SILENT)) {
+    fmt=StrPrintJoin(NULL,fmt,argc,argv);
+    "(%s:%d,%d)  %s\n",l->filename,l->ln,l->pos,fmt;
+    Free(fmt);
+  }
+}
 I64 IsOperatorChr(I64 ch) {
   switch(ch) {
     case '+':

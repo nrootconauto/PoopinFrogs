@@ -1,5 +1,11 @@
-screenRayHitsTarget: t atAngle: a withAutoAim: mul
-| dist dist_scale tolerance |
+screenRayHitsTarget: t=C2DThing
+  atAngle: a=C2DThing
+  withAutoAim: mul=C2DThing
+| 
+  dist=C2DThing
+  dist_scale=C2DThing
+  tolerance=C2DThing
+|
   (self canSeeThing: t ) ifFalse: [
     ^ 0
   ] .

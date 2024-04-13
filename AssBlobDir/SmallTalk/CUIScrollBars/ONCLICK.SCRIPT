@@ -1,7 +1,7 @@
-onClickAtX: x atY: y | w h |
+onClickAtX: x=CFrogNum atY: y=CFrogNum | w=CFrogNum h=CFrogNum |
   w _ 0 .
   h _ 0 .
-  sub_elems do: [:e|
+  sub_elems do: [:e=CUIElem |
     w _ w max: (e getX + e getWidth) .
     h _ h max: (e getY + e getHeight) .
   ] .

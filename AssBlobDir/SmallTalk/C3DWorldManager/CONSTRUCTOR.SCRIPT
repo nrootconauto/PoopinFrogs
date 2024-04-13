@@ -1,4 +1,4 @@
-init | gx gy col |
+init | gx=CFrogNum gy=CFrogNum col=CFrogArray |
   #world _ self .
   wall_stains _ #() .
   floor_stains _ #() .

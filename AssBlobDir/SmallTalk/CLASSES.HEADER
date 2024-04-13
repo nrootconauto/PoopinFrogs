@@ -1,4 +1,4 @@
-class CFrogThing:CQue {
+ class CFrogThing:CQue {
 #define SRV_THINGF_TO_DELETE 1
   I32 thing_flags,pad;
   I32 id,ref_cnt;
@@ -35,7 +35,7 @@ class CFrogDictionary:CFrogThing {
   CFrogThing *buckets;
   CFrogNum *size;
 };
-class CFrogStr:CFrogArray {
+class CFrogStr:CFrogArray {
 };
 class CFrogSymbol:CFrogThing {
   U8 name[STR_LEN];
@@ -223,7 +223,7 @@ class CWallStain:CFrogThing {
   I64 side;
   F64 x,y;
   F64 center_x,center_y;
-  I64 is_ceil_wall; //If hits the ceiling wall
+  I64 is_ceil_wall; //If hits the ceiling wall
  CDC *dc;
   U8 *destroy dft "WallStainDel";
 };

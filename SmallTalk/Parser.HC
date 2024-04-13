@@ -48,7 +48,7 @@ U0 AddToScope(U8 *name) {
 U0 RemFromScope(U8 *name) {
  FramePtrDel(name);
 }
-CAST *ParseVarWithType(CLexer *l) {
+CAST *ParseVarWithType(CLexer *l,Bool warn=FALSE) {
   CAST *ret=NULL;
   if(l->tok==TOK_NAME) {
     ret=CAlloc(sizeof CAST);
@@ -68,7 +68,7 @@ CAST *ParseVarWithType(CLexer *l) {
 	Lex(l);
 	break;
       default:
-;//	LexWarn(l,"Untyped variable!");
+	if(warn) LexWarn(l,"Untyped variable!");
     }
   }
   return ret;
@@ -127,7 +127,7 @@ CAST *ParseLiteral(CLexer *l) {
       while(l->tok!='|') {
         if(l->tok==':') {
 	  Lex(l);
-	  item=ParseVarWithType(l);
+	  item=ParseVarWithType(l,TRUE);
 	  if(!item)
 	    LexExcept(l,"Put away you 50 inch nigger shlong and give me and argument.");
 	  AddToScope(item->name);
@@ -464,11 +464,9 @@ CMethod *ParseMethod(CLexer *l,CHashClass *cls=NULL) {
   Lex(l);
   while(TRUE) {
     if(l->tok==TOK_NAME) {
-      name=CAlloc(sizeof CAST);
-      StrCpy(name->name,l->str);
-      AddToScope(l->str);
+      name=ParseVarWithType(l,TRUE);
+      AddToScope(name->name);
       QueIns(name,m->temps.last);
-      Lex(l);
     } else if(l->tok=='|') {
       Lex(l);
       break;

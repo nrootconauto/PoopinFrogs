@@ -1,9 +1,22 @@
-update | t lerp tilex tiley h dist things fx fy r dist2 angle |
+update |
+  t=CFrogNum
+  lerp=CFrogBlock
+  tilex=CFrogNum
+  tiley=CFrogNum 
+  h=CFrogNum
+  dist=CFrogNum
+  things=CFrogArray
+  fx=CFrogNum
+  fy=CFrogNum
+  r*
+  dist2=CFrogNum
+  angle=CFrogNum
+ |
   t _ ((CFrogTime now asSeconds - start_tS)   ) .
   t > 3.14 ifTrue: [
     ^ 0 
   ] .
-  lerp _ [:from :to |
+  lerp _ [:from=CFrogNum :to=CFrogNum |
     ((to - from ) * t) + from 
   ].
   t _ t sin  .
@@ -24,7 +37,7 @@ update | t lerp tilex tiley h dist things fx fy r dist2 angle |
 
   'check if our angle with with 5 degrees of poo poo'.
 
-  things do: [:t| 
+  things do: [:t=C2DThing | 
     angle _ (t angleBetween: from ) .
     angle < 3.14 / 180 * 15 ifTrue: [
       dist2 _ ((t xPos - fx) squared + (t yPos - fy) squared ) sqrt .
@@ -39,4 +52,4 @@ update | t lerp tilex tiley h dist things fx fy r dist2 angle |
     ]
   ] .
 
-  ^ 1
+1  ^ 1

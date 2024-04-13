@@ -1,4 +1,8 @@
-screenRayHitsTarget: t atAngle: a | dist dist_scale tolerance |
+screenRayHitsTarget: t atAngle: a=CFrogNum |
+  dist=CFrogNum
+  dist_scale=CFrogNum
+  tolerance=CFrogNum
+|
   (self canSeeThing: t ) ifFalse: [
     ^ 0
   ] .

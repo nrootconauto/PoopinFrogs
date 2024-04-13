@@ -1,7 +1,7 @@
-update | tmp |
+update | tmp=CFrogArray |
   tmp _ links.
   links _ #() .
-  tmp do:[:l |
+  tmp do:[:l=CPissLink |
     (l updateWithWeight: 1 makeParticles: 1) ifTrue: [
       links add: l  .
     ] 

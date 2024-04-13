@@ -1,4 +1,10 @@
-angleBetween: other | px py ox oy r|
+angleBetween: other |
+  px=CFrogNum
+  py=CFrogNum
+  ox=CFrogNum
+  oy=CFrogNum
+  r=CFrogNum
+|
   ox _ other xPos - x .
   oy _ other yPos - y .
   px _ angle cos * 100 .

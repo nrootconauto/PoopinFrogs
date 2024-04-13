@@ -1,4 +1,4 @@
-addLink:l | tmp |
+addLink:l | tmp=CFrogArray |
   'newest pisses come firstr in the stream' .
   tmp _  #( l ) .
   tmp addAll: links .

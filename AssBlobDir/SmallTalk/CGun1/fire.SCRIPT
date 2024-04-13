@@ -1,4 +1,12 @@
-fire | cur_ts player canidates wall_hole case sz floor_stain dist |
+fire |
+ cur_ts=CFrogNum
+ player=CPlayer
+ canidates=CFrogArray 
+ wall_hole=CWallStain
+ case*
+ sz=CFrogNum
+ floor_stain=CFloorStain
+ |
   player _ #world getPlayer .
   ammo ifTrue: [
    
@@ -31,7 +39,7 @@ fire | cur_ts player canidates wall_hole case sz floor_stain dist |
       ammo _ ammo - 1 max: 0 .
       inventory_item setCount: ammo .
       canidates _ #world thingsInDist: 128 * 64 atAngle: player getAngle fromThing: player .
-      canidates do: [ :t |
+      canidates do: [ :t=C2DThing |
         (player ~= t and: t getHealth > 0. ) ifTrue: [
           (player screenRayHitsTarget: t atAngle: player getAngle 
              withAutoAim: 1.5

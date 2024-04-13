@@ -1,4 +1,10 @@
-eatTarget: thing fromFrog : f | angle xx yy dist |
+eatTarget: thing=C2DThing  fromFrog: f=C2DThing |
+  angle=CFrogNum
+  xx=CFrogNum
+  yy=CFrogNum
+  dist=CFrogNum
+  from=C2DThing
+ |
   from _ f .
   xx _ thing xPos - from xPos.
   yy _ thing yPos - from yPos.

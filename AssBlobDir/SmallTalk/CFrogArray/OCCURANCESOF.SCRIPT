@@ -1,6 +1,6 @@
 occurancesOf: v | cnt|
   cnt _ 0 .
-  self do: [:item |
+  self do: [:item* |
     item = v ifTrue: [ cnt _ cnt + 1 ] 
   ] .
   ^ cnt

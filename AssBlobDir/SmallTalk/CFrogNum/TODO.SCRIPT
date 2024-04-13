@@ -1,6 +1,6 @@
-to: limit do: block | idx |
+to: limit=CFrogNum do: block=CFrogBlock | idx=CFrogNum |
   idx _ self .
-  [idx < limit] whileTrue: [
+  [idx < limit ] whileTrue: [
     block value: idx .
     idx _ idx + 1
   ] .
