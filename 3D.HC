@@ -728,6 +728,12 @@ ent:
       if(w->to_dc->depth_buf)
 	depth_dst=w->to_dc->depth_buf+(start_y+i)*width+x;
     }
+    if(i+start_y<0) {
+      i=-start_y;
+      dst=w->to_dc->body+(start_y+i)*width+x;
+      if(w->to_dc->depth_buf)
+	depth_dst=w->to_dc->depth_buf+(start_y+i)*width+x;
+    }
     if(0<=i+start_y<GR_HEIGHT-w->step_width) {
       segment_y=height/(DIST_SCALE/ToF64(dist+1))*(i/ToF64(height))*texture->height;
       tmp=gr.to_8_colors[GrPeek0(
@@ -910,6 +916,8 @@ I64 ColorFloor(C3DWorld *w,I64 view_x,I64 floor_height,I64 sy,I64 ey,CDC *textur
 	      dst+=width;
 	      db_z+=width;
 	    }
+	  } else {
+	    y=MaxI64(VisSkipTo(w,view_x,y,dist)-w->step_width,y);
 	  }
         }
       }
