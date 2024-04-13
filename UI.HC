@@ -250,7 +250,6 @@ pass:
 	        FrogNumNew(m1-x),
 	        FrogNumNew(m2-y)
 	  );
-PrintI("drag",drag);
 	  drag_start_x=m1;
 	  drag_start_y=m2;
 	  if(ThingHasClass(drag,"CUIGridItem"))

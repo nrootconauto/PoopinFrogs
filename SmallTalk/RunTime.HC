@@ -377,7 +377,7 @@ CFrogThing *_ConstructThing(U8 *class_name,I64 argc,I64 *argv) {
     fun=HashFind(constructor,frog_mem_task->hash_table,HTT_FUN);
     if(fun) {
       init=fun->exe_addr;
-      init(t);
+      (*init)(t);
     }
   }
 fin:
@@ -401,13 +401,13 @@ CFrogThing *ConstructThing(U8 *name,...) {
         fun=HashFind(p->constructor,frog_mem_task->hash_table,HTT_FUN);
         if(fun) {
           init=fun->exe_addr;
-	  init(ret);
+	  (*init)(ret);
 	}
       }
       return ret;
     }
   ret=_ConstructThing(name,argc,argv);
-  if(!argc) {
+  if(!argc&&ret) {
     p=MAlloc(sizeof(CConstructorPair),frog_mem_task);
     p->dft=ret;
     QueRem(ret);//This is a template for new creation
@@ -417,6 +417,7 @@ CFrogThing *ConstructThing(U8 *name,...) {
     //Make a new one from the template
     ret=ConstructThing(name);
   }
+  if(!ret) ret=FROG_SMALL_NIL;
   return ret;
 }
 
@@ -450,10 +451,9 @@ CFrogArray *FrogArrayNew() {
 CFrogThing *FrogStrNew(U8 *s) {
   CFrogStr *str=ConstructThing("CFrogStr");
   CI64Set *items;
-  I64 idx;
   items=str->items;
-  for(idx=0;s[idx];s++) {
-    I64SetAdd(items,FrogChrNew(s[idx]));
+  for(;*s;s++) {
+    I64SetAdd(items,FrogChrNew(*s));
   }
   return str;
 }
@@ -661,7 +661,7 @@ CFrogThing *FrogBlockNew(U8 *fptr,CLocalsGeneric *frame,CFrogThing *self) {
 }
 CFrogThing *FrogArrayAt(CFrogArray *self,I64 n) {
   if(0<=n<self->items->cnt) {
-    return FrogIncRefCnt(self->items->body[n]);
+   return FrogIncRefCnt(self->items->body[n]);
   }
   return FROG_SMALL_NIL;
 }
@@ -1143,7 +1143,7 @@ U0 ThingDel(CFrogThing *thing,Bool recurse=TRUE) {
         fun=HashFind(cpair->destroy,frog_mem_task->hash_table,HTT_FUN);
         if(fun) {
           destroy=fun->exe_addr;
-	  destroy(thing);
+	  (*destroy)(thing);
 	}
       } else {
 normal:
@@ -1356,7 +1356,10 @@ U0 FrogSuperDel(CFrogSuper *s) {
   Free(s);
 }
 CFrogThing *ToFrogNum(F64 n) {
- return (ToI64(n*I16_MAX)<<16)|FROG_SMALL_NUM;
+  I64 ipart=ToI64(n*I16_MAX);
+  if(n*I16_MAX-ipart>.5)
+    return ((ipart+1)<<16)|FROG_SMALL_NUM;
+  return (ipart<<16)|FROG_SMALL_NUM;
 }
 U8 *AsString(CFrogThing *t) {
   I64 idx;
@@ -1369,8 +1372,9 @@ U8 *AsString(CFrogThing *t) {
       idx=0;
       items=t(CFrogStr*)->items;
       ret=CAlloc(items->cnt+1);
-      for(idx=0;idx<items->cnt;idx++)
-        ret[idx]=AsChar(items->body[idx]);    
+      for(idx=0;idx<items->cnt;idx++) {
+        ret[idx]=AsChar(items->body[idx]);
+      }
   } else {
     as_str=CallScript("printString",t);
     if(ThingHasClass(as_str,"CFrogStr")) {

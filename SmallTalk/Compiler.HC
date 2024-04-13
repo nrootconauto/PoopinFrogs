@@ -355,17 +355,19 @@ U0 DftCall(CDoc *doc,CLocals *l,CAST *ast,I64 stack_depth,U8 *op,I64 cnt=2) {
       goto args;
     }
   } else if(self->is_f64) {
-    DocPrint(doc,"  retval=");
-    GenerateMethodCall(doc,"CFrogNum",op);
-    goto args;
+    cls_name=ClassHasMethod("CFrogNum",op);
+try_class:
+    if(cls_name) {
+      DocPrint(doc,"  retval=");
+      GenerateMethodCall(doc,cls_name,op);
+      goto args;
+    }
   } else if(self->type==AST_BLOCK) {
-    DocPrint(doc,"  retval=");
-    GenerateMethodCall(doc,"CFrogBlock",op);
-    goto args;
+    cls_name=ClassHasMethod("CFrogBlock",op);
+    goto try_class;
   } else if(self->type==AST_ARRAY) {
-    DocPrint(doc,"  retval=");
-    GenerateMethodCall(doc,"CFrogArray",op);
-    goto args;
+    cls_name=ClassHasMethod("CFrogArray",op);
+    goto try_class;
   }
 //TODO static return-type of method
   I64 idx;
