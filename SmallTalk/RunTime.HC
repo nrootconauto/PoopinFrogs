@@ -483,6 +483,7 @@ CFrogThing *CallScriptFast(U8 *key1,U8 *key2,CFrogThing *self,...) {
     cls=cls->base_class;
   }
 fin:
+  //ThingDel(self);
   if(!ret)
     ret=FROG_SMALL_NIL;
   return ret;
@@ -490,10 +491,13 @@ fin:
 
 CFrogThing *CallPtr(U8 *fun_ptr,U8 *must_have,CFrogThing *self,...) {
   if(must_have) {
-   if(!ThingHasClass(self,must_have))
+   if(!ThingHasClass(self,must_have)) {
+     //ThingDel(self);
      return FROG_SMALL_NIL;
+   }
   }
   CFrogThing *ret=CallVaArgs(fun_ptr,argc,argv,self);
+  //ThingDel(self);
   if(!ret)
     ret=FROG_SMALL_NIL;
   return ret;
@@ -514,6 +518,7 @@ CFrogThing *CallScript(U8 *name,CFrogThing *self,...) {
     while(!ret&&cls) {
       if(fun_ptr=FastLookupGet(k,cls->str)) {
         ret=CallVaArgs(fun_ptr,argc,argv,self);
+        //ThingDel(self);
 	break;
       }
       cls=cls->base_class;
@@ -525,6 +530,7 @@ CFrogThing *CallScript(U8 *name,CFrogThing *self,...) {
   while(!ret&&cls) {
     if(fun_ptr=FastLookupGet(k,cls->str)) {
       ret=CallVaArgs(fun_ptr,argc,argv,self);
+      //ThingDel(self);
       break;
     }
     cls=cls->base_class;

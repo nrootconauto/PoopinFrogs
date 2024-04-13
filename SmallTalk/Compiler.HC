@@ -3,11 +3,26 @@
 #include "RunTime.HC";
 //Dont Free
 U8 *StackFrame2Var(I64 stk) {
+  I64 old=FramePtr("ST@@stk_depth");
+  if(stk+1>old)
+    FramePtrSet("ST@@stk_depth",stk+1);
   switch(stk) {
+   case 0:
+     return "stk0";
+   case 1:
+     return "stk1";
+   case 2:
+     return "stk2";
+   case 3:
+     return "stk3";
+   case 4:
+     return "stk4";
+   case 5:
+     return "stk5";
 #exe {
-   I64 cnt=0x100;
+   I64 cnt=0x100-6;
    while(--cnt>=0) {
-     StreamPrint("case %d: return \"stk[%d]\";\n",cnt,cnt);
+     StreamPrint("case %d:return \"stk[%d]\";\n",cnt+6,cnt);
    }
 };;
   }
@@ -90,6 +105,8 @@ U8 *RawAccessType(U8 *cls,U8 *name) {
 }
 class CHashGeneric3:CHashGeneric {
   I64 user_data3;
+//Think Escape-Analysis
+  I64 is_escaped;
 };
 U8 *VarClassName(CLocals *l,U8 *var) {
   CHashGeneric3 *g=HashFind(var,l->vars,HTT_FRAME_PTR);
@@ -295,17 +312,30 @@ U0 CompileASTFinal(CDoc *doc,CAST *ast,U8 *locals,I64 stack_depth,I64 jump_to=IN
   CompileAST(doc,ast,locals,stack_depth,jump_to,allow_f64);
   FramePtrDel("FINAL_PASS");
 }
+U0 ReplaceElem(CDoc *doc,CDocEntry *ent,U8 *with,...) {
+  with=StrPrintJoin(NULL,with,argc,argv);
+  CDocEntry *old=doc->cur_entry;
+  doc->cur_entry=ent;
+  DocPutS(doc,with);
+  DocEntryDel(doc,ent);
+  doc->cur_entry=old;
+  DocBottom(doc);
+  Free(with);
+}
 
 U8 *CompileThunk(CAST *block,CLocals *parent=NULL) {
   static I64 thunk_cnt=0;
   U8 *ret;
   I64 idx,thunk_idx=thunk_cnt++;
   CDoc *doc=DocNew;
+  CDocEntry *replace;
   CLocals *locals=GenerateLocalsFromThunk(block);
   locals->next=parent;
   CAST *var,*head;
+  FramePtrAdd("ST@@stk_depth",0);
   DocPrint(doc,"CFrogThing *Thunk@@%d(CFrogThing *self,CLocalsGeneric0 *parent_frame,...) {\n",thunk_idx);
-  DocPrint(doc,"  CFrogThing *stk[0x100],*retval=FROG_SMALL_NIL,**tmp;\n");
+  replace=DocPrint(doc,"  CFrogThing *stk[$$LK,\"replace_me\"$$],*retval=FROG_SMALL_NIL,**tmp;\n");
+  DocPrint(doc,"CFrogThing *stk0,*stk1,*stk2,*stk3,*stk4,*stk5;\n");
   DocPrint(doc,"  Bool false=FALSE;\n");
   DocPrint(doc,"  Bool *return_flag=STNewBlockFrame(\"%Q\",parent_frame)->return_flag;\n",locals->name,block);
   DocPrint(doc,"  if(!return_flag) return_flag=&false;\n");
@@ -335,14 +365,16 @@ U8 *CompileThunk(CAST *block,CLocals *parent=NULL) {
   idx=0;
   DocPrint(doc,"}\n");
   DocPrint(doc,"ret:\n");
-  DocPrint(doc,"  while(--unwind>=0) ThingDel(stk[unwind]);");
+//  DocPrint(doc,"  while(--unwind>=0) ThingDel(stk[unwind]);");
   DocPrint(doc,"  STFrameDel;\n");
-  DocPrint(doc,"  return stk[0];\n");
+  DocPrint(doc,"  return stk0;\n");
   DocPrint(doc,"};");
+  ReplaceElem(doc,replace,"%d",MaxI64(FramePtr("ST@@stk_depth")-6,0));
   ret=DocSave(doc);//Saves to string
   ExePutS(ret);
   Free(ret);
   DocDel(doc);
+  FramePtrDel("ST@@stk_depth");
   return MStrPrint("Thunk@@%d",thunk_idx);
 }
 U0 DftCall(CDoc *doc,CLocals *l,CAST *ast,I64 stack_depth,U8 *op,I64 cnt=2) {
@@ -381,7 +413,7 @@ args:
     DocPrint(doc,"%s",StackFrame2Var(stack_depth+1+idx));
  }
   DocPrint(doc,");\n");
-  DocPrint(doc,"  ThingDel(%s);\n",StackFrame2Var(stack_depth));
+  DocPrint(doc,"ThingDel(%s);\n",StackFrame2Var(stack_depth));
   DocPrint(doc,"  %s=retval;\n",StackFrame2Var(stack_depth));
 }
 Bool IsAllF64(CAST *ast) {
@@ -469,16 +501,6 @@ U0 UnrollBlock(CDoc *doc,CLocals *l,I64 stack_depth,CAST *bl,I64 jump_to=INVALID
     DocPrint(doc,"next_case=%d;goto enter;\n",ast_case_num);
   else
     DocPrint(doc,"next_case=%d;goto enter;\n",jump_to);
-}
-U0 ReplaceElem(CDoc *doc,CDocEntry *ent,U8 *with,...) {
-  with=StrPrintJoin(NULL,with,argc,argv);
-  CDocEntry *old=doc->cur_entry;
-  doc->cur_entry=ent;
-  DocPutS(doc,with);
-  DocEntryDel(doc,ent);
-  doc->cur_entry=old;
-  DocBottom(doc);
-  Free(with);
 }
 U0 CompileAST(CDoc *doc,CAST *ast,CLocals *locals,I64 stack_depth,I64 jump_to=INVALID_PTR,Bool allow_f64=FALSE) {
   U8 dummy[STR_LEN];
@@ -714,7 +736,7 @@ assign_raw:
         }
       }else
         throw('Compile');
-      DocPrint(doc,"  stk[0]=retval=FROG_SMALL_NIL;\n");
+      DocPrint(doc,"  stk0=retval=FROG_SMALL_NIL;\n");
       break;case AST_STR:
       ast->switch_num=ast_case_num++;
       DocPrint(doc,"case %d:\n",ast->switch_num);
@@ -851,10 +873,12 @@ U0 CompileToHolyC(U8 *src,U8 *class_name,U8 *src_path=NULL,Bool class_method=FAL
   CDoc *doc=DocNew;
   static I64 fun_num=0;
   U8 *ret,*fun_name;
+  CDocEntry *replace;
   I64 idx;
   CAST *var,*head;
   CLexer *lex=LexerNew(src,src_path);
   Lex(lex);
+  FramePtrAdd("ST@@stk_depth",0);
   CMethod *m=ParseMethod(lex,HashFind(class_name,frog_mem_task->hash_table,HTT_CLASS));
   LexerDel(lex);
   if(register_method) {
@@ -865,7 +889,8 @@ U0 CompileToHolyC(U8 *src,U8 *class_name,U8 *src_path=NULL,Bool class_method=FAL
 //MUST SET THIS
   fun_name=MStrPrint("%s@%d",class_name,fun_num++);
   DocPrint(doc,"CFrogThing *%s(CFrogThing *self,...) {\n",fun_name);
-  DocPrint(doc,"  CFrogThing *stk[0x100],*retval=FROG_SMALL_NIL,**tmp;\n");
+  replace=DocPrint(doc,"  CFrogThing *stk[$$LK,\"replace\"$$],*retval=FROG_SMALL_NIL,**tmp;\n");
+  DocPrint(doc,"CFrogThing *stk0,*stk1,*stk2,*stk3,*stk4,*stk5;\n");
   DocPrint(doc,"  Bool *return_flag=STAddMethodFrame(%d,\"%Q\",\"%Q\")->return_flag;\n",m,locals->name,class_name);
   DocPrint(doc,"  CLocalsGeneric0 *parent_frame=Fs->user_data;\n");
   DocPrint(doc,"  I64 unwind=0,next_case=%d;\n",ast_case_num);
@@ -890,7 +915,7 @@ U0 CompileToHolyC(U8 *src,U8 *class_name,U8 *src_path=NULL,Bool class_method=FAL
   head=&m->args;
   idx=0;
   DocPrint(doc,"}ret:\n");
-  DocPrint(doc,"  while(--unwind>=0) ThingDel(stk[unwind]);");
+//  DocPrint(doc,"  while(--unwind>=0) ThingDel(stk[unwind]);");
   DocPrint(doc,"  *return_flag=0;\n"); //Allow blocks made in the method to be called agian
   DocPrint(doc,"  STFrameDel;\n");
   DocPrint(doc,"  return retval;\n");
@@ -900,6 +925,7 @@ U0 CompileToHolyC(U8 *src,U8 *class_name,U8 *src_path=NULL,Bool class_method=FAL
   } else {
     DocPrint(doc,"AddClassMethod(\"%Q\",\"%Q\",&%s);;",class_name,m->name,fun_name);
   }
+  ReplaceElem(doc,replace,"%d",MaxI64(FramePtr("ST@@stk_depth")-6,0));
   ret=DocSave(doc);
   ExePutS(ret);
   DocDel(doc);
@@ -909,6 +935,7 @@ U0 CompileToHolyC(U8 *src,U8 *class_name,U8 *src_path=NULL,Bool class_method=FAL
   Option(OPTf_WARN_UNUSED_VAR,old);
 //DONE WITH IT
 fin:
+  FramePtrDel("ST@@stk_depth");
   MethodDel(m);
   FramePtrDel("MethodClass");
 }
@@ -919,6 +946,7 @@ U0 STRepl(U8 *dft="",Bool interactive=TRUE) {
   CLexer *lex; //TODO feed into lexer
   CAST *ast,dummy;
   CDoc *doc;
+  CDocEntry *replace;
   lex=LexerNew(dft);
   if(interactive)
     lex->flags|=LEXF_CMD_LINE|LEXF_WANTS_INPUT;
@@ -935,8 +963,10 @@ U0 STRepl(U8 *dft="",Bool interactive=TRUE) {
     if(br) break;
     if(ast) {
       doc=DocNew;
+      FramePtrAdd("ST@@stk_depth",0);
       DocPrint(doc,"CFrogThing *REPLFun(CFrogThing *self) {\n");
-      DocPrint(doc,"  CFrogThing *stk[0x100],*retval=FROG_SMALL_NIL;\n");
+      replace=DocPrint(doc,"  CFrogThing *stk[$$LK,\"replace\"$$],*retval=FROG_SMALL_NIL;\n");
+      DocPrint(doc,"CFrogThing *stk0,*stk1,*stk2,*stk3,*stk4,*stk5;\n");
       DocPrint(doc,"  static Bool st_return=FALSE;\n");
       DocPrint(doc,"  Bool *return_flag=STNewReplFrame(&st_return)->return_flag;\n");
       DocPrint(doc,"  CLocalsGeneric0 *parent_frame=Fs->user_data;\n");
@@ -954,10 +984,12 @@ U0 STRepl(U8 *dft="",Bool interactive=TRUE) {
 // Dumb hack,blocks have a reference to the retunr_flag,so reset it.
 //
       DocPrint(doc,"  *return_flag=0;\n");
-      DocPrint(doc,"  while(--unwind>=0) ThingDel(stk[unwind]);");
+//      DocPrint(doc,"  while(--unwind>=0) ThingDel(stk[unwind]);");
       DocPrint(doc,"  STFrameDel;\n");
       DocPrint(doc,"  return retval;\n");
       DocPrint(doc,"}REPLFun(FrogNil);\n");
+      ReplaceElem(doc,replace,"%d",MaxI64(FramePtr("ST@@stk_depth")-6,0));
+      FramePtrDel("ST@@stk_depth");
       str=DocSave(doc);
       ExePutS(str);
       Free(str);

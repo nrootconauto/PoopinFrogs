@@ -392,6 +392,7 @@ U0 LoadMethodsFromBlob(U8 *blob_file="../ASS") {
   ExePutS(tmp);
   Free(tmp);
   for(dry=1;dry>=0;dry--) {
+    Silent(dry); 
     for(idx=0;idx!=lumps->lump_cnt;idx++) {
       hdr=&lumps->lump_table[idx];
       if(!StrNCmp(hdr->name,ST_ROOT,StrLen(ST_ROOT))) {

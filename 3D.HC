@@ -46,7 +46,7 @@ class CFileWorld {
   CFilePtrLen ceilmap;
   CFilePtrLen ceilmap2;
 }; 
-
+ 
 
 class CBlockedView {
   I16 start,end;
@@ -1223,7 +1223,7 @@ ent:
       y=GR_HEIGHT/2;
       y0=GR_HEIGHT/2-h*(height_cap-w->cam_height);
 
-      for(idx3=2;--idx3>=0;) {
+      for(idx3=w->step_width;--idx3>=0;) {
         if(0<=x+idx3<w->to_dc->width) {
 	  ptr=w->blocked_cnts[x+idx3];
 	  if(ptr<0x80) {
@@ -1273,6 +1273,18 @@ ceil2:
 
 //      if(ceil!=I8_MAX&&last_ceil!=ceil) {
         y0=GR_HEIGHT/2-h*(ceil+adj_height-w->cam_height);
+        for(idx3=w->step_width;--idx3>=0;) {
+          if(0<=x+idx3<w->to_dc->width) {
+	    ptr=w->blocked_cnts[x+idx3];
+	    if(ptr<0x80) {
+	      w->blocked_cnts[x+idx3]=ptr+1;
+	      block_view=&w->blocked_views[x+idx3][ptr];
+	      block_view->start=y0;
+	      block_view->end=y0+h*adj_height;
+	      block_view->dist=dist;
+	    }
+          }
+        }
         for(idx3=0;idx3<adj_height;idx3++) {
           DrawWallSegment(w,segment,x,y0+h*idx3,w->wall_textures[w->world_mat[idx]],h,dist,ceil+adj_height-idx3,idx,side);
         }
