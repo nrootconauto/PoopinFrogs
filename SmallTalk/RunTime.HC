@@ -1356,8 +1356,9 @@ U0 FrogSuperDel(CFrogSuper *s) {
   Free(s);
 }
 CFrogThing *ToFrogNum(F64 n) {
-  I64 ipart=ToI64(n*I16_MAX);
-  if(n*I16_MAX-ipart>.5)
+  n*=I16_MAX;
+  I64 ipart=ToI64(n);
+  if(n-ipart>.5)
     return ((ipart+1)<<16)|FROG_SMALL_NUM;
   return (ipart<<16)|FROG_SMALL_NUM;
 }

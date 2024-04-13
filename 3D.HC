@@ -518,7 +518,9 @@ C2DThing *BumpsIntoThing(C2DThing *self,...) {
   return FrogNumNew(0);
 } 
 AddMethod("C2DThing","hitsThing:",&BumpsIntoThing);
-Bool RadiusHitsWall(C3DWorld *w,F64 angle,F64 *_x,F64 *_y,F64 height,F64 radius=THING_RADIUS,Bool adjust=FALSE,F64 tallness=.8) {
+#define RADF_CEIL 1
+#define RADF_FLOOR 2
+Bool RadiusHitsWall(C3DWorld *w,F64 angle,F64 *_x,F64 *_y,F64 height,F64 radius=THING_RADIUS,Bool adjust=FALSE,F64 tallness=.8,I64 flags=RADF_CEIL|RADF_FLOOR) {
   F64 x=*_x;
   F64 y=*_y;
   x/=GRID_SZ;
@@ -561,7 +563,7 @@ Bool RadiusHitsWall(C3DWorld *w,F64 angle,F64 *_x,F64 *_y,F64 height,F64 radius=
 	    ch=w->ceilmap[tile];
 	    cr=w->ceilmap2[tile];
 
-	    if(Floor(height)<h) {
+	    if(flags&RADF_FLOOR&&height<h) {
 check:
 	      if(Abs(x-tx)<radius&&xoff) {
 	        if(adjust) {
@@ -577,8 +579,9 @@ check:
 	        }
 	        ret|=TRUE;
 	      }
-	    } else if(ch<=height+tallness<ch+cr)
+	    } else if(flags&RADF_CEIL&&ch<=height+tallness<ch+cr) {
 	      goto check;
+	    }
 	  }
         }
       }
@@ -597,8 +600,12 @@ Bool C3DWorldMoveZWithCollision(C3DWorld *w,F64 dist,F64 x,F64 y,F64 *_height,F6
   F64 by=dist/16;
   Bool hit=FALSE;
   F64 h_offset=0;
-  I64 cnt=0,tile,best,ch,cr,h;
-  while(RadiusHitsWall(w,0,&x,&y,z,THING_RADIUS,FALSE,tallness)&&cnt!=16) {
+  I64 cnt=0,tile,best,ch,cr,h,flags;
+  if(dist>0.)
+    flags=RADF_CEIL;
+  else
+    flags=RADF_FLOOR;
+  while(RadiusHitsWall(w,0,&x,&y,z,THING_RADIUS,FALSE,tallness,flags)&&cnt!=16) {
     hit=TRUE;
     z-=by;
     cnt++;
