@@ -1,2 +1,2 @@
 removeChild: element | |
-  sub_elems rem: element 
+  sub_elems remove: element 

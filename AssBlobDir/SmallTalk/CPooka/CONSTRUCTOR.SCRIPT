@@ -1,0 +1,4 @@
+init | |
+  #world addThing: self .
+  template _ #world getThingTemplate: 'CPooka' .
+  ^ self

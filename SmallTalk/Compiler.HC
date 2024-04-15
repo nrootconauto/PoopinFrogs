@@ -119,11 +119,11 @@ U8 *VarClassName(CLocals *l,U8 *var) {
 //Returns classname that has the method or NULL.
 U8 *ClassHasMethod(U8 *cn,U8 *method) {
   U8 *canon;
-  if(cn&&blob_file_cache.data) {
+  if(cn) {
     CHashClass *cls=HashFind(cn,Fs->hash_table,HTT_CLASS);
     while(cls) {
-      canon=MStrPrint("SmallTalk/%s/%s",cls->str,method);
-      if(BlobFileGetLumpInfo(blob_file_cache.data,canon)) {
+      canon=MStrPrint("METHOD_%s.%s",cls->str,method);
+      if(FramePtr(canon)) {
         Free(canon);
         return cls->str;
       }
@@ -303,9 +303,11 @@ Bool STGetLocal(CDoc *doc,CLocals *who,U8 *name) {
 I64 ast_case_num=0;
 U0 CompileASTFinal(CDoc *doc,CAST *ast,U8 *locals,I64 stack_depth,I64 jump_to=INVALID_PTR,Bool allow_f64=FALSE) {
   I64 old=ast_case_num;
-  CDoc *ul=DocNew;
 //Set ASTflags"
+  CDoc *ul=DocNew;
+  ul->doc_signature=0;//Invalidte signature as we arent keeping track of the result
   CompileAST(ul,ast,locals,stack_depth,jump_to,allow_f64);
+  ul->doc_signature=DOC_SIGNATURE_VAL; //Restore
   DocDel(ul);
   ast_case_num=old;
   FramePtrAdd("FINAL_PASS",1);
@@ -313,6 +315,7 @@ U0 CompileASTFinal(CDoc *doc,CAST *ast,U8 *locals,I64 stack_depth,I64 jump_to=IN
   FramePtrDel("FINAL_PASS");
 }
 U0 ReplaceElem(CDoc *doc,CDocEntry *ent,U8 *with,...) {
+  if(!ent) return;
   with=StrPrintJoin(NULL,with,argc,argv);
   CDocEntry *old=doc->cur_entry;
   doc->cur_entry=ent;

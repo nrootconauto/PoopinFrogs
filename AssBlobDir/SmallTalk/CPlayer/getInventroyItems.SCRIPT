@@ -1,3 +1,4 @@
-getInventoryItems | res |
+getInventoryItems | res=CFrogArray |
   res _ quick_inventory getChildren .
+  res addAll: main_inventory getChildren .
   ^ res 

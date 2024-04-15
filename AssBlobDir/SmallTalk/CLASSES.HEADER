@@ -35,7 +35,7 @@ class CFrogDictionary:CFrogThing {
   CFrogThing *buckets;
   CFrogNum *size;
 };
-class CFrogStr:CFrogArray {
+class CFrogStr:CFrogArray {
 };
 class CFrogSymbol:CFrogThing {
   U8 name[STR_LEN];
@@ -200,7 +200,7 @@ class CHandItem:CFrogThing {
   U8 *destroy dft "HandItemDel";
   I64  x,y;
   I64  xoff,yoff;
-  I64 ammo;
+  I64 ammo,max_ammo;
   F64 timeout;
   CUIGridItem *inventory_item;
   CFrogBlock *on_click;
@@ -278,13 +278,16 @@ class CFrogNPC:C2DThing {
   F64 speed;
   CFrogTongue *tongue;
 };
+class CPooka:C2DThing {
+};
 class CPlayer:C2DThing {
   CFrogArray *items;
   CFrogArray *shell_casings;
   CUIMeter *health_meter;
   CUIMeter *ammo_meter;
-  CUIGrid *quick_inventory;
+  CUIGrid *quick_inventory,*main_inventory;
   CUIButton *open_inventory_button;
+  I64 main_inventory_active;
   CPissStream *piss_stream;
   F64 last_x,last_y;
 //How many bloody footprints will be made

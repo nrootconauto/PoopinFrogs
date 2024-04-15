@@ -1,0 +1,3 @@
+not ||
+  self ifTrue: [ ^ 0 ] .
+  ^ 1 

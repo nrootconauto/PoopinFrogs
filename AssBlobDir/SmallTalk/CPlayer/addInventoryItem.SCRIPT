@@ -1,2 +1,5 @@
 addInventoryItem: item  | |
-  ^ quick_inventory addItem: item
+  (quick_inventory addItem: item) ifTrue: [
+   ^ 1 .
+  ] .
+  ^ main_inventory addItem: item

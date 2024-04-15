@@ -10,7 +10,12 @@ makeUI | w=CFrogNum h=CFrogNum label*|
   open_inventory_button setBackgroundColor: #color_YELLOW .
   open_inventory_button setHeight: 10 ; setLabel: label .
   open_inventory_button setY: 10 ; setX : ( w / 2 ).
-  
+ 
+  main_inventory _ CUIGrid new .
+  main_inventory setWidth: 10 withHeight: 6 .
+  main_inventory setX: (w / 2) - ( main_inventory getWidth / 2 ) .
+  main_inventory setY: 30 .
+ 
   quick_inventory _ CUIGrid new .
   quick_inventory setWidth: 10 withHeight: 1 .
   quick_inventory setX: (w / 2) - ( quick_inventory getWidth / 2 ) . 
@@ -38,3 +43,17 @@ makeUI | w=CFrogNum h=CFrogNum label*|
   #ui_root addChild: health_meter .
   #ui_root addChild: ammo_meter .
 
+  main_inventory_active _ 0 .
+
+  'Open/Close big inventroy' .
+  
+  open_inventory_button onLeftClick: [
+    main_inventory_active _ main_inventory_active not .
+    main_inventory_active ifTrue: [
+      open_inventory_button setBackgroundColor: #color_RED .
+      #ui_root addChild: main_inventory .
+    ] ifFalse: [
+      open_inventory_button setBackgroundColor: #color_YELLOW .
+      #ui_root removeChild: main_inventory .
+    ] . 
+  ] . 

@@ -1,16 +1,32 @@
-addToPlayer: player | item have |
+addToPlayer: player | item* have=CFrogArray new_cnt=CFrogNum added=CFrogNum |
   have _ player getInventoryItems .
-  have do: [:t|
+  added _ 0 .
+  have do: [:t* |
     item _ t getItem .
     (item hasClass: item_class) ifTrue: [
-      item setAmmo: (item getAmmo + count ) . 
+      new_cnt _ item getAmmo + count .
+      item getMaxAmmo < (new_cnt) ifTrue: [
+        'Fill up the old item and add remainder'.
+
+        count _ count  - (item getMaxAmmo - item getAmmo ) max: 0 .
+        item setAmmo: item getMaxAmmo .
+
+        added _ 1 .
+      ] ifFalse: [
+        item setAmmo: (item getAmmo + count ) .
+        count _  0 .
+        added _ 1 .
+      ] .
       'Animate(update icon)'. 
       item animate . 
-      #world removeThing: self .
-      ^ 1.
     ]
   ] .
-  item _ item_class new .
+  count ifTrue: [
+    item _ item_class new .
+    item setAmmo: count .
+    'Animate(update icon)'. 
+    item animate . 
+  ] .
   #world removeThing: self .
   ^ 1.
   

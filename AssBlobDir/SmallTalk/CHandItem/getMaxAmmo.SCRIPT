@@ -1,0 +1,2 @@
+getMaxAmmo || 
+  ^ max_ammo

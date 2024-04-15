@@ -1,0 +1,2 @@
+setMaxAmmo: mx ||
+  max_ammo _ mx .

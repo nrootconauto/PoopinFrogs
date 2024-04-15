@@ -835,6 +835,7 @@ CDC *FloorStain(C3DWorld *w,I64 tx,I64 ty,I64 *xoff,I64 *yoff,Bool ceil) {
 }
 
 I64 ColorFloor(C3DWorld *w,I64 view_x,I64 floor_height,I64 sy,I64 ey,CDC *texture,Bool ceil=FALSE) {
+  if(!texture) return ey;
   CDC *dc=w->to_dc,*stain;
   F64 angley=0;
   F64 step;
@@ -1294,7 +1295,7 @@ ceil2:
           }
         }
         for(idx3=0;idx3<adj_height;idx3++) {
-          DrawWallSegment(w,segment,x,y0+h*idx3,w->wall_textures[w->world_mat[idx]],h,dist,ceil+adj_height-idx3,idx,side);
+          DrawWallSegment(w,segment,x,y0+h*idx3,w->wall_textures[w->world_mat[idx]],h,dist,ceil+adj_height-idx3,idx,side);
         }
         last_ceil=ceil;
 //      }
@@ -2125,7 +2126,8 @@ U0 DrawIt(CTask *t,CDC *dc) {
     }
   }
   DrawUIRoot(t,dc);
-  DCBlotColor8(odc,dc);
+  dc->flags|=DCF_NO_TRANSPARENTS;
+  GrBlot(odc,0,0,dc);
   dc->depth_buf=odepth_buf;
 }
 U0 WalkAround() {
@@ -2207,40 +2209,42 @@ U0 WalkAround() {
         }
 next:;
       }
-      if (jump) {
-         CallScript("jump",player);
-         jump=FALSE;
-      }
-      if (up)
-        C2DThingMoveAtAngle(player,
+      if(!player->main_inventory_active) {
+        if (jump) {
+           CallScript("jump",player);
+           jump=FALSE;
+        }
+        if (up)
+          C2DThingMoveAtAngle(player,
 	      FrogNumNew(GRID_SZ/4),
 	      FrogNumNew(player->angle));
-      if (down)
-        C2DThingMoveAtAngle(player,
+        if (down)
+          C2DThingMoveAtAngle(player,
 	      FrogNumNew(-GRID_SZ/4),
 	      FrogNumNew(player->angle));
-      if (left) {
-        C2DThingMoveAtAngle(player,
+        if (left) {
+          C2DThingMoveAtAngle(player,
 	      FrogNumNew(GRID_SZ/4),
 	      FrogNumNew(player->angle-pi/2));
-      }
-      if (right)
-        C2DThingMoveAtAngle(player,
+        }
+        if (right)
+          C2DThingMoveAtAngle(player,
 	      FrogNumNew(GRID_SZ/4),
 	      FrogNumNew(player->angle+pi/2));
-      if(msx<SCRN_TURN_MARGIN) {
-	player->angle-=ToF64(SCRN_TURN_MARGIN-msx)/SCRN_TURN_MARGIN*SCRN_TURN_RATE;
-      } else if(msx>GR_WIDTH-SCRN_TURN_MARGIN) {
-	player->angle+=ToF64(msx-(GR_WIDTH-SCRN_TURN_MARGIN))/SCRN_TURN_MARGIN*SCRN_TURN_RATE;
+        if(msx<SCRN_TURN_MARGIN) {
+	  player->angle-=ToF64(SCRN_TURN_MARGIN-msx)/SCRN_TURN_MARGIN*SCRN_TURN_RATE;
+        } else if(msx>GR_WIDTH-SCRN_TURN_MARGIN) {
+	  player->angle+=ToF64(msx-(GR_WIDTH-SCRN_TURN_MARGIN))/SCRN_TURN_MARGIN*SCRN_TURN_RATE;
+        }
+        if (ms.lb&&20<msy<GR_HEIGHT-75) { // mouse input is best handled with ms, not ScanMsg
+	  mouse_angle=(ms.pos.x-GR_WIDTH/2)*(w->fov/GR_WIDTH);
+	  player->angle+=mouse_angle;
+          CallScript("fire",FrogSymbol("hand_item")->value);
+	  player->angle-=mouse_angle;
+        }
       }
-      if (ms.lb&&msy<GR_HEIGHT-75) { // mouse input is best handled with ms, not ScanMsg
-	mouse_angle=(ms.pos.x-GR_WIDTH/2)*(w->fov/GR_WIDTH);
-	player->angle+=mouse_angle;
-        CallScript("fire",FrogSymbol("hand_item")->value);
-	player->angle-=mouse_angle;
-      }
-      wm->screen_x=ms.pos.x;
-      wm->screen_y=ms.pos.y;
+      wm->screen_x=msx;
+      wm->screen_y=msy;
       w->x=player->x;
       w->y=player->y;
       w->angle=player->angle+.001;

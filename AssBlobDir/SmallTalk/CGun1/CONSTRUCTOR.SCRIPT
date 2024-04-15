@@ -1,6 +1,7 @@
 init | |
   self setGraphics: 'GR/GUN1/IDLE' .
-  ammo _ 100 .
+  self setMaxAmmo: 30 .
+  ammo _ 30 .
   x _ 0 .
   y _ 300 .
   xoff _ 0 .
