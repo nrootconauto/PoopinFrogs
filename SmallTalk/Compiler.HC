@@ -302,17 +302,7 @@ Bool STGetLocal(CDoc *doc,CLocals *who,U8 *name) {
 }
 I64 ast_case_num=0;
 U0 CompileASTFinal(CDoc *doc,CAST *ast,U8 *locals,I64 stack_depth,I64 jump_to=INVALID_PTR,Bool allow_f64=FALSE) {
-  I64 old=ast_case_num;
-//Set ASTflags"
-  CDoc *ul=DocNew;
-  ul->doc_signature=0;//Invalidte signature as we arent keeping track of the result
-  CompileAST(ul,ast,locals,stack_depth,jump_to,allow_f64);
-  ul->doc_signature=DOC_SIGNATURE_VAL; //Restore
-  DocDel(ul);
-  ast_case_num=old;
-  FramePtrAdd("FINAL_PASS",1);
   CompileAST(doc,ast,locals,stack_depth,jump_to,allow_f64);
-  FramePtrDel("FINAL_PASS");
 }
 U0 ReplaceElem(CDoc *doc,CDocEntry *ent,U8 *with,...) {
   if(!ent) return;
@@ -428,55 +418,71 @@ Bool IsAllF64(CAST *ast) {
   }
   return TRUE;
 }
+Bool IsF64ExprNode(CLocals *l,CAST *ast) {
+  U8 *cn;
+  CAST *a,*b;
+  switch(ast->type) {
+    case AST_NUM:
+      return ast->is_f64=TRUE;
+    case AST_VAR:
+      if(cn=VarClassName(l,ast->name))
+        return ast->is_f64=!StrCmp(cn,"CFrogNum");
+      return FALSE;
+   case AST_UNOP:
+     a=ast->args.next;
+     if(IsF64ExprNode(l,a))
+       return ast->is_f64=ClassHasMethod("CFrogNum",ast->op_name);
+     return FALSE;
+   case AST_BINOP:
+     a=ast->args.next;
+     b=ast->args.last;
+     if(IsF64ExprNode(l,a)&&IsF64ExprNode(l,b))
+       return ast->is_f64=ClassHasMethod("CFrogNum",ast->op_name);
+     return FALSE;
+   case AST_KEYWORD:
+     a=&ast->args;
+     for(b=a->next;a!=b;b=b->next) {
+       if(!IsF64ExprNode(l,b)) return FALSE;
+     }
+     return ast->is_f64=ClassHasMethod("CFrogNum",ast->op_name);
+  }
+  return FALSE;
+}
+U0 NumPrimDft(CDoc *doc,CLocals *l,CAST *ast,I64 stack_depth) {
+  CAST *head=&ast->args,*cur;
+  I64 idx=0;
+  ast->is_f64=TRUE;
+  DocPrint(doc,"AsF64(");
+  GenerateMethodCall(doc,"CFrogNum",ast->name);
+  for(cur=head->next;cur!=head;cur=cur->next) {
+    DocPrint(doc,"FrogNumNew(");
+    CompileAST(doc,cur,l,stack_depth);
+    DocPrint(doc,")");
+    if(cur->next!=head)
+      DocPrint(doc,",");
+ }
+  DocPrint(doc,"))");
+}
 U0 NumPrim2(CDoc *doc,CLocals *l,CAST *ast,I64 stack_depth,U8 *op,U8*alt_name=NULL) {
   if(!alt_name) alt_name=op;
   CAST *a=ast->args.next,*b=ast->args.last;
   CDoc *tmp;
   U8 *save,*save2;
-  if(IsAllF64(ast)) {
-     ast->is_f64=1;
-     DocPrint(doc,"(");
-     CompileAST(doc,a,l,stack_depth,,TRUE);
-     DocPrint(doc,"%s",op);
-     CompileAST(doc,b,l,stack_depth,,TRUE);
-     DocPrint(doc,")");
-     return;
-  }  else {
-//Non-final pass allows for "choosing" if we are going to be ->is_f64 on final pass
-    CompileAST(doc,a,l,stack_depth,,!FramePtr("FINAL_PASS")); 
-    CompileAST(doc,b,l,stack_depth+1,,!FramePtr("FINAL_PASS"));
-    ast->is_f64=a->is_f64&&b->is_f64;
-    ast->switch_num=ast_case_num++;
-    DocPrint(doc,"case %d:\n",ast->switch_num);
-    DocPrint(doc,"if(%s&0xff==FROG_SMALL_NUM&&%s&0xff==FROG_SMALL_NUM) {\n",StackFrame2Var(stack_depth),StackFrame2Var(stack_depth+1));
-    DocPrint(doc,"  %s=FrogNumNew(AsF64(%s)%sAsF64(%s));",StackFrame2Var(stack_depth),StackFrame2Var(stack_depth),op,StackFrame2Var(stack_depth+1));
-    DocPrint(doc,"} else {");
-    DftCall(doc,l,ast,stack_depth,alt_name,1);
-    DocPrint(doc,"}\n");
-    DocPrint(doc,"goto enter;\n");
-  }
+  ast->is_f64=1;
+  DocPrint(doc,"(");
+  CompileAST(doc,a,l,stack_depth,,TRUE);
+  DocPrint(doc,"%s",op);
+  CompileAST(doc,b,l,stack_depth,,TRUE);
+  DocPrint(doc,")");
 }
 U0 NumPrim1(CDoc *doc,CLocals *l,CAST *ast,I64 stack_depth,U8 *op,U8 *alt_name=NULL) {
   if(!alt_name) alt_name=op;
   CDoc *tmp;
   U8 *save;
   CAST *a=ast->args.next;
-  if(IsAllF64(ast)) {
-     DocPrint(doc,"(%s(",op);
-     CompileAST(doc,a,l,stack_depth,,TRUE);
-     DocPrint(doc,"))");
-     return;
-  } 
-  CompileAST(doc,a,l,stack_depth,,!FramePtr("FINAL_PASS"));
-  ast->switch_num=ast_case_num++;
-  DocPrint(doc,"case %d:\n",ast->switch_num);
-  ast->is_f64=a->is_f64;
-  DocPrint(doc,"if(%s&0xff==FROG_SMALL_NUM) {\n",StackFrame2Var(stack_depth));
-  DocPrint(doc,"  %s=FrogNumNew(%s(AsF64(%s)));",StackFrame2Var(stack_depth),op,StackFrame2Var(stack_depth));
-  DocPrint(doc,"} else {");
-  DftCall(doc,l,ast,stack_depth,alt_name,0);
-  DocPrint(doc,"}\n");
-  DocPrint(doc,"goto enter;\n");
+  DocPrint(doc,"(%s(",op);
+  CompileAST(doc,a,l,stack_depth,,TRUE);
+  DocPrint(doc,"))");
 }
 U0 UnrollBlock(CDoc *doc,CLocals *l,I64 stack_depth,CAST *bl,I64 jump_to=INVALID_PTR) {
   CAST *head,*cur; 
@@ -514,6 +520,9 @@ U0 CompileAST(CDoc *doc,CAST *ast,CLocals *locals,I64 stack_depth,I64 jump_to=IN
   U8 *raw_class_name;
   U8 *conv_name;
   CMemberLst *mlst;
+  if(allow_f64) {
+    ast->is_f64=IsF64ExprNode(locals,ast);
+  }
   switch(ast->type) {
       break;case AST_UNOP:
       cnt=0;
@@ -583,8 +592,8 @@ pass:
         cur=ast->args.next;
 //Compile non-numbers first
         for(idx=0;idx<cnt+1;idx++) { //+1 includes self
-	  if(!IsAllF64(cur))
-	    CompileAST(doc,cur,locals,stack_depth+idx,,!FramePtr("FINAL_PASS"));
+	  if(!IsF64ExprNode(locals,cur))
+	    CompileAST(doc,cur,locals,stack_depth+idx,,FALSE);
 	  cur=cur->next;
         }
 ///Compile F64 after the label prolog
@@ -593,7 +602,7 @@ pass:
 
         cur=ast->args.next;
         for(idx=0;idx<cnt+1;idx++) { //+1 includes self
-	  if(IsAllF64(cur)) {
+	  if(IsF64ExprNode(locals,cur)) {
 	    DocPrint(doc,"%s=FrogNumNew(",StackFrame2Var(stack_depth+idx));
 	    CompileAST(doc,cur,locals,stack_depth+idx,,TRUE);
 	    DocPrint(doc,");");
@@ -692,6 +701,8 @@ force_f64:;
 	  NumPrim2(doc,locals,ast,stack_depth,"`","raisedTo:");
 	  goto prim_skip;
         }
+	NumPrimDft(doc,locals,ast,stack_depth);
+        goto prim_skip;
       }
 //
       DftCall(doc,locals,ast,stack_depth,ast->op_name,cnt);
@@ -745,7 +756,7 @@ assign_raw:
       DocPrint(doc,"case %d:\n",ast->switch_num);
       DocPrint(doc,"  %s=FrogStrNew(\"%Q\");\n",StackFrame2Var(stack_depth),ast->str);
       break;case AST_VAR:
-      if(ast->is_f64&&FramePtr("FINAL_PASS")) {
+      if(ast->is_f64) {
 	conv_name="ToF64";
       } else {
         ast->switch_num=ast_case_num++;
@@ -754,14 +765,9 @@ assign_raw:
       }
       if(STHasLocal(locals,ast->name)) {
 	idx=VarClassName(locals,ast->name);
-	if(idx)
-          if(!StrCmp(idx,"CFrogNum")&&allow_f64) {
-            ast->is_f64=TRUE;
- 	  }
         if(STIsSelfMember(locals,ast->name)) {
 	  mlst=MemberFind(ast->name,HashFind(FramePtr("MethodClass"),frog_mem_task->hash_table,HTT_CLASS));
 	  if(STIsRawMember(locals,ast->name)) {
-	    if(allow_f64) ast->is_f64=TRUE;
 	    raw_class_name=RawAccessType(FramePtr("MethodClass"),ast->name);
 //ToF64 turns an I64(forced) into an F64
 	    if(ast->is_f64&&!StrCmp(raw_class_name,"F64"))
@@ -783,7 +789,6 @@ assign_raw:
 	    if(ast->is_f64)
 	      DocPrint(doc,")");
         } else {
-	  if(allow_f64) ast->is_f64=TRUE;
 	  raw_class_name=RawAccessType(FramePtr("MethodClass"),ast->name);
 //ToF64 turns an I64(forced) into an F64
 	  if(ast->is_f64&&!StrCmp(raw_class_name,"F64"))
@@ -844,12 +849,11 @@ assign_raw:
       DocPrint(doc,"case %d:\n",ast->switch_num);
       DocPrint(doc,"  %s=FrogIncRefCnt(self);\n",StackFrame2Var(stack_depth)); 
       break;case AST_NUM:
-      if(!allow_f64) { 
+      if(!ast->is_f64) { 
         ast->switch_num=ast_case_num++;
         DocPrint(doc,"case %d:\n",ast->switch_num);
         DocPrint(doc,"  %s=FrogNumNew(%n);\n",StackFrame2Var(stack_depth),ast->num); 
       } else {
-        ast->is_f64=TRUE;
         DocPrint(doc,"%n",ast->num);
         return;
       }

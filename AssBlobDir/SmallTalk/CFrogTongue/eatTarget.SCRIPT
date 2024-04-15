@@ -3,7 +3,6 @@ eatTarget: thing=C2DThing  fromFrog: f=C2DThing |
   xx=CFrogNum
   yy=CFrogNum
   dist=CFrogNum
-  from=C2DThing
  |
   from _ f .
   xx _ thing xPos - from xPos.

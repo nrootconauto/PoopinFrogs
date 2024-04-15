@@ -44,7 +44,7 @@ fire |
           (player screenRayHitsTarget: t atAngle: player getAngle 
              withAutoAim: 1.5
              ) ifTrue: [
-              t damage: 101 .
+              t damage: 10 * CFrogRandom new next + 5 from: player .
               ^ t 
           ] 
         ]

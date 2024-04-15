@@ -277,9 +277,16 @@ class CFrogNPC:C2DThing {
   CFrogRandom *random_generator;
   F64 speed;
   CFrogTongue *tongue;
+//Who are we chasing/attacking
+  C2DThing *target;
+//The state varaible does things like move the frog around
+// or run around if low health. It will attack if provoked
+  F64 state_start_tS;
+  F64 state_duration;
+  CFrogStr *state;
 };
 class CPooka:C2DThing {
-};
+};
 class CPlayer:C2DThing {
   CFrogArray *items;
   CFrogArray *shell_casings;

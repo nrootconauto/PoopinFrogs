@@ -1585,19 +1585,19 @@ draw:
   cy=ClampI64(y0,0,GR_HEIGHT);
   to_x=ClampI64(width+x0,0,GR_WIDTH-2);
   to_y=ClampI64(vis_h+y0,0,GR_HEIGHT-3);
-  for(ix=ToI64(cx)&~1;cx-4<=ix<to_x;ix+=2) {
+  for(ix=ToI64(cx)&~1;cx-2<=ix<to_x;ix+=2) {
     if(!flip) {
       col=(ix-x0)/width*use_dc->width;
       src_ptr=y_line;
     } else {
-      col=(width-(ix-x0)-1)/width*use_dc->width;
+      col=(width-(ix-x0)-2)/width*use_dc->width;
     }
     if(0>col||col>=use_dc->width)
      goto skip2;
     iy=ToI64(cy)&~1;
     dst=dc->body+ToI64(iy)*dc->width_internal+ToI64(ix);
     I32 *depth_dst=dc->depth_buf+ToI64(iy)*dc->width_internal+ToI64(ix);
-    for(;cy-4<=iy<to_y;iy+=3) {
+    for(;cy-4<=iy<=to_y-3;iy+=3) {
       line=ToI64((iy-y0)/vis_h*use_dc->height);
       if(0<=line<use_dc->height-3) {
         y_line=use_dc->body+line*use_dc->width_internal;
@@ -2268,8 +2268,8 @@ next:;
 en:
 //  ProfRep;
   FlushMsgs;
-  Refresh;
   Fs->draw_it=NULL;
+  Refresh;
 }
 WalkAround;
 #endif

@@ -1,6 +1,22 @@
-damage: amt | |
+damage: amt from: t | |
   'blood' .
   1 to: amt / 6 + 5 do:[ 
     #world newParticleAtX: x atY: y atZ: z + .5 withSpread: 64 withColor: #color_RED 
   ] .
+ 
+  'Stop attacking ' .
+  tongue _  0 . 
+
+  'Attack target if in good health '.
+  target _ t .
+  health >= 25 ifTrue: [
+    state _ 'Angry' .
+    state_start_tS _ CFrogTime now .
+    state_duration _ 100 .
+  ] ifFalse: [
+    state _ 'Flee' .
+    state_start_tS _ CFrogTime now .
+    state_duration _ 5 .
+  ] .
+
   super damage: amt . 

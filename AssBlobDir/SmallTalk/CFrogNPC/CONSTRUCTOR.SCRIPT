@@ -5,4 +5,5 @@ init | |
   random_generator _ CFrogRandom new .
   template _ #world getThingTemplate: 'CFrogNPC' .
   animation_start_tS _ 0 .
+  state _ 'Normal' . 
   ^ self
