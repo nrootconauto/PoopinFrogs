@@ -1,4 +1,4 @@
- class CFrogThing:CQue {
+class CFrogThing:CQue {
 #define SRV_THINGF_TO_DELETE 1
   I32 thing_flags,pad;
   I32 id,ref_cnt;
@@ -37,7 +37,7 @@ class CFrogDictionary:CFrogThing {
 };
 class CFrogStr:CFrogThing {
   CU8Set *items;
-  U8 *constructor dft "FrogStrInit";
+  U8 *constructor dft "FrogStrInit";
   U8 *destroy dft "FrogStrDel";
 };
 class CFrogSymbol:CFrogThing {
@@ -243,7 +243,25 @@ class CShellCasing:CFrogThing {
   CDC *dc;
   U8 *destroy dft "ShellCasingDel";
 };
-
+//
+// Eliza Chat Engine Section
+//
+class CElizaReasm:CFrogThing {
+  CFrogArray *add_flags;
+  CFrogArray *remove_flags;
+  CFrogArray *need_flags;
+  F64 freq;
+  CFrogStr *goto_text;
+  CFrogArray *parts;
+  CFrogStr *result;
+};
+class CEliza:CFrogThing {
+  CFrogDictionary *synonyms;
+  CFrogStr *hello;
+  CFrogStr *quit;
+  CFrogArray *reasms; //CElizaReasm
+  CFrogArray *cur_flags; //Just a CFrogStr
+};
 //
 // Game Section
 //

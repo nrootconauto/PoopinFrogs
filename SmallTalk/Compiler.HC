@@ -109,6 +109,7 @@ class CHashGeneric3:CHashGeneric {
   I64 is_escaped;
 };
 U8 *VarClassName(CLocals *l,U8 *var) {
+  if(!l) return FALSE;
   CHashGeneric3 *g=HashFind(var,l->vars,HTT_FRAME_PTR);
   if(g)
     if(g->user_data3) {
@@ -153,9 +154,9 @@ U0 GenerateMethodCall(CDoc *doc,U8 *class_name,U8 *method_name) {
   if(!StrCmp("CFrogNum",class_name)) {
 //Checking numbers will be too tiresome
     if(gen->user_data0!=&Useless)
-      DocPrint(doc,"CallPtr(%d,NULL,",gen->user_data0);
+      DocPrint(doc,"CallPtr(%d,NULL,",gen->user_data0,class_name);
     else
-      DocPrint(doc,"CallPtr(%d(I64**)[0],NULL,",&gen->user_data0);
+      DocPrint(doc,"CallPtr(%d(I64**)[0],NULL,",&gen->user_data0,class_name);
   } else {
     if(gen->user_data0!=&Useless)
       DocPrint(doc,"CallPtr(%d,\"%Q\",",gen->user_data0,class_name);
@@ -1014,7 +1015,11 @@ U0 STRunStmt(U8 *str) {
 STRunStmt(
 "  #Y _ [:f=CFrogBlock | [:x=CFrogBlock | x value: x] value: [:g=CFrogBlock| f value: [:x| (g value: g) value: x] ] ]."
 "  #fib _ #Y value: [:f| [:i=CFrogNum | i <= 1 ifTrue: [i] ifFalse: [(f value: i - 1) + (f value: i - 2)] ] ]."
-" (#fib value: 10 ) show ."
+"  (#fib value: 10 ) show ."
+"  #r _ CElizaReasm new ."
+"  #r initFromString: '* likes * ' ."
+"  #r setResult: 'I didnt know (1) likes (2).'."
+"  (#r reassemble: #(#('Suzzy') #('Frogs'))) show ."
 );
 #endif
 #endif

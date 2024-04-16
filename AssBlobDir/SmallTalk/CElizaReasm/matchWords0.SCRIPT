@@ -1,0 +1,2 @@
+matchWords: array ||
+  ^ self matchWords: array putWildcardsIn: #().

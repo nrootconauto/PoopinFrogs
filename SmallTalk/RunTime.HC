@@ -493,10 +493,10 @@ fin:
 
 CFrogThing *CallPtr(U8 *fun_ptr,U8 *must_have,CFrogThing *self,...) {
   if(must_have) {
-   if(!ThingHasClass(self,must_have)) {
+    if(!ThingHasClass(self,must_have)) {
      //ThingDel(self);
      return FROG_SMALL_NIL;
-   }
+    }
   }
   CFrogThing *ret=CallVaArgs(fun_ptr,argc,argv,self);
   //ThingDel(self);
@@ -796,7 +796,20 @@ U0 ConstructBuiltin(U8 *code,U8 *type,U8 *name,...) {
   StreamPrint("};\n");
   StreamPrint("AddMethod(\"%Q\",\"%Q\",&%s);\n",type,name,uniq);
 };
+CFrogThing *FrogChrIsAlNum(CFrogChr *self,...) {
+  return FrogNumNew(Bt(char_bmp_alpha_numeric,AsChar(self)));
+}
+CFrogThing *FrogChrIsWhitespace(CFrogChr *self,...) {
+  return FrogNumNew(Bt(char_bmp_white_space,AsChar(self)));
+}
+CFrogThing *FrogChrIsNumber(CFrogChr *self,...) {
+  return FrogNumNew(Bt(char_bmp_dec_numeric,AsChar(self)));
+}
 #exe {
+//Char
+  ConstructBuiltin("FrogChrIsAlNum(self)","CFrogChr","isAlphaNumeric");
+  ConstructBuiltin("FrogChrIsWhitespace(self)","CFrogChr","isWhitespace");
+  ConstructBuiltin("FrogChrIsNumber(self)","CFrogChr","isNumber");
 //Object
   ConstructBuiltin("FrogThingIsKindOf(self,thing)","CFrogThing","isKindOf:","CFrogClass","thing");
   ConstructBuiltin("FrogThingClass(self)","CFrogThing","class");
@@ -1155,7 +1168,7 @@ U0 ThingDel(CFrogThing *thing,Bool recurse=TRUE) {
   CHashFun *fun;
   U0 (*destroy)(CFrogThing*);
   if(!thing||thing&1) return; //bit 0 is set for special "SMALL" type
-  if(--thing->ref_cnt==0) {
+  if(--thing->ref_cnt<=0) {
   if(thing->ref_cnt<0) throw('asdas');
     if(thing->thing_flags&THINGF_FRAME_TYPE) {
       g=thing;
@@ -1182,6 +1195,10 @@ U0 ThingDel(CFrogThing *thing,Bool recurse=TRUE) {
     if(cpair=FastLookupByStr(".dft",thing->class_name)) {
       if(cpair->destroy) {
         fun=HashFind(cpair->destroy,frog_mem_task->hash_table,HTT_FUN);
+//Special case,CFrogBlock's destroy is a recursive
+        if(!recurse&&(ThingHasClass(thing,"CFrogBlock")||ThingHasClass(thing,"CFrogArray"))) {
+	  return;
+	}
         if(fun) {
           destroy=fun->exe_addr;
 	  (*destroy)(thing);

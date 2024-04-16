@@ -1,0 +1,40 @@
+Message: str |
+   valid=CFrogArray
+   split=CFrogArray 
+   tmp=CFrogStr
+   choose=CElizaReasm
+   wildcards=CFrogArray
+|
+
+  split _ #() .
+  tmp _ '' .
+  str do: [:ch* | 
+    ch isWhitespace ifTrue: [
+      tmp size ifTrue: [
+        split add: tmp copy
+      ] .
+      tmp _ '' .
+    ] ifFalse: [
+      tmp add: ch 
+    ]
+  ] .
+  tmp size ifTrue: [
+    split add: tmp copy
+  ] .
+
+  valid _ reasms select: [:r=CElizaReasm | 
+    r matchWords: split 
+  ] .
+
+  valid size ifFalse: [
+    ^ 0 .
+  ] .
+
+  choose _ valid at: ( valid size rem: CFrogRandom new next).
+
+  wildcards _ #() .
+  choose matchWords: split putWildcardsIn: wildcards .
+
+  wildcards printString show .
+  'TODO check for flags' show .
+  ^ choose reassemble: wildcards  

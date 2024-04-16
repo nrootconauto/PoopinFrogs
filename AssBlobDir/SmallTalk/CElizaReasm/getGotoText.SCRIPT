@@ -1,0 +1,2 @@
+getGotoText  ||
+  ^ goto_text

@@ -56,7 +56,7 @@ U0 U8SetAdd(CU8Set *s,I64 v) {
   if(s->cnt+1>=s->cap) {
      new=CAlloc(s->cap+16,s->mem_task);
      s->cap+=16;
-     MemCpy(new,s->body,s->cnt*8);
+     MemCpy(new,s->body,s->cnt);
      Free(s->body);
      s->body=new;
   }

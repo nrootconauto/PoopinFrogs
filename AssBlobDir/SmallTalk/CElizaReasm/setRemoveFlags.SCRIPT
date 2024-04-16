@@ -1,0 +1,2 @@
+setRemoveFlags: nf ||
+  remove_flags _ nf 

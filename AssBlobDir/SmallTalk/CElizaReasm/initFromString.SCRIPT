@@ -1,0 +1,20 @@
+initFromString: str |
+  split=CFrogArray
+  tmp=CFrogStr
+|
+  split _ #() .
+  tmp _ '' .
+  str do: [:ch* | 
+    ch isWhitespace ifTrue: [
+      tmp size ifTrue: [
+        split add: tmp copy
+      ] .
+      tmp _ '' .
+    ] ifFalse: [
+      tmp add: ch 
+    ]
+  ] .
+  tmp size ifTrue: [
+    split add: tmp copy
+  ] .
+  parts _ split 

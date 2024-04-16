@@ -1,0 +1,7 @@
+init | |
+  reasms _ #() .
+  synonyms _ CFrogDictionary new .
+  hello _ 'Hello!' .
+  quit _ 'Quit' .
+  cur_flags _ #() .
+ ^ self

@@ -1,0 +1,9 @@
+init | |
+  add_flags _ #() .
+  remove_flags _ #() .
+  need_flags _ #() .
+  freq _ 0 .
+  goto_text _ '' .
+  parts _ #() .
+  result _  '' .
+ ^ self

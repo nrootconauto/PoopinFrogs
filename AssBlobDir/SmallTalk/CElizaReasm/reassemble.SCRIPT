@@ -1,0 +1,29 @@
+reassemble: wildcards |
+  ret=CFrogStr 
+  cumsum=CFrogStr 
+  replace=CFrogBlock 
+  found_at=CFrogNum
+|
+  ret _ result copy .
+  replace _ [:from=CFrogStr :with=CFrogStr |
+    found_at _ (ret indexOf: from ) .
+    found_at >= 0 ifTrue: [
+      ret _ (ret copyFrom: 0 to: found_at ) , with , (
+        ret copyFrom: found_at + from size to: ret size 
+      )
+    ]
+  ].
+  0 to: wildcards size do: [:idx* |
+    cumsum _ '' .
+    (wildcards at: idx) do:[:s=CFrogStr| 
+      cumsum  size ifTrue: [
+        cumsum _ cumsum , ' ' , s
+      ]  ifFalse: [
+        cumsum _ cumsum , s 
+      ]
+    ] . 
+    replace
+      value: ('(' ,  (idx + 1) printString , ')')
+      value: cumsum
+  ] .
+  ^ ret

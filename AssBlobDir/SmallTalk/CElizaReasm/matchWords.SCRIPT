@@ -1,0 +1,28 @@
+matchWords: array putWildcardsIn: result|
+  wi=CFrogNum
+  next=CFrogStr
+  wildcard=CFrogArray 
+  |
+  wi _ 0 .
+  0 to: parts size do: [:idx=CFrogNum | 
+    ( parts at: idx ) = '*' ifTrue: [ 
+      wildcard _ #() .
+      ( idx + 1 < parts size ) ifTrue:[
+        next _ parts at: idx .
+        [( array at: wi ) ~= next and: wi < array size ] whileTrue: [
+          wildcard add: ( array at: wi ) copy .
+          wi _ wi + 1 .
+        ]
+      ] .
+      result add: wildcard .
+      result printString show .
+    ] ifFalse: [
+      ( array at: wi ) = (parts at: idx) ifTrue: [
+        ( array at: wi ) show .
+        wi _ wi + 1 .
+      ] ifFalse: [
+        ^ 0
+      ]
+    ]
+  ] .
+  ^ 1 
