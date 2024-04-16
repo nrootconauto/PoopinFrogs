@@ -35,11 +35,17 @@ class CFrogDictionary:CFrogThing {
   CFrogThing *buckets;
   CFrogNum *size;
 };
-class CFrogStr:CFrogArray {
+class CFrogStr:CFrogThing {
+  CU8Set *items;
+  U8 *constructor dft "FrogStrInit";
+  U8 *destroy dft "FrogStrDel";
 };
 class CFrogSymbol:CFrogThing {
   U8 name[STR_LEN];
   CFrogThing *value;
+//CU8Set and CI64Set are internally the same.
+  U8 *constructor dft "FrogArrayInit";
+  U8 *destroy dft "FrogArrayDel";
 };
 class CFrogError:CFrogThing {
 };
@@ -279,7 +285,7 @@ class CFrogNPC:C2DThing {
   CFrogTongue *tongue;
 //Who are we chasing/attacking
   C2DThing *target;
-//The state varaible does things like move the frog around
+//The state varaible does things like move the frog around
 // or run around if low health. It will attack if provoked
   F64 state_start_tS;
   F64 state_duration;

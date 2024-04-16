@@ -1,5 +1,5 @@
-copyFrom: s to: e | ret=CFrogArray |
-  ret = #( ) .
+copyFrom: s=CFrogNum to: e=CFrogNum | ret=CFrogArray |
+  ret _ #( ) .
   [
     s < e
   ] whileTrue: [

@@ -1,0 +1,21 @@
+indexOf: ss | s=CFrogNum e=CFrogNum s2=CFrogNum i=CFrogNum cnt=CFrogNum |
+  (ss class ~= CFrogStr) ifTrue: [
+    ss _ ss printString .
+  ] .
+  s2 _ ss size .
+  e _ self size - s2 .
+  e < 0 ifTrue: [
+    ^ -1 
+  ] .
+  s _ 0 .
+  [s <= e ] whileTrue: [
+    i _ 0 .
+    [i < s2 and: ( (ss at: i) = (self at: i + s ) ) ] whileTrue: [
+      i _ i + 1.
+    ] .
+    i = s2 ifTrue: [
+      ^ s 
+    ] .
+    s _ s + 1 .
+  ] .
+  ^ -1 

@@ -358,7 +358,7 @@ U8 *CompileThunk(CAST *block,CLocals *parent=NULL) {
   idx=0;
   DocPrint(doc,"}\n");
   DocPrint(doc,"ret:\n");
-//  DocPrint(doc,"  while(--unwind>=0) ThingDel(stk[unwind]);");
+  DocPrint(doc,"  while(--unwind>=0) ThingDel(stk[unwind]);");
   DocPrint(doc,"  STFrameDel;\n");
   DocPrint(doc,"  return stk0;\n");
   DocPrint(doc,"};");
@@ -922,7 +922,7 @@ U0 CompileToHolyC(U8 *src,U8 *class_name,U8 *src_path=NULL,Bool class_method=FAL
   head=&m->args;
   idx=0;
   DocPrint(doc,"}ret:\n");
-//  DocPrint(doc,"  while(--unwind>=0) ThingDel(stk[unwind]);");
+  DocPrint(doc,"  while(--unwind>=0) ThingDel(stk[unwind]);");
   DocPrint(doc,"  *return_flag=0;\n"); //Allow blocks made in the method to be called agian
   DocPrint(doc,"  STFrameDel;\n");
   DocPrint(doc,"  return retval;\n");
@@ -991,7 +991,7 @@ U0 STRepl(U8 *dft="",Bool interactive=TRUE) {
 // Dumb hack,blocks have a reference to the retunr_flag,so reset it.
 //
       DocPrint(doc,"  *return_flag=0;\n");
-//      DocPrint(doc,"  while(--unwind>=0) ThingDel(stk[unwind]);");
+      DocPrint(doc,"  while(--unwind>=0) ThingDel(stk[unwind]);");
       DocPrint(doc,"  STFrameDel;\n");
       DocPrint(doc,"  return retval;\n");
       DocPrint(doc,"}REPLFun(FrogNil);\n");

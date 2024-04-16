@@ -1,0 +1,8 @@
+do: bl=CFrogBlock | s=CFrogNum e=CFrogNum |
+  s _ 0 .
+  e _ self size .
+  [s < e ] whileTrue: [
+    bl value: ( self at: s ) .
+    s _ s  + 1 .
+  ] .
+   

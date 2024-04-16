@@ -1,4 +1,6 @@
-, other | ret |
+, other | ret=CFrogStr |
   ret _ self copy .
-  ret  addAll: other .
+  other do: [:c=CFrogChr | 
+    ret add: c 
+  ] .
   ^ ret

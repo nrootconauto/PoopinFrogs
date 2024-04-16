@@ -37,4 +37,34 @@ U0 I64SetRem(CI64Set *s,I64 v) {
   }
   s->cnt-=del;
 }
+
+class CU8Set {
+  I64 cnt,cap;
+  CTask *mem_task;
+  U8 *body;
+};
+
+CU8Set *U8SetNew(CTask *mem_task=NULL) {
+  CU8Set *s=CAlloc(sizeof(CU8Set),mem_task);
+  s->mem_task=mem_task;
+  s->cap=16;
+  s->body=CAlloc(16,mem_task);
+  return s;
+}
+U0 U8SetAdd(CU8Set *s,I64 v) {
+  U8 *new;
+  if(s->cnt+1>=s->cap) {
+     new=CAlloc(s->cap+16,s->mem_task);
+     s->cap+=16;
+     MemCpy(new,s->body,s->cnt*8);
+     Free(s->body);
+     s->body=new;
+  }
+  s->body[s->cnt++]=v;
+}
+U0 U8SetDel(CU8Set *s) {
+  Free(s->body);
+  Free(s);
+}
+
 #endif

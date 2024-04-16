@@ -1,4 +1,4 @@
-= other | idx sz |
+= other | idx=CFrogNum sz=CFrogNum |
   other size ~= self size ifTrue: [ ^ 0 ] .
   idx _ 0 .
   sz _ self size .

@@ -33,12 +33,19 @@ class CFrogBlock:CFrogThing {
 #ifndef CI64Set 
 extern class CI64Set;
 #endif
+#ifndef CU8Set 
+extern class CU8Set;
+#endif
 class CFrogArray:CFrogThing {
   CI64Set *items;
   U8 *constructor dft "FrogArrayInit";
   U8 *destroy dft "FrogArrayDel";
 };
-class CFrogStr:CFrogArray {
+
+class CFrogStr:CFrogThing {
+  CU8Set *items;
+  U8 *constructor dft "FrogStrInit";
+  U8 *destroy dft "FrogStrDel";
 };
 class CFrogSymbol:CFrogThing {
   U8 name[STR_LEN];
