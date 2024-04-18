@@ -1,3 +1,73 @@
-addThing: thing | |
+addThing: thing |
+    hash=CFrogNum
+    names=CFrogArray
+    first=CFrogStr
+    last=CFrogStr
+|
+'() prevents strings from being meged' .
+  names _ #(
+     ('Asshole')
+     ('Buttman')
+     ('Beavis')
+     ('Coochis')
+     ('Dick')
+     ('Elbrus')
+     ('Fred')
+     ('Gilber')
+     ('Grover')
+     ('Hilbert')
+     ('Incestman')
+     ('Jeffery')
+     ('Kilroy')
+     ('Lovin')
+     ('Mo')
+     ('Meanbean')
+     ('Nugget')
+     ('Ovulary')
+     ('Penis')
+     ('Quiin')
+     ('21')
+     ('Septicus')
+     ('Tumor')
+     ('Truffle')
+     ('Uppy')
+     ('Uranus')
+     ('Venus')
+     ('Wigglyston')
+     ('Retard')
+     ('Ben')
+  ) .
+  first _ names at: (thing xPos * 123.456  rem:  names size ) .
+  names _ #(
+    ('Assholeingston')
+    ('Ballsackingston')
+    ('B')
+    ('Bungisman')
+    ('Clitoris')
+    ('Dingleberry')
+    ('Dickens')
+    ('Elseworth')
+    ('Fucks')
+    ('Fatload')
+    ('Gigglyman')
+    ('Hellhole')
+    ('Incestman')
+    ('Jiggis')
+    ('Kilroy')
+    ('Loverman')
+    ('Mo')
+    ('Nuggith')
+    ('Oooyeeh')
+    ('Penisman')
+    ('Pepperhead')
+    ('Sexyman')
+    ('Saggage')
+    ('Timbo')
+    ('Wuggis')
+    ('Z80')
+  ) .
+  last _ names at: (thing yPos * 567.89  rem: names size ) .
+  thing setName: first , ' ' , last .
+  thing getName show .
   things add: thing .
   self updateThingPos: thing .

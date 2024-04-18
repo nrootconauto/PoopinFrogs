@@ -1,40 +1,55 @@
-Message: str |
+message: str |
    valid=CFrogArray
    split=CFrogArray 
    tmp=CFrogStr
    choose=CElizaReasm
    wildcards=CFrogArray
+   best_match_len=CFrogNum
+   set=CFrogArray
 |
-
   split _ #() .
   tmp _ '' .
   str do: [:ch* | 
-    ch isWhitespace ifTrue: [
+    ch isAlphaNumeric ifTrue: [
+      tmp add: ch 
+    ] ifFalse: [
       tmp size ifTrue: [
-        split add: tmp copy
+        split add: (self getSynonym: tmp copy )
       ] .
       tmp _ '' .
-    ] ifFalse: [
-      tmp add: ch 
     ]
   ] .
   tmp size ifTrue: [
-    split add: tmp copy
+    split add: (self getSynonym: tmp copy )
   ] .
 
   valid _ reasms select: [:r=CElizaReasm | 
-    r matchWords: split 
+    (r matchWords: split ) and: ( r acceptsFlags: cur_flags )
   ] .
 
   valid size ifFalse: [
     ^ 0 .
   ] .
 
-  choose _ valid at: ( valid size rem: CFrogRandom new next).
 
-  wildcards _ #() .
-  choose matchWords: split putWildcardsIn: wildcards .
+  best_match_len _ 0 .
+  set _ valid collect: [:x=CElizaReasm|
+    wildcards _ #() .
+    x matchWords: split putWildcardsIn: wildcards .
+    best_match_len _ best_match_len max: wildcards size .
+    'See below note' . 
+    #( (x) (wildcards) )
+  ] .
+  
+  set _ set select:[:x=CFrogArray|
+     (x at: 1) size = best_match_len
+  ] .
 
-  wildcards printString show .
-  'TODO check for flags' show .
-  ^ choose reassemble: wildcards  
+  '???' .
+  set size ifFalse: [^ 0 ] .
+
+  '#(CElizaReasm wildcards)' .
+  split _ set at: CFrogRandom new next * (set size - .99 ) .
+
+  (split at: 0) modifyFlags: cur_flags .
+  ^ (split at: 0) reassemble: (split at: 1 )

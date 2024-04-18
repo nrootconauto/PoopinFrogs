@@ -805,10 +805,15 @@ CFrogThing *FrogChrIsWhitespace(CFrogChr *self,...) {
 CFrogThing *FrogChrIsNumber(CFrogChr *self,...) {
   return FrogNumNew(Bt(char_bmp_dec_numeric,AsChar(self)));
 }
+CFrogThing *FrogChrIsDisplayable(CFrogChr *self,...) {
+  return FrogNumNew(Bt(char_bmp_displayable,AsChar(self)));
+}
+
 #exe {
 //Char
   ConstructBuiltin("FrogChrIsAlNum(self)","CFrogChr","isAlphaNumeric");
   ConstructBuiltin("FrogChrIsWhitespace(self)","CFrogChr","isWhitespace");
+  ConstructBuiltin("FrogChrIsDisplayable(self)","CFrogChr","isDisplayable");
   ConstructBuiltin("FrogChrIsNumber(self)","CFrogChr","isNumber");
 //Object
   ConstructBuiltin("FrogThingIsKindOf(self,thing)","CFrogThing","isKindOf:","CFrogClass","thing");

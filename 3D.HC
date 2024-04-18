@@ -2141,6 +2141,7 @@ U0 WalkAround() {
   CUIElem *ui_root=FrogSymbol("ui_root")->value;
   CShellCasing *shellc;
   C3DWorldManager *wm=man->value;
+  I64 every=0;
   WinMax;
   WinBorder;
   AutoComplete;
@@ -2263,7 +2264,7 @@ next:;
         }
      }
       Refresh;
-      FrogGarbageCollect;
+if(every++&15==0) FrogGarbageCollect;
     } catch PutExcept(TRUE);
 en:
 //  ProfRep;

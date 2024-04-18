@@ -1,0 +1,8 @@
+acceptsFlags: flags=CFrogArray |
+|
+  need_flags do:[:str=CFrogStr|
+    (flags indexOf: str) = -1 ifTrue: [
+      ^ 0 
+    ]
+  ] .
+  ^ 1 

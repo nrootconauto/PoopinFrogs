@@ -6,4 +6,5 @@ init | |
   template _ #world getThingTemplate: 'CFrogNPC' .
   animation_start_tS _ 0 .
   state _ 'Normal' . 
+  #new_frog_conversation value: self .
   ^ self

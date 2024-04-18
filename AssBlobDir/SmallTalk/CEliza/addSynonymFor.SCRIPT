@@ -1,0 +1,2 @@
+addSynonym: s=CFrogStr for: f=CFrogStr ||
+  synonyms at: s put: f copy 

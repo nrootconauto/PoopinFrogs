@@ -1,2 +1,39 @@
 init | |
+  bg_color _ #color_RED .
+  fg_color _ #color_YELLOW .
+  border_color _ #color_LTGRAY .
+  view_pos _ 0 .
+  cur_pos _ 0 .
+  buf _  '' .
+  kbd_down _ [:elem=CUITextBar :ch* :sc*|
+    'SC_CURSOR_LEFTis 75' .
+    sc = 75 ifTrue: [
+      cur_pos _ cur_pos - 1 .
+      ch _  0
+    ] . 
+    'SC_CURSOR_RIGHT' .
+    sc = 77 ifTrue: [
+      cur_pos _ cur_pos + 1 .
+      ch _  0
+    ] . 
+    '28 is SC_ENTER' .
+    sc = 28 ifTrue: [
+      on_enter value: buf .
+    ] ifFalse: [
+      '14 is backsapce ' .
+      (sc ~=14 and: ch isDisplayable ) ifTrue: [
+        buf _ (buf copyFrom: 0 to: cur_pos ) , ch printString , (buf copyFrom: cur_pos to: buf size ).
+        cur_pos _ cur_pos + 1
+      ] ifFalse: [
+        sc = 14 ifTrue:[
+          buf removeAt: cur_pos - 1 .
+          cur_pos _ cur_pos -1
+        ] . 
+      ]
+    ] .
+    view_pos _ (
+       (cur_pos min: view_pos ) min: (cur_pos + (self getWidth / 8) )
+       ) max: 0 .
+    cur_pos _ (cur_pos min: buf size ) max: 0 .
+  ].
  ^ self

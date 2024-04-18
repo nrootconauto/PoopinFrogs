@@ -135,6 +135,7 @@ class CUITextBar:CUIElem {
   U8 *draw_it dft "UITextBarDraw";
   I64 view_pos,cur_pos;
   U8 bg_color,fg_color,border_color;
+  CFrogBlock *on_enter;
 };
 class CUIScrollBars:CUIElem {
   U8 *constructor dft "UIElemInit";
@@ -185,6 +186,7 @@ class C2DThing:CFrogThing {
   C2DThingTemplate *template;
   F64 x,y,z,angle,health;
   F64 momx,momy,momz,animation_start_tS;
+  CFrogStr *name; //Like Jimmy Crooks
   Bool no_draw,animation_no_repeat,pad[6];
 };
 class C3DWorldManager:CFrogThing {
@@ -254,7 +256,9 @@ class CElizaReasm:CFrogThing {
   CFrogStr *goto_text;
   CFrogArray *parts;
   CFrogStr *result;
-};
+  CFrogBlock *is_valid_block;
+  CFrogBlock *on_complete_block;
+};
 class CEliza:CFrogThing {
   CFrogDictionary *synonyms;
   CFrogStr *hello;
@@ -297,6 +301,9 @@ class CFrogTongue:CFrogThing {
 
 class CGun1:CHandItem {
 };
+class CTalker:CHandItem {
+  C2DThing *talking_to;
+};
 class CFrogNPC:C2DThing {
   CFrogRandom *random_generator;
   F64 speed;
@@ -308,6 +315,7 @@ class CFrogNPC:C2DThing {
   F64 state_start_tS;
   F64 state_duration;
   CFrogStr *state;
+  CEliza *chat_bot;
 };
 class CPooka:C2DThing {
 };
@@ -318,7 +326,10 @@ class CPlayer:C2DThing {
   CUIMeter *ammo_meter;
   CUIGrid *quick_inventory,*main_inventory;
   CUIButton *open_inventory_button;
+  CUIChatLog *chat_log;
+  CUITextBar *chat_log_input;
   I64 main_inventory_active;
+  I64 chatting_active;
   CPissStream *piss_stream;
   F64 last_x,last_y;
 //How many bloody footprints will be made

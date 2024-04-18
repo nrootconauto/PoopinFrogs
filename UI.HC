@@ -175,24 +175,24 @@ I64 *UpdateUI(CUIElem *update,I64 msg_type,I64 m1,I64 m2,I64 right_x=GR_WIDTH,I6
 //All is good;
       break;
     start:
-      update=FramePtr(UI_FOCUS_FPTR);
       cb=NULL;
       case MSG_KEY_UP:
         if(update&&update->kbd_up)
 	  cb=update->kbd_up;
         break;
       case MSG_KEY_DOWN:
-        if(update&&update->kbd_down)
+        if(update&&update->kbd_down) {
 	  cb=update->kbd_down;
+        }
         break;
     end:
 //These are handled by the focused silly sauce
-      if(cb) {
-        ThingDel(FrogBlockValue(cb,update,FrogChrNew(m1),FrogChrNew(m2)));
+      if(update==FramePtr(UI_FOCUS_FPTR)&&ThingHasClass(cb,"CFrogBlock")) {
+        ThingDel(FrogBlockValue(cb,update,FrogChrNew(m1),FrogNumNew(m2&0xff)));
         ret_code=TRUE;
         return &ret_code;
       }
-      return NULL;
+      goto pass;
   }
   x=update->computed_x;
   y=update->computed_y;
@@ -218,6 +218,7 @@ pass:
         cb=update->ms_rdown;
       goto ms_cb;
     case MSG_MS_L_UP:
+      FramePtrDel(UI_FOCUS_FPTR);
       if(ThingHasClass(update->drag_end,"CFrogBlock")) {
         if(m1!=drag_start_x||m2!=drag_start_y) {
 	  if(drag=FramePtr(UI_GRID_DRAG_FPTR)) {
@@ -238,6 +239,10 @@ pass:
 	    goto ms_cb;
 	  }
 	}
+      } else if(ThingHasClass(update,"CUITextBar")) {
+	FramePtrAdd(UI_FOCUS_FPTR,update);
+        ret_code=TRUE;
+        return &ret_code;
       }
       cb=update->ms_lup;
       goto ms_cb;

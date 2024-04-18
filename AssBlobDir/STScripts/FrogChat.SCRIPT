@@ -1,0 +1,165 @@
+#new_frog_conversation _ [:frognpc |
+  #frog1_chat _ CEliza new .
+
+  #frog1_chat setHello: 'Whatevers poppin,im hoppin' .
+  #frog1_chat setQuit: 'Ribbit' .
+  frognpc setChatBot: #frog1_chat .
+
+  'Generic ' .
+  #tmp _ CElizaReasm new.
+  #frog1_chat addReasm: #tmp .
+  #tmp initFromString: 'yes' .
+  #tmp setResult: 'Tell me more than yes' .
+
+  #tmp _ CElizaReasm new.
+  #frog1_chat addReasm: #tmp .
+  #tmp initFromString: 'no' .
+  #tmp setResult: 'No to what' .
+
+
+
+  'Food '.
+  #tmp _ CElizaReasm new.
+  #frog1_chat addReasm: #tmp .
+  #tmp initFromString: '*' .
+  #tmp setResult: 'I perfer flies to munch on' .
+
+  #tmp _ CElizaReasm new.
+  #frog1_chat addReasm: #tmp .
+  #tmp initFromString: '* eat *' .
+  #tmp setResult: '(2) does sound yummy' .
+
+  #frog1_chat addSynonym: 'flies' for: 'fly' .
+  #frog1_chat addSynonym: 'buzzer' for: 'fly' .
+  #frog1_chat addSynonym: 'buzzers' for: 'fly' .
+
+  #tmp _ CElizaReasm new.
+  #frog1_chat addReasm: #tmp .
+  #tmp initFromString: '* fly*' .
+  #tmp setResult: 'Buzzers are delectable.' .
+
+  #tmp _ CElizaReasm new.
+  #frog1_chat addReasm: #tmp .
+  #tmp initFromString: '* food*' .
+  #tmp setResult: 'I have a secret food I like.' .
+
+  #tmp _ CElizaReasm new.
+  #frog1_chat addReasm: #tmp .
+  #tmp initFromString: '* secret*' .
+  #tmp setResult: 'Poopl is the secret food of mine,DO NOT ask about it.' .
+
+  #tmp _ CElizaReasm new.
+  #frog1_chat addReasm: #tmp .
+  #tmp initFromString: '* poop *' .
+  #tmp setResult: 'Ill be frank,poop is a secret food on mine' .
+  #tmp setAddFlags: #('poop') .
+
+
+  #tmp _ CElizaReasm new.
+  #frog1_chat addReasm: #tmp .
+  #tmp initFromString: '*' .
+  #tmp setResult: 'Mind telling me about your favorite frog snack' .
+
+  'Poop Quest' .
+  #frog1_chat addSynonym: 'shit' for: 'poop' .
+  #frog1_chat addSynonym: 'turd' for: 'poop' .
+  #frog1_chat addSynonym: 'turds' for: 'poop' .
+
+  #tmp _ CElizaReasm new.
+  #frog1_chat addReasm: #tmp .
+  #tmp initFromString: ' * ' .
+  #tmp setResult: 'Im starving for shit,Ill make a deal. Give me some turds and'
+  ' youll get a glizzy' .
+  #tmp setNeedFlags: #('poop') .
+  #tmp addAddFlags: #('quest1') .
+
+  #tmp _ CElizaReasm new.
+  #frog1_chat addReasm: #tmp .
+  #tmp initFromString: ' * poop * ' .
+  #tmp setResult: 'Here is ur glizzy,time to flame it up' .
+  #tmp setNeedFlags: #('poop' 'quest1' ).
+  #tmp setRemoveFlags: #('quest1') .
+  #tmp setOnCompleteBlock: [:e=CEliza |
+    #world addNewThingFromClass: CGun1Pickup 
+          atX:frognpc xPos
+          atY:frognpc xPos .
+  ] .
+
+
+  'Misc' .
+  #tmp _ CElizaReasm new.
+  #frog1_chat addReasm: #tmp .
+  #tmp initFromString: '*' .
+  #tmp setResult: 'I like to hop around' .
+
+  #tmp _ CElizaReasm new.
+  #frog1_chat addReasm: #tmp .
+  #tmp initFromString: '*' .
+  #tmp setResult: 'I chill at the lily pad all day' .
+
+  #tmp _ CElizaReasm new.
+  #frog1_chat addReasm: #tmp .
+  #tmp initFromString: '*' .
+  #tmp setResult: '21 Savage is a good rapper' .
+
+  'Music'.
+
+  #tmp _ CElizaReasm new.
+  #frog1_chat addReasm: #tmp .
+  #tmp initFromString: '*' .
+  #tmp setResult: 'Tell me about music' .
+
+  #frog1_chat addSynonym: 'song' for: 'music' .
+  #frog1_chat addSynonym: 'rap' for: 'music' .
+  #tmp _ CElizaReasm new.
+  #frog1_chat addReasm: #tmp .
+  #tmp initFromString: '* music *' .
+  #tmp setResult: 'I like Drake,Ye and Micheal Jackson' .
+
+  #tmp _ CElizaReasm new.
+  #frog1_chat addReasm: #tmp .
+  #tmp initFromString: '* Drake *' .
+  #tmp setResult: 'Drakes words are pure poetry' .
+
+  #frog1_chat addSynonym: 'Kanye' for: 'Ye' .
+  #frog1_chat addSynonym: 'West' for: 'Ye' .
+
+  #tmp _ CElizaReasm new.
+  #frog1_chat addReasm: #tmp .
+  #tmp initFromString: '* Ye *' .
+  #tmp setResult: 'Ye has songs that have little cohesion while also having a good message' .
+
+  #frog1_chat addSynonym: 'Micheal' for: 'Jackson' .
+  #tmp _ CElizaReasm new.
+  #frog1_chat addReasm: #tmp .
+  #tmp initFromString: '* Jackson *' .
+  #tmp setResult: 'Micheal Jackson turns cliches into art' .
+
+  #tmp _ CElizaReasm new.
+  #frog1_chat addReasm: #tmp .
+  #tmp initFromString: '* Jackson *' .
+  #tmp setResult: 'I cant moonwalk like Micheal Jackson' .
+
+  #frog1_chat addSynonym: 'dance' for: 'moonwalk' .
+  #frog1_chat addSynonym: 'twerk' for: 'moonwalk' .
+  #tmp _ CElizaReasm new.
+  #frog1_chat addReasm: #tmp .
+  #tmp initFromString: '* moonwalk *' .
+  #tmp setResult: 'I tried to moonwalk before.' .
+
+  'Coadine Quest(quest2)' .
+  #frog1_chat addSynonym: 'piss' for: 'pee' .
+  #tmp _ CElizaReasm new.
+  #frog1_chat addReasm: #tmp .
+  #tmp initFromString: '*' .
+  #tmp setResult: 'There is a secret way to get purple pee' .
+
+  #tmp _ CElizaReasm new.
+  #frog1_chat addReasm: #tmp .
+  #tmp initFromString: '* piss *' .
+  #tmp setAddFlags: #('quest2') . 
+  #tmp setResult: 'Drink Coadine for purple pee' .
+
+  'TODO quest2'.
+] .
+'frogdone' show .

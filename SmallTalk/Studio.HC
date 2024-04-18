@@ -3,6 +3,7 @@
 #define STS_ADD_CLASS -100
 #define ST_ROOT	"SmallTalk/" //Must be same length
 #define ST_CLASS_ROOT	"STClsRoot/"
+#define ST_SCRIPT_ROOT	"STScripts/"
 U8 *LumpNameToPath(U8 *str) {
   str+=StrLen(ST_ROOT);
   if(StrOcc(str,'/')) {
@@ -169,11 +170,12 @@ Bool STStudioRegisterNewClasses(U8 *blob_file) {
   return ret;
 };
 //Blob file is needed for headers
-U0 STValidateCode(U8 *blob_file="../ASS",U8 *code,U8 *path) {
+U0 STValidateCode(U8 *blob_file="../ASS",U8 *code,U8 *path,Bool script=FALSE) {
   U8 *headers;
   U8 class_name[STR_LEN],*class_name_ptr=class_name;
   CDoc *pd=Fs->put_doc,*new=DocNew;
   CMethod *m;
+  CAST *ast;
 //
   //Dumy hash table for tmeporary headers
   //
@@ -193,8 +195,13 @@ U0 STValidateCode(U8 *blob_file="../ASS",U8 *code,U8 *path) {
     Fs->put_doc=new;
     Lex(l);
     StrScan(path,ST_ROOT"%s/",&class_name_ptr);
-    m=ParseMethod(l,HashFind(class_name,Fs->hash_table,HTT_CLASS));
-    MethodDel(m);
+    if(!script) {
+      m=ParseMethod(l,HashFind(class_name,Fs->hash_table,HTT_CLASS));
+      MethodDel(m);
+    } else {
+      while(ast=ParseAst(l))
+        ASTDel(ast);
+    }
     DocPrint(new,"No errors in code!!!\n");
     DocPrint(new,"\n\n$$BT+CX,\"Cool\",LE=1$$\n\n");
   } catch {
@@ -290,6 +297,20 @@ again:;
     }
   }
 
+//Phase 5,Load scripts
+  DocTreeWrite(main_menu,"Scripts",FALSE,"$$RED$$$$MU,\"New Script\",LE=%d$$$$FD$$\n",3<<32);
+  for(idx=0;idx!=lumps->lump_cnt;idx++) {
+    hdr=&lumps->lump_table[idx];
+    if(!StrNCmp(hdr->name,ST_SCRIPT_ROOT,StrLen(ST_SCRIPT_ROOT))) {
+      tmp=MStrPrint("Scripts");
+      if(en=hdr->name+StrLen(ST_SCRIPT_ROOT)) {
+        DocTreeAppend(main_menu,tmp,FALSE,"$$BLUE$$$$MU,\"%Q\",LE=%d$$$$RED$$$$MU,\"(delete)\",LE=%d$$$$FD$$\n",en,idx,idx|(2<<32));
+      }
+      Free(tmp);
+    }
+  }
+
+
   code=PopUpMenu(main_menu);
   DocDel(main_menu);
   switch(code) {
@@ -313,7 +334,21 @@ again:;
     DocDel(edit);
     break;
     default:
-    if((4<<32)&code) { //New Class Method
+    if((3<<32)&code==3<<32) {
+      en=PopUpFileName("NEW_SCRIPT");
+      edit=DocNew;
+      PopUpPrint("FramePtrAdd(\"SAVED?\",SynView(%d),%d);\n",edit,Fs);
+      if(FramePtr("SAVED?")) {
+        tmp=DocSave(edit);
+        prefix=MStrPrint(ST_SCRIPT_ROOT"%s",en);
+        SanitizeStr(tmp); //raw DolDoc puts in werid cahractors
+        BlobFileAddLump(blob_file,prefix,tmp,StrLen(tmp),'SCRIPT');
+        STValidateCode(blob_file,tmp,prefix,TRUE);
+	Free(prefix);
+	Free(tmp);
+      }
+      Free(en);
+    } else if((4<<32)&code) { //New Class Method
       prefix=LumpNameToPath(lumps->lump_table[code&(1<<32-1)].name);
       tmp=MStrPrint("%s/METHOD",prefix);
       en=PopUpFileName(tmp);
@@ -421,6 +456,15 @@ U0 LoadMethodsFromBlob(U8 *blob_file="../ASS") {
 	    PutExcept(TRUE);
 	  }
         }
+      } else if(!StrNCmp(hdr->name,ST_SCRIPT_ROOT,StrLen(ST_SCRIPT_ROOT))) {
+	try {
+	  tmp=BlobFileGetLump(blob_file,hdr->name);
+	  STRunStmt(tmp);
+	  Free(tmp);
+	} catch {
+	  "In %s:",hdr->name;
+	  PutExcept(TRUE);
+	}
       }
     }
   }

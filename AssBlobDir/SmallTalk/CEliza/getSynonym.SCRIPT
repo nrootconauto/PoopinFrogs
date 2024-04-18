@@ -1,0 +1,6 @@
+getSynonym: word=CFrogStr |s=CFrogStr|
+  s _  synonyms at: word .
+  ( s hasClass: CFrogStr ) ifTrue: [
+    ^ s
+  ].
+  ^ word 

@@ -1,4 +1,4 @@
-reject:block | ret tmp|
+select:block | ret tmp|
   ret _ #() .
   self do: [:v |
     (block value : v) ifTrue: [

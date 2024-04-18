@@ -1016,10 +1016,12 @@ STRunStmt(
 "  #Y _ [:f=CFrogBlock | [:x=CFrogBlock | x value: x] value: [:g=CFrogBlock| f value: [:x| (g value: g) value: x] ] ]."
 "  #fib _ #Y value: [:f| [:i=CFrogNum | i <= 1 ifTrue: [i] ifFalse: [(f value: i - 1) + (f value: i - 2)] ] ]."
 "  (#fib value: 10 ) show ."
-"  #r _ CElizaReasm new ."
+/*"  #r _ CElizaReasm new ."
 "  #r initFromString: '* likes * ' ."
 "  #r setResult: 'I didnt know (1) likes (2).'."
-"  (#r reassemble: #(#('Suzzy') #('Frogs'))) show ."
+"  (#r reassemble: #(#('Suzzy') #('Frogs'))) show ."*/
+"  #dumb_frog _ CFrogNPC new . "
+"  (#dumb_frog getChatBot message: 'I eat burgers .') show ."
 );
 #endif
 #endif

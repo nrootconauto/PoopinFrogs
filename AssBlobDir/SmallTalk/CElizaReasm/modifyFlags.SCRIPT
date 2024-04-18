@@ -1,0 +1,8 @@
+modifyFlags: flags=CFrogArray |
+|
+  add_flags do:[:str=CFrogStr |
+    flags add: str copy 
+  ] .
+  remove_flags do:[:str=CFrogStr |
+    flags remove: str 
+  ] .

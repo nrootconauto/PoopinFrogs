@@ -1,0 +1,18 @@
+fire |
+  player=CFrogPlayer 
+  chatter=CEliza
+  hit*
+  canidates=CFrogArray
+|
+  player _ #world getPlayer .
+  canidates _ #world thingsInDist: 128 * 64 atAngle: player getAngle fromThing: player .
+  canidates do: [:hit*|
+    (player screenRayHitsTarget: hit atAngle: player getAngle 
+     withAutoAim: 1.5) ifTrue: [
+       chatter _ hit getChatBot .
+      (chatter hasClass: CEliza) ifTrue: [ 
+        player chatWith: chatter .
+        ^ 1
+      ]
+    ]
+  ]

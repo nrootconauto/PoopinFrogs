@@ -26,4 +26,7 @@ reassemble: wildcards |
       value: ('(' ,  (idx + 1) printString , ')')
       value: cumsum
   ] .
+
+  freq _ freq + 1 .
+
   ^ ret

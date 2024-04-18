@@ -1,0 +1,2 @@
+setHello: str ||
+  hello _ str copy 

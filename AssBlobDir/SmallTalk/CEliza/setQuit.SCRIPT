@@ -1,0 +1,2 @@
+setQuit: s ||
+  quit _ s copy 

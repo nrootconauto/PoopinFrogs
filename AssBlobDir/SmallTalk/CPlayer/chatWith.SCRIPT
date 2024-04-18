@@ -1,0 +1,25 @@
+chatWith: thing |
+  eliza=CEliza
+  name=CFrogName
+  add_to_chat_log=CFrogBlock
+|
+  eliza _ thing getChatBot .
+  ( eliza hasClass: CEliza ) ifFalse: [^ 0 ].
+  chatting_active _ 1 .
+  #ui_root addItem: #chat_log .
+  #ui_root addItem: #chat_log_input .
+ 
+  name _ thing getName .
+
+  add_to_chat_log _  [:who :msg|
+    chat_log addLine: who , ': ' , msg
+  ] . 
+
+  add_to_chat_log value: name value: eliza getHello .
+
+  chat_log_input setOnEnter: [:buf=CFrogStr|
+    add_to_chat_log value: 'Player' value: buf .
+    add_to_chat_log value: name value: (eliza message: buf ) .
+  ]
+
+  add_to_chat_log value: name value: eliza getHello .
