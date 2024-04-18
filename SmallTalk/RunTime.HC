@@ -815,12 +815,16 @@ CFrogThing *FrogChrIsDisplayable(CFrogChr *self,...) {
   ConstructBuiltin("FrogChrIsWhitespace(self)","CFrogChr","isWhitespace");
   ConstructBuiltin("FrogChrIsDisplayable(self)","CFrogChr","isDisplayable");
   ConstructBuiltin("FrogChrIsNumber(self)","CFrogChr","isNumber");
+}
+#exe {
 //Object
   ConstructBuiltin("FrogThingIsKindOf(self,thing)","CFrogThing","isKindOf:","CFrogClass","thing");
   ConstructBuiltin("FrogThingClass(self)","CFrogThing","class");
   ConstructBuiltin("FrogThingIsNil(self)","CFrogThing","isNil");
   ConstructBuiltin("FrogNumNew(self==a)","CFrogThing","=","CFrogThing","a");
   ConstructBuiltin("FrogNumNew(self!=a)","CFrogThing","~=","CFrogThing","a");
+}
+#exe {
 //Set
   ConstructBuiltin("FrogArrayRemove(self,thing)","CFrogArray","remove:","CFrogThing","thing");
   ConstructBuiltin("FROG_SMALL_NIL;I64SetAdd(self->items,FrogIncRefCnt(thing));","CFrogArray","add:","CFrogThing","thing");
@@ -828,6 +832,8 @@ CFrogThing *FrogChrIsDisplayable(CFrogChr *self,...) {
   ConstructBuiltin("FrogArrayAt(self,AsF64(idx))","CFrogArray","at:","CFrogNum","idx");
   ConstructBuiltin("FrogArrayRemAt(self,AsF64(thing))","CFrogArray","removeAt:","CFrogNum","thing");
   ConstructBuiltin("FrogNumNew(self->items->cnt)","CFrogArray","size");
+}
+#exe {
 //String
   ConstructBuiltin("FrogArrayRemove(self,thing)","CFrogStr","remove:","CFrogThing","thing");
   ConstructBuiltin("FROG_SMALL_NIL;U8SetAdd(self->items,AsChar(thing));","CFrogStr","add:","CFrogChr","thing");
@@ -835,6 +841,8 @@ CFrogThing *FrogChrIsDisplayable(CFrogChr *self,...) {
   ConstructBuiltin("FrogStrAt(self,AsF64(idx))","CFrogStr","at:","CFrogNum","idx");
   ConstructBuiltin("FrogStrRemAt(self,AsF64(thing))","CFrogStr","removeAt:","CFrogNum","thing");
   ConstructBuiltin("FrogNumNew(self->items->cnt)","CFrogStr","size");
+}
+#exe {
 //Arithmetic
   ConstructBuiltin("FrogNumNew(AsF64(self)<AsF64(a))","CFrogNum","<","CFrogNum","a");
   ConstructBuiltin("FrogNumNew(AsF64(self)>AsF64(a))","CFrogNum",">","CFrogNum","a");
@@ -862,12 +870,16 @@ CFrogThing *FrogChrIsDisplayable(CFrogChr *self,...) {
   ConstructBuiltin("FrogNumNew(ACos(AsF64(self)))","CFrogNum","arccos");
   ConstructBuiltin("FrogNumNew(ATan(AsF64(self)))","CFrogNum","arctan");
   ConstructBuiltin("FrogNumNew(Sqrt(AsF64(self)))","CFrogNum","sqrt");
+}
+#exe {
 //Bits
   ConstructBuiltin("FrogNumNew(~ToI64(AsF64(self)))","CFrogNum","bitInvert");
   ConstructBuiltin("FrogNumNew(ToI64(AsF64(self))&ToI64(AsF64(a)))","CFrogNum","&","CFrogNum","a");
   ConstructBuiltin("FrogNumNew(ToI64(AsF64(self))|ToI64(AsF64(a)))","CFrogNum","|","CFrogNum","a");
   ConstructBuiltin("FrogNumNew(ToI64(AsF64(self))^ToI64(AsF64(a)))","CFrogNum","^","CFrogNum","a");
   ConstructBuiltin("FrogNumNew(ToI64(AsF64(self))&(1<<ToI64(AsF64(a))))","CFrogNum","bitAt:","CFrogNum","a");
+}
+#exe {
 //Conversion
   ConstructBuiltin("FrogNumNew(ToI64(AsF64(self)))","CFrogNum","asInteger");
   ConstructBuiltin("FrogChrNew(AsF64(self))","CFrogNum","asCharactor");
