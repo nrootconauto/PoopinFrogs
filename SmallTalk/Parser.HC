@@ -79,7 +79,7 @@ CAST *ParseLiteral(CLexer *l) {
     Lex(l);
     ret=ParseCascade(l);
     if(l->tok!=')')
-      LexExcept(l,"Expeted a niggerfuckin ')' nigger.");
+      LexExcept(l,"Expeted a [Redacted for GH]fuckin ')' poopbrain.");
     Lex(l);
     ret->is_literal=TRUE;
     return ret;
@@ -121,7 +121,7 @@ CAST *ParseLiteral(CLexer *l) {
     QueInit(&ret->args);
     QueInit(&ret->body);
     QueInit(ret);
-//Arguemnts Nigstrodamus
+//Arguemnts Poopbrain!
     Lex(l);
     if(l->tok==':') {
       while(l->tok!='|') {
@@ -129,12 +129,12 @@ CAST *ParseLiteral(CLexer *l) {
 	  Lex(l);
 	  item=ParseVarWithType(l,TRUE);
 	  if(!item)
-	    LexExcept(l,"Put away you 50 inch nigger shlong and give me and argument.");
+	    LexExcept(l,"Put away you 50 inch donkey kong shlong and give me and argument.");
 	  AddToScope(item->name);
 	  QueInit(&item->args);
 	  QueIns(item,ret->args.last);
         } else
-	  LexExcept(l,"Nigger please,expected a ':'");
+	  LexExcept(l,"Bitch please,expected a ':'");
       }
       Lex(l);
     }
@@ -250,7 +250,7 @@ again:
 
     right=ParseUnop(l);
     if(!right)
-      LexExcept(l,"Binop needs 2 fucking operands nigga.");
+      LexExcept(l,"Binop needs 2 fucking operands asshole.");
     QueIns(right,ret->args.last);
     left=ret;
     goto again;
@@ -339,7 +339,7 @@ CAST *ParseCascade(CLexer *l) {
       if(alias!=item) {
         QueIns(item,ret->args.last);
       } else
-        LexExcept(l,"Expected a fuckin cascade operation nigga.");
+        LexExcept(l,"Expected a fuckin cascade operation butthole.");
     }
   }
   if(!ret) return left;
@@ -377,7 +377,7 @@ CAST *ParseAst(CLexer *l) {
         QueIns(right,assign->args.last);
         return assign;
       } else 
-        LexExcept(l,"I want something to asign to '%s' nigga.",assign_to);
+        LexExcept(l,"I want something to asign to '%s' asswipe.",assign_to);
     } else {
 cont:
       MemCpy(l,&backup,sizeof CLexer);
@@ -387,7 +387,7 @@ cont:
     Lex(l);
     right=ParseCascade(l);
     if(!right)
-      LexExcept(l,"Nigger toads fiegning 4 a nigger return.");
+      LexExcept(l,"Butt toads fiegning 4 a 50 inch gorilla dick return.");
     assign=CAlloc(sizeof CAST);
     assign->type=AST_RETURN;
     QueInit(assign);
@@ -438,7 +438,7 @@ CMethod *ParseMethod(CLexer *l,CHashClass *cls=NULL) {
         LexExcept(l,"I expected a ':' asswipe.");
       } else {// is unop
         if(l->tok!='|') 
-	  LexExcept(l,"This is an unop nigga");
+	  LexExcept(l,"This is an unop fucktard");
         else
 	  break;
       }
@@ -446,7 +446,7 @@ CMethod *ParseMethod(CLexer *l,CHashClass *cls=NULL) {
       for(idx=0;l->tok.u8[idx];idx++) {
         CatPrint(m->name,"%c",l->tok.u8[idx]);
         if(!IsOperatorChr(l->tok.u8[idx])) 
-	  LexExcept(l,"Expected a operator/method name here nigga.");
+	  LexExcept(l,"Expected a operator/method name here poo poo brain.");
       }
       if(Lex(l)==TOK_NAME) {
         name=CAlloc(sizeof CAST);
@@ -458,7 +458,7 @@ CMethod *ParseMethod(CLexer *l,CHashClass *cls=NULL) {
 	  LexExcept(l,"Expected a fuckin '|'.");
         break;
       } else
-        LexExcept(l,"I niggin need uh argument name nigga.");
+        LexExcept(l,"I fuckin need uh argument name asshole.");
     }
   }
   Lex(l);
@@ -480,7 +480,7 @@ CMethod *ParseMethod(CLexer *l,CHashClass *cls=NULL) {
       while(l->tok=='.')
         Lex(l);
     } else
-      LexExcept(l,"Expected a niggerlicious statement.");
+      LexExcept(l,"Expected a fuckin statement.");
   }
   head=&m->args;
   for(name=head->next;name!=head;name=name->next)

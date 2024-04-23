@@ -125,7 +125,7 @@ class CUIMeter:CUIElem {
   I64 max,value;
   I64 bg_color;
   I64 fg_color;
-  I64 text_color;
+  I64 text_color;
   I64 border_color;
   CFrogStr *str;
 };

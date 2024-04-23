@@ -32,6 +32,7 @@ CLumpHeader *BlobFileGetLumpInfo(CBlobFileHeader *hd,U8 *blob) {
   return NULL;
 }
 //This consults the cache
+//DO NOT FREE
 U8 *GetBlobFileData(U8 *filename,I64 *len=NULL) {
   CDirEntry de;
   U8 *data=NULL;
@@ -40,7 +41,7 @@ U8 *GetBlobFileData(U8 *filename,I64 *len=NULL) {
       if(!StrCmp(blob_file_cache.filename,de.full_name)) {
         Free(de.full_name);
 	if(len) *len=blob_file_cache.sz;
-        return MAllocIdent(blob_file_cache.data);
+        return blob_file_cache.data;
       }
     }
     Free(de.full_name);
@@ -51,6 +52,8 @@ regen:
     blob_file_cache.data=MAllocIdent(data,blob_file_cache.mem_task);
     blob_file_cache.datetime=de.datetime;
     if(len) *len=blob_file_cache.sz;
+    Free(data);
+    data=blob_file_cache.data;
   }
   return data;
 }
@@ -68,7 +71,6 @@ found:
       if(len) *len=lump->size;
       if(type) *type=lump->type;
     }
-    Free(ftxt);
   } 
 #ifdef DEVELOPMENT_MODE
   else {
@@ -157,7 +159,6 @@ U0 BlobFileAddLump(U8 *filename,U8 *name,U8 *data,I64 dlen,U64 type='DATA') {
     Free(ret);
   }
   Free(filename);
-  Free(oftxt);
 }
 U0 BlobFileDeleteLump(U8 *blob_file,U8 *path) {
   BlobFileAddLump(blob_file,path,"",-1);
@@ -229,7 +230,6 @@ again:
     Free(tmp);
     DocDel(dummy);
     Free(filename);
-    Free(fl);
     goto loop;
   } else if(ret[StrLen(ret)-1]!='/'){
     path_title=StrNew(ret);
@@ -241,7 +241,6 @@ again:
     ret=NULL; //???
   DocDel(dummy);
   Free(filename);
-  Free(fl);
   return path_title;
 }
 U0 DumpBlobFile(U8 *filename,U8 *dir="/Tmp") {

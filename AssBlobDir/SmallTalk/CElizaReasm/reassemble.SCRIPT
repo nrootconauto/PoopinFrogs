@@ -4,7 +4,11 @@ reassemble: wildcards |
   replace=CFrogBlock 
   found_at=CFrogNum
 |
-  ret _ result copy .
+  (result hasClass: CFrogArray ) ifTrue: [
+    ret _ (result size * CFrogRandom new next rem: result size ) copy .
+  ] ifFalse: [
+    ret _ result copy .
+  ] .
   replace _ [:from=CFrogStr :with=CFrogStr |
     found_at _ (ret indexOf: from ) .
     found_at >= 0 ifTrue: [

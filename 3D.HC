@@ -1600,6 +1600,8 @@ draw:
     for(;cy-4<=iy<=to_y-3;iy+=3) {
       line=ToI64((iy-y0)/vis_h*use_dc->height);
       if(0<=line<use_dc->height-3) {
+        dst=dc->body+ToI64(iy)*dc->width_internal+ToI64(ix);
+        depth_dst=dc->depth_buf+ToI64(iy)*dc->width_internal+ToI64(ix);
         y_line=use_dc->body+line*use_dc->width_internal;
         src_ptr=y_line+col;
         if(*src_ptr==TRANSPARENT) {
@@ -1610,15 +1612,11 @@ draw:
 	    line++;
 	  }
 	  iy=MaxI64(Lerp(ToF64(line)/use_dc->height,cy,to_y)-3,iy);
-          dst=dc->body+ToI64(iy)*dc->width_internal+ToI64(ix);
-	  depth_dst=dc->depth_buf+ToI64(iy)*dc->width_internal+ToI64(ix);
 	  goto skip;
 	}
 	if(dist>*depth_dst) {
 	  cnt=VisSkipTo(w,ix,iy,dist)-iy;
 	  iy+=cnt;
-	  dst=dst(U8*)+dc->width_internal*cnt;
-	  depth_dst+=dc->width_internal*cnt;  
 	  goto skip;
 	}
 	for(cnt=3;--cnt>=0;) {
@@ -2113,7 +2111,7 @@ U0 DrawIt(CTask *t,CDC *dc) {
         shellc=body[idx];
 	if(ThingHasClass(shellc,"CShellCasing")) {
 	  if(shellc->dc)
-	   GrBlot(dc,shellc->x,shellc->y,shellc->dc);
+	   AnimDCBlot(dc,shellc->x,shellc->y,shellc->dc);
 	}
       }
    }
@@ -2122,7 +2120,7 @@ U0 DrawIt(CTask *t,CDC *dc) {
   if(ThingHasClass(hand,"CHandItem")) {
     hand->x=ms.pos.x;
     if(hand_gr=hand->gr) {
-      GrBlot(dc,hand->x+hand->xoff-hand_gr->width/2,hand->y+hand->yoff-hand_gr->height/2,hand_gr);
+      AnimDCBlot(dc,hand->x+hand->xoff-hand_gr->width/2,hand->y+hand->yoff-hand_gr->height/2,hand_gr);
     }
   }
   DrawUIRoot(t,dc);

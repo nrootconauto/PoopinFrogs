@@ -31,9 +31,10 @@ init | |
         ] . 
       ]
     ] .
+'TODO ask nroot to fix self in blocks' .
     view_pos _ (
-       (cur_pos min: view_pos ) min: (cur_pos + (self getWidth / 8) )
-       ) max: 0 .
+       (cur_pos min: view_pos ) min: (self getWidth / 8 )
+    ) max: 0 .
     cur_pos _ (cur_pos min: buf size ) max: 0 .
   ].
  ^ self

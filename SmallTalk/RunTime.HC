@@ -809,6 +809,46 @@ CFrogThing *FrogChrIsDisplayable(CFrogChr *self,...) {
   return FrogNumNew(Bt(char_bmp_displayable,AsChar(self)));
 }
 
+CFrogStr *FrogStrCopy(CFrogStr *self,...) {
+  CFrogStr *s=ConstructThing("CFrogStr");
+  Free(s->items->body);
+  s->items->body=MAllocIdent(self->items->body,s->items->mem_task);
+  s->items->cnt=self->items->cnt;
+  return s;
+}
+CFrogArray *FrogArrayCopy(CFrogStr *self,...) {
+  I64 cnt;
+  CFrogArray *s=ConstructThing("CFrogArray"),**body;
+  Free(s->items->body);
+  s->items->body=MAllocIdent(self->items->body,s->items->mem_task);
+  cnt=self->items->cnt;
+  s->items->cnt=cnt;
+  body=s->items->body;
+  while(--cnt>=0)
+    body[cnt]=FrogIncRefCnt(body[cnt]);
+  return s;
+}
+CFrogThing *FrogThingCopy(CFrogThing *t) {
+  if(t&1) return t;
+  CFrogThing *ret,dummy;
+  MemSet(&dummy,0,sizeof CFrogThing);
+  CMemberLst *mlst;
+  CHashClass *cls=HashFind(t->class_name,frog_mem_task->hash_table,HTT_CLASS);
+  if(!cls) return FROG_SMALL_NIL;
+  ret=ConstructThing(t->class_name);
+  while(cls) {
+    for(mlst=cls->member_lst_and_root;mlst;mlst=mlst->next) {
+      if(mlst->member_class->ptr_stars_cnt==1) {
+        StrCpy(dummy.class_name,mlst->member_class[-1].str);
+	if(ThingHasClass(&dummy,"CFrogThing")) {
+	  (ret(U8*)+mlst->offset)(CFrogThing**)[0]=FrogIncRefCnt((t(U8*)+mlst->offset)(CFrogThing**)[0]);
+	}
+      }
+    }
+    cls=cls->base_class;
+  } 
+  return ret;
+}
 #exe {
 //Char
   ConstructBuiltin("FrogChrIsAlNum(self)","CFrogChr","isAlphaNumeric");
@@ -832,6 +872,7 @@ CFrogThing *FrogChrIsDisplayable(CFrogChr *self,...) {
   ConstructBuiltin("FrogArrayAt(self,AsF64(idx))","CFrogArray","at:","CFrogNum","idx");
   ConstructBuiltin("FrogArrayRemAt(self,AsF64(thing))","CFrogArray","removeAt:","CFrogNum","thing");
   ConstructBuiltin("FrogNumNew(self->items->cnt)","CFrogArray","size");
+  ConstructBuiltin("FrogArrayCopy(self)","CFrogArray","copy");
 }
 #exe {
 //String
@@ -841,6 +882,7 @@ CFrogThing *FrogChrIsDisplayable(CFrogChr *self,...) {
   ConstructBuiltin("FrogStrAt(self,AsF64(idx))","CFrogStr","at:","CFrogNum","idx");
   ConstructBuiltin("FrogStrRemAt(self,AsF64(thing))","CFrogStr","removeAt:","CFrogNum","thing");
   ConstructBuiltin("FrogNumNew(self->items->cnt)","CFrogStr","size");
+  ConstructBuiltin("FrogStrCopy(self)","CFrogStr","copy");
 }
 #exe {
 //Arithmetic
@@ -879,7 +921,7 @@ CFrogThing *FrogChrIsDisplayable(CFrogChr *self,...) {
   ConstructBuiltin("FrogNumNew(ToI64(AsF64(self))^ToI64(AsF64(a)))","CFrogNum","^","CFrogNum","a");
   ConstructBuiltin("FrogNumNew(ToI64(AsF64(self))&(1<<ToI64(AsF64(a))))","CFrogNum","bitAt:","CFrogNum","a");
 }
-#exe {
+#exe {
 //Conversion
   ConstructBuiltin("FrogNumNew(ToI64(AsF64(self)))","CFrogNum","asInteger");
   ConstructBuiltin("FrogChrNew(AsF64(self))","CFrogNum","asCharactor");

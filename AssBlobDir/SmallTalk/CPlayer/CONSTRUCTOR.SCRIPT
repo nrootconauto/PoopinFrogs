@@ -8,4 +8,5 @@ init | |
   piss_stream _ CPissStream new .
   #hand_item _ CGun1 new .
   CFrogDick new .
+  CTalker  new .
   ^ self

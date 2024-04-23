@@ -1,11 +1,11 @@
-addLine: str | old |
+addLine: str | old=CFrogArray |
   old _ lines .
   old size < max_cnt ifTrue: [
    old add: str copy .
    ^ 1 
   ] .
   lines _ #() .
-  0 to: max_cnt - 1 do: [:i|
+  old size - max_cnt - 1 to: old size do: [:i=CFrogNum |
     lines add: (old at: i) .
   ] .
   lines add: str copy 

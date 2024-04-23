@@ -398,7 +398,7 @@ again:;
         en=DocSave(edit,&len);
         SanitizeStr(en); //raw DolDoc puts in werid cahractors
         BlobFileAddLump(blob_file,lumps->lump_table[code].name,en,StrLen(en),'SCRIPT');
-        STValidateCode(blob_file,en,lumps->lump_table[code].name);
+        STValidateCode(blob_file,en,lumps->lump_table[code].name,0==StrNCmp(lumps->lump_table[code].name,ST_SCRIPT_ROOT,StrLen(ST_SCRIPT_ROOT)));
         Free(en);
       }
     }

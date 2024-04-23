@@ -11,7 +11,8 @@ fire |
      withAutoAim: 1.5) ifTrue: [
        chatter _ hit getChatBot .
       (chatter hasClass: CEliza) ifTrue: [ 
-        player chatWith: chatter .
+        hit getName show .
+        player chatWith: hit .
         ^ 1
       ]
     ]

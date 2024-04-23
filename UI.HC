@@ -188,7 +188,7 @@ I64 *UpdateUI(CUIElem *update,I64 msg_type,I64 m1,I64 m2,I64 right_x=GR_WIDTH,I6
     end:
 //These are handled by the focused silly sauce
       if(update==FramePtr(UI_FOCUS_FPTR)&&ThingHasClass(cb,"CFrogBlock")) {
-        ThingDel(FrogBlockValue(cb,update,FrogChrNew(m1),FrogNumNew(m2&0xff)));
+        ThingDel(FrogBlockValue(cb,FrogIncRefCnt(update),FrogChrNew(m1),FrogNumNew(m2&0xff)));
         ret_code=TRUE;
         return &ret_code;
       }
@@ -313,7 +313,7 @@ U0 UIChatLogDraw(CDC *dc,I64 xoff,I64 yoff,CUIChatLog *log) {
   }
   yoff2=log->sz_y/8;
   dc->color=log->fg_color;
-  for(line_idx=0;line_idx!=cnt;line_idx++) {
+  for(line_idx=cnt-1;line_idx>=0;line_idx--) {
     ln=log->lines->items->body[line_idx];
     ln_text=AsString(ln);
     total=StrLen(ln_text);

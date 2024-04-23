@@ -1,6 +1,0 @@
-copy | ret |
-  ret _ '' .
-  self do: [:v|
-    ret add: v
-  ] .
-  ^ ret 
