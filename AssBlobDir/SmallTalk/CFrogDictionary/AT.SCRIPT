@@ -4,3 +4,4 @@ at: key | hash=CFrogNum bucket=CFrogNum |
   (buckets at: bucket ) do: [:pair=CFrogArray |
      (pair at: 0) = key ifTrue: [ ^ pair at: 1]
   ] .
+  ^ 0 

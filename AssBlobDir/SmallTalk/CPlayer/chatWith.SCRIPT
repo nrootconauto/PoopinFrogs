@@ -21,4 +21,6 @@ chatWith: thing |
   chat_log_input setOnEnter: [:buf=CFrogStr|
     add_to_chat_log value: 'Player' value: buf .
     add_to_chat_log value: name value: (eliza message: buf ) .
-  ]
+  ] .
+
+  chat_log_input focus 

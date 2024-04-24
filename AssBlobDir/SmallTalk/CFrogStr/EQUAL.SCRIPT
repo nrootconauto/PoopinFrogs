@@ -3,11 +3,11 @@
   idx _ 0 .
   sz _ self size .
   [ 
-    idx _ idx + 1 .
-    idx - 1 < sz
+    idx < sz
   ] whileTrue: [
-    (self at: idx - 1) ~= (other at: idx - 1) ifTrue: [
+    (self at: idx ) ~= (other at: idx ) ifTrue: [
      ^ 0
-    ]
+    ] .
+    idx _ idx + 1 .
   ] .
   ^ 1 .

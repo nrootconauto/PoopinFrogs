@@ -3,5 +3,6 @@ init | |
   synonyms _ CFrogDictionary new .
   hello _ 'Hello!' .
   quit _ 'Quit' .
+  stack _ #() .
   cur_flags _ #() .
  ^ self

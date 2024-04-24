@@ -1,55 +1,38 @@
 message: str |
-   valid=CFrogArray
-   split=CFrogArray 
-   tmp=CFrogStr
-   choose=CElizaReasm
-   wildcards=CFrogArray
-   best_match_len=CFrogNum
-   set=CFrogArray
+  sub*
+  reduce=CFrogBlock
+  res*
 |
-  split _ #() .
-  tmp _ '' .
-  str do: [:ch* | 
-    ch isAlphaNumeric ifTrue: [
-      tmp add: ch 
-    ] ifFalse: [
-      tmp size ifTrue: [
-        split add: (self getSynonym: tmp copy )
-      ] .
-      tmp _ '' .
+  reduce _ [:result* |
+    (result hasClass: CFrogStr) ifTrue: [
+      ^ result 
+    ] .
+    (result hasClass: CEliza) ifTrue: [
+      stack  remove result .
+      stack add: result .
+      ^ result getHello copy
+    ] .
+    (result hasClass: CFrogBlock) ifTrue: [
+       result _ result value .
+       (result hasClass: CFrogStr ) ifTrue: [
+          ^ result
+       ].
+       (result hasClass: CFrogArray ) ifTrue: [
+          sub _ CEliza makeResponsesFromArray: result .
+          stack add: sub .
+          ^ sub getHello copy
+       ] .
+    ] .
+  ] .
+  stack size ifTrue: [
+    0 to: stack size do: [:idx=CFrogNum|
+      'Most recent are at end '.
+      sub _ stack at: (stack size - 1 - idx)  .
+      sub setSynonyms: self getSynonyms .
+      res _ sub message0: str .
+      reduce value: res .
     ]
   ] .
-  tmp size ifTrue: [
-    split add: (self getSynonym: tmp copy )
-  ] .
-
-  valid _ reasms select: [:r=CElizaReasm | 
-    (r matchWords: split ) and: ( r acceptsFlags: cur_flags )
-  ] .
-
-  valid size ifFalse: [
-    ^ 0 .
-  ] .
-
-
-  best_match_len _ 0 .
-  set _ valid collect: [:x=CElizaReasm|
-    wildcards _ #() .
-    x matchWords: split putWildcardsIn: wildcards .
-    best_match_len _ best_match_len max: wildcards size .
-    'See below note' . 
-    #( (x) (wildcards) )
-  ] .
-  
-  set _ set select:[:x=CFrogArray|
-     (x at: 1) size = best_match_len
-  ] .
-
-  '???' .
-  set size ifFalse: [^ 0 ] .
-
-  '#(CElizaReasm wildcards)' .
-  split _ set at: CFrogRandom new next * (set size - .99 ) .
-
-  (split at: 0) modifyFlags: cur_flags .
-  ^ (split at: 0) reassemble: (split at: 1 )
+  res _ self message0: str .
+  reduce value: res .
+  ^ 0 

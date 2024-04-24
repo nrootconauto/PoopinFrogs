@@ -187,7 +187,7 @@ I64 *UpdateUI(CUIElem *update,I64 msg_type,I64 m1,I64 m2,I64 right_x=GR_WIDTH,I6
         break;
     end:
 //These are handled by the focused silly sauce
-      if(update==FramePtr(UI_FOCUS_FPTR)&&ThingHasClass(cb,"CFrogBlock")) {
+      if(update==FramePtr(UI_FOCUS_FPTR,ui_task)&&ThingHasClass(cb,"CFrogBlock")) {
         ThingDel(FrogBlockValue(cb,FrogIncRefCnt(update),FrogChrNew(m1),FrogNumNew(m2&0xff)));
         ret_code=TRUE;
         return &ret_code;
@@ -218,7 +218,10 @@ pass:
         cb=update->ms_rdown;
       goto ms_cb;
     case MSG_MS_L_UP:
-      FramePtrDel(UI_FOCUS_FPTR);
+      drag=FramePtr(UI_FOCUS_FPTR,ui_task);
+      if(drag)
+        if(ThingHasClass(drag,"CUIGridItem"))
+          FramePtrDel(UI_FOCUS_FPTR);
       if(ThingHasClass(update->drag_end,"CFrogBlock")) {
         if(m1!=drag_start_x||m2!=drag_start_y) {
 	  if(drag=FramePtr(UI_GRID_DRAG_FPTR)) {
@@ -344,6 +347,11 @@ U0 UIChatLogDraw(CDC *dc,I64 xoff,I64 yoff,CUIChatLog *log) {
   }
 fin:;
 }
+CFrogThing *STUIFocusElem(CUIElem *self,...) {
+  UIFocusElem(self);
+  return FROG_SMALL_NIL;
+}
+AddMethod("CUIElem","focus",&STUIFocusElem);
 //
 // Background section
 //

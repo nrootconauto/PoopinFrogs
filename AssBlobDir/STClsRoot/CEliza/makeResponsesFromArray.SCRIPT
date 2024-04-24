@@ -1,0 +1,35 @@
+makeResponsesFromArray: array=CFrogArray |
+  reasm=CElizaReasm
+  input=CFrogString
+  result*
+  idx=CFrogNum
+  ret=CEliza
+|
+  ret _ CEliza new.
+  ret setHello: (array at: 0) .
+  idx _ 1 .
+  [idx < array size ] whileTrue: [
+    input _ array at: idx .
+    result _ array at: idx + 1 .
+    (result hasClass: CFrogArray ) ifTrue: [
+       result _ CEliza makeResponsesFromArray: result .
+       reasm _ CElizaReasm new .
+       ret addReasm: reasm .
+       reasm initFromString: input .
+       reasm setResult: result .
+    ] .
+    (result hasClass: CFrogStr ) ifTrue: [
+       reasm _ CElizaReasm new .
+       ret addReasm: reasm .
+       reasm initFromString: input .
+       reasm setResult: result .
+    ] .
+    (result hasClass: CFrogBlock ) ifTrue: [
+       reasm _ CElizaReasm new .
+       ret addReasm: reasm .
+       reasm initFromString: input .
+       reasm setResult: result .
+    ] .
+    idx _ idx + 2
+  ] .
+  ^ ret

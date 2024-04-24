@@ -1,0 +1,2 @@
+setFocus: f ||
+  focus _ f 

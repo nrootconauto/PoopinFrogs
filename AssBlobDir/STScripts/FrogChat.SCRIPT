@@ -1,263 +1,70 @@
 #new_frog_conversation _ [:frognpc |
-  #frog1_chat _ CEliza new .
-
-  #frog1_chat setHello: 'Whatevers poppin,im hoppin' .
+  #frog1_chat _ CEliza makeResponsesFromArray: #(
+    'Whatevers poppin,im hoppin'
+    'where *' 'I live in a lily pad '
+    '* work *' 'I sell meth for a living,I can also make your piss purple'
+    '* buy*' #(
+      'What are you buying'
+      '* coadine *' #('It will turn your piss purple')
+      '* ammo *' #('Time to flame it up')
+    )
+    '*' #(
+       'Have you seen my lover'
+       '* yes *' 'His name is Donald Trump'
+       '* no *' #(
+         'If you see him I have a quest for you'
+       )
+    )
+    '* lover *' 'I may have cheated on Trump with a potato.'
+    'who * lover *' 'Trump'
+    '* Trump *' 'No cap I luv Donald Trump'
+    '* Trump *' 'Trump needs hid twitter back so I cna thirst post to him'
+    '*' 'I like food'
+    '* food *'  #(
+       'My favorite food is poop,DO NOT ask me more about this'
+       '* poop *' #(
+         'Heres the deal,I love shit,get me some shit and I have something for you'
+       )
+    )
+    '*' #(
+      'Have you tasted flies'
+      '* yes *' 'They do taste good'
+      '* no *' 'What the fuck is wrong with you?'
+    )
+    '* eat *' '(2) sounds yummy '
+    '*' #(
+      'What kind of music do you listen to'
+      '* rap * ' 'I like 21 Savage and Drake and I fucking love Kanye'
+      '* pop * ' 'Micheal Jackson is the king of pop'
+      '* country * ' 'Tenesse hillbilies fucking there sisters for a good time?'
+    )
+    '* 21 *' '21 Savage is a fine rapper,21 Pussy 21' 
+    '* Kanye *' 'Kanye West has a way with words,I like how his music is both directionless and meaningdful at the same time'
+    '* Kanye *' 'Donda is a good album'
+    '* Drake *' 'Drake is the king of rap but not pop music'
+    '* Jackson *' #(
+       'Micheal Jackson is a good singer,whats your favorite album of his?'
+       '* Moonwalking *' 'Moon walking is a sick dance move'
+       '* Bad *' 'Bad is the climax of the classic trillogy,I like Man in the mirror'
+       '* Triller *' 'I used to listen to Thriller alot until "Gotta be startin somthin" got stuck in my head'
+       '* Wall *' 'Off the wall is a classic'
+       '* Dangerous *' 'Dangerous is a good album that embodies the staples of Micheal Jacksons music'
+       '* Invincible *' 'Dogshit?'
+    )
+    '*' #(
+      'How did you end up playing this game?'
+      '* fun *' 'Sorry not much fun here'
+      '* curious *' 'I dont even know why Im programming this garbage' 
+      '* funny *' 'Iknow,peeing on people is funny right'
+      '* dont* know *' 'I dont know either'
+      '* not * sure *' 'Idk either bitch'
+    )
+  ) .
+  #frog1_chat addSynonym: 'Ye' for: 'Kanye' .
+  #frog1_chat addSynonym: 'favorite' for: 'best' .
+  #frog1_chat addSynonym: 'curiosity' for: 'curious' .
+  #frog1_chat addSynonym: 'moonwalking' for: 'moonwalk'
   #frog1_chat setQuit: 'Ribbit' .
   frognpc setChatBot: #frog1_chat .
-
-  'Questions'.
-  #frog1_chat addSynonym: 'who' for: 'why' .
-  #frog1_chat addSynonym: 'what' for: 'why' .
-  #frog1_chat addSynonym: 'when' for: 'why' .
-  #frog1_chat addSynonym: 'where' for: 'why' .
-  #frog1_chat addSynonym: 'how' for: 'why' .
-'Why is an alais for all question words '.
-
-
-'           NOTE      '
-'The frog is a meth dealer who can sell Coadine to make your piss purple'
-'         END NOTE    ' .
-
-
-  #tmp _ CElizaReasm new.
-  #frog1_chat addReasm: #tmp .
-  #tmp initFromString: '* live * ' .
-  #tmp setResult: #(
-    ('I live in a lily pad')
-    ('Im straight up out the pond')
-  ) .
-
-  #frog1_chat addSynonym: 'work' for: 'do' .
-  #frog1_chat addSynonym: 'job' for: 'do' .
-  #tmp _ CElizaReasm new.
-  #frog1_chat addReasm: #tmp .
-  #tmp initFromString: '* work * ' .
-  #tmp setResult: #(
-    ('I sell meth for a living,I can also sell you some purple piss')
-    ('I work for Trump money')
-  ).
-
-  #frog1_chat addSynonym: 'meth' for: 'drug' .
-  #frog1_chat addSynonym: 'pot' for: 'drug' .
-  #frog1_chat addSynonym: 'coadine' for: 'drug' .
-  #frog1_chat addSynonym: 'purple' for: 'drug' .
-  #frog1_chat addSynonym: 'drugs' for: 'drug' .
-  #tmp _ CElizaReasm new.
-  #frog1_chat addReasm: #tmp .
-  #tmp initFromString: '* pot * ' .
-  #tmp setResult: #(
-    ('Ask to buy some coadine for fun ')
-    ('I am a certified coadine dealer')
-  ).
-
-'TODOCOADINE quest' . 
-
-'           NOTE      '
-'The frog is a former plantsexual who likes Trump'
-'         END NOTE    ' .
-
-  #frog1_chat addSynonym: 'family' for: 'homie' .
-  #frog1_chat addSynonym: 'freind' for: 'homie' .
-  #tmp _ CElizaReasm new.
-  #frog1_chat addReasm: #tmp .
-  #tmp initFromString: '* homie * ' .
-  #tmp setResult: #(
-    ('I chilled with frogs ever since I was a tadpole')
-    ('I have a secret lover')
-  ).
-
-
-
-  #frog1_chat addSynonym: 'boyfreind' for: 'lover' .
-  #frog1_chat addSynonym: 'girl' for: 'lover' .
-  #tmp _ CElizaReasm new.
-  #frog1_chat addReasm: #tmp .
-  #tmp initFromString: '* lover * ' .
-  #tmp setResult: #(
-    ('Im putting the "Trump" in LGBQT')
-    ('I may have cheated on Trump with a potato.')
-  ).
-
-  #frog1_chat addSynonym: 'Donald' for: 'Trump' .
-  #frog1_chat addSynonym: 'President' for: 'Trump' .
-  #tmp _ CElizaReasm new.
-  #frog1_chat addReasm: #tmp .
-  #tmp initFromString: '* Trump * ' .
-  #tmp setResult: #(
-    ('No cap I luv the Donald Trump')
-    ('Trump needs hid twitter back so I cna thirst post to him')
-    ('I telepathically communicate with Trump')
-  ).
-
-
-
-  'Generic ' .
-  #tmp _ CElizaReasm new.
-  #frog1_chat addReasm: #tmp .
-  #tmp initFromString: '* yes *' .
-  #tmp setResult: 'Tell me more than yes' .
-
-  #tmp _ CElizaReasm new.
-  #frog1_chat addReasm: #tmp .
-  #tmp initFromString: '* no*' .
-  #tmp setResult: 'No to what' .
-
-
-
-  'Food '.
-  #tmp _ CElizaReasm new.
-  #frog1_chat addReasm: #tmp .
-  #tmp initFromString: '*' .
-  #tmp setResult: #(
-    ('I perfer flies to munch on')
-    ('I eat something that is brown and comes out of assholes')
-    ('Moonwalking is cool')
-  ) .
-
-  #tmp _ CElizaReasm new.
-  #frog1_chat addReasm: #tmp .
-  #tmp initFromString: '* eat *' .
-  #tmp setResult: '(2) does sound yummy' .
-
-  #frog1_chat addSynonym: 'flies' for: 'fly' .
-  #frog1_chat addSynonym: 'buzzer' for: 'fly' .
-  #frog1_chat addSynonym: 'buzzers' for: 'fly' .
-
-  #tmp _ CElizaReasm new.
-  #frog1_chat addReasm: #tmp .
-  #tmp initFromString: '* fly*' .
-  #tmp setResult: #(
-    ('Buzzers are delectable.')
-    ('Who invented flies?')
-  ) .
-  #tmp _ CElizaReasm new.
-  #frog1_chat addReasm: #tmp .
-  #tmp initFromString: '* food*' .
-  #tmp setResult: 'I have a secret food I like.' .
-
-  #tmp _ CElizaReasm new.
-  #frog1_chat addReasm: #tmp .
-  #tmp initFromString: '* secret*' .
-  #tmp setResult: 'Poop is the secret food of mine,DO NOT ask about it.' .
-
-  #tmp _ CElizaReasm new.
-  #frog1_chat addReasm: #tmp .
-  #tmp initFromString: '* poop *' .
-  #tmp setResult: 'Ill be frank,poop is a secret food on mine' .
-  #tmp setAddFlags: #('poop') .
-
-
-  #tmp _ CElizaReasm new.
-  #frog1_chat addReasm: #tmp .
-  #tmp initFromString: '*' .
-  #tmp setResult:  #(
-    ('Mind telling me about your favorite frog snack')
-    ('What do you like to eat')
-  ) .
-
-  'Poop Quest' .
-  #frog1_chat addSynonym: 'shit' for: 'poop' .
-  #frog1_chat addSynonym: 'turd' for: 'poop' .
-  #frog1_chat addSynonym: 'turds' for: 'poop' .
-
-  #tmp _ CElizaReasm new.
-  #frog1_chat addReasm: #tmp .
-  #tmp initFromString: ' * ' .
-  #tmp setResult: 'Im starving for shit,Ill make a deal. Give me some turds and'
-  ' youll get a glizzy' .
-  #tmp setNeedFlags: #('poop') .
-  #tmp addAddFlags: #('quest1') .
-
-  #tmp _ CElizaReasm new.
-  #frog1_chat addReasm: #tmp .
-  #tmp initFromString: ' * poop * ' .
-  #tmp setResult: 'Thanks for the shit'
-      'Here is ur glizzy,time to flame it up' .
-  #tmp setNeedFlags: #('poop' 'quest1' ).
-  #tmp setRemoveFlags: #('quest1') .
-  #tmp setOnCompleteBlock: [:e=CEliza |
-    #world addNewThingFromClass: CGun1Pickup 
-          atX:frognpc xPos
-          atY:frognpc xPos .
-  ] .
-
-
-  'Misc' .
-  #tmp _ CElizaReasm new.
-  #frog1_chat addReasm: #tmp .
-  #tmp initFromString: '*' .
-  #tmp setResult: #(
-   ('I like to hop around')
-   ('I chill at the lily pad')
-   ('21 Savage is a good rapper')
-   ('Do you listen to any music')
-  ) .
-
-
-
-  'Music'.
-
-  #frog1_chat addSynonym: '21' for: 'Savage' .
-  #tmp _ CElizaReasm new .
-  #frog1_chat addReasm: #tmp .
-  #tmp initFromString: '* Savage * ' .
-  #tmp setResult: '21 Savages new album is quite good and I like it' .
-  
-
-
-  #frog1_chat addSynonym: 'song' for: 'music' .
-  #frog1_chat addSynonym: 'rap' for: 'music' .
-  #tmp _ CElizaReasm new.
-  #frog1_chat addReasm: #tmp .
-  #tmp initFromString: '* music *' .
-  #tmp setResult: 'I like Drake,Ye and Micheal Jackson' .
-
-  #tmp _ CElizaReasm new.
-  #frog1_chat addReasm: #tmp .
-  #tmp initFromString: '* Drake *' .
-  #tmp setResult: 'Drakes words are pure poetry' .
-
-  #frog1_chat addSynonym: 'Kanye' for: 'Ye' .
-  #frog1_chat addSynonym: 'West' for: 'Ye' .
-
-  #tmp _ CElizaReasm new.
-  #frog1_chat addReasm: #tmp .
-  #tmp initFromString: '* Ye *' .
-  #tmp setResult: 'Ye has songs that have little cohesion while also having a good message' .
-
-  #frog1_chat addSynonym: 'Micheal' for: 'Jackson' .
-  #tmp _ CElizaReasm new.
-  #frog1_chat addReasm: #tmp .
-  #tmp initFromString: '* Jackson *' .
-  #tmp setResult: #(
-   ('Micheal Jackson turns cliches into art')
-  ('I cant moonwalk like Micheal Jackson')
- ) .
-
-
-  #frog1_chat addSynonym: 'dance' for: 'moonwalk' .
-  #frog1_chat addSynonym: 'twerk' for: 'moonwalk' .
-  #tmp _ CElizaReasm new.
-  #frog1_chat addReasm: #tmp .
-  #tmp initFromString: '* moonwalk *' .
-  #tmp setResult: #(
-    ('I tried to moonwalk before.')
-    ('Dance isnt my thing.')
-  ) .
-
-  'Coadine Quest(quest2)' .
-  #frog1_chat addSynonym: 'piss' for: 'pee' .
-  #tmp _ CElizaReasm new.
-  #frog1_chat addReasm: #tmp .
-  #tmp initFromString: '*' .
-  #tmp setResult: 'There is a secret way to get purple pee' .
-
-  #tmp _ CElizaReasm new.
-  #frog1_chat addReasm: #tmp .
-  #tmp initFromString: '* piss *' .
-  #tmp setAddFlags: #('quest2') . 
-  #tmp setResult: 'Drink Coadine for purple pee' .
-
-  'TODO quest2'.
+  #frog1_chat
 ] .
-'frogdone' show .

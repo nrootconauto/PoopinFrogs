@@ -2177,7 +2177,6 @@ U0 WalkAround() {
 	        case SC_CURSOR_UP: up=TRUE; break;
 	        case SC_CURSOR_DOWN: down=TRUE; break;
 	      } else switch (ToUpper(ch)) {
-	        case '\n':
 	        case CH_ESC:
 	        case CH_SHIFT_ESC: {
 		  //No jumping out of try block

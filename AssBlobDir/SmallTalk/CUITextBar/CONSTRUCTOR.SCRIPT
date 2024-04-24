@@ -6,6 +6,10 @@ init | |
   cur_pos _ 0 .
   buf _  '' .
   kbd_down _ [:elem=CUITextBar :ch* :sc*|
+    'SC_ESC is 1' .
+    sc = 1 ifTrue: [
+      on_escape value .
+    ] .
     'SC_CURSOR_LEFTis 75' .
     sc = 75 ifTrue: [
       cur_pos _ cur_pos - 1 .
@@ -19,6 +23,9 @@ init | |
     '28 is SC_ENTER' .
     sc = 28 ifTrue: [
       on_enter value: buf .
+      buf _ '' .
+      view_pos _ 0 .
+      cur_pos _ 0 .
     ] ifFalse: [
       '14 is backsapce ' .
       (sc ~=14 and: ch isDisplayable ) ifTrue: [
@@ -27,7 +34,7 @@ init | |
       ] ifFalse: [
         sc = 14 ifTrue:[
           buf removeAt: cur_pos - 1 .
-          cur_pos _ cur_pos -1
+          cur_pos _ cur_pos - 1
         ] . 
       ]
     ] .

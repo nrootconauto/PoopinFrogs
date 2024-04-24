@@ -22,6 +22,7 @@ matchWords: array putWildcardsIn: result|
       ] .
       result add: wildcard .
     ] ifFalse: [
+      wi >= array size ifTrue: [^ 0 ] .
       ( array at: wi ) = (parts at: idx) ifTrue: [
         wi _ wi + 1 .
       ] ifFalse: [

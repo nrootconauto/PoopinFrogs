@@ -94,7 +94,7 @@ class CUIElem:CFrogThing {
   Bool focus;
   Bool dont_draw,pad[4];
 };
-class CUIChatLog:CUIElem {
+class CUIChatLog:CUIElem {
   U8 *constructor dft "UIChatLogInit";
   U8 *draw_it dft "UIChatLogDraw";
   CFrogArray *lines;
@@ -125,7 +125,7 @@ class CUIMeter:CUIElem {
   I64 max,value;
   I64 bg_color;
   I64 fg_color;
-  I64 text_color;
+  I64 text_color;
   I64 border_color;
   CFrogStr *str;
 };
@@ -136,6 +136,7 @@ class CUITextBar:CUIElem {
   I64 view_pos,cur_pos;
   U8 bg_color,fg_color,border_color;
   CFrogBlock *on_enter;
+  CFrogBlock *on_escape;
 };
 class CUIScrollBars:CUIElem {
   U8 *constructor dft "UIElemInit";
@@ -261,10 +262,12 @@ class CElizaReasm:CFrogThing {
 };
 class CEliza:CFrogThing {
   CFrogDictionary *synonyms;
+  F64 focus;
   CFrogStr *hello;
   CFrogStr *quit;
   CFrogArray *reasms; //CElizaReasm
   CFrogArray *cur_flags; //Just a CFrogStr
+  CFrogArray *stack; 
 };
 //
 // Game Section

@@ -1,14 +1,18 @@
 reassemble: wildcards |
-  ret=CFrogStr 
+  ret*
   cumsum=CFrogStr 
   replace=CFrogBlock 
   found_at=CFrogNum
 |
   (result hasClass: CFrogArray ) ifTrue: [
-    ret _ (result size * CFrogRandom new next rem: result size ) copy .
+    ret _ (result at: (result size * CFrogRandom new next rem: result size )).
   ] ifFalse: [
-    ret _ result copy .
+    ret _ result.
   ] .
+  (ret hasClass: CEliza) ifTrue: [
+    ^ ret 
+  ] .
+  ret _ ret copy .
   replace _ [:from=CFrogStr :with=CFrogStr |
     found_at _ (ret indexOf: from ) .
     found_at >= 0 ifTrue: [

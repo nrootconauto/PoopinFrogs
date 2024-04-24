@@ -1,0 +1,69 @@
+message0: str |
+   valid=CFrogArray
+   split=CFrogArray 
+   tmp=CFrogStr
+   choose=CElizaReasm
+   wildcards=CFrogArray
+   best_match_len=CFrogNum
+   best_flag_cnt=CFrogNum
+   set=CFrogArray
+   score=CFrogNum
+|
+  split _ #() .
+  tmp _ '' .
+  str do: [:ch* | 
+    ch isAlphaNumeric ifTrue: [
+      tmp add: ch 
+    ] ifFalse: [
+      tmp size ifTrue: [
+        split add: (self getSynonym: tmp copy )
+      ] .
+      tmp _ '' .
+    ]
+  ] .
+  tmp size ifTrue: [
+    split add: (self getSynonym: tmp copy )
+  ] .
+
+  valid _ reasms select: [:r=CElizaReasm | 
+    (r matchWords: split ) and: ( r acceptsFlags: cur_flags )
+  ] .
+  
+  valid size ifFalse: [
+    ^ 0 .
+  ] .
+
+
+  best_match_len _ 0 .
+  set _ valid collect: [:x=CElizaReasm|
+    wildcards _ #() .
+    x matchWords: split putWildcardsIn: wildcards .
+    best_match_len _ best_match_len max: wildcards size .
+    score _ x acceptsFlags: cur_flags .
+    'See below note' . 
+    #( (x) (wildcards) (score) )
+  ] .
+  
+
+  set _ set select:[:x=CFrogArray|
+     (x at: 1) size = best_match_len
+  ] .
+
+'Pass 2,use one with best matched flags' .
+  best_flag_cnt _ 0 .
+  set do: [:x=CFrogArray|
+'Accept flags returns 1 +number of matched flags'.
+'I want the most matched flags' .
+    best_flag_cnt _ best_flag_cnt max: (x at: 2).
+  ] .
+
+  set _ set select:[:x=CFrogArray|
+     (x at: 2) = best_flag_cnt
+  ] .
+
+  '???' .
+  set size ifFalse: [^ 0 ] .
+
+  '#(CElizaReasm wildcards score )' .
+  split _ set at: (CFrogRandom new next * set size rem: set size) .
+  ^ (split at: 0) reassemble: (split at: 1)
