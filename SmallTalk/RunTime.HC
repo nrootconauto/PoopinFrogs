@@ -1,4 +1,3 @@
-$BK,0$
 #exe {Cd(__DIR__);};;
 #include "Parser.HC";
 #include "RunTime.HH";
@@ -117,14 +116,19 @@ U8 *FrogThingClassName(CFrogThing *thing) {
     else
       name="CFrogUndefined";
   } else  {
+    if(thing->thing_flags&THINGF_FRAME_TYPE) {
+//Is a generic frame
+PrintI(thing->class_name,thing);
+      return "CFrogThing";
+    }
     name=thing->class_name;
     if(!StrCmp(name,"CFrogSuper")) {
       name=FrogThingClassName(thing(CFrogSuper*)->from);
       cls=HashFind(name,frog_mem_task->hash_table,HTT_CLASS);
       if(cls) {
-	if(cls=cls->base_class) {
+        if(cls=cls->base_class) {
 	  return cls->str;
-	}
+        }
       }
     }
   }
@@ -726,7 +730,7 @@ CFrogThing *FrogStrRemAt(CFrogArray *self,I64 n) {
   }
   return FROG_SMALL_NIL;
 }
-CFrogThing *FrogArrayRemove(CFrogArray *self,CFrogThing *t) {
+CFrogThing *FrogArrayRemove(CFrogArray *self, CFrogThing *t) {
   I64 idx,ptr=0;
   I64 *flat=self->items->body;
   CFrogThing *ret;
@@ -1297,6 +1301,7 @@ CFrogUndefined *FrogNil() {
 
 U0 FrogGarbageCollectThing(CFrogThing *root,Bool debug=FALSE) {
   if(!root||root&1) return; //bit 0 is set for special "small" values
+  static I64 depth=0;
   I64 idx;
   CLocalsGeneric *g,*p;
   CFrogThing **body,dummy;
@@ -1314,7 +1319,8 @@ U0 FrogGarbageCollectThing(CFrogThing *root,Bool debug=FALSE) {
     while(--idx>=0) {
       FrogGarbageCollectThing(g->body[idx],debug); 
     }
-    FrogGarbageCollectThing(root(CLocalsGeneric*)->parent,debug);
+    if(g->type=='Block')
+      FrogGarbageCollectThing(g->parent,debug);
   } else if(ThingHasClass(root,"CFrogArray")) {
     body=root(CFrogArray*)->items->body;
     idx=root(CFrogArray*)->items->cnt;
@@ -1483,7 +1489,7 @@ U8 *AsString(CFrogThing *t) {
   I64 idx;
   U8 *ret=NULL;
   CFrogThing *as_str;
-  CI64Set *items;
+  CU8Set *items;
   CU8Set *items_str;
   if(ThingHasClass(t,"CFrogBin")) {
     return MAllocIdent(t(CFrogBin*)->data);

@@ -2261,7 +2261,7 @@ next:;
         }
      }
       Refresh;
-if(every++&15==0) FrogGarbageCollect;
+      FrogGarbageCollect;
     } catch PutExcept(TRUE);
 en:
 //  ProfRep;

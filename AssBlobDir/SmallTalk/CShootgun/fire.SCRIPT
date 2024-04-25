@@ -1,0 +1,63 @@
+fire |
+ cur_ts=CFrogNum
+ player=CPlayer
+ canidates=CFrogArray 
+ wall_hole=CWallStain
+ case*
+ sz=CFrogNum
+ floor_stain=CFloorStain
+ spread=CFrogNum
+ hit=CFrogNum
+ |
+  player _ #world getPlayer .
+  ammo >= 2 ifTrue: [
+    cur_ts _ CFrogTime now asSeconds .
+    timeout < cur_ts ifTrue: [
+      0 to:2 do: [
+      case _ CShellCasing new .
+'TODOshootgun shells' .
+        case setGraphics: 'GR/GUN1/BULLET' .
+        case ejectAtX: x atY: y .
+        player addShellCasing: case .
+      ] .
+      timeout _ cur_ts + 1 .
+      self setGraphics: 'GR/Shootgun/fire' .
+      ammo _ ammo - 2 max: 0 .
+      inventory_item setCount: ammo .
+      canidates _ #world thingsInDist: 128 * 64 atAngle: player getAngle fromThing: player .
+      0 to: 6 do: [
+        spread _ CFrogRandom new next - .5  * (3.14 / 16 ) .
+        hit _ 0 .
+        canidates do: [ :t=C2DThing |
+          (player ~= t and: t getHealth > 0. ) ifTrue: [
+            (player screenRayHitsTarget: t atAngle: player getAngle + spread
+            ) ifTrue: [
+                hit ifFalse: [
+                  t damage: 10 * CFrogRandom new next + 5 from: player .
+                  hit _ 1 
+                ] .
+            ] 
+          ]
+        ].
+        hit ifFalse: [
+          sz _ #world screenCoordToZ .
+          #world screenCoordIsOnFloor ifTrue: [
+            floor_stain _ CFloorStain new .
+            floor_stain setGraphics: 'GR/GUN1/BULLET_HOLE' atAngle: 0 .
+            floor_stain putAtX: #world screenCoordToX + (CFrogRandom new next * 128 - 64) 
+                      atY: #world screenCoordToY (CFrogRandom new next * 128 - 64 ) .
+            #world addFloorStain: floor_stain .
+          ] ifFalse: [
+            wall_hole _ CWallStain new .
+            wall_hole
+            placeAtAngle: player getAngle + spread
+              fromX: player xPos 
+              fromY: player yPos
+              atHeight: sz .
+          ] .
+        ] .
+      ]
+    ].
+  ] .
+
+^ 1 .

@@ -94,7 +94,7 @@ class CUIElem:CFrogThing {
   Bool focus;
   Bool dont_draw,pad[4];
 };
-class CUIChatLog:CUIElem {
+class CUIChatLog:CUIElem {
   U8 *constructor dft "UIChatLogInit";
   U8 *draw_it dft "UIChatLogDraw";
   CFrogArray *lines;
@@ -293,6 +293,8 @@ class CPickup:C2DThing {
 };
 class CGun1Pickup:CPickup {
 };
+class CShootgunPickup:CPickup {
+};
 
 class CFrogTongue:CFrogThing {
   C2DThing *from;
@@ -303,6 +305,8 @@ class CFrogTongue:CFrogThing {
 
 
 class CGun1:CHandItem {
+};
+class CShootgun:CHandItem {
 };
 class CTalker:CHandItem {
   C2DThing *talking_to;
