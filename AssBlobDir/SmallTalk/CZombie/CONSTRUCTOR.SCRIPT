@@ -1,0 +1,10 @@
+init | |
+  #world addThing: self .
+  speed _ 128 / 30 * 2 .
+  health _ 100 .
+  random_generator _ CFrogRandom new .
+  template _ #world getThingTemplate: 'CZombie' .
+  animation_start_tS _ 0 .
+  state _ 'Normal' . 
+  piss_stream _ CPissStream new .
+  ^ self

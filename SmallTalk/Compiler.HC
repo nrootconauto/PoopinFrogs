@@ -296,6 +296,7 @@ Bool STGetLocal(CDoc *doc,CLocals *who,U8 *name) {
     who=who->next;
   }
   if(!gen) {
+"%s\n",name;
     throw('STVar');
   }
   DocPrint(doc,"->_body[%d]",gen->user_data0);

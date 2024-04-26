@@ -2,7 +2,8 @@ update | tmp=CFrogArray |
   tmp _ links.
   links _ #() .
   tmp do:[:l=CPissLink |
-    (l updateWithWeight: 1 makeParticles: 1) ifTrue: [
+'Returns collision array if hit,so check for 1' .
+    (l updateWithWeight: 1 makeParticles: 1) = 1 ifTrue: [
       links add: l  .
     ] 
   ] .

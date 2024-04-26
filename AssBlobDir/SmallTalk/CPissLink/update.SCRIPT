@@ -32,11 +32,11 @@ updateWithWeight: w=CFrogNum makeParticles: part=CFrogNum |
         fromY: oldy - momy
         atHeight: oldz + z / 2. 
     ] .
-    ^ 0 .
+    ^ #(x y z ) .
   ].
   (z >= ch) ifTrue: [
     rise _ #world ceilRiseAtX: oldx / 128 atY: oldy / 128 .
-    ((rise + ch) > z ) ifTrue: [
+    ((rise + ch) > z and: part) ifTrue: [
       stain  _ CCeilStain new .
       stain setGraphics: 'GR/Dick/PISS_STAIN' atAngle: #world getPlayer getAngle .
       stain putAtX: x atY: y .
@@ -49,7 +49,16 @@ updateWithWeight: w=CFrogNum makeParticles: part=CFrogNum |
         fromY: oldy - momy
         atHeight: oldz + z / 2. 
       .   
-      ^ 0
+      ^ #(x y z)
     ].
   ].
+  (h >= oldz) ifTrue: [
+    ^ #(x y z)
+  ].
+  (z >= ch) ifTrue: [
+    rise _ #world ceilRiseAtX: oldx / 128 atY: oldy / 128 .
+    ((rise + ch) > z ) ifTrue: [
+      ^ #(x y z)
+    ] .
+  ] .
   ^ 1.

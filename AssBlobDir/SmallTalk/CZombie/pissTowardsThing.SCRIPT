@@ -1,0 +1,79 @@
+pissTowardsThing: who=C2DThing 
+|
+  piss=CPissLink
+  cur_ts=CFrogNum
+  rand=CFrogRandom
+  launch_angle=CFrogNum
+  targetd=CFrogNum
+  force=CFrogNum
+  a=CFrogNum
+  base_a=CFrogNum
+  approx=CFrogBlock
+  best_force=CFrogNum
+  hit_at=CFrogArray
+  old_hit_at=CFrogArray
+  best_force_d=CFrogNum
+  d=CFrogNum
+  cap=CFrogNum
+|
+  piss_stream update .
+  cur_ts _ CFrogTime now asSeconds .
+
+
+  approx _ [ :percent=CFrogNum|
+    piss _ CPissLink new .
+    piss setX: x + (16 * a cos ) .
+    piss setY: y + (16 * a sin ) .
+    piss setZ: z + .3 .
+    piss setMomX: (force * percent * a cos).
+    piss setMomY: (force * percent * a sin).
+    piss setMomZ: .35 .
+    
+    cap _ 0 .
+    [
+      hit_at _ piss updateWithWeight: 3  makeParticles: 0 .
+      hit_at = 1 and: cap < 15
+    ] whileTrue: [
+      cap _ cap + 1 .
+    ] .
+    d _ (((hit_at at: 0) -  x ) squared + ((hit_at at: 1) -  y ) squared ) sqrt .
+    ( targetd - d ) abs < best_force_d ifTrue: [
+      best_force _ force * percent .
+      best_force_d _ d 
+    ]
+  ] .
+
+  (cur_ts - state_start_tS ) >= state_duration ifTrue: [
+    rand _ CFrogRandom new .
+    state_duration _ .2 .
+
+    'https://en.wikipedia.org/wiki/Trajectory' .
+    launch_angle _ .35 arctan .
+    targetd _  ((who xPos -  x ) squared + (who yPos -  y ) squared ) sqrt . 
+    targetd _ targetd - 8 max: 0 .
+    force _ targetd * .275 / 8.6 .
+    best_force _ force .
+    best_force_d _ 10000. .
+
+    base_a _ (who xPos -  x) arg: (who yPos -  y ) .
+    a _  base_a + (3.14 / 100 * rand next ) .
+
+    0 to: 10 do: [:m=CFrogNum|
+      approx value: (m + 5 ) / 10.
+    ] .
+
+    force _ best_force .
+    0 to: 3 do: [:v=CFrogNum |
+        piss _ CPissLink new .
+        piss setX: x + (16 * a cos ) .
+        piss setY: y + (16 * a sin ) .
+        piss setZ: z + .3 .
+        piss setMomX: (force * a cos).
+        piss setMomY: (force * a sin).
+        piss setMomZ: .35 .
+        (piss updateWithWeight:  1  / 3 * ( 3 -  v)  makeParticles: 0) ifTrue: [ 
+          'test if wee havent hit the ground '.
+          piss_stream addLink: piss .
+        ]
+    ] .
+  ] .

@@ -293,7 +293,7 @@ class CPickup:C2DThing {
 };
 class CGun1Pickup:CPickup {
 };
-class CShootgunPickup:CPickup {
+class CShootgunPickup:CPickup {
 };
 
 class CFrogTongue:CFrogThing {
@@ -342,3 +342,14 @@ class CPlayer:C2DThing {
 //How many bloody footprints will be made
   F64 bloody_foot_count;
 }; 
+
+class CZombie:C2DThing {
+  CFrogRandom *random_generator;
+  F64 speed;
+  CEliza *chat_bot;
+  F64 state_start_tS;
+  F64 state_duration;
+  CFrogStr *state;
+ CPissStream *piss_stream;
+  C2DThing *target;
+};

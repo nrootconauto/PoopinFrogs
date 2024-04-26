@@ -1487,8 +1487,8 @@ U0 DrawPissStream(C3DWorld *w,CPissStream *ps) {
     enp.x=links[idx]->x;
     enp.y=links[idx]->y;
     enp.z=links[idx]->z;
-    ClipLineToCamera(w,&stp,&enp);
-    Line3D(w,dc,&stp,&enp);
+ //   if(ClipLineToCamera(w,&stp,&enp))
+      Line3D(w,dc,&stp,&enp);
     last.x=links[idx]->x;
     last.y=links[idx]->y;
     last.z=links[idx]->z;
@@ -1497,8 +1497,9 @@ U0 DrawPissStream(C3DWorld *w,CPissStream *ps) {
 U0 Draw2DThing(C3DWorld *w,C2DThing *thing) {
   if(thing->no_draw) goto fin;
   C2DThingTemplate *template=thing->template;
-  if(!ThingHasClass(template,"C2DThingTemplate"))
+  if(!ThingHasClass(template,"C2DThingTemplate")) {
     return;
+  }
   CDC *dc=w->to_dc;
   F64 x=thing->x-w->x,y=thing->y-w->y;
   F64 off=thing->angle-w->angle+pi,angle,diff,gap;
@@ -1637,6 +1638,9 @@ fin:
   }
   if(ThingHasClass(thing,"CPlayer")) {
     DrawPissStream(w,thing(CPlayer*)->piss_stream);
+  }
+  if(ThingHasClass(thing,"CZombie")) {
+    DrawPissStream(w,thing(CZombie*)->piss_stream);
   }
 }
 C3DWorld *w;

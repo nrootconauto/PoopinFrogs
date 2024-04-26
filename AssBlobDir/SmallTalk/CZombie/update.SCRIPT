@@ -1,0 +1,109 @@
+update |
+  player=CPlayer
+  cur_tS=CFrogNum
+  dist=CFrogNum
+  new_t=C2DThingTemplate
+  hit_wall=CFrogNum
+|
+  piss_stream update  .
+
+  health <= 0 ifTrue: [
+    new_t _ #world getThingTemplate: 'CZombie/Dead' .
+    new_t ~= template ifTrue: [
+      animation_start_tS _ CFrogTime now asSeconds .
+      animation_no_repeat _ 1 .
+      template _  new_t .
+    ] .
+    ^ 1 .
+  ] .
+
+  cur_tS _ CFrogTime now asSeconds .
+  player _ #world getPlayer .  
+
+  (target hasClass: C2DThing) ifFalse: [
+    target _ player
+  ] .
+
+'Check if close enough to bite'.
+  state = 'Chase' ifTrue: [
+    dist _ ((target xPos - x ) squared + (target yPos - y) squared ) sqrt .
+    dist < (2.5 * 128) ifTrue: [
+      state _ 'Bite' .
+      state_start_tS _ cur_tS .
+      state_duration _ 1 .
+      animation_start_tS _ CFrogTime now asSeconds .
+      animation_no_repeat _ 1 .
+      template _ #world getThingTemplate: 'CZombie/Bite' .
+      target damage: random_generator next * 43 + 7 from: self .
+    ] .
+  ] .
+
+  state = 'Bite' ifTrue: [
+    ( cur_tS - state_start_tS ) >= state_duration  ifTrue: [
+      state _ 'Chase' .
+    ] ifFalse: [
+      ^ 1 .
+    ] .
+  ] .
+
+  state = 'Piss' ifTrue: [
+    'Randomly stop pissing' .
+    random_generator next < (.9 / 30 ) ifTrue: [
+      state _ 'Chase' .
+    ] ifFalse: [
+      template _ #world getThingTemplate: 'CZombie/Piss' .
+      self pissTowardsThing: target .
+      ^ 1 .
+    ] .
+  ] .
+
+  ( cur_tS - state_start_tS ) >= state_duration  ifTrue: [
+    'Piss? after chasing'
+    (state = 'Chase'  and: (random_generator next > .5 )) ifTrue: [
+      state _ 'Piss' .
+      template _ #world getThingTemplate: 'CZombie/Piss' .
+      self pissTowardsThing: target .
+      state_start_tS _ cur_tS .
+      state_duration _ 0 . 
+      ^ 1 .
+    ] .
+
+    ((self canSeeThing:  target) and: state ~= 'Chase') ifTrue: [
+      target _player .
+      state _ 'Chase' .
+      state_duration _ random_generator next * 2 + .5 .
+      angle _ ((target xPos - x ) arg: (target yPos - y )) .
+      template _ #world getThingTemplate: 'CZombie' .
+    ] ifFalse: [
+      state _ 'Normal' .
+    ] .
+  ] .  
+
+  state = 'Chase' ifTrue: [   
+    speed _ 128 / 30 * 4.5 .
+  ] .
+
+
+  state = 'Normal' ifTrue: [
+     speed _ 128 / 30  * 2 . 
+  ] .  
+
+
+
+  'Walk around ' .
+
+  template _ #world getThingTemplate: 'CZombie' .
+  animation_no_repeat _ 0 .
+  hit_wall _ self move: speed atAngle: angle .
+  hit_wall ifTrue: [
+    angle _ angle + (3.14 * random_generator next ) .
+  ] .
+
+  'Jump Randomly' .
+
+  z = (#world tileHeightAtX: x / 128 atY: y / 128 ) ifTrue: [
+     random_generator next < (.9 / 30) ifTrue: [
+       momz _ #world gravity * 3 .
+     ]
+  ] .
+
