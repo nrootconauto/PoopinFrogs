@@ -879,7 +879,7 @@ enter:;
   CDoc *what=DocNew(blkdev.tmp_filename);
   CLevelThingTemplate *head,*cur;
   I64 resp,idx,len;
-  U8 *str;
+  U8 *str,*new,*old;
   DocPrint(what,"$$TX+CX,\"Welcome to thing edit\"$$\n");
   DocPrint(what,"\n\n$$BT,\"Change Name\",LE=1$$\n");
   DocPrint(what,"\n\n$$BT,\"Edit Front\",LE=2$$\n");
@@ -895,8 +895,21 @@ enter:;
     case 1:
 //Name
       str=PopUpGetStr("Thing Title:");
-      StrCpy(template->name,str);
-      Free(str);
+      head=&world_edit.thing_templates_que;
+      old=StrNew(template->name);
+      idx=StrLen(old);
+      for(cur=head->next;cur!=head;cur=cur->next) {
+        if(!StrNCmp(cur->name,old,idx)) {
+	   if(cur->name[idx]==0) {// XXX
+	     StrCpy(cur->name,str);
+	   } else if(cur->name[idx]=='/') { // XXX/State
+	     new=MStrPrint("%s%s",str,cur->name+idx);
+	     StrCpy(cur->name,new);
+	     Free(new);
+	   }
+        }
+      }
+      Free(str),Free(old);
       break;
     case 2:
 //Front
