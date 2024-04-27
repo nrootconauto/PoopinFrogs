@@ -1436,10 +1436,11 @@ Bool ClipLineToCamera(C3DWorld *w,CD3 *a,CD3 *b) {
      }
     in_view=TRUE;
   }
-  if(Cos(a_angle)<0&&Cos(b_angle)<0)
+  if(Cos(a_angle-w->angle)<0&&Cos(b_angle-w->angle)<0)
     return FALSE;
-  return in_view||!IsLeftSide(&cam,&left,a)||!IsLeftSide(&cam,&left,b)
-	||IsLeftSide(&cam,&right,a)||IsLeftSide(&cam,&right,b);
+  return TRUE;
+//  return in_view||!IsLeftSide(&cam,&left,a)||!IsLeftSide(&cam,&left,b)
+//	||IsLeftSide(&cam,&right,a)||IsLeftSide(&cam,&right,b);
 }
 U0 Line3D(C3DWorld *w,CDC *dc,CD3 *st,CD3 *en) {
   CD3 res,res2;
@@ -1487,7 +1488,7 @@ U0 DrawPissStream(C3DWorld *w,CPissStream *ps) {
     enp.x=links[idx]->x;
     enp.y=links[idx]->y;
     enp.z=links[idx]->z;
- //   if(ClipLineToCamera(w,&stp,&enp))
+    if(ClipLineToCamera(w,&stp,&enp))
       Line3D(w,dc,&stp,&enp);
     last.x=links[idx]->x;
     last.y=links[idx]->y;
@@ -2213,7 +2214,7 @@ next:;
       }
       if(!player->main_inventory_active) {
         if (jump) {
-           CallScript("jump",player);
+           CallScript("jump",player);
            jump=FALSE;
         }
         if (up)

@@ -349,7 +349,7 @@ class CZombie:C2DThing {
   CEliza *chat_bot;
   F64 state_start_tS;
   F64 state_duration;
-  CFrogStr *state;
+  CFrogStr *state;
  CPissStream *piss_stream;
   C2DThing *target;
 };

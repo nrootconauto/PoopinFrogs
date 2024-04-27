@@ -555,30 +555,49 @@ pass:
       }
       if(!StrCmp(ast->op_name,"ifTrue:")) {
         cur=ast->args.next;
-        CompileAST(doc,cur,locals,stack_depth,,FALSE); //TODO allow f64
-        ast->switch_num=ast_case_num++;
-        DocPrint(doc,"case %d:\n",ast->switch_num);
-        ent=DocPrint(doc,"if(AsF64(%s)==0.) {next_case=$$LK,\"dummy3\"$$;goto enter;}",StackFrame2Var(stack_depth));
+        if(IsF64ExprNode(locals,cur)) {
+          ast->switch_num=ast_case_num++;
+          DocPrint(doc,"case %d:\n",ast->switch_num);
+          DocPrint(doc,"if((");
+          CompileAST(doc,cur,locals,stack_depth,,TRUE);
+          ent=DocPrint(doc,")==0) {next_case=$$LK,\"dummy3\"$$;goto enter;}",StackFrame2Var(stack_depth));
+        } else {
+          CompileAST(doc,cur,locals,stack_depth,,0);
+          ast->switch_num=ast_case_num++;
+          DocPrint(doc,"case %d:\n",ast->switch_num);
+          DocPrint(doc,"if(AsF64(%s",StackFrame2Var(stack_depth));
+          ent=DocPrint(doc,")==0) {next_case=$$LK,\"dummy3\"$$;goto enter;}",StackFrame2Var(stack_depth));
+	}
         UnrollBlock(doc,locals,stack_depth,ast->args.next->next);
         ReplaceElem(doc,ent,"%d",ast_case_num);
 	break;
       }
       if(!StrCmp(ast->op_name,"ifFalse:")) {
         cur=ast->args.next;
-        CompileAST(doc,cur,locals,stack_depth,,0); //TODO allow f64
-        ast->switch_num=ast_case_num++;
-        DocPrint(doc,"case %d:\n",ast->switch_num);
-        ent=DocPrint(doc,"if(AsF64(%s)) {next_case=$$LK,\"dummy4\"$$;goto enter;}",StackFrame2Var(stack_depth));
+        if(IsF64ExprNode(locals,cur)) {
+          ast->switch_num=ast_case_num++;
+          DocPrint(doc,"case %d:\n",ast->switch_num);
+          DocPrint(doc,"if((");
+          CompileAST(doc,cur,locals,stack_depth,,TRUE);
+          ent=DocPrint(doc,")) {next_case=$$LK,\"dummy3\"$$;goto enter;}",StackFrame2Var(stack_depth));
+        } else {
+          CompileAST(doc,cur,locals,stack_depth,,0);
+          ast->switch_num=ast_case_num++;
+          DocPrint(doc,"case %d:\n",ast->switch_num);
+          DocPrint(doc,"if(AsF64(%s",StackFrame2Var(stack_depth));
+          ent=DocPrint(doc,")) {next_case=$$LK,\"dummy3\"$$;goto enter;}",StackFrame2Var(stack_depth));
+	}
         UnrollBlock(doc,locals,stack_depth,ast->args.next->next);
         ReplaceElem(doc,ent,"%d",ast_case_num);
 	break;
       }
       if(!StrCmp(ast->op_name,"ifTrue:ifFalse:")) {
         cur=ast->args.next;
-        CompileAST(doc,cur,locals,stack_depth,,0); //TODO allow f64
+        CompileAST(doc,cur,locals,stack_depth,,FALSE);
         ast->switch_num=ast_case_num++;
         DocPrint(doc,"case %d:\n",ast->switch_num);
-        ent=DocPrint(doc,"if(AsF64(%s)==0.) {next_case=$$LK,\"dummy5\"$$;goto enter;}",StackFrame2Var(stack_depth));
+        DocPrint(doc,"if(AsF64(%s",StackFrame2Var(stack_depth));
+        ent=DocPrint(doc,")==0.) {next_case=$$LK,\"dummy5\"$$;goto enter;}",StackFrame2Var(stack_depth));
         UnrollBlock(doc,locals,stack_depth,ast->args.next->next);
 //Make a dummy switch statement that delegates to end
         DocPrint(doc,"case %d:\n",ast_case_num++);

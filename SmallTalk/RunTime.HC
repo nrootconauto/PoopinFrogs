@@ -139,12 +139,17 @@ Bool ThingHasClass(CFrogThing *thing,U8 *name,I64 small_type=0) {
   if(small_type&&thing&1) {
     return thing&0xffff==small_type;
   }
-  if(!(thing&1))
+  if(!(thing&1)) {
     if(thing->thing_flags&THINGF_FRAME_TYPE) {
       if(!StrCmp(name,"CFrogFrame"))
         return TRUE;
       return FALSE;
     }
+//Skip hash table call
+    if(!StrCmp(name,thing->class_name))
+      return TRUE;
+  }
+
   CHashClass *cls=HashFind(FrogThingClassName(thing),frog_mem_task->hash_table,HTT_CLASS);
   while(cls) {
     if(!StrCmp(cls->str,name))
