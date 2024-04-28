@@ -1,4 +1,4 @@
-occurancesOf: v | cnt|
+occurancesOf: v* ->CFrogNum | cnt=CFrogNum|
   cnt _ 0 .
   self do: [:item* |
     item = v ifTrue: [ cnt _ cnt + 1 ] 

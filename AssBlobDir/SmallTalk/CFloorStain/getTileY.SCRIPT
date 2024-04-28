@@ -1,1 +1,1 @@
-getTileY || ^ tile_y
+getTileY ->CFrogNum || ^ tile_y

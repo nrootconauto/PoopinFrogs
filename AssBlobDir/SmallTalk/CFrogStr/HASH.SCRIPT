@@ -1,6 +1,6 @@
-hash | ret |
+hash ->CFrogNum | ret=CFrogNum |
   ret _ 5381 .
-  self do: [:c| 
+  self do: [:c=CFrogChr | 
      ret _ ret * 33 + c asciiValue
   ].
   ^ ret abs

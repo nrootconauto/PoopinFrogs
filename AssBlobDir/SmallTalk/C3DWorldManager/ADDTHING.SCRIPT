@@ -1,4 +1,4 @@
-addThing: thing |
+addThing: thing* ->* |
     hash=CFrogNum
     names=CFrogArray
     first=CFrogStr

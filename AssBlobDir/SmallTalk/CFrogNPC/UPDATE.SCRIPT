@@ -1,4 +1,4 @@
-update | hit_wall new_t ts=CFrogNum |
+update ->* | hit_wall=CFrogNum new_t=C2DThingTemplate ts=CFrogNum |
   health <= 0 ifTrue: [
     new_t _ #world getThingTemplate: 'CFrogNPC/DEAD' .
     new_t ~= template ifTrue: [
@@ -10,7 +10,7 @@ update | hit_wall new_t ts=CFrogNum |
     ^ 1 .
   ] .
 
-  ts _ CFrogTime now .
+  ts _ CFrogTime now asSeconds .
   (ts - state_start_tS ) > state_duration ifTrue: [
     'stay angry until the target is out of view' .
     (state = 'Angry' and: (self canSeeThing: target )) ifTrue: [

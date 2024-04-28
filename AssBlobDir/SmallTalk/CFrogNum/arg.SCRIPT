@@ -1,4 +1,4 @@
-arg: y | |
+arg: y=CFrogNum -> CFrogNum| |
   self > 0 ifTrue: [
     ^ (y / self ) arctan
   ] .

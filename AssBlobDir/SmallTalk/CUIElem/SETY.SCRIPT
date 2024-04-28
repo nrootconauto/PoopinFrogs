@@ -1,2 +1,2 @@
-setY: v ||
+setY: v=CFrogNum ||
   y _ v 

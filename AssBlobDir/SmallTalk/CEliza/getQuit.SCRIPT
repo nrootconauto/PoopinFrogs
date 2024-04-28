@@ -1,1 +1,1 @@
-getQuit || ^ quit
+getQuit ->CFrogStr || ^ quit

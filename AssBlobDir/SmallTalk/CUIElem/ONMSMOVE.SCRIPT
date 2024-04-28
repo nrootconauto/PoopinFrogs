@@ -1,2 +1,2 @@
-onMouseMove: block ||
+onMouseMove: block=CFrogBlock ->* ||
   ms_move _ block 

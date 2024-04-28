@@ -1,2 +1,2 @@
-setItem: i | |
+setItem: i* | |
   item _ i

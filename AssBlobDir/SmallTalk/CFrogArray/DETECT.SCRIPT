@@ -1,4 +1,4 @@
-detect: block=CFrogBlock  | idx=CFrogNum sz=CFrogNum |
+detect: block=CFrogBlock ->CFrogNum  | idx=CFrogNum sz=CFrogNum |
   sz _ self size .
   idx _ 0 .
   [

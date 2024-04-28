@@ -1,4 +1,4 @@
-at: key put: value | hash bucket |
+at: key=CFrogStr put: value* | hash=CFrogNum bucket=CFrogArray |
   hash _ key hash .
   bucket _ hash rem: buckets size .
   (buckets at: bucket ) add: #( (key copy) value )  .

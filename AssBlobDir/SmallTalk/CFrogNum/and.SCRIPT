@@ -1,4 +1,4 @@
-and: other ||
+and: other=CFrogNum -> CFrogNum||
   self ifTrue: [ 
     other ifTrue: [
        ^ 1

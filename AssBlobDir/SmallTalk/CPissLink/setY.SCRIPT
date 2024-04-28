@@ -1,1 +1,1 @@
-setY: yy || y _ yy . oldy _ yy
+setY: yy=CFrogNum ->* || y _ yy . oldy _ yy

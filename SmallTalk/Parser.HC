@@ -34,6 +34,7 @@ class CAST:CQue {
 };
 class CMethod {
   U8 name[STR_LEN];
+  U8 return_class[STR_LEN];
   I64 arity;
   CQue args; //CAST
   CQue temps;
@@ -43,10 +44,10 @@ extern U0 DumpAst(CAST *s);
 extern CAST *ParseAst(CLexer *l);
 extern CAST *ParseCascade(CLexer *l);
 U0 AddToScope(U8 *name) {
- FramePtrAdd(name,1);
+  FramePtrAdd(name,1);
 }
 U0 RemFromScope(U8 *name) {
- FramePtrDel(name);
+  FramePtrDel(name);
 }
 CAST *ParseVarWithType(CLexer *l,Bool warn=FALSE) {
   CAST *ret=NULL;
@@ -407,6 +408,7 @@ CMethod *ParseMethod(CLexer *l,CHashClass *cls=NULL) {
   CMemberLst *mlst;
   CHashClass *ocls=cls;
   I64 idx;
+  Bool found_ret_class=FALSE;
   QueInit(&m->args);
   QueInit(&m->body);
   QueInit(&m->temps);
@@ -423,6 +425,24 @@ CMethod *ParseMethod(CLexer *l,CHashClass *cls=NULL) {
     if(l->tok=='|') {
       break;
     }
+check:
+    if(l->tok=='->') {
+      found_ret_class=TRUE;
+      Lex(l);
+      if(l->tok!=TOK_NAME&&l->tok!='*')
+	LexExcept(l,"Expected a return type");
+      if(l->tok==TOK_NAME)
+	StrCpy(m->return_class,l->str);
+      if(Lex(l)!='|')
+	LexExcept(l,"Expected a '|'!");
+      break;
+    }
+    if(l->tok=='->*') {
+      found_ret_class=TRUE;
+      if(Lex(l)!='|')
+	LexExcept(l,"Expected a '|'!");
+      break;
+    }
     if(l->tok==TOK_NAME) {
       CatPrint(m->name,"%s",l->str);
 
@@ -430,13 +450,15 @@ CMethod *ParseMethod(CLexer *l,CHashClass *cls=NULL) {
         CatPrint(m->name,":"); 
         m->arity++;
 	Lex(l);
-	name=ParseVarWithType(l);
+	name=ParseVarWithType(l,TRUE);
 	if(!name) LexExcept(l,"Expected a name here");
         AddToScope(name->name);
         QueIns(name,m->args.last);
       } else if(m->arity>1) {
         LexExcept(l,"I expected a ':' asswipe.");
       } else {// is unop
+	if(l->tok=='->'||l->tok=='->*')
+	  goto check;
         if(l->tok!='|') 
 	  LexExcept(l,"This is an unop fucktard");
         else
@@ -454,6 +476,8 @@ CMethod *ParseMethod(CLexer *l,CHashClass *cls=NULL) {
         AddToScope(name->name);
         QueIns(name,m->args.last);
         m->arity++;
+	if(l->tok=='->'||l->tok=='->*')
+	  goto check;
         if(Lex(l)!='|')
 	  LexExcept(l,"Expected a fuckin '|'.");
         break;
@@ -461,6 +485,7 @@ CMethod *ParseMethod(CLexer *l,CHashClass *cls=NULL) {
         LexExcept(l,"I fuckin need uh argument name asshole.");
     }
   }
+  if(!found_ret_class) LexWarn(l,"Untyped return class!");
   Lex(l);
   while(TRUE) {
     if(l->tok==TOK_NAME) {
@@ -626,3 +651,4 @@ CMethod *m=ParseMethod(l);
 DumpAst(m->body.next);
 DumpAst(m->body.last);
 */
+ 

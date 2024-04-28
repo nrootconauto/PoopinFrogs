@@ -1,2 +1,2 @@
-onDragStart: b ||
+onDragStart: b=CFrogBlock ->* ||
   drag_start _ b 

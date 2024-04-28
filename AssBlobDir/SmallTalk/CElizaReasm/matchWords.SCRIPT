@@ -1,4 +1,4 @@
-matchWords: array putWildcardsIn: result|
+matchWords: array=CFrogArray putWildcardsIn: result=CFrogArray ->*|
   wi=CFrogNum
   next=CFrogStr
   wildcard=CFrogArray 

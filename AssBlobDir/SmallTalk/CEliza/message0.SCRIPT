@@ -1,4 +1,4 @@
-message0: str |
+message0: str=CFrogStr ->* |
    valid=CFrogArray
    split=CFrogArray 
    tmp=CFrogStr

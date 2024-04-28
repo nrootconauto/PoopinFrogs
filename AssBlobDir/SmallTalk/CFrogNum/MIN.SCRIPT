@@ -1,2 +1,2 @@
-min: other | |
+min: other=CFrogNum ->CFrogNum | |
   ^ self < other ifTrue: [ ^ self ] ifFalse: [^ other]

@@ -1,2 +1,2 @@
-addAll: vec | |
+addAll: vec* ->CFrogArray | |
   vec do: [:v=CFrogThing | self add: v ]

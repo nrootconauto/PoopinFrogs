@@ -1,4 +1,4 @@
-fire |
+fire ->* |
   player=CPlayer
   piss=CPissLink
   a=CFrogNum

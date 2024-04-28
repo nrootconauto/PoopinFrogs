@@ -118,7 +118,6 @@ U8 *FrogThingClassName(CFrogThing *thing) {
   } else  {
     if(thing->thing_flags&THINGF_FRAME_TYPE) {
 //Is a generic frame
-PrintI(thing->class_name,thing);
       return "CFrogThing";
     }
     name=thing->class_name;
@@ -501,6 +500,7 @@ fin:
 }
 
 CFrogThing *CallPtr(U8 *fun_ptr,U8 *must_have,CFrogThing *self,...) {
+  if(self==FROG_SMALL_NIL) return FROG_SMALL_NIL;
   if(must_have) {
     if(!ThingHasClass(self,must_have)) {
      //ThingDel(self);
@@ -549,6 +549,7 @@ CFrogThing *CallScript(U8 *name,CFrogThing *self,...) {
 fin:
   Free(k);
   Free(full);
+
   if(!ret)
     ret=FROG_SMALL_NIL;
   return ret;

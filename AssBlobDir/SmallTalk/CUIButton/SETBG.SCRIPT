@@ -1,1 +1,1 @@
-setBackgroundColor: c || bg_color _ c 
+setBackgroundColor: c=CFrogNum ->* || bg_color _ c 

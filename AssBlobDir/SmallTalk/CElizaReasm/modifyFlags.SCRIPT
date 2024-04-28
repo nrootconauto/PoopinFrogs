@@ -1,4 +1,4 @@
-modifyFlags: flags=CFrogArray |
+modifyFlags: flags=CFrogArray ->* |
 |
   add_flags do:[:str=CFrogStr |
     flags add: str copy 

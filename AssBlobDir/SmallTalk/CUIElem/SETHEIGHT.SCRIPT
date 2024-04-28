@@ -1,2 +1,2 @@
-setHeight: v ||
+setHeight: v=CFrogNum ->* ||
   sz_y _ v

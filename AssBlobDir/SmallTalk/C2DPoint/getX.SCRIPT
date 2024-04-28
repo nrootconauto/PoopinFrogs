@@ -1,1 +1,1 @@
-getXPos || ^ x
+getXPos->CFrogNum || ^ x

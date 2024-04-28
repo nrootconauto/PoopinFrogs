@@ -1,4 +1,6 @@
-addItem: i atX: x atY: y | |
+addItem: i=CUIGridItem atX: x=CFrogNum atY: y=CFrogNum 
+  ->CFrogNum
+| |
   (((mat at: x) at: y) hasClass: CUIGridItem) ifTrue: [
    ^ 0
   ] .

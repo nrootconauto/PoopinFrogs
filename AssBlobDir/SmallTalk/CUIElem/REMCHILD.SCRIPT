@@ -1,2 +1,2 @@
-removeChild: element | |
+removeChild: element=CUIElem ->* | |
   sub_elems remove: element 

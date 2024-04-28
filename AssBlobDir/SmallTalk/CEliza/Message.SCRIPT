@@ -1,4 +1,4 @@
-message: str |
+message: str=CFrogStr -> * |
   sub*
   reduce=CFrogBlock
   res*

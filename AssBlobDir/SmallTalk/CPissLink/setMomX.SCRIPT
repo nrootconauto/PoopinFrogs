@@ -1,1 +1,1 @@
-setMomX: m || momx _  m 
+setMomX: m=CFrogNum ->* || momx _  m 

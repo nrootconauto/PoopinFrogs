@@ -1,2 +1,2 @@
-setWidth: w ||
+setWidth: w=CFrogNum ->* ||
   sz_x _ w 

@@ -1,2 +1,2 @@
-setValue: v  | |
-  value _ v 
+setValue: v=CFrogNum  ->* | |
+  value _ v

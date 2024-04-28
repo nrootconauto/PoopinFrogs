@@ -1,4 +1,4 @@
-jump ||
+jump ->* ||
   self isOnGround ifTrue: [
     momz _ .75 .
   ]

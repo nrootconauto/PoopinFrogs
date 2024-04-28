@@ -1,1 +1,1 @@
-setOnEscape: bl || on_escape _ bl 
+setOnEscape: bl=CFrogBlock ->* || on_escape _ bl 

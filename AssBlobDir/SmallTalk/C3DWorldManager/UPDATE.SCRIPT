@@ -1,4 +1,4 @@
-update | p=CPlayer |
+update ->* | p=CPlayer |
   p _self getPlayer .
   things do: [:t* |
     self removeFromGrid: t .

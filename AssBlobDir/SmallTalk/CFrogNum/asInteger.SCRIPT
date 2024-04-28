@@ -1,4 +1,4 @@
-asInteger | tmp |
+asInteger -> CFrogNum| tmp=CFrogNum |
   tmp _ self floor .
   tmp _ self - tmp . 
   tmp > .95 ifTrue: [

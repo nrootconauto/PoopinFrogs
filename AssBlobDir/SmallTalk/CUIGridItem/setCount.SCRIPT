@@ -1,2 +1,2 @@
-setCount: c ||
+setCount: c=CFrogNum ->* ||
   cnt _ c

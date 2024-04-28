@@ -1,4 +1,4 @@
-update |
+update ->CFrogNum |
   t=CFrogNum
   lerp=CFrogBlock
   tilex=CFrogNum

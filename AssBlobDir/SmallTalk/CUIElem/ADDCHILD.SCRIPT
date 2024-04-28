@@ -1,2 +1,2 @@
-addChild: element | |
+addChild: element=CUIElem ->* | |
   sub_elems add: element 

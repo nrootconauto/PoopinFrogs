@@ -1,2 +1,2 @@
-squared ||
+squared -> CFrogNum ||
   ^ self * self

@@ -1,4 +1,4 @@
-addNewThingFromClass: st_class atX: x atY: y |new=C2DThing|
+addNewThingFromClass: st_class* atX: x=CFrogNum atY: y=CFrogNum ->* |new=C2DThing|
   new _ st_class new .
   new isNil ifTrue: [
     ^ new

@@ -1,4 +1,4 @@
-fire |
+fire ->CFrogNum |
   player=CFrogPlayer 
   chatter=CEliza
   hit*
@@ -17,3 +17,4 @@ fire |
       ]
     ]
   ]
+  ^ 0 .

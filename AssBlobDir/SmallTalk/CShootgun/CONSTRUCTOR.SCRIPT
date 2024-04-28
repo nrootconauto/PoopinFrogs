@@ -1,4 +1,4 @@
-init | |
+init ->CShootgun | |
   self setGraphics: 'GR/Shootgun/idle' .
   self setMaxAmmo: 16 .
   ammo _ 8 .

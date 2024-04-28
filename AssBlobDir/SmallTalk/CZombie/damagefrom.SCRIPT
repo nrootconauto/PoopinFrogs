@@ -1,4 +1,4 @@
-damage: amt from: t | |
+damage: amt=CFrogNum from: t=C2DThing ->* | |
   'blood' .
   1 to: amt / 6 + 5 do:[ 
     #world newParticleAtX: x atY: y atZ: z + .5 withSpread: 64 withColor: #color_RED 

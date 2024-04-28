@@ -1,2 +1,2 @@
-setNeedFlags: nf ||
+setNeedFlags: nf=CFrogArray ->* ||
   need_flags _ nf 

@@ -1,4 +1,5 @@
-thingsInDist: dist atAngle: angle fromThing: thing
+thingsInDist: dist=CFrogNum atAngle: angle=CFrogNum fromThing: thing=C2DThing 
+  ->CFrogArray
   | 
   gx=CFrogNum
   gy=CFrogNum

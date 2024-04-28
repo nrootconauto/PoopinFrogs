@@ -1,4 +1,4 @@
-update | |
+update ->* | |
   momy _ momy + gravity .
   x _ x + momx .
   y _ y + momy .

@@ -1,4 +1,4 @@
-collect: block | ret=CFrogArray |
+collect: block=CFrogBlock -> CFrogArray | ret=CFrogArray |
   ret _ # ( ) .
   self do: [:v* |
     ret add: (block value: v ) 

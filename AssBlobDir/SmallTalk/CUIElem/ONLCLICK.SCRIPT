@@ -1,2 +1,2 @@
-onLeftClick: block ||
+onLeftClick: block=CFrogBlock ->* ||
   ms_ldown _ block .

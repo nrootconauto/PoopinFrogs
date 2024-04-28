@@ -1,2 +1,2 @@
-setQuit: s ||
+setQuit: s=CFrogStr ->* ||
   quit _ s copy 

@@ -1,2 +1,2 @@
-setMax: v | |
+setMax: v=CFrogNum ->* | |
   max _ v 

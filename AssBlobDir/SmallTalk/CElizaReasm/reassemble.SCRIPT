@@ -1,4 +1,4 @@
-reassemble: wildcards |
+reassemble: wildcards=CFrogArray ->* |
   ret*
   cumsum=CFrogStr 
   replace=CFrogBlock 

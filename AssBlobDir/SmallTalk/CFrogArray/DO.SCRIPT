@@ -1,4 +1,4 @@
-do: block=CFrogBlock | idx=CFrogNum sz=CFrogNum copy=CFrogArray|
+do: block=CFrogBlock ->* | idx=CFrogNum sz=CFrogNum copy=CFrogArray|
   sz _ self size .
   copy _ self copy .
   'Make a copy to avoid items disappearing in loop' .

@@ -1,4 +1,4 @@
-addFloorStain: s | other=CFloorStain add=CFloorStain new_set=CFrogArray |
+addFloorStain: s=CFloorStain ->* | other=CFloorStain add=CFloorStain new_set=CFrogArray |
   add _ s .
 'Make a new set to avoid modifying the set while we work on it'.
   new_set _floor_stains copy .

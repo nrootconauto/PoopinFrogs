@@ -1,4 +1,4 @@
-init | |
+init ->* | |
   bg_color _ #color_RED .
   fg_color _ #color_YELLOW .
   border_color _ #color_LTGRAY .

@@ -1,4 +1,4 @@
-indexOf: ss | s=CFrogNum e=CFrogNum s2=CFrogNum i=CFrogNum cnt=CFrogNum |
+indexOf: ss* ->CFrogNum  | s=CFrogNum e=CFrogNum s2=CFrogNum i=CFrogNum cnt=CFrogNum |
   (ss class ~= CFrogStr) ifTrue: [
     ss _ ss printString .
   ] .

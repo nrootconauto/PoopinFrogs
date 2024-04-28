@@ -1,2 +1,2 @@
-addShellCasing: shell ||
+addShellCasing: shell=CShellCasing -> * ||
   shell_casings add: shell 

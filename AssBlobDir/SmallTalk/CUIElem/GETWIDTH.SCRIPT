@@ -1,2 +1,2 @@
-getWidth ||
+getWidth ->CFrogNum ||
   ^ sz_x

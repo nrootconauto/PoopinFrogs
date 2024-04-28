@@ -1,4 +1,4 @@
-init | |
+init -> CUIButton | |
   fg_color _ #color_LTBLUE .
   bg_color _ #color_LTRED .
   label _ 'Button' .

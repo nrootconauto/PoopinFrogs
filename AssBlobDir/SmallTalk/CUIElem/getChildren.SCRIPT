@@ -1,2 +1,2 @@
-getChildren | |
+getChildren -> CFrogArray | |
   ^ sub_elems copy 

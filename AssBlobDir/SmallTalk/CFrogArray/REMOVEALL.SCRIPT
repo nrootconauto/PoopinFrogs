@@ -1,4 +1,4 @@
-removeAll: vec | |
-  vec do: [:v|
+removeAll: vec=CFrogArray ->* | |
+  vec do: [:v*|
     self remove: v
   ]

@@ -1,1 +1,1 @@
-setX: xx | | x _ xx . oldx _ xx . 
+setX: xx=CFrogNum ->* | | x _ xx . oldx _ xx . 

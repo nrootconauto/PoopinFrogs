@@ -1,4 +1,4 @@
-addToPlayer: player | item* have=CFrogArray new_cnt=CFrogNum added=CFrogNum |
+addToPlayer: player=CPlayer ->CFrogNum | item* have=CFrogArray new_cnt=CFrogNum added=CFrogNum |
   have _ player getInventoryItems .
   added _ 0 .
   have do: [:t* |

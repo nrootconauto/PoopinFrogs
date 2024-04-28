@@ -1,4 +1,4 @@
-between: a and: b | |
+between: a=CFrogNum and: b=CFrogNum ->CFrogNum | |
   self < a ifTrue: [ ^ 0 ] .
   self > b ifTrue: [ ^ 0 ] .
   ^ 1 .

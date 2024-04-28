@@ -1,4 +1,4 @@
-setParent: grid | |
+setParent: grid=CUIGrid ->* | |
   parent isNil ifFalse: [
     parent removeItem: self 
   ].

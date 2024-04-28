@@ -1,2 +1,2 @@
-setResult:r ||
+setResult:r=CFrogStr ->* ||
   result _ r 

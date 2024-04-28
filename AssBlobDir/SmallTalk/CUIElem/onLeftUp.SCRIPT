@@ -1,1 +1,1 @@
-onLeftUp: b  || ms_lup _ b .
+onLeftUp: b=CFrogBlock  ->* || ms_lup _ b .

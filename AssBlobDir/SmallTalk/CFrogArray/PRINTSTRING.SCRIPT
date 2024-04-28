@@ -1,4 +1,4 @@
-printString | ret=CFrogString |
+printString->CFrogStr | ret=CFrogString |
   ret _ '#(' .
   self do:[:v* |
     ret _ ret , v printString .

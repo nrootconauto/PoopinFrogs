@@ -1,2 +1,2 @@
-getFocus ||
+getFocus ->CFrogNum ||
   ^ focus

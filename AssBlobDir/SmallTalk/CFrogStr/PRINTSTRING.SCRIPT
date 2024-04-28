@@ -1,2 +1,2 @@
-printString | |
+printString ->CFrogStr | |
   ^ self copy

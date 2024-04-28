@@ -1,1 +1,1 @@
-setOnCompleteBlock: bl* || on_complete_block _ bl
+setOnCompleteBlock: bl=CFrogBlock ->* || on_complete_block _ bl

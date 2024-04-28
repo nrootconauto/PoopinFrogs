@@ -1,2 +1,2 @@
-max: other | |
+max: other=CFrogNum ->CFrogNum | |
   ^ self < other ifTrue: [^ other ] ifFalse: [ ^ self ] .

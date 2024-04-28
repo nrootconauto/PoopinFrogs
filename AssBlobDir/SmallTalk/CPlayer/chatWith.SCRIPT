@@ -1,4 +1,4 @@
-chatWith: thing |
+chatWith: thing* ->* |
   eliza=CEliza
   name=CFrogName
   add_to_chat_log=CFrogBlock
@@ -12,7 +12,7 @@ chatWith: thing |
  
   name _ thing getName .
 
-  add_to_chat_log _  [:who :msg|
+  add_to_chat_log _  [:who=CFrogStr :msg=CFrogStr|
     chat_log addLine: who , ': ' , msg
   ] . 
 

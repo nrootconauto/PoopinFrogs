@@ -1,4 +1,4 @@
-dragEndAtX: x atY: y| e|
+dragEndAtX: x=CFrogNum atY: y=CFrogNum ->* | e=CUIGridItem |
   e _ #ui_drag_item .
   (e hasClass: CUIGridItem ) ifTrue: [
     x _ x / 32 .

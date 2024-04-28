@@ -1,4 +1,4 @@
-getSynonym: word=CFrogStr |s=CFrogStr|
+getSynonym: word=CFrogStr ->CFrogStr |s=CFrogStr|
   s _  synonyms at: word .
   ( s hasClass: CFrogStr ) ifTrue: [
     ^ s

@@ -1,4 +1,8 @@
-placeAtAngle: a=CFrogNum fromX: xx=CFrogNum fromY: yy=CFrogNum atHeight: zz=CFrogNum
+placeAtAngle: a=CFrogNum
+  fromX: xx=CFrogNum
+  fromY: yy=CFrogNum
+  atHeight: zz=CFrogNum
+  ->*
   | X=CFrogNum Y=CFrogNum rando=CFrogRandom h=CFrogNum seg=CFrogNum|
   tile _ #world rayTileAtX: xx atY: yy atAngle: a atHeight: zz .
   'Heres the deal,floating point reounding may give an improper'

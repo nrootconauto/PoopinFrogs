@@ -1,1 +1,1 @@
-setIsValidBlock: bl* || is_valid_block _ bl .
+setIsValidBlock: bl=CFrogBlock ->* || is_valid_block _ bl .

@@ -1,2 +1,2 @@
-setHello: str ||
+setHello: str=CFrogStr ->* ||
   hello _ str copy 

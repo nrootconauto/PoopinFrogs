@@ -1,4 +1,4 @@
-indexOf: v | idx=CFrogNum sz=CFrogNum |
+indexOf: v* ->CFrogNum | idx=CFrogNum sz=CFrogNum |
   idx _ 0 .
   sz _ self size .
   [

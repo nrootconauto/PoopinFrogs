@@ -1,4 +1,4 @@
-init: seed2 | |
+init: seed2=CFrogNum -> CFrogRandom | |
   self init .
   seed _ seed2 .
   ^ self 

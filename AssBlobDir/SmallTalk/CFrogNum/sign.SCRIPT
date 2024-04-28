@@ -1,4 +1,4 @@
-sign | |
+sign -> CFrogNum | |
   self < 0 ifTrue: [^ -1 ].
   self > 0 ifTrue: [^ 1 ].
   ^ 0

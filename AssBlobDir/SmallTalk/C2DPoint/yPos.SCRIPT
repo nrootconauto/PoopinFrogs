@@ -1,1 +1,1 @@
-getYPos || ^ y
+getYPos->CFrogNum || ^ y

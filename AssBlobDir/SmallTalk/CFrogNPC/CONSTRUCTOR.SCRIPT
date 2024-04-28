@@ -1,4 +1,4 @@
-init | |
+init ->CFrogNPC | |
   #world addThing: self .
   speed _ 128 / 30 * 5 .
   health _ 100 .

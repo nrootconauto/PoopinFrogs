@@ -1,7 +1,7 @@
-init | |
+init ->* | |
   'Handled by draw callback' .
   dont_draw_children _ 1 .
-  self onLeftClick: [:e :x2 :y2 |
+  self onLeftClick: [:e* :x2=CFrogNum :y2=CFrogNum |
     e onClickAtX: x2 atY: y2
   ] .
   ^ self

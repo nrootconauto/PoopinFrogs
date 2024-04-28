@@ -1,2 +1,2 @@
-setX: v ||
+setX: v=CFrogNum ->* ||
   x _ v 

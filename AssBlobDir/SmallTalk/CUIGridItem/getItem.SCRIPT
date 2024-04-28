@@ -1,1 +1,1 @@
-getItem || ^ item 
+getItem ->* || ^ item 

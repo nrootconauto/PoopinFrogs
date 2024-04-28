@@ -1,2 +1,2 @@
-matchWords: array ||
+matchWords: array=CFrogArray ->* ||
   ^ self matchWords: array putWildcardsIn: #().

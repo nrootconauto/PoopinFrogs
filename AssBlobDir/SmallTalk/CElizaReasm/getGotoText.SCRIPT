@@ -1,2 +1,2 @@
-getGotoText  ||
+getGotoText ->CFrogStr ||
   ^ goto_text

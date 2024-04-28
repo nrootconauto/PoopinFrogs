@@ -1,6 +1,6 @@
-addItem: i | t|
-  0 to: grid_h do:[:cy|
-    0 to: grid_w do:[:cx |
+addItem: i=CUIGridItem ->CFrogNum | |
+  0 to: grid_h do:[:cy=CFrogNum|
+    0 to: grid_w do:[:cx=CFrogNum|
      (self addItem: i atX: cx atY: cy) ifTrue: [
        ^ 1
      ] .

@@ -1,2 +1,2 @@
-setRemoveFlags: nf ||
+setRemoveFlags: nf=CFrogArray ->* ||
   remove_flags _ nf 

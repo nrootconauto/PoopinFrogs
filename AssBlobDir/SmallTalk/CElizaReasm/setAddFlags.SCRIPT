@@ -1,2 +1,2 @@
-setAddFlags: nf ||
+setAddFlags: nf=CFrogArray ->* ||
   add_flags _ nf 

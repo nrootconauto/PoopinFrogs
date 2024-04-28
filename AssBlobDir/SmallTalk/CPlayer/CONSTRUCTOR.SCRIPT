@@ -1,4 +1,4 @@
-init | |
+init ->CPlayer | |
   #world addThing: self .
   items _ #() .
   health _ 75 .

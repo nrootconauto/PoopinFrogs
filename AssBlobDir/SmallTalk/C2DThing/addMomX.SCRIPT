@@ -1,1 +1,1 @@
-addMomX: x || momx _ momx + x
+addMomX: x=CFrogNum ->* || momx _ momx + x

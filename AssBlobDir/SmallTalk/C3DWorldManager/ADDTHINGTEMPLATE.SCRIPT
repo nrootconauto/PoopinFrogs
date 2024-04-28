@@ -1,3 +1,3 @@
-addThingTemplate: t withName: name ||
+addThingTemplate: t=C2DThingTemplate withName: name=CFrogStr ||
   t setName: name .
   thing_templates at: name put: t

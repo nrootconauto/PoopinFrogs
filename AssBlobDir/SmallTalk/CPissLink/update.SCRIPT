@@ -1,4 +1,4 @@
-updateWithWeight: w=CFrogNum makeParticles: part=CFrogNum |
+updateWithWeight: w=CFrogNum makeParticles: part=CFrogNum ->* |
   h=CFrogNum
   stain*
   ch=CFrogNum

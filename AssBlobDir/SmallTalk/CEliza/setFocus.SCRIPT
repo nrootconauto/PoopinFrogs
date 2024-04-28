@@ -1,2 +1,2 @@
-setFocus: f ||
+setFocus: f=CFrogNum ||
   focus _ f 

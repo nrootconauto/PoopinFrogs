@@ -1,4 +1,4 @@
-isOnGround |ch=CFrogNum cr=CFrogNum |
+isOnGround ->CFrogNum |ch=CFrogNum cr=CFrogNum |
   (z - (#world tileHeightAtX: x / 128 atY: y / 128)  < .1 )  ifTrue: [
    ^ 1 
   ]  .

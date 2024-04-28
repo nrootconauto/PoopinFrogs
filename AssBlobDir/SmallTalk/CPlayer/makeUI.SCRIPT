@@ -1,4 +1,4 @@
-makeUI | w=CFrogNum h=CFrogNum label*|
+makeUI ->* | w=CFrogNum h=CFrogNum label*|
   w _ 640 .
   h _ 480 - 16 .
   #ui_root _ CUIElem new .

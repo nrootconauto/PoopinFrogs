@@ -1,6 +1,27 @@
 #ifndef ST_COMPILER_HH
 #define ST_COMPILER_HH 1
 #include "RunTime.HC";
+CFrogThing *Useless(CFrogThing *, ...) {
+  return FROG_SMALL_NIL;
+}
+U0 GenerateUselessMethod(U8 *class_name,U8 *method_name,U8 *return_class)  {
+  U8 *canon=MStrPrint("METHOD_%s.%s",class_name,method_name);
+  U8 *rt=MStrPrint("RET_TYPE_%s.%s",class_name,method_name);
+  if(return_class)
+    FramePtrAdd(rt,StrNew(return_class));
+  if(!FramePtr(canon)) {
+    FramePtrAdd(canon,&Useless);
+  }
+  Free(canon);
+  Free(rt);
+}
+//Dont Free
+U8 *MethodReturnClass(U8 *class_name,U8 *method_name) {
+  U8 *rt=MStrPrint("RET_TYPE_%s.%s",class_name,method_name);
+  U8 *r=FramePtr(rt);
+  Free(rt);  
+  return r;
+}
 //Dont Free
 U8 *StackFrame2Var(I64 stk) {
   I64 old=FramePtr("ST@@stk_depth");
@@ -140,18 +161,15 @@ U8 *VarHasMethod(CLocals *l,U8 *var,U8 *method) {
   U8 *cn=VarClassName(l,var);
   return ClassHasMethod(cn,method);
 }
-CFrogThing *Useless(CFrogThing *, ...) {
-  return FROG_SMALL_NIL;
-}
-U0 GenerateMethodCall(CDoc *doc,U8 *class_name,U8 *method_name) {
+U0 GenerateMethodCall(CDoc *doc,U8 *class_name,U8 *method_name,Bool check=TRUE) {
   CHashGeneric *gen;
 //See AddMethod
-  U8 *canon=MStrPrint("METHOD_%s.%s",class_name,method_name);
+  U8 *canon=MStrPrint("METHOD_%s.%s",class_name,method_name),*rc;
   if(!FramePtr(canon)) {
     FramePtrAdd(canon,&Useless);
   }
   gen=HashFind(canon,Fs->hash_table,HTT_FRAME_PTR);
-  if(!StrCmp("CFrogNum",class_name)) {
+  if(!StrCmp("CFrogNum",class_name)||!check) {
 //Checking numbers will be too tiresome
     if(gen->user_data0!=&Useless)
       DocPrint(doc,"CallPtr(%d,NULL,",gen->user_data0,class_name);
@@ -162,14 +180,6 @@ U0 GenerateMethodCall(CDoc *doc,U8 *class_name,U8 *method_name) {
       DocPrint(doc,"CallPtr(%d,\"%Q\",",gen->user_data0,class_name);
     else
       DocPrint(doc,"CallPtr(%d(I64**)[0],\"%Q\",",&gen->user_data0,class_name);
-  }
-  Free(canon);
-
-}
-U0 GenerateUselessMethod(U8 *class_name,U8 *method_name)  {
-  U8 *canon=MStrPrint("METHOD_%s.%s",class_name,method_name);
-  if(!FramePtr(canon)) {
-    FramePtrAdd(canon,&Useless);
   }
   Free(canon);
 }
@@ -373,12 +383,14 @@ U8 *CompileThunk(CAST *block,CLocals *parent=NULL) {
   return MStrPrint("Thunk@@%d",thunk_idx);
 }
 U0 DftCall(CDoc *doc,CLocals *l,CAST *ast,I64 stack_depth,U8 *op,I64 cnt=2) {
-  U8 *cls_name;
+  U8 *cls_name=NULL,*rc;
+ Bool check=FALSE;
   CAST *self=ast->args.next;
   if(self->type==AST_VAR) {
+//TODO
     if(cls_name=VarHasMethod(l,self->name,op)) {
       DocPrint(doc,"  retval=");
-      GenerateMethodCall(doc,cls_name,op);
+      GenerateMethodCall(doc,cls_name,op,TRUE);
       goto args;
     }
   } else if(self->is_f64) {
@@ -386,7 +398,7 @@ U0 DftCall(CDoc *doc,CLocals *l,CAST *ast,I64 stack_depth,U8 *op,I64 cnt=2) {
 try_class:
     if(cls_name) {
       DocPrint(doc,"  retval=");
-      GenerateMethodCall(doc,cls_name,op);
+      GenerateMethodCall(doc,cls_name,op,FALSE);
       goto args;
     }
   } else if(self->type==AST_BLOCK) {
@@ -394,6 +406,9 @@ try_class:
     goto try_class;
   } else if(self->type==AST_ARRAY) {
     cls_name=ClassHasMethod("CFrogArray",op);
+    goto try_class;
+  } else if(ast->var_class_name[0]) {
+    cls_name=self->var_class_name;
     goto try_class;
   }
 //TODO static return-type of method
@@ -410,6 +425,10 @@ args:
   DocPrint(doc,");\n");
   DocPrint(doc,"ThingDel(%s);\n",StackFrame2Var(stack_depth));
   DocPrint(doc,"  %s=retval;\n",StackFrame2Var(stack_depth));
+  if(rc=MethodReturnClass(cls_name,op)) {
+    StrCpy(ast->var_class_name,rc);
+  }
+
 }
 Bool IsAllF64(CAST *ast) {
   if(!ast->is_f64) return FALSE;
@@ -896,7 +915,9 @@ assign_raw:
   DocPrint(doc,"goto enter;\n");
 }
 U0 CompileToHolyC(U8 *src,U8 *class_name,U8 *src_path=NULL,Bool class_method=FALSE,Bool register_method=FALSE) {
+//Make a dummy hash table for the parser(may liter with dumb FramePtrs on throw)
   FramePtrAdd("MethodClass",class_name);
+  try {
   Bool old=Option(OPTf_WARN_UNUSED_VAR,FALSE);
   CDoc *doc=DocNew;
   static I64 fun_num=0;
@@ -906,12 +927,12 @@ U0 CompileToHolyC(U8 *src,U8 *class_name,U8 *src_path=NULL,Bool class_method=FAL
   CAST *var,*head;
   CLexer *lex=LexerNew(src,src_path);
   Lex(lex);
-  FramePtrAdd("ST@@stk_depth",0);
   CMethod *m=ParseMethod(lex,HashFind(class_name,frog_mem_task->hash_table,HTT_CLASS));
   LexerDel(lex);
+  FramePtrAdd("ST@@stk_depth",0);
   if(register_method) {
-    GenerateUselessMethod(class_name,m->name);
-    goto fin;
+    GenerateUselessMethod(class_name,m->name,m->return_class);
+    return;
   }
   CLocals *locals=GenerateLocalsFromMethod(m,class_name);
 //MUST SET THIS
@@ -946,6 +967,9 @@ U0 CompileToHolyC(U8 *src,U8 *class_name,U8 *src_path=NULL,Bool class_method=FAL
   DocPrint(doc,"  while(--unwind>=0) ThingDel(stk[unwind]);");
   DocPrint(doc,"  *return_flag=0;\n"); //Allow blocks made in the method to be called agian
   DocPrint(doc,"  STFrameDel;\n");
+  if(*m->return_class) {
+     DocPrint(doc,"if(!ThingHasClass(retval,\"%Q\")) {ThingDel(retval);retval=FROG_SMALL_NIL;}",m->return_class);
+  }
   DocPrint(doc,"  return retval;\n");
   DocPrint(doc,"}");
   if(!class_method) {
@@ -966,6 +990,8 @@ fin:
   FramePtrDel("ST@@stk_depth");
   MethodDel(m);
   FramePtrDel("MethodClass");
+  } catch {
+  }
 }
 
 U0 STRepl(U8 *dft="",Bool interactive=TRUE) {
@@ -1006,7 +1032,7 @@ U0 STRepl(U8 *dft="",Bool interactive=TRUE) {
       DocPrint(doc,"  if(*return_flag||ThingIsError(retval)) {goto ret;} \n");
       DocPrint(doc,"switch(next_case) {\n");
       CompileASTFinal(doc,&dummy,NULL,0);
-      DocPrint(doc,"}");
+      DocPrint(doc,"};");
       DocPrint(doc,"ret:\n");
 //
 // Dumb hack,blocks have a reference to the retunr_flag,so reset it.

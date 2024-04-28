@@ -1,4 +1,4 @@
-acceptsFlags: flags=CFrogArray |
+acceptsFlags: flags=CFrogArray ->CFrogNum |
 |
   'Returns 1 + accept acount' .
   need_flags do:[:str=CFrogStr|

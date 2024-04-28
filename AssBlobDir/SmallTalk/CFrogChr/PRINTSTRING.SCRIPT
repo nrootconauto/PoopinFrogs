@@ -1,4 +1,4 @@
-printString | ret |
+printString ->CFrogStr | ret=CFrogStr |
   ret _ ''.
   ret add: self .
   ^ ret

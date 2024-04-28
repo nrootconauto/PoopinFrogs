@@ -1,2 +1,2 @@
-setMaxAmmo: mx ||
+setMaxAmmo: mx=CFrogNum ->* ||
   max_ammo _ mx .

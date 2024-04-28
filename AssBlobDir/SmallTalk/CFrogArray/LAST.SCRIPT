@@ -1,2 +1,2 @@
-last | |
+last ->* | |
   ^ self at: (self size - 1 )

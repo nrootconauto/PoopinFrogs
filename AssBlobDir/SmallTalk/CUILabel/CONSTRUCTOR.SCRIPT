@@ -1,4 +1,4 @@
-init | |
+init ->* | |
   color _ #color_YELLOW .
   label _ 'label:' .
   ^ self

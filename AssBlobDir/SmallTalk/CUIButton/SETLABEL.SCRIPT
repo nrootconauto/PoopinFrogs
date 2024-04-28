@@ -1,2 +1,2 @@
-setLabel: str | |
+setLabel: str=CFrogStr ->* | |
  label _ str copy .

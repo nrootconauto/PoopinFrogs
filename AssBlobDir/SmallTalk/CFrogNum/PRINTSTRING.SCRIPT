@@ -1,4 +1,4 @@
-printString | ret tmp digits digit frac |
+printString->CFrogStr | ret=CFrogStr tmp=CFrogNum digits=CFrogStr digit=CFrogNum frac=CFrogNum |
   tmp _ self .
   frac _ self - self floor .
   digits _ '0123456789'.

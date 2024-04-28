@@ -933,8 +933,7 @@ F64 FUMod(F64 v,F64 to) {
   return 0;
 }
 I64 *GetTilesInPath(C3DWorld *w,F64 angle,F64 dist) {
-  I64 *tiles=MAlloc((dist/GRID_SZ+8)*4*8);
-  I64 ptr=0;
+  CI64Set *t=I64SetNew;
   F64 x=w->x,y=w->y,ex,ey,dx,dy,step,i,by,slope,cos,sin,xdist,ydist;
   F64 res_dist;
   I64 tx=x/GRID_SZ,ty=y/GRID_SZ,idx,old_tx,old_ty,dirx,diry,ix,iy;
@@ -956,7 +955,7 @@ I64 *GetTilesInPath(C3DWorld *w,F64 angle,F64 dist) {
   dx/=step;
   dy/=step;
   idx=ty*w->world_width+tx;
-  tiles[ptr++]=idx;
+  I64SetAdd(t,idx);
   i=0;
 //
   // Ask Nroot how this works,it's his algoirthm
@@ -1006,10 +1005,10 @@ dy_type:
     for(iy=old_ty;TRUE;iy+=diry) {
       for(ix=old_tx;TRUE;ix+=dirx) {
         idx=ix+iy*w->world_width;
-        if(tiles[ptr-1]!=idx) {
+        if(t->body[t->cnt-1]!=idx) {
 	  if(PassesThoughBlock(w,slope,ix,iy,&res_dist,cos,sin)) {
 	    if(res_dist<dist) {
-	      tiles[ptr++]=idx;
+	      I64SetAdd(t,idx);
 	    }
 	  }
         }
@@ -1027,7 +1026,9 @@ dy_type:
     i+=by;
   }
 fin:
-  tiles[ptr++]=-1;
+  I64SetAdd(t,-1);
+  I64 *tiles=t->body;
+  Free(t);
   return tiles;
 }
 I64 mp_done=0;
@@ -1987,6 +1988,7 @@ CFrogThing *ThingCanSeeThing(C2DThing *self,...) {
   F64 old_x=w->x,old_y=w->y,old_z=w->cam_height;
   CFrogThing *ret;
   C2DThing *other=argv[0];
+  if(other==FROG_SMALL_NIL) return FROG_SMALL_NIL;
   w->x=self->x;
   w->y=self->y;
   w->cam_height=self->z;
@@ -2068,13 +2070,6 @@ U0 DrawIt(CTask *t,CDC *dc) {
   InitTables(w->angle,w->fov);
   C3DWorldCastRays(w);   
   mp_thing_done=0;
-/*  for(c=1;c!=mp_cnt;c++) {
-    JobQue(&MPDrawThings,w,c);
-  }
-  for(c=0;c!=mp_cnt;c++) { 
-    while(!Bt(&mp_thing_done,c))
-      Sleep(1);
-  }*/
   CFrogThing ***body=w->_2d_things->body;
   I64 idx=w->_2d_things->cnt;
   while(--idx>=0)
@@ -2214,7 +2209,7 @@ next:;
       }
       if(!player->main_inventory_active) {
         if (jump) {
-           CallScript("jump",player);
+           CallScript("jump",player);
            jump=FALSE;
         }
         if (up)

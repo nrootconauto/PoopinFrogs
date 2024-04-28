@@ -1,4 +1,4 @@
-initFromString: str |
+initFromString: str=CFrogStr ->* |
   split=CFrogArray
   tmp=CFrogStr
 |

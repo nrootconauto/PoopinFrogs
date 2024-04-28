@@ -1,1 +1,1 @@
-getSynonyms || ^ synonyms
+getSynonyms ->CFrogDictionary  || ^ synonyms

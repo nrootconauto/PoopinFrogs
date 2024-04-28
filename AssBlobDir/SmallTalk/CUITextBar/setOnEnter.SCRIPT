@@ -1,1 +1,1 @@
-setOnEnter: e || on_enter _ e 
+setOnEnter: e=CFrogBlock ->* || on_enter _ e 

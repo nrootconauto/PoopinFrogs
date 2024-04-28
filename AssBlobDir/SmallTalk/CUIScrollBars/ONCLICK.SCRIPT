@@ -1,4 +1,8 @@
-onClickAtX: x=CFrogNum atY: y=CFrogNum | w=CFrogNum h=CFrogNum |
+onClickAtX: x=CFrogNum atY: y=CFrogNum ->*
+|
+  w=CFrogNum
+  h=CFrogNum
+|
   w _ 0 .
   h _ 0 .
   sub_elems do: [:e=CUIElem |

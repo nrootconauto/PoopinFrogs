@@ -1,2 +1,2 @@
-getLabel ||
+getLabel ->CFrogStr ||
   ^ label

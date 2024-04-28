@@ -1,4 +1,4 @@
-addInventoryItem: item  | |
+addInventoryItem: item=CUIGridItem -> CFrogNum  | |
   (quick_inventory addItem: item) ifTrue: [
    ^ 1 .
   ] .

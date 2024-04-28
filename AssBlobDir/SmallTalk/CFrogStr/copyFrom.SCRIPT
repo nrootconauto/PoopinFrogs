@@ -1,4 +1,4 @@
-copyFrom: s=CFrogNum to: e=CFrogNum | ret=CFrogStr |
+copyFrom: s=CFrogNum to: e=CFrogNum ->CFrogStr | ret=CFrogStr |
   ret _ '' .
   [
     s < e

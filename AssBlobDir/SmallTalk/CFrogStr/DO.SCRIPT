@@ -1,4 +1,4 @@
-do: bl=CFrogBlock | s=CFrogNum e=CFrogNum |
+do: bl=CFrogBlock ->* | s=CFrogNum e=CFrogNum |
   s _ 0 .
   e _ self size .
   [s < e ] whileTrue: [

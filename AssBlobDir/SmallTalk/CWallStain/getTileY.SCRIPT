@@ -1,1 +1,1 @@
-getTileY || ^ tile getYPos
+getTileY -> CFrogNum || ^ tile getYPos

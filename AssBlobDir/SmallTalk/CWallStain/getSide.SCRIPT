@@ -1,1 +1,1 @@
-getSide || ^ side
+getSide ->CFrogNum || ^ side

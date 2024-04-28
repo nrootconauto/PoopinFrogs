@@ -1,4 +1,4 @@
-ejectAtX: xx atY: yy | rand |
+ejectAtX: xx=CFrogNum atY: yy=CFrogNum ->* | rand=CFrogRandom |
   rand _ CFrogRandom new .
   x _ xx. 
   y _ yy. 

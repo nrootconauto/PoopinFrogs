@@ -1,6 +1,6 @@
-reject:block | ret tmp|
+reject:block=CFrogBlock -> CFrogArray | ret=CFrogArray|
   ret _ #() .
-  self do: [:v |
+  self do: [:v* |
     (block value : v) ifFalse: [
       ret add: v
     ].

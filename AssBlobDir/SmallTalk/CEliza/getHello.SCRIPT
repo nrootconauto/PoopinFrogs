@@ -1,1 +1,1 @@
-getHello || ^ hello
+getHello->CFrogStr || ^ hello

@@ -1,4 +1,4 @@
-init | |
+init ->CShootgunPickup | |
   count _ 8  .
   #world addThing: self .
   item_class _ CShootgun .

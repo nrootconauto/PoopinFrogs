@@ -1,2 +1,2 @@
-addReasm: r ||
+addReasm: r=CElizaReasm ->*  ||
   reasms add: r 

@@ -1,2 +1,2 @@
-isEmpty | |
+isEmpty ->CFrogNum | |
   ^ self size = 0

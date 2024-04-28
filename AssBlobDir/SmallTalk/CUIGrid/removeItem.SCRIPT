@@ -1,6 +1,6 @@
-removeItem: i | idx |
+removeItem: i* -> CFrogNum | idx=CFrogNum |
   sub_elems remove: i .
-  mat do: [:row|
+  mat do: [:row=CFrogNum|
     idx _ row indexOf: i .
     idx ~= -1 ifTrue: [
       row at: idx put: 0 .

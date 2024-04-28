@@ -1,4 +1,4 @@
-pissTowardsThing: who=C2DThing 
+pissTowardsThing: who=C2DThing ->*
 |
   piss=CPissLink
   cur_ts=CFrogNum

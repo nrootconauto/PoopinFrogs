@@ -1,4 +1,4 @@
-getPlayer | |
+getPlayer -> CPlayer | |
   things do : [:t* |
     (t hasClass: CPlayer) ifTrue: [ ^ t ]
   ] .

@@ -1,4 +1,4 @@
-addLine: str | old=CFrogArray |
+addLine: str=CFrogStr -> CFrogNum | old=CFrogArray |
   old _ lines .
   old size < max_cnt ifTrue: [
    old add: str copy .

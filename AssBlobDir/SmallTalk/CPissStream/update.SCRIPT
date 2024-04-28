@@ -1,4 +1,4 @@
-update | tmp=CFrogArray |
+update ->* | tmp=CFrogArray |
   tmp _ links.
   links _ #() .
   tmp do:[:l=CPissLink |

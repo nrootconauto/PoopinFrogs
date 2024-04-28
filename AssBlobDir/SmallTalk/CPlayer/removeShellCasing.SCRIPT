@@ -1,2 +1,2 @@
-removeShellCasing: s | |
+removeShellCasing: s=CShellCasing ->* | |
   shell_casings remove: s

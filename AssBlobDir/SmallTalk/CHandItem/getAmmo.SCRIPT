@@ -1,1 +1,1 @@
-getAmmo | | ^ ammo
+getAmmo->CFrogNum | | ^ ammo

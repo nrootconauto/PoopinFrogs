@@ -1,6 +1,7 @@
 screenRayHitsTarget: t=C2DThing
   atAngle: a=C2DThing
   withAutoAim: mul=C2DThing
+  -> CFrogNum
 | 
   dist=C2DThing
   dist_scale=C2DThing
