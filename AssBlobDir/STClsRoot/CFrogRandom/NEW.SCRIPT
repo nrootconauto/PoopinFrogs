@@ -1,4 +1,4 @@
-new | |
+new ->CFrogRandom | |
   #rand_gen isNil ifFalse: [
     ^ self basicNew init: #rand_gen next
   ]

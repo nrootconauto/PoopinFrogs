@@ -1,2 +1,2 @@
-new | |
+new -> CFrogTongue | |
  ^ self basicNew init

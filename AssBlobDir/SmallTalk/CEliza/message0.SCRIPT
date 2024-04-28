@@ -9,8 +9,8 @@ message0: str=CFrogStr ->* |
    set=CFrogArray
    score=CFrogNum
 |
-  split _ #() .
   tmp _ '' .
+  split _ #() .
   str do: [:ch* | 
     ch isAlphaNumeric ifTrue: [
       tmp add: ch 
@@ -63,7 +63,6 @@ message0: str=CFrogStr ->* |
 
   '???' .
   set size ifFalse: [^ 0 ] .
-
   '#(CElizaReasm wildcards score )' .
   split _ set at: (CFrogRandom new next * set size rem: set size) .
   ^ (split at: 0) reassemble: (split at: 1)

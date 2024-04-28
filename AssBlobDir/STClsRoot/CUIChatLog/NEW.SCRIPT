@@ -1,2 +1,2 @@
-new | |
+new ->CUIChatLog | |
  ^ self basicNew init

@@ -1,2 +1,2 @@
-new | |
+new ->CShootgun | |
  ^ self basicNew init

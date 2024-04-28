@@ -1,2 +1,2 @@
-new | ret|
+new->CFrogDictionary | |
  ^ self basicNew init

@@ -1,2 +1,2 @@
-new: seed2  | |
+new: seed2=CFrogNum ->CFrogRandom | |
   ^ self basicNew init: seed2

@@ -1,2 +1,2 @@
-new | |
+new ->CGun1 | |
  ^ self basicNew init

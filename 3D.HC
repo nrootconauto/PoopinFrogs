@@ -1309,7 +1309,7 @@ fin:
 }
 U0 C3DWorldCastRays(C3DWorld *w) {
   I64 idx;
-  mp_done=0;
+  lock mp_done=0;
   for(idx=GR_WIDTH;--idx>=0;) {
     w->blocked_cnts[idx]=0;
   }
@@ -2261,7 +2261,7 @@ next:;
         }
      }
       Refresh;
-      FrogGarbageCollect;
+      if(every++&15==0) FrogGarbageCollect;
     } catch PutExcept(TRUE);
 en:
 //  ProfRep;

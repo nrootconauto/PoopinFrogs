@@ -1,2 +1,2 @@
-new | |
+new ->CFloorStain | |
  ^ self basicNew init

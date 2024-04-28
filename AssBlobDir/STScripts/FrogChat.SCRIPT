@@ -1,4 +1,4 @@
-#new_frog_conversation _ [:frognpc |
+#new_frog_conversation _ [:frognpc* |
   #frog1_chat _ CEliza makeResponsesFromArray: #(
     'Whatevers poppin,im hoppin'
     'where *' 'I live in a lily pad '

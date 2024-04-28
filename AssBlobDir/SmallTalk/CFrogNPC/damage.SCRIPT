@@ -11,11 +11,11 @@ damage: amt=CFrogNum from: t=C2DThing ->* | |
   target _ t .
   health >= 25 ifTrue: [
     state _ 'Angry' .
-    state_start_tS _ CFrogTime now .
+    state_start_tS _ CFrogTime now asSeconds .
     state_duration _ 100 .
   ] ifFalse: [
     state _ 'Flee' .
-    state_start_tS _ CFrogTime now .
+    state_start_tS _ CFrogTime now  asSeconds .
     state_duration _ 5 .
   ] .
 

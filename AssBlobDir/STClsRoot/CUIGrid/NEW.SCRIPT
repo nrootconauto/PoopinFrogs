@@ -1,2 +1,2 @@
-new | |
+new ->CUIGrid | |
  ^ self basicNew init

@@ -1,2 +1,2 @@
-new | |
+new ->CUITextBar | |
  ^ self basicNew init

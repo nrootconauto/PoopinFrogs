@@ -1,2 +1,2 @@
-new | |
+new ->CElizaReasm | |
  ^ self basicNew init

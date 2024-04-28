@@ -1,1 +1,1 @@
-setAmmo: v=CFrogNum ->*  | |ammo _ v 
+setAmmo: v=CFrogNum ->*  | | ammo _ v 

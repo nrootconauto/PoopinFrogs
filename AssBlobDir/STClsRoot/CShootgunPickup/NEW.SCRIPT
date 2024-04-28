@@ -1,2 +1,2 @@
-new | |
+new ->CShootgunPickup | |
  ^ self basicNew init

@@ -1,2 +1,2 @@
-new | |
+new ->CUIButton | |
  ^ self basicNew init

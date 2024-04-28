@@ -1,2 +1,2 @@
-new | |
+new  ->CWallStain | |
  ^ self basicNew init

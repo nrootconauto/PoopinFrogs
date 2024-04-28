@@ -407,6 +407,9 @@ try_class:
   } else if(self->type==AST_ARRAY) {
     cls_name=ClassHasMethod("CFrogArray",op);
     goto try_class;
+  } else if(self->type==AST_SELF) {
+    cls_name=ClassHasMethod(FramePtr("MethodClass"),op);
+    goto try_class;
   } else if(ast->var_class_name[0]) {
     cls_name=self->var_class_name;
     goto try_class;
@@ -932,6 +935,9 @@ U0 CompileToHolyC(U8 *src,U8 *class_name,U8 *src_path=NULL,Bool class_method=FAL
   FramePtrAdd("ST@@stk_depth",0);
   if(register_method) {
     GenerateUselessMethod(class_name,m->name,m->return_class);
+    FramePtrDel("ST@@stk_depth");
+    MethodDel(m);
+    FramePtrDel("MethodClass");
     return;
   }
   CLocals *locals=GenerateLocalsFromMethod(m,class_name);
@@ -945,6 +951,7 @@ U0 CompileToHolyC(U8 *src,U8 *class_name,U8 *src_path=NULL,Bool class_method=FAL
   DocPrint(doc,"  I64 unwind=0,next_case=%d;\n",ast_case_num);
   head=&m->args;
   idx=0;
+//DocPrint(doc,"DbgPrint(\"%s.%Q\n\");",class_name,m->name);
   for(var=head->next;var!=head;var=var->next) {
     DocPrint(doc,"  tmp=BungisReduce(self,&");
     STGetLocal(doc,locals,var->name);
@@ -970,6 +977,7 @@ U0 CompileToHolyC(U8 *src,U8 *class_name,U8 *src_path=NULL,Bool class_method=FAL
   if(*m->return_class) {
      DocPrint(doc,"if(!ThingHasClass(retval,\"%Q\")) {ThingDel(retval);retval=FROG_SMALL_NIL;}",m->return_class);
   }
+//DocPrint(doc,"DbgPrint(\"LEAVE:%s,%Q\n\");",class_name,m->name);
   DocPrint(doc,"  return retval;\n");
   DocPrint(doc,"}");
   if(!class_method) {
