@@ -110,9 +110,7 @@ CDC *LoadGr(U8 *blob,U8 *name) {
 }
 
 I64 SegmentRoundDown(I64 s) {
-  if(!(s%SEGMENT_SZ)) return s;
-  if(s>=0) return s/SEGMENT_SZ*SEGMENT_SZ;
-  return s/SEGMENT_SZ*SEGMENT_SZ-SEGMENT_SZ;
+  return FloorI64(s,SEGMENT_SZ);
 }
 F64 Lerp(F64 per,F64 min,F64 max) {
   F64 t;
@@ -374,9 +372,9 @@ CLevelSegment *GetSegmentForPos(I64 at_x,I64 at_y) {
   static CLevelSegment *ret_cache=NULL;
   if(FloorI64(at_x,SEGMENT_SZ)==at_x_cache)
     if(FloorI64(at_y,SEGMENT_SZ)==at_y_cache)
-      if(ret_cache) {
+      if(ret_cache) { 
         return ret_cache;
-}
+      }
   CLevelSegment *cur;
   for(cur=world_edit.segments.next;cur!=&world_edit.segments;cur=cur->next) {
     if(cur->xoff<=at_x<cur->xoff+SEGMENT_SZ)
@@ -651,7 +649,7 @@ U0 DrawTexturedQuad(CDC *dc,CD3I32 *poly,CDC *texture=NULL) {
 // xoff/yoff specify which wall
 U0 DrawWall(CDC *dc,I64 dispx,I64 dispy,I64 tx,I64 ty,I64 xoff,I64 yoff,CDC *side,F64 height,I64 start_height=INVALID_PTR) {
   if(xoff&&yoff) return;
-  I64 idist=(world_edit.cam_height-height)*GRID_SZ;
+  I64 idist=(world_edit.cam_height-height)*GRID_SZ+2; //+2 to appear below tiles
   F64 width=DIST_SCALE/ToF64(idist);
 
   F64 h,w,width2;
@@ -681,7 +679,6 @@ U0 DrawWall(CDC *dc,I64 dispx,I64 dispy,I64 tx,I64 ty,I64 xoff,I64 yoff,CDC *sid
   points[1].z=idist;
   points[2].z=idist;
   points[3].z=idist;
-
   if(xoff==1&&x<GR_WIDTH/2) {
     points[0].x=ex;
     points[1].x=ex;
@@ -691,11 +688,7 @@ U0 DrawWall(CDC *dc,I64 dispx,I64 dispy,I64 tx,I64 ty,I64 xoff,I64 yoff,CDC *sid
     points[1].y=ey;
     points[2].y=ey2;
     points[3].y=sy2;
-    points[0].z=world_edit.cam_height-height;
-    points[1].z=world_edit.cam_height-height;
-    points[2].z=world_edit.cam_height-start_height;
-    points[3].z=world_edit.cam_height-start_height;
-    DrawTexturedQuad(dc,points);
+    DrawTexturedQuad(dc,points,idist);
   } else if(xoff==-1&&x>GR_WIDTH/2) {
     points[0].x=sx;
     points[1].x=sx;
@@ -705,11 +698,7 @@ U0 DrawWall(CDC *dc,I64 dispx,I64 dispy,I64 tx,I64 ty,I64 xoff,I64 yoff,CDC *sid
     points[1].y=sy;
     points[2].y=sy2;
     points[3].y=ey2;
-    points[0].z=world_edit.cam_height-height;
-    points[1].z=world_edit.cam_height-height;
-    points[2].z=world_edit.cam_height-start_height;
-    points[3].z=world_edit.cam_height-start_height;
-    DrawTexturedQuad(dc,points);
+    DrawTexturedQuad(dc,points,idist);
   } else if(yoff==1&&y<GR_HEIGHT/2) {
     points[0].y=ey;
     points[1].y=ey;
@@ -719,11 +708,7 @@ U0 DrawWall(CDC *dc,I64 dispx,I64 dispy,I64 tx,I64 ty,I64 xoff,I64 yoff,CDC *sid
     points[1].x=ex;
     points[2].x=ex2;
     points[3].x=sx2;
-    points[0].z=world_edit.cam_height-height;
-    points[1].z=world_edit.cam_height-height;
-    points[2].z=world_edit.cam_height-start_height;
-    points[3].z=world_edit.cam_height-start_height;
-    DrawTexturedQuad(dc,points);
+    DrawTexturedQuad(dc,points,idist);
   } else if(yoff==-1&&y>GR_HEIGHT/2) {
     points[0].y=sy;
     points[1].y=sy;
@@ -733,11 +718,7 @@ U0 DrawWall(CDC *dc,I64 dispx,I64 dispy,I64 tx,I64 ty,I64 xoff,I64 yoff,CDC *sid
     points[1].x=sx;
     points[2].x=sx2;
     points[3].x=ex2;
-    points[0].z=world_edit.cam_height-height;
-    points[1].z=world_edit.cam_height-height;
-    points[2].z=world_edit.cam_height-start_height;
-    points[3].z=world_edit.cam_height-start_height;
-    DrawTexturedQuad(dc,points);
+    DrawTexturedQuad(dc,points,idist);
   }
 }
 U0 DrawTileSexy(CDC *dc,I64 dispx,I64 dispy,F64 height,CDC *top,CDC *side,I64 tx,I64 ty,I64 ceil_height2=INVALID_PTR) {
@@ -750,18 +731,42 @@ U0 DrawTileSexy(CDC *dc,I64 dispx,I64 dispy,F64 height,CDC *top,CDC *side,I64 tx
   I64 sx=x-width/2; 
   I64 sy=y-width/2; 
   I64 ex=x+width/2,ey=y+width/2;
-  I64 xoff,yoff;
-  U8 *base,*base2;
+  I64 xoff,yoff,c;
+  U8 *base,*dst;
+  I32 *depth_buf,depth=world_edit.cam_height-height;
   wi=top->width_internal;
   sx=MaxI64(sx,0);
   sy=MaxI64(sy,0);
-  ex=MinI64(ex,GR_WIDTH);
-  ey=MinI64(ey,GR_HEIGHT);
-  for(yoff=sy;yoff<ey;yoff++) {
-    base=&top->body[ToI64((yoff-sy)/width*top->height)*wi];
-    for(xoff=sx;xoff<ex;xoff++) {
-      dc->color=base[ToI64((xoff-sx)/width*top->width)];
-      GrPlot3(dc,xoff,yoff,world_edit.cam_height-height);
+  ex=MinI64(ex,dc->width-4);
+  ey=MinI64(ey,dc->height-4);
+  if(dc->flags&DCF_SCRN_BITMAP) {
+    sx=MinI64(sx+dc->win_task->pix_left,dc->win_task->pix_right);
+    sy=MinI64(sy+dc->win_task->pix_top,dc->win_task->pix_bottom);
+    ex=MinI64(ex+dc->win_task->pix_left,dc->win_task->pix_right);
+    ey=MinI64(ey+dc->win_task->pix_top,dc->win_task->pix_bottom);    
+  }
+//Align to 4
+  sx=sx&~3;
+  for(yoff=sy;yoff<ey;yoff+=4) {
+    base=&top->body[ToI64((yoff-sy)/width*top->height)*wi]; 
+    dst=&dc->body[dc->width_internal*yoff+sx];
+    depth_buf=&dc->depth_buf[dc->width_internal*yoff+sx];
+    for(xoff=sx;xoff<ex;xoff+=4) {
+      if(*depth_buf>idist) {
+        for(c=4;--c>=0;) {
+	  dst(U32*)[0]=gr.to_8_colors[base[MinI64((xoff-sx)/width*top->width,top->width-1)]];
+	  depth_buf[0]=idist;
+	  depth_buf[1]=idist;
+	  depth_buf[2]=idist;
+	  depth_buf[3]=idist;
+	  dst+=dc->width_internal;
+	  depth_buf+=dc->width_internal;
+        }
+        dst-=dc->width_internal*4;
+        depth_buf-=dc->width_internal*4;
+      }
+      depth_buf+=4;
+      dst+=4;
     }
   }
   if(side)
@@ -1051,8 +1056,9 @@ U0 FreeEditorData() {
 }
 U0 WorldInsertTileAt(I64 x,I64 y,I64 thing,I64 floor_ceil_ceil2=0) {
   CLevelSegment *seg=GetSegmentForPos(x,y);
-  if(!seg)
+  if(!seg) {
     seg=LevelEditorNewSegment(x,y);
+  }
   x-=seg->xoff;
   y-=seg->yoff;
   seg->data[x][y]=AbsI64(thing);
@@ -1300,9 +1306,9 @@ no_edit_tile:;
         last_wheel=ms.pos.z;
         if(SIDEBAR_WIDTH<world_edit.ms_x<=Fs->pix_width-SIDEBAR_WIDTH) {
 	  if(Bt(kbd.down_bitmap,SC_SHIFT))
-	    world_edit.floor_height-=world_edit.ms_scroll_delta;
-	  else
 	    world_edit.ceil_height-=world_edit.ms_scroll_delta;
+	  else
+	    world_edit.floor_height-=world_edit.ms_scroll_delta;
 	  world_edit.ms_scroll_delta=0;
         }
         Refresh;

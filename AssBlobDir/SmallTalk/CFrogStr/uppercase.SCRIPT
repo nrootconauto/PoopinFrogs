@@ -1,0 +1,8 @@
+uppercase ->CFrogStr |
+  ret=CFrogStr
+|
+  ret _ ''.
+  self do:[:c=CFrogChr|
+    ret add: c uppercase 
+  ] .
+  ^ ret 
