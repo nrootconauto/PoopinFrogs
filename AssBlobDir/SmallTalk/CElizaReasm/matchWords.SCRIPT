@@ -9,7 +9,7 @@ matchWords: array=CFrogArray putWildcardsIn: result=CFrogArray ->*|
       wildcard _ #() .
       ( idx + 1 < parts size ) ifTrue:[
         next _ parts at: idx + 1 .
-        [( array at: wi ) ~= next and: wi < array size ] whileTrue: [
+        [( array at: wi ) uppercase ~= next uppercase and: wi < array size ] whileTrue: [
           wildcard add: ( array at: wi ) copy .
           wi _ wi + 1 .
         ]
@@ -23,7 +23,7 @@ matchWords: array=CFrogArray putWildcardsIn: result=CFrogArray ->*|
       result add: wildcard .
     ] ifFalse: [
       wi >= array size ifTrue: [^ 0 ] .
-      ( array at: wi ) = (parts at: idx) ifTrue: [
+      ( array at: wi ) uppercase = (parts at: idx) uppercase ifTrue: [
         wi _ wi + 1 .
       ] ifFalse: [
         ^ 0

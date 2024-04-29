@@ -15,6 +15,7 @@ fire ->* |
       case _ CShellCasing new .
       case setGraphics: 'GR/GUN1/BULLET' .
       case ejectAtX: x atY: y .
+      anim_start_tS _ cur_ts .
       player addShellCasing: case .
 
 

@@ -1,0 +1,96 @@
+$FG,5$$TX+CX,"Texture Editor Help"$$FD$
+$WW,1$
+$TR-C,"Introduction"$
+$ID,2$
+  Welcome to the sexy Texture/Image/Animation editor. This editor lets you draw images. You can even use the trace function($BG,7$Ctrl+T$BD$) to trace .BMP files 
+
+  You can even cut/copy parts of an of an image into the next frame for fun.(See the Cut/Copy/Paste section in Tools).
+
+  You should read $LK,"Paste for transforming selection",A="FA:TextureEditor.DD,Paste"$ and the $LK,"Copy section for making selections",A="FA:TextureEditor.DD,Copy"$
+$ID,-2$
+$TR-C,"Animation editor"$
+$ID,2$
+  This editor includes a frame based animation editor. Press $BG,7$ f $BD$ and pick the last item to make a new frame,or select a frame.
+
+  You can delete a frame(Press $BG,7$ d $BD$).
+
+$TR-C,"Animation preview"$
+$ID,2$
+Press $BG,7$Shift+P$BD$ to toggle the playing of the animation.
+
+Once paused you can press '+' or '-' pick which frame to view
+
+$ID,-2$
+$ID,-2$
+$TR-C,"Tools"$
+$ID,2$
+$TR-C,"Trace BMP file"$
+$ID,2$
+Press($BG,7$Ctrl+t$BD$) to Trace a bitmap,good for animation
+$ID,-2$
+$TR-C,"Paint"$
+$ID,2$
+Press ($BG,7$ p $BD$)
+
+This tool lets you paint,use the mouse wheel to change the brush size
+$ID,-2$
+$TR-C,"Line"$
+$ID,2$
+Press ($BG,7$ l $BD$)
+Drag on the screen for a line.
+$ID,-2$
+$TR-C,"Color"$
+$ID,2$
+Press ($BG,7$ c $BD$)
+Click to change to a color
+$ID,-2$
+$TR-C,"Thick"$
+$ID,2$
+Press ($BG,7$ t $BD$)
+Set the thickness of your brush.
+$ID,-2$
+$TR-C,"Set Bounds"$
+$ID,2$
+Press ($BG,7$Shift+B$BD$)
+This will set the size of the image($FG,4$Applies to all frames$FD$)
+$ID,-2$
+$TR-C,"Delete Frame"$
+$ID,2$
+Press ($BG,7$ d $BD$)
+This deletes the current frame of an animation
+$ID,-2$
+$TR-C,"Undo"$
+$ID,2$
+Press ($BG,7$Ctrl+z$BD$)
+This undos your edit
+$ID,-2$
+$TR-C,"Poly-Line"$
+$ID,2$
+Press ($BG,7$Shift+L$BD$)
+This constructs lots of lines,click to start and right click to end
+$ID,-2$
+$TR-C,"Ellipse"$
+$ID,2$
+Press ($BG,7$Shift+E$BD$)
+This makes a circle like thing
+$ID,-2$
+$TR-C,"Copy"$
+$ID,2$
+$AN,"Making polygon selections",A="Copy"$
+
+Press ($BG,7$Ctrl+c$BD$)
+This copies a selection,$FG,4$Left click to begin then right click to end$FD$
+$ID,-2$
+$TR-C,"Cut"$
+$ID,2$
+Press ($BG,7$Ctrl+x$BD$)
+This cuts a selection,$FG,4$Left click to begin then right click to end$FD$
+$ID,-2$
+$TR-C,"Paste"$
+$ID,2$
+$AN,"Rotating/Scaling selections",A="Copy"$
+
+Press ($BG,7$Ctrl+v$BD$)
+This pastes a selection from Cut/Copy. Use mouse wheel to rotate,and $FG,4$and Shift+Mouse-wheel to scale it$FD$
+$ID,-2$
+$ID,-2$

@@ -2,6 +2,8 @@ animate ->* | cur_ts=CFrogNum |
   cur_ts _ CFrogTime now asSeconds .
   inventory_item setCount: ammo  .
   timeout < cur_ts ifTrue: [
+    anim_no_repeat _ 0 .
     self setGraphics: 'GR/GUN1/IDLE' 
-  ] .
-  
+  ] ifFalse: [
+    anim_no_repeat _ 1 .
+  ] .  

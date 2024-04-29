@@ -211,6 +211,8 @@ class CHandItem:CFrogThing {
   I64  xoff,yoff;
   I64 ammo,max_ammo;
   F64 timeout;
+  F64 anim_start_tS;
+  I64 anim_no_repeat;
   CUIGridItem *inventory_item;
   CFrogBlock *on_click;
 };
@@ -353,6 +355,6 @@ class CZombie:C2DThing {
   F64 next_piss_tS;
   CFrogStr *state;
  CPissStream *piss_stream;
-  I64 just_jumped;
+  I64 just_jumped;
   C2DThing *target;
 };

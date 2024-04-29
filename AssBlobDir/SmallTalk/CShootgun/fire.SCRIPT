@@ -13,6 +13,7 @@ fire ->CFrogNum |
   ammo >= 2 ifTrue: [
     cur_ts _ CFrogTime now asSeconds .
     timeout < cur_ts ifTrue: [
+      anim_start_tS _ cur_ts .
       0 to:2 do: [
       case _ CShellCasing new .
 'TODOshootgun shells' .
@@ -20,7 +21,7 @@ fire ->CFrogNum |
         case ejectAtX: x atY: y .
         player addShellCasing: case .
       ] .
-      timeout _ cur_ts + 1 .
+      timeout _ cur_ts + .75 .
       self setGraphics: 'GR/Shootgun/fire' .
       ammo _ ammo - 2 max: 0 .
       inventory_item setCount: ammo .

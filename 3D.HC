@@ -2055,7 +2055,7 @@ U0 DrawIt(CTask *t,CDC *dc) {
   CDC *hand_gr;
   CDC *odc=dc;
   I32 *odepth_buf;
-  I64 tx,ty,c;
+  I64 tx,ty,c,f;
   CI64Set *s;
   C3DParticle *p,*head,*n;
   CShellCasing *shellc;
@@ -2120,7 +2120,16 @@ U0 DrawIt(CTask *t,CDC *dc) {
   if(ThingHasClass(hand,"CHandItem")) {
     hand->x=ms.pos.x;
     if(hand_gr=hand->gr) {
-      AnimDCBlot(dc,hand->x+hand->xoff-hand_gr->width/2,hand->y+hand->yoff-hand_gr->height/2,hand_gr);
+      c=AnimDCCnt(hand_gr);
+      f=(tS-hand->anim_start_tS)/ANIM_DELAY;
+      if(hand->anim_no_repeat) {
+        if(f>=c)
+	  f=c-1;
+	else
+          f%=c;
+      } else 
+        f%=c;
+      GrBlot(dc,hand->x+hand->xoff-hand_gr->width/2,hand->y+hand->yoff-hand_gr->height/2,hand_gr+f);
     }
   }
   DrawUIRoot(t,dc);

@@ -818,6 +818,9 @@ CFrogThing *FrogChrIsNumber(CFrogChr *self,...) {
 CFrogThing *FrogChrIsDisplayable(CFrogChr *self,...) {
   return FrogNumNew(Bt(char_bmp_displayable,AsChar(self)));
 }
+CFrogThing *FrogChrUppercase(CFrogChr *self,...) {
+  return FrogChrNew(ToUpper(AsChar(self)));
+}
 
 CFrogStr *FrogStrCopy(CFrogStr *self,...) {
   CFrogStr *s=ConstructThing("CFrogStr");
@@ -865,6 +868,7 @@ CFrogThing *FrogThingCopy(CFrogThing *t) {
   ConstructBuiltin("FrogChrIsWhitespace(self)","CFrogChr","isWhitespace");
   ConstructBuiltin("FrogChrIsDisplayable(self)","CFrogChr","isDisplayable");
   ConstructBuiltin("FrogChrIsNumber(self)","CFrogChr","isNumber");
+  ConstructBuiltin("FrogChrUppercase(self)","CFrogChr","uppercase");
 }
 #exe {
 //Object
