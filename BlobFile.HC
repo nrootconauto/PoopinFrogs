@@ -1,7 +1,8 @@
 #ifndef FROG_BLOB_HH
 #define FROG_BLOB_HH "Blob"
 #define DEVELOPMENT_MODE TRUE
- #exe{StreamPrint("#define DEVELOPMENT_DIR \"%Q/AssBlobDir\"\n",__DIR__);}
+#exe {Cd(__DIR__);;};
+#exe{StreamPrint("#define DEVELOPMENT_DIR \"%Q/AssBlobDir\"\n",__DIR__);}
 extern U0 UndumpBlobFile(U8 *filename,U8 *dir="/Tmp",Bool delete=FALSE);
 extern U0 DumpBlobFile(U8 *filename,U8 *dir="/Tmp");
 class CLumpHeader {
@@ -60,7 +61,7 @@ regen:
 U8 *BlobFileGetLump(U8 *filename,U8 *name,I64 *len=NULL,U64 *type=NULL) {
   CLumpHeader *lump;
   U8 *ret=NULL,*ftxt;
-  filename=ExtDft(filename,"BLOB.Z");
+  filename=ExtDft(filename,"BLOB");
   if(ftxt=GetBlobFileData(filename)) {
 found:
     lump=BlobFileGetLumpInfo(ftxt,name);
@@ -90,7 +91,7 @@ U0 BlobFileAddLump(U8 *filename,U8 *name,U8 *data,I64 dlen,U64 type='DATA') {
   CLumpHeader *lump_hdr;
   CBlobFileHeader *ret,*oftxt;
   U8*write_to,*read_from;
-  filename=ExtDft(filename,"BLOB.Z");
+  filename=ExtDft(filename,"BLOB");
   if(!(oftxt=GetBlobFileData(filename,&ofsz))) {
     oftxt=CAlloc(sizeof CBlobFileHeader);
     ofsz=sizeof CBlobFileHeader;
@@ -177,7 +178,7 @@ U8 *_BlobFileSelectPath(U8 *lump_name) {
 //Returns "blob filename"
 U8 *BlobFileSelect(U8 *filename) {
 loop:
-  filename=ExtDft(filename,"BLOB.Z");
+  filename=ExtDft(filename,"BLOB");
   if(!FileFind(filename)) {
     Free(filename);
     return NULL;
@@ -249,7 +250,7 @@ U0 DumpBlobFile(U8 *filename,U8 *dir="/Tmp") {
   U8 *tmp,*path_title,*last_slash;
   U8 *old_dir=DirCur;
   I64 idx,cnt;
-  filename=ExtDft(filename,"BLOB.Z");
+  filename=ExtDft(filename,"BLOB");
   if(!FileFind(filename)) {
     Free(old_dir);
     Free(filename);
@@ -289,7 +290,7 @@ U0 UndumpBlobFile(U8 *filename,U8 *dir="/Tmp",Bool delete=FALSE) {
   CBlobFileHeader *final;
   CLumpHeader *lump_hdr;
   I64 total;
-  filename=ExtDft(filename,"BLOB.Z");
+  filename=ExtDft(filename,"BLOB");
   if(FileFind(filename,&de)) {
     newer_than=de.datetime;
   }
@@ -352,5 +353,8 @@ BlobFileDeleteLump("ASS2","abd");
 "%s\n",BlobFileSelect("ASS2");
 "%s\n",BlobFileGetLump("ASS2","abc");
 "%s\n",BlobFileGetLump("ASS2","ab/d");*/
-UndumpBlobFile("ASS.BLOB.Z",DEVELOPMENT_DIR);
+#ifdef DEVELOPMENT_MODE
+Del("ASS.BLOB*");
+UndumpBlobFile(#exe {StreamPrint("\"%Q\"",__DIR__);} "/ASS.BLOB",DEVELOPMENT_DIR);
+#endif
 #endif

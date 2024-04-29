@@ -1,5 +1,8 @@
+//Compiler goes to parent directory as it is the "main" file 
 #include "Compiler.HC";
+#exe {Cd(__DIR__);};
 #include "../BlobFile.HC";
+#exe {Cd(__DIR__);};
 #define STS_ADD_CLASS -100
 #define ST_ROOT	"SmallTalk/" //Must be same length
 #define ST_CLASS_ROOT	"STClsRoot/"
@@ -219,7 +222,7 @@ U0 STValidateCode(U8 *blob_file="../ASS",U8 *code,U8 *path,Bool script=FALSE) {
   HashTableDel(dummy);
 }
 U0 STStudio(U8 *blob_file="../ASS") {
-  blob_file=ExtDft(blob_file,"BLOB.Z");
+  blob_file=ExtDft(blob_file,"BLOB");
   if(!FileFind(blob_file)) {
     PopUpOk("Cant Find Blob file!!!");
     Free(blob_file);
@@ -411,7 +414,7 @@ again:;
   Free(blob_file);
 }
 U0 LoadMethodsFromBlob(U8 *blob_file="../ASS") {
-  blob_file=ExtDft(blob_file,"BLOB.Z");
+  blob_file=ExtDft(blob_file,"BLOB");
   if(!FileFind(blob_file)) {
     PopUpOk("Cant Find Blob file!!!");
     Free(blob_file);
