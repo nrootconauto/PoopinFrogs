@@ -1,4 +1,11 @@
-update ->* | hit_wall=CFrogNum new_t=C2DThingTemplate ts=CFrogNum |
+update ->* |
+  hit_wall=CFrogNum
+  new_t=C2DThingTemplate
+  ts=CFrogNum
+  old_x=CFrogNum
+  old_y=CFrogNum
+  old_z=CFrogNum
+|
   health <= 0 ifTrue: [
     new_t _ #world getThingTemplate: 'CFrogNPC/DEAD' .
     new_t ~= template ifTrue: [
@@ -60,17 +67,36 @@ update ->* | hit_wall=CFrogNum new_t=C2DThingTemplate ts=CFrogNum |
 
   template _ #world getThingTemplate: 'CFrogNPC' .
   animation_no_repeat _ 0 .
+  old_x _ x .
+  old_y _ y .
+  old_z _ z .
   hit_wall _ self move: speed atAngle: angle .
   hit_wall ifTrue: [
-    angle _ angle + (3.14 * random_generator next ) .
+    (just_jumped not and: self isOnGround ) ifTrue: [
+      'Try to jump over wall if low enough' .
+      ((#world tileHeightAtX: (x + (128 * angle cos ))/ 128 atY: (y + (128 * angle sin))/ 128 ) - z ) <= 2.1 ifTrue: [
+        momz _ .65 .
+        x _ old_x .
+        y _ old_y .
+        z _ old_z .
+        just_jumped _ 1 .
+        ^ 1 
+      ] .
+    ] .
+    self isOnGround ifTrue: [
+      angle _ angle + (3.14 * random_generator next ) .
+    ]
   ] .
 
   'Jump Randomly' .
 
   z = (#world tileHeightAtX: x / 128 atY: y / 128 ) ifTrue: [
-     random_generator next < (.9 / 30) ifTrue: [
-       momz _ #world gravity * 3 .
-     ]
+    (random_generator next < (.9 / 30) and: self isOnGround) ifTrue: [
+      momz _ #world gravity * 3 .
+      just_jumped _ 1 .
+    ]
   ] .
-
-
+  
+  self isOnGround ifTrue: [
+    just_jumped _ 0
+  ]

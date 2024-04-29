@@ -1833,7 +1833,7 @@ CFrogThing *WorldManagerCeilHeightAtXAtY(C3DWorldManager *self,...) {
     }
   return FrogNumNew(I16_MAX);
 }
-AddMethod("C3DWorldManager","ceilHeightAtX:atY:",&WorldManagerCeilHeightAtXAtY);
+AddMethod("C3DWorldManager","ceilHeightAtX:atY:",&WorldManagerCeilHeightAtXAtY);
 CFrogThing *WorldManagerCeilRiseAtXAtY(C3DWorldManager *self,...) {
   I64 x=AsF64(argv[0]);
   I64 y=AsF64(argv[1]);

@@ -321,6 +321,7 @@ class CFrogNPC:C2DThing {
 // or run around if low health. It will attack if provoked
   F64 state_start_tS;
   F64 state_duration;
+  I64 just_jumped;
   CFrogStr *state;
   CEliza *chat_bot;
 };
@@ -349,7 +350,9 @@ class CZombie:C2DThing {
   CEliza *chat_bot;
   F64 state_start_tS;
   F64 state_duration;
+  F64 next_piss_tS;
   CFrogStr *state;
  CPissStream *piss_stream;
+  I64 just_jumped;
   C2DThing *target;
 };

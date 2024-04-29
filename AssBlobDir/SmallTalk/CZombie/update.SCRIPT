@@ -27,7 +27,7 @@ update -> * |
 'Check if close enough to bite'.
   state = 'Chase' ifTrue: [
     dist _ ((target xPos - x ) squared + (target yPos - y) squared ) sqrt .
-    dist < (2.5 * 128) ifTrue: [
+    dist < (1.5 * 128) ifTrue: [
       state _ 'Bite' .
       state_start_tS _ cur_tS .
       state_duration _ 1 .
@@ -48,7 +48,9 @@ update -> * |
 
   state = 'Piss' ifTrue: [
     'Randomly stop pissing' .
-    random_generator next < (.9 / 30 ) ifTrue: [
+    (cur_tS - state_start_tS) >= state_duration ifTrue: [
+      state_start_tS _ cur_tS .
+      state_duration _ 0 . 
       state _ 'Chase' .
     ] ifFalse: [
       template _ #world getThingTemplate: 'CZombie/Piss' .
@@ -59,12 +61,12 @@ update -> * |
 
   ( cur_tS - state_start_tS ) >= state_duration  ifTrue: [
     'Piss? after chasing'
-    (state = 'Chase'  and: (random_generator next > .5 )) ifTrue: [
+    (state = 'Chase'  and: (random_generator next < (1 / 30 ))) ifTrue: [
       state _ 'Piss' .
       template _ #world getThingTemplate: 'CZombie/Piss' .
       self pissTowardsThing: target .
       state_start_tS _ cur_tS .
-      state_duration _ 0 . 
+      state_duration _ .6 . 
       ^ 1 .
     ] .
 
@@ -96,9 +98,18 @@ update -> * |
   animation_no_repeat _ 0 .
   hit_wall _ self move: speed atAngle: angle .
   hit_wall ifTrue: [
-    angle _ angle + (3.14 * random_generator next ) .
+    (just_jumped not and: self isOnGround ) ifTrue: [
+      'Try to jump over wall if low enough' .
+      ((#world tileHeightAtX: (x + (128 * angle cos ))/ 128 atY: (y + (128 * angle sin))/ 128 ) - z ) <= 2.1 ifTrue: [
+        momz _ .65 .
+        just_jumped _ 1 .
+        ^ 1 
+      ] .
+    ] .
+    self isOnGround ifTrue: [
+      angle _ angle + (3.14 * random_generator next ) .
+    ]
   ] .
-
   'Jump Randomly' .
 
   z = (#world tileHeightAtX: x / 128 atY: y / 128 ) ifTrue: [
@@ -107,3 +118,4 @@ update -> * |
      ]
   ] .
 
+  self isOnGround ifTrue: [just_jumped _ 0  ] .

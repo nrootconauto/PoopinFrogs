@@ -43,10 +43,9 @@ pissTowardsThing: who=C2DThing ->*
     ]
   ] .
 
-  (cur_ts - state_start_tS ) >= state_duration ifTrue: [
+  cur_ts  >= next_piss_tS ifTrue: [
     rand _ CFrogRandom new .
-    state_duration _ .2 .
-
+    next_piss_tS _ next_piss_tS + .3 .
     'https://en.wikipedia.org/wiki/Trajectory' .
     launch_angle _ .35 arctan .
     targetd _  ((who xPos -  x ) squared + (who yPos -  y ) squared ) sqrt . 
