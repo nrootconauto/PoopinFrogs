@@ -533,22 +533,14 @@ U0 DrawThingBar(CDC *dc,CTask *task) {
   CDC *use_dc;
   CLevelThingTemplate *template;
   x=SIDEBAR_WIDTH+4;
-  y=task->pix_height-THING_BAR_HEIGHT+8+4-8; //-8 for status bar
+  y=task->pix_height-THING_BAR_HEIGHT+8+4-16; //-16 for status bar
 //Scroll
   if(world_edit.ms_scroll_delta)
     if(SIDEBAR_WIDTH<=world_edit.ms_x<task->pix_width-SIDEBAR_WIDTH) {
-      idx=0;
-      for(
-	    template=world_edit.thing_templates_que.next;
-	    template!=&world_edit.thing_templates_que;
-	    template=template->next
-      ) {
-        idx=MaxI64(idx,template->idx);
-      }
       world_edit.thingbar_scroll=ClampI64(
 	    world_edit.thingbar_scroll+world_edit.ms_scroll_delta,
 	    0,
-	    idx);
+	    I16_MAX);
     }
 //
   idx=world_edit.thingbar_scroll;
@@ -649,7 +641,7 @@ U0 DrawTexturedQuad(CDC *dc,CD3I32 *poly,CDC *texture=NULL) {
 // xoff/yoff specify which wall
 U0 DrawWall(CDC *dc,I64 dispx,I64 dispy,I64 tx,I64 ty,I64 xoff,I64 yoff,CDC *side,F64 height,I64 start_height=INVALID_PTR) {
   if(xoff&&yoff) return;
-  I64 idist=(world_edit.cam_height-height)*GRID_SZ+2; //+2 to appear below tiles
+  I64 idist=(world_edit.cam_height-height)*GRID_SZ+2; //+2 to appear below tiles
   F64 width=DIST_SCALE/ToF64(idist);
 
   F64 h,w,width2;
@@ -745,28 +737,26 @@ U0 DrawTileSexy(CDC *dc,I64 dispx,I64 dispy,F64 height,CDC *top,CDC *side,I64 tx
     ex=MinI64(ex+dc->win_task->pix_left,dc->win_task->pix_right);
     ey=MinI64(ey+dc->win_task->pix_top,dc->win_task->pix_bottom);    
   }
-//Align to 4
-  sx=sx&~3;
-  for(yoff=sy;yoff<ey;yoff+=4) {
+//Align to 2
+  sx=sx&~1;
+  for(yoff=sy;yoff<ey;yoff+=2) {
     base=&top->body[ToI64((yoff-sy)/width*top->height)*wi]; 
     dst=&dc->body[dc->width_internal*yoff+sx];
     depth_buf=&dc->depth_buf[dc->width_internal*yoff+sx];
-    for(xoff=sx;xoff<ex;xoff+=4) {
+    for(xoff=sx;xoff<ex;xoff+=2) {
       if(*depth_buf>idist) {
-        for(c=4;--c>=0;) {
-	  dst(U32*)[0]=gr.to_8_colors[base[MinI64((xoff-sx)/width*top->width,top->width-1)]];
+        for(c=2;--c>=0;) {
+	  dst(U16*)[0]=gr.to_8_colors[base[MinI64((xoff-sx)/width*top->width,top->width-1)]];
 	  depth_buf[0]=idist;
 	  depth_buf[1]=idist;
-	  depth_buf[2]=idist;
-	  depth_buf[3]=idist;
 	  dst+=dc->width_internal;
 	  depth_buf+=dc->width_internal;
         }
-        dst-=dc->width_internal*4;
-        depth_buf-=dc->width_internal*4;
+        dst-=dc->width_internal*2;
+        depth_buf-=dc->width_internal*2;
       }
-      depth_buf+=4;
-      dst+=4;
+      depth_buf+=2;
+      dst+=2;
     }
   }
   if(side)
@@ -847,23 +837,23 @@ U0 LevelEditorDraw(CTask *t,CDC *dc) {
 next:;
     }
   }
+  DrawSegmentThings(t,dc);
   DrawSidebar(dc,0);
   DrawSidebar(dc,t->pix_width-SIDEBAR_WIDTH,TRUE);
+  DrawThingBar(dc,t);
   dc->color=BLUE;
   GrRect(dc,SIDEBAR_WIDTH,t->pix_height-16,t->pix_width-SIDEBAR_WIDTH*2,16);
-  str=MStrPrint("Floor Height(%d),Ceil Height(%d)(Shift+Wheel == Change Floor Height)",
+  str=MStrPrint("Floor Height(%d),Ceil Height(%d)(Shift+Wheel == Change Ceil Height)",
         world_edit.floor_height,
         world_edit.ceil_height
         );
-  DrawSegmentThings(t,dc);
-  DrawThingBar(dc,t);
   dc->color=YELLOW;
   GrPutS(dc,SIDEBAR_WIDTH,t->pix_height-16,str);
   Free(str);
   GrPutS(dc,SIDEBAR_WIDTH,t->pix_height-8,"Use [Shift+]Right Click make sexy ceilings");
   Free(dc->depth_buf);
   dc->depth_buf=NULL;
-}
+} 
 Bool EditDC(U8 *blob,U8 *name,I64 dft_w,I64 dft_h) {
 //TempleOS lexer gets rid of rest of line after #include
 Bool old_flat=world_edit.flat_mode;
@@ -1057,6 +1047,7 @@ U0 FreeEditorData() {
 U0 WorldInsertTileAt(I64 x,I64 y,I64 thing,I64 floor_ceil_ceil2=0) {
   CLevelSegment *seg=GetSegmentForPos(x,y);
   if(!seg) {
+    if(!thing) return;
     seg=LevelEditorNewSegment(x,y);
   }
   x-=seg->xoff;
@@ -1304,13 +1295,14 @@ no_edit_tile:;
       default:
         world_edit.ms_scroll_delta=ms.pos.z-last_wheel;
         last_wheel=ms.pos.z;
-        if(SIDEBAR_WIDTH<world_edit.ms_x<=Fs->pix_width-SIDEBAR_WIDTH) {
-	  if(Bt(kbd.down_bitmap,SC_SHIFT))
-	    world_edit.ceil_height-=world_edit.ms_scroll_delta;
-	  else
-	    world_edit.floor_height-=world_edit.ms_scroll_delta;
-	  world_edit.ms_scroll_delta=0;
-        }
+        if(Fs->pix_height-THING_BAR_HEIGHT>world_edit.ms_y)
+          if(SIDEBAR_WIDTH<world_edit.ms_x<=Fs->pix_width-SIDEBAR_WIDTH) {
+	    if(Bt(kbd.down_bitmap,SC_SHIFT))
+	      world_edit.ceil_height-=world_edit.ms_scroll_delta;
+	    else
+	      world_edit.floor_height-=world_edit.ms_scroll_delta;
+	    world_edit.ms_scroll_delta=0;
+          }
         Refresh;
         goto next;
       case MSG_MS_MOVE:

@@ -4,6 +4,7 @@
 #include "Intersect.HC";
 #define TEST_3D
 #ifndef ENGINE_3D
+#define mp_cnt 1
 #define ENGINE_3D 1
 #define SCRN_TURN_MARGIN 100
 #define SCRN_TURN_RATE (pi/30.)
@@ -336,9 +337,11 @@ I64 PassesThoughBlock(C3DWorld *w,F64 slope,I64 x,I64 y,F64 *dist,F64 cos,F64 si
 //Left side
     tmp=cx1*slope;
     if(cy1<=tmp<=cy2) {
-      tmp=Sqrt(Sqr(cx1*GRID_SZ)+Sqr(tmp*GRID_SZ));
-      smallest=Min(smallest,tmp);
-      biggest=Max(biggest,tmp);
+      if(dist) {
+        tmp=Sqrt(Sqr(cx1*GRID_SZ)+Sqr(tmp*GRID_SZ));
+        smallest=Min(smallest,tmp);
+        biggest=Max(biggest,tmp);
+      }
       found=TRUE;
     }
   } else {
@@ -346,27 +349,33 @@ I64 PassesThoughBlock(C3DWorld *w,F64 slope,I64 x,I64 y,F64 *dist,F64 cos,F64 si
     tmp=cx2*slope;
     if(cy1<=tmp<=cy2) {
       found=TRUE;
-      tmp=Sqrt(Sqr(cx2*GRID_SZ)+Sqr(tmp*GRID_SZ));
-      smallest=Min(smallest,tmp);
-      biggest=Max(biggest,tmp);
+      if(dist) {
+        tmp=Sqrt(Sqr(cx2*GRID_SZ)+Sqr(tmp*GRID_SZ));
+        smallest=Min(smallest,tmp);
+        biggest=Max(biggest,tmp);
+      }
     }
   }
   if(sin>0.^^far_side) {
 //top side
     tmp=cy1/slope;
     if(cx1<=tmp<=cx2) {
-      tmp=Sqrt(Sqr(cy1*GRID_SZ)+Sqr(tmp*GRID_SZ));
-      smallest=Min(smallest,tmp);
-      biggest=Max(biggest,tmp);
+      if(dist) {
+        tmp=Sqrt(Sqr(cy1*GRID_SZ)+Sqr(tmp*GRID_SZ));
+        smallest=Min(smallest,tmp);
+        biggest=Max(biggest,tmp);
+      }
       found=TRUE;
     }
   } else {
 //bottom side
     tmp=cy2/slope;
     if(cx1<=tmp<=cx2) {
-      tmp=Sqrt(Sqr(cy2*GRID_SZ)+Sqr(tmp*GRID_SZ));
-      smallest=Min(smallest,tmp);
-      biggest=Max(biggest,tmp);
+      if(dist) {
+        tmp=Sqrt(Sqr(cy2*GRID_SZ)+Sqr(tmp*GRID_SZ));
+        smallest=Min(smallest,tmp);
+        biggest=Max(biggest,tmp);
+      }
       found=TRUE;
     }
   }
@@ -836,7 +845,7 @@ CDC *FloorStain(C3DWorld *w,I64 tx,I64 ty,I64 *xoff,I64 *yoff,Bool ceil) {
 
 I64 ColorFloor(C3DWorld *w,I64 view_x,I64 floor_height,I64 sy,I64 ey,CDC *texture,Bool ceil=FALSE) {
   if(!texture) return ey;
-  CDC *dc=w->to_dc,*stain;
+  CDC *dc=w->to_dc,*stain=NULL;
   F64 angley=0;
   F64 step;
   F64 dist;
@@ -863,13 +872,17 @@ I64 ColorFloor(C3DWorld *w,I64 view_x,I64 floor_height,I64 sy,I64 ey,CDC *textur
     fy=w->y+sin_lookup_table[view_x]*dist;
     tx=fx/GRID_SZ;
     ty=fy/GRID_SZ;
-//TODOcache
-    if(old_tx!=tx||old_ty!=ty) {
-      stain=FloorStain(w,tx,ty,&poopx,&poopy,ceil);
-      old_tx=tx;
-      old_ty=ty;
-    }
+//Floors stains from the camera can barley be seen  when far away
+    if(dist<16*128) {
+      if(old_tx!=tx||old_ty!=ty) {
+        stain=FloorStain(w,tx,ty,&poopx,&poopy,ceil);
+        old_tx=tx;
+        old_ty=ty;
+      }
+    } else
+      stain=NULL;
     if(texture) {
+ 
         colors=gr.to_8_colors[GrPeek0(
 	      texture+anim_frame,
 	      (fx&(GRID_SZ-1))/ToF64(GRID_SZ)*texture->width,
@@ -925,19 +938,18 @@ I64 ColorFloor(C3DWorld *w,I64 view_x,I64 floor_height,I64 sy,I64 ey,CDC *textur
     }
   return GR_HEIGHT-sy;
 }
-//-1 terminated
-//https://en.wikipedia.org/wiki/Digital_differential_analyzer_(graphics_algorithm)
 F64 FUMod(F64 v,F64 to) {
   if(v>0.) return v%to;
   if(v<0.) return -(v%to);
   return 0;
 }
+//-1 terminated
+//https://en.wikipedia.org/wiki/Digital_differential_analyzer_(graphics_algorithm)
 I64 *GetTilesInPath(C3DWorld *w,F64 angle,F64 dist) {
   CI64Set *t=I64SetNew;
   F64 x=w->x,y=w->y,ex,ey,dx,dy,step,i,by,slope,cos,sin,xdist,ydist;
   F64 res_dist;
   I64 tx=x/GRID_SZ,ty=y/GRID_SZ,idx,old_tx,old_ty,dirx,diry,ix,iy;
-  Bool use_x;
   cos=Cos(angle);
   sin=Sin(angle);
   ex=x+cos*dist;
@@ -945,11 +957,11 @@ I64 *GetTilesInPath(C3DWorld *w,F64 angle,F64 dist) {
   slope=Tan(angle);
   dx=ex-x;
   dy=ey-y;
+  dirx=Sign(dx);
+  diry=Sign(dy);
   if(Abs(dx)>Abs(dy)) {
-    use_x=TRUE;
     step=Abs(dx);
   } else {
-    use_x=FALSE;
     step=Abs(dy);
   }
   dx/=step;
@@ -999,17 +1011,13 @@ dy_type:
     tx=x/GRID_SZ,ty=y/GRID_SZ;
     tx=ClampI64(tx,0,w->world_width);
     ty=ClampI64(ty,0,w->world_height);
-    dirx=SignI64(tx-old_tx);
-    diry=SignI64(ty-old_ty);
 
     for(iy=old_ty;TRUE;iy+=diry) {
-      for(ix=old_tx;TRUE;ix+=dirx) {
+      for(ix=old_tx;TRUE;ix+=dirx) {
         idx=ix+iy*w->world_width;
         if(t->body[t->cnt-1]!=idx) {
-	  if(PassesThoughBlock(w,slope,ix,iy,&res_dist,cos,sin)) {
-	    if(res_dist<dist) {
-	      I64SetAdd(t,idx);
-	    }
+	  if(PassesThoughBlock(w,slope,ix,iy,NULL,cos,sin)) {
+	    I64SetAdd(t,idx);
 	  }
         }
         if(ix==tx)
@@ -1142,6 +1150,7 @@ U0 MPCastCol(C3DWorld *w) {
   CDC *use_dc;
   I64 *tiles;
   I64 standing_at;
+  Bool computed;
   idx=GR_WIDTH/mp_cnt*Gs->num;
   cap=GR_WIDTH/mp_cnt*(Gs->num+1);
   angle+=(w->fov/GR_WIDTH)*w->step_width*idx/w->step_width;
@@ -1152,13 +1161,19 @@ U0 MPCastCol(C3DWorld *w) {
     ceily=GR_HEIGHT;
     last_height=I64_MIN;
     last_ceil=I64_MAX;
-    tiles=GetTilesInPath(w,angle,128*GRID_SZ);
+    tiles=GetTilesInPath(w,angle,64*GRID_SZ);
     if(tiles[0]==-1)
       goto fin;
 ent:
     idx=tiles[idx2];
     if(idx!=-1) {
+      idx2++;
+      computed=FALSE;
       height_cap=w->heightmap[idx];
+//Dont straight lines on blocks with same height(hidden)
+      if(last_height>w->cam_height)
+        if(last_height>height_cap)
+          goto ceil2;
       FindRayWall(w,
 	    tan_lookup_table[x],
 	    cos_lookup_table[x],
@@ -1180,16 +1195,12 @@ ent:
 	      idx,
 	      TRUE //Far side of tile
 	      );
-      idx2++;
 //https://permadi.com/1996/05/ray-casting-tutorial-8/
       dist*=cos2_lookup_table[x];
       h=DIST_SCALE/dist;
       dist2*=cos2_lookup_table[x];
       h2=DIST_SCALE/(dist2+1);
-//Dont straight lines on blocks with same height(hidden)
-      if(last_height>w->cam_height)
-        if(last_height>height_cap)
-          goto ceil2;
+      computed=TRUE;
 //Color the floor tile
       if(height_cap<w->cam_height) {
         y0=GR_HEIGHT/2-h*(height_cap-w->cam_height);
@@ -1240,7 +1251,7 @@ ent:
 	    w->blocked_cnts[x+idx3]=ptr+1;
 	    block_view=&w->blocked_views[x+idx3][ptr];
 	    block_view->start=y0;
-	    block_view->end=y0+h*AbsI64(height_cap-adj_height);
+	    block_view->end=GR_HEIGHT;
 	    block_view->dist=dist;
 	  }
         }
@@ -1252,6 +1263,35 @@ ceil2:
       ceil=w->ceilmap[idx];
       adj_height=w->ceilmap2[idx];
       //Draw Ceil
+      if(ceil!=I8_MAX&&!computed) {
+        FindRayWall(w,
+	    tan_lookup_table[x],
+	    cos_lookup_table[x],
+	    sin_lookup_table[x],
+	    &segment,
+	    &dist,
+	    &side,
+	    I8_MIN,
+	    idx
+	    );
+          FindRayWall(w,
+	      tan_lookup_table[x],
+	      cos_lookup_table[x],
+	      sin_lookup_table[x],
+	      NULL,
+	      &dist2,
+	      NULL,
+	      I8_MIN,
+	      idx,
+	      TRUE //Far side of tile
+	      );
+//https://permadi.com/1996/05/ray-casting-tutorial-8/
+        dist*=cos2_lookup_table[x];
+        h=DIST_SCALE/dist;
+        dist2*=cos2_lookup_table[x];
+        h2=DIST_SCALE/(dist2+1);
+        computed=TRUE;
+      }
       if(ceil!=I8_MAX&&ceil>w->cam_height) {
         if(use_dc=w->ceil_textures[w->world_mat[idx]]) {
 	  standing_at=ToI64(w->x)/GRID_SZ+ToI64(w->y)/GRID_SZ*w->world_width;
