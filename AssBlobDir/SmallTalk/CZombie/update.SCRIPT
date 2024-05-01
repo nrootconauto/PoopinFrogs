@@ -47,7 +47,6 @@ update -> * |
   ] .
 
   state = 'Piss' ifTrue: [
-    'Randomly stop pissing' .
     (cur_tS - state_start_tS) >= state_duration ifTrue: [
       state_start_tS _ cur_tS .
       state_duration _ 0 . 
@@ -61,7 +60,7 @@ update -> * |
 
   ( cur_tS - state_start_tS ) >= state_duration  ifTrue: [
     'Piss? after chasing'
-    (state = 'Chase'  and: (random_generator next < (1 / 10 ))) ifTrue: [
+    (state = 'Chase'  and: (random_generator next < (3 / 10 ))) ifTrue: [
       state _ 'Piss' .
       template _ #world getThingTemplate: 'CZombie/Piss' .
       self pissTowardsThing: target .
@@ -82,12 +81,12 @@ update -> * |
   ] .  
 
   state = 'Chase' ifTrue: [   
-    speed _ 128 / 30 * 4.5 .
+    speed _ 128 / 30 * 3 .
   ] .
 
 
   state = 'Normal' ifTrue: [
-     speed _ 128 / 30  * 2 . 
+     speed _ 128 / 30  * 1.5 . 
   ] .  
 
 

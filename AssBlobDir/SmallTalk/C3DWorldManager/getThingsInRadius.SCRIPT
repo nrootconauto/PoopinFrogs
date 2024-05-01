@@ -1,0 +1,20 @@
+getThingsInRadiusFromX: x=CFrogNum fromY: y=CFrogNum withRadius: r=CFrogNum 
+  ->CFrogArray |
+  ret=CFrogArray 
+  X=CFrogNum 
+  Y=CFrogNum 
+|
+  r _ r * r .
+  X _ x / 128 / 16 .
+  Y _ y / 128 / 16 .
+  ret _ #() .
+  -1 to: 2 do: [:xo=CFrogNum |
+    -1 to: 2 do: [:yo=CFrogNum |
+      ((grid at: X + xo) at: Y + yo) do: [:t=C2DThing| 
+        r >= ((x - t xPos) squared + (y - t yPos ) squared) ifTrue: [
+         ret add: t .
+       ]
+      ]. 
+    ] .
+  ] .
+ ^ ret

@@ -157,7 +157,7 @@ Bool STStudioRegisterNewClasses(U8 *blob_file) {
           if(dummy=BlobFileGetLump(blob_file,buf)) {
 //Lump already exists
           } else {
-	    dummy=MStrPrint("new | |\n ^ self basicNew\n");
+	    dummy=MStrPrint("new | |\n ^ self basicNew init\n");
             BlobFileAddLump(blob_file,buf,dummy,StrLen(dummy),'SCRIPT');
           }
           Free(dummy);

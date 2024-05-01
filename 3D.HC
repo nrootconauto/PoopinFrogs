@@ -662,7 +662,7 @@ fin:
   w->x=old_x,w->y=old_y;
   return hit_wall;
 }
-U0 PhysicsOnThing(C3DWorld *w,C2DThing *t,F64 gravity) {
+U0 PhysicsOnThing(C3DWorld *w,C2DThing *t,C3DWorldManager *wm) {
   I64 wx=t->x/GRID_SZ,wy=t->y/GRID_SZ;
   if(!(0<=wx<w->world_width))
     return;
@@ -673,22 +673,38 @@ U0 PhysicsOnThing(C3DWorld *w,C2DThing *t,F64 gravity) {
   I64 floor=w->heightmap[tile];
   I64 ceil=w->ceilmap[tile];
   I64 raise=w->ceilmap2[tile];
+  CRocket *rocket=NULL;
+  CFrogArray *in_radius;
+  if(ThingHasClass(t,"CRocket"))
+    rocket=t;
+  CallScript("removeFromGrid:",wm,FrogIncRefCnt(t));
   if(C3DWorldMoveZWithCollision(w,t->momz,t->x,t->y,&t->z)) {
     t->momz=0;
-  } else
-    t->momz-=gravity;
+  } else if(!rocket)
+      t->momz-=wm->gravity;
   if(t->momy+t->momy2||t->momx+t->momx2) {
-    t->momx*=29/30.;
-    t->momy*=29/30.;
-    if(t->momx<2) t->momx=0;
-    if(t->momy<2) t->momy=0;
+    if(!rocket) {
+      t->momx*=29/30.;
+      t->momy*=29/30.;
+    }
+    if(Abs(t->momx)<2) t->momx=0;
+    if(Abs(t->momy)<2) t->momy=0;
     angle=Arg(t->momx+t->momx2,t->momy+t->momy2);
-    C3DWorldMoveWithCollision(w,angle,Sqrt(Sqr(t->momx+t->momx2)+Sqr(t->momy+t->momy2)),
+    if(C3DWorldMoveWithCollision(w,angle,Sqrt(Sqr(t->momx+t->momx2)+Sqr(t->momy+t->momy2)),
 	&t->x,
 	&t->y,
 	TRUE,
-	t->z);
+	t->z)) {
+      if(rocket) {
+        CallScript("explode",rocket);
+        return;
+      }
+    } 
   }
+  if(rocket) {
+    CallScript("checkExplode",rocket);
+  }
+  CallScript("updateThingPos:",wm,FrogIncRefCnt(t));
 }
 F64 Lerp(F64 per,F64 min,F64 max) {
   if(min<max)
@@ -984,8 +1000,6 @@ I64 *GetTilesInPath(C3DWorld *w,F64 angle,F64 dist) {
   slope=Tan(angle);
   dx=ex-x;
   dy=ey-y;
-  dirx=Sign(dx);
-  diry=Sign(dy);
   if(Abs(dx)>Abs(dy)) {
     step=Abs(dx);
   } else {
@@ -1040,6 +1054,8 @@ dy_type:
     tx=x/GRID_SZ,ty=y/GRID_SZ;
     tx=ClampI64(tx,0,w->world_width);
     ty=ClampI64(ty,0,w->world_height);
+    dirx=SignI64(tx-old_tx);
+    diry=SignI64(ty-old_ty);
     for(iy=old_ty;TRUE;iy+=diry) {
       for(ix=old_tx;TRUE;ix+=dirx) {
         idx=ix+iy*w->world_width;
@@ -1059,6 +1075,8 @@ dy_type:
       goto fin;
     if(!ty||ty>=w->world_height)
       goto fin;
+    if(by<3.)
+      by=3.;
     i+=by;
   }
 fin:
@@ -2207,8 +2225,8 @@ U0 WalkAround() {
        }
      if(every%3==0) CallScript("update",man->value);
 // Do physics after update
-     for(idx=0;idx!=w->_2d_things->cnt;idx++) {
-       PhysicsOnThing(w,body[idx],wm->gravity);
+     for(idx=0;idx<w->_2d_things->cnt;idx++) {
+       PhysicsOnThing(w,body[idx],wm);
        if(body[idx]==player) {
 	  player->momx2=0;
 	  player->momy2=0;

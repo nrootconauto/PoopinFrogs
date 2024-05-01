@@ -186,7 +186,7 @@ class C2DThingTemplate:CFrogThing {
 class C2DThing:CFrogThing {
   C2DThingTemplate *template;
   F64 x,y,z,angle,health;
-  F64 momx,momy,momz,animation_start_tS;
+  F64 momx,momy,momz,animation_start_tS;
   F64 momx2,momy2;
   CFrogStr *name; //Like Jimmy Crooks
   Bool no_draw,animation_no_repeat,pad[6];
@@ -358,4 +358,11 @@ class CZombie:C2DThing {
  CPissStream *piss_stream;
   I64 just_jumped;
   C2DThing *target;
+};
+class CRocket:C2DThing {
+  C2DThing *from;
+};
+class CRocketLauncher:CHandItem {
+};
+class CRocketLauncherPickup:CPickup {
 };

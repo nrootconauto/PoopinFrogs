@@ -1,0 +1,16 @@
+explode ->CFrogNum
+|
+  dist=CFrogNum 
+  things=CFrogArray
+|
+  things _ #world getThingsInRadiusFromX: x fromY: y withRadius: 5 * 128 .
+  things do:[:t*|
+    dist _ ((t xPos - x) squared + (t yPos - y ) squared) sqrt .
+    t damage: (5 * 128 - dist) / 5 from: from . 
+  ] .
+'TODOexplosion' .
+  0 to: 20 do: [
+    #world newParticleAtX: x atY: y atZ: z + .5 withSpread: 3 * 128 withColor: #color_LTGRAY
+  ] .
+  #world removeThing: self .
+  ^ 1 

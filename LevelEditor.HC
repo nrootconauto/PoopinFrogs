@@ -1057,8 +1057,12 @@ U0 WorldInsertTileAt(I64 x,I64 y,I64 thing,I64 floor_ceil_ceil2=0) {
     seg->ceil_heights2[x][y]=world_edit.ceil_height2;
   } else if(floor_ceil_ceil2==1) {
     seg->ceil_heights[x][y]=world_edit.ceil_height;
-  } else 
+  } else  {
+//If we insert a floor,reset the ceil
+    seg->ceil_heights[x][y]=I8_MAX;
+    seg->ceil_heights2[x][y]=0;
     seg->heights[x][y]=world_edit.floor_height;
+  }
 }
 I64 WorldGetTileAt(I64 x,I64 y) {
   CLevelSegment *seg=GetSegmentForPos(x,y);

@@ -1,0 +1,6 @@
+init | |
+  count _ 6  .
+  #world addThing: self .
+  item_class _ CRocketLauncher .
+  template _ #world getThingTemplate: 'CRocketLauncherPickup' .
+  ^ self

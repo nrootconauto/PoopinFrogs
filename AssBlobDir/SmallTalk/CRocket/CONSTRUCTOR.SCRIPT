@@ -1,0 +1,5 @@
+init | |
+  #world addThing: self .
+  template _ #world getThingTemplate: 'CRocket' .
+  from _ #world getPlayer .
+  ^ self
