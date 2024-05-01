@@ -3,7 +3,6 @@ update ->* | p=CPlayer |
   things do: [:t* |
     self removeFromGrid: t .
     t update .
-    t physics .
     p = t ifTrue: [
       ((grid at: (p xPos / 128 / 16) ) at: p yPos / 128 / 16) do: [:pu* |
         (pu hasClass: CPickup ) ifTrue: [

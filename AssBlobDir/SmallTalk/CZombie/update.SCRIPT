@@ -61,7 +61,7 @@ update -> * |
 
   ( cur_tS - state_start_tS ) >= state_duration  ifTrue: [
     'Piss? after chasing'
-    (state = 'Chase'  and: (random_generator next < (1 / 30 ))) ifTrue: [
+    (state = 'Chase'  and: (random_generator next < (1 / 10 ))) ifTrue: [
       state _ 'Piss' .
       template _ #world getThingTemplate: 'CZombie/Piss' .
       self pissTowardsThing: target .
@@ -113,7 +113,7 @@ update -> * |
   'Jump Randomly' .
 
   z = (#world tileHeightAtX: x / 128 atY: y / 128 ) ifTrue: [
-     random_generator next < (.9 / 30) ifTrue: [
+     random_generator next < (.9 / 10) ifTrue: [
        momz _ #world gravity * 3 .
      ]
   ] .

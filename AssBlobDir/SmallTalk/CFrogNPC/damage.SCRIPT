@@ -20,3 +20,6 @@ damage: amt=CFrogNum from: t=C2DThing ->* | |
   ] .
 
   super damage: amt . 
+
+'Trigger state change' .
+  self update .

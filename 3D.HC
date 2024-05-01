@@ -4,7 +4,6 @@
 #include "Intersect.HC";
 #define TEST_3D
 #ifndef ENGINE_3D
-#define mp_cnt 1
 #define ENGINE_3D 1
 #define SCRN_TURN_MARGIN 100
 #define SCRN_TURN_RATE (pi/30.)
@@ -601,7 +600,6 @@ check:
   }
   return ret;
 }
-
 Bool C3DWorldMoveZWithCollision(C3DWorld *w,F64 dist,F64 x,F64 y,F64 *_height,F64 tallness=.8) {
   F64 height=*_height;
   F64 z=height+dist;
@@ -663,6 +661,34 @@ fin:
   }
   w->x=old_x,w->y=old_y;
   return hit_wall;
+}
+U0 PhysicsOnThing(C3DWorld *w,C2DThing *t,F64 gravity) {
+  I64 wx=t->x/GRID_SZ,wy=t->y/GRID_SZ;
+  if(!(0<=wx<w->world_width))
+    return;
+  if(!(0<=wy<w->world_height))
+    return;
+  F64 angle;
+  I64 tile=wx+wy*w->world_width;
+  I64 floor=w->heightmap[tile];
+  I64 ceil=w->ceilmap[tile];
+  I64 raise=w->ceilmap2[tile];
+  if(C3DWorldMoveZWithCollision(w,t->momz,t->x,t->y,&t->z)) {
+    t->momz=0;
+  } else
+    t->momz-=gravity;
+  if(t->momy+t->momy2||t->momx+t->momx2) {
+    t->momx*=29/30.;
+    t->momy*=29/30.;
+    if(t->momx<2) t->momx=0;
+    if(t->momy<2) t->momy=0;
+    angle=Arg(t->momx+t->momx2,t->momy+t->momy2);
+    C3DWorldMoveWithCollision(w,angle,Sqrt(Sqr(t->momx+t->momx2)+Sqr(t->momy+t->momy2)),
+	&t->x,
+	&t->y,
+	TRUE,
+	t->z);
+  }
 }
 F64 Lerp(F64 per,F64 min,F64 max) {
   if(min<max)
@@ -950,6 +976,7 @@ I64 *GetTilesInPath(C3DWorld *w,F64 angle,F64 dist) {
   F64 x=w->x,y=w->y,ex,ey,dx,dy,step,i,by,slope,cos,sin,xdist,ydist;
   F64 res_dist;
   I64 tx=x/GRID_SZ,ty=y/GRID_SZ,idx,old_tx,old_ty,dirx,diry,ix,iy;
+  Bool x_type;
   cos=Cos(angle);
   sin=Sin(angle);
   ex=x+cos*dist;
@@ -999,11 +1026,13 @@ I64 *GetTilesInPath(C3DWorld *w,F64 angle,F64 dist) {
       ydist=y;
     if(!dx) goto dy_type;
     if(!dy) goto dx_type;
-    if(xdist-x<ydist-y) {
+    if(xdist-x>ydist-y) {
 dx_type:
+      x_type=TRUE;
       by=(xdist-x)/dx;
     } else {
 dy_type:
+      x_type=FALSE;
       by=(ydist-y)/dy;
     }
     x+=dx*by;
@@ -1011,9 +1040,8 @@ dy_type:
     tx=x/GRID_SZ,ty=y/GRID_SZ;
     tx=ClampI64(tx,0,w->world_width);
     ty=ClampI64(ty,0,w->world_height);
-
     for(iy=old_ty;TRUE;iy+=diry) {
-      for(ix=old_tx;TRUE;ix+=dirx) {
+      for(ix=old_tx;TRUE;ix+=dirx) {
         idx=ix+iy*w->world_width;
         if(t->body[t->cnt-1]!=idx) {
 	  if(PassesThoughBlock(w,slope,ix,iy,NULL,cos,sin)) {
@@ -1170,10 +1198,6 @@ ent:
       idx2++;
       computed=FALSE;
       height_cap=w->heightmap[idx];
-//Dont straight lines on blocks with same height(hidden)
-      if(last_height>w->cam_height)
-        if(last_height>height_cap)
-          goto ceil2;
       FindRayWall(w,
 	    tan_lookup_table[x],
 	    cos_lookup_table[x],
@@ -1184,23 +1208,25 @@ ent:
 	    I8_MIN,
 	    idx
 	    );
-        FindRayWall(w,
-	      tan_lookup_table[x],
-	      cos_lookup_table[x],
-	      sin_lookup_table[x],
-	      NULL,
-	      &dist2,
-	      NULL,
-	      I8_MIN,
-	      idx,
-	      TRUE //Far side of tile
-	      );
+//Compute far side
+      PassesThoughBlock(w,
+	tan_lookup_table[x],
+	idx%w->world_width,
+	idx/w->world_width,
+	&dist2,
+	cos_lookup_table[x],
+	sin_lookup_table[x],
+	TRUE //Far side
+	);
 //https://permadi.com/1996/05/ray-casting-tutorial-8/
       dist*=cos2_lookup_table[x];
       h=DIST_SCALE/dist;
       dist2*=cos2_lookup_table[x];
       h2=DIST_SCALE/(dist2+1);
-      computed=TRUE;
+//Dont straight lines on blocks with same height(hidden)
+      if(last_height>w->cam_height)
+        if(last_height>height_cap)
+          goto ceil2;
 //Color the floor tile
       if(height_cap<w->cam_height) {
         y0=GR_HEIGHT/2-h*(height_cap-w->cam_height);
@@ -1263,35 +1289,6 @@ ceil2:
       ceil=w->ceilmap[idx];
       adj_height=w->ceilmap2[idx];
       //Draw Ceil
-      if(ceil!=I8_MAX&&!computed) {
-        FindRayWall(w,
-	    tan_lookup_table[x],
-	    cos_lookup_table[x],
-	    sin_lookup_table[x],
-	    &segment,
-	    &dist,
-	    &side,
-	    I8_MIN,
-	    idx
-	    );
-          FindRayWall(w,
-	      tan_lookup_table[x],
-	      cos_lookup_table[x],
-	      sin_lookup_table[x],
-	      NULL,
-	      &dist2,
-	      NULL,
-	      I8_MIN,
-	      idx,
-	      TRUE //Far side of tile
-	      );
-//https://permadi.com/1996/05/ray-casting-tutorial-8/
-        dist*=cos2_lookup_table[x];
-        h=DIST_SCALE/dist;
-        dist2*=cos2_lookup_table[x];
-        h2=DIST_SCALE/(dist2+1);
-        computed=TRUE;
-      }
       if(ceil!=I8_MAX&&ceil>w->cam_height) {
         if(use_dc=w->ceil_textures[w->world_mat[idx]]) {
 	  standing_at=ToI64(w->x)/GRID_SZ+ToI64(w->y)/GRID_SZ*w->world_width;
@@ -1823,26 +1820,24 @@ CFrogThing *C2DThingMoveAtAngle(C2DThing *self,...) {
   CFrogThing *dist=argv[0];
   CFrogThing *angle=argv[1];
   Bool hit_wall=FALSE;
+//
+//
+//Heres the deal,world update gets ran 10 fps,but physics is 30 fps
+//I will "dumb" walk into a wall then set the momentum to "walk"
+//
+//
+  F64 old_x=self->x;
+  F64 old_y=self->y;
   hit_wall=C3DWorldMoveWithCollision(w,AsF64(angle),AsF64(dist),&self->x,&self->y,TRUE,self->z);
-fin:
+  self->x=old_x;
+  self->y=old_y;
+  self->momx2+=AsF64(dist)*Cos(AsF64(angle)); 
+  self->momy2+=AsF64(dist)*Sin(AsF64(angle)); 
   ThingDel(dist);
   ThingDel(angle);
   return FrogNumNew(hit_wall);
 }
 AddMethod("C2DThing","move:atAngle:",&C2DThingMoveAtAngle);
-
-
-CFrogThing *C2DThingMoveZ(C2DThing *self,...) {
-  Bool hit_floor_or_ceil;
-  CFrogThing *dist=argv[0];
-  hit_floor_or_ceil=C3DWorldMoveZWithCollision(w,AsF64(dist),self->x,self->y,&self->z);
-  if(hit_floor_or_ceil) {
-    RadiusHitsWall(w,0,&self->x,&self->y,self->z,,TRUE);
-  }
-  ThingDel(dist);
-  return FrogNumNew(hit_floor_or_ceil);
-}
-AddMethod("C2DThing","moveZ:",&C2DThingMoveZ);
 
 CFrogThing *WorldManagerWidth(C3DWorldManager *self,...) {
   return FrogNumNew(self->world_handle(C3DWorld*)->world_width);
@@ -2198,9 +2193,27 @@ U0 WalkAround() {
   w->angle=0;
   CFrogThing **body;
   I64 idx;
-//  Prof(10);
   try while (cont) {
-      CallScript("update",man->value);
+     every++;
+     body=w->_2d_things->body;
+     //Zero "tick rate" momentums before update
+     if(every%3==0)
+       for(idx=0;idx!=w->_2d_things->cnt;idx++) {
+         if(player==body[idx]) {
+	 } else  {
+	   body[idx](C2DThing*)->momx2=0.;
+	   body[idx](C2DThing*)->momy2=0.;
+	 }
+       }
+     if(every%3==0) CallScript("update",man->value);
+// Do physics after update
+     for(idx=0;idx!=w->_2d_things->cnt;idx++) {
+       PhysicsOnThing(w,body[idx],wm->gravity);
+       if(body[idx]==player) {
+	  player->momx2=0;
+	  player->momy2=0;
+       }
+     }     
 //if (ThingHasClass(player,"CPlayer")) {
       // set vars for multikey input
       while(msg=ScanMsg(&m1,&m2)) {        
@@ -2309,11 +2322,10 @@ next:;
 	  }
         }
      }
+      if(every&15==0) FrogGarbageCollect;
       Refresh;
-      if(every++&15==0) FrogGarbageCollect;
     } catch PutExcept(TRUE);
 en:
-//  ProfRep;
   FlushMsgs;
   Fs->draw_it=NULL;
   Refresh;

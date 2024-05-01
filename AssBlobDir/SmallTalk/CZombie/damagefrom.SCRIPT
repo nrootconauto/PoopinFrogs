@@ -6,4 +6,6 @@ damage: amt=CFrogNum from: t=C2DThing ->* | |
  
   target _ t .
 
-  super damage: amt . 
+  super damage: amt .
+
+  self update . 

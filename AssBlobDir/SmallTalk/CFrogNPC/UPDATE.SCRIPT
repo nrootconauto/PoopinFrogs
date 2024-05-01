@@ -34,8 +34,8 @@ update ->* |
   ] .
   state = 'Angry' ifTrue: [
     'Try to eat the player' .
-    speed _ 128 / 30 * 5 .
-    random_generator next < ( 1 / 30 ) ifTrue: [
+    speed _ 128 / 30 * 3.5 .
+    random_generator next < ( 1 / 10 ) ifTrue: [
       tongue _ CFrogTongue new .
       tongue eatTarget: target fromFrog: self .
       'Populate with values' .
@@ -52,9 +52,9 @@ update ->* |
   ] .  
 
   state = 'Flee' ifTrue: [
-    speed _ 128 / 30 * 7 .
+    speed _ 128 / 30 * 5 .
     'Run away from target or in random direction'.
-    (random_generator next < (1.5 / 30) ) ifTrue: [
+    (random_generator next < (1.5 / 10) ) ifTrue: [
        random_generator next < .5 ifTrue: [
          angle _ target angleBetween: self
        ] ifFalse: [
@@ -91,7 +91,7 @@ update ->* |
   'Jump Randomly' .
 
   z = (#world tileHeightAtX: x / 128 atY: y / 128 ) ifTrue: [
-    (random_generator next < (.9 / 30) and: self isOnGround) ifTrue: [
+    (random_generator next < (.9 / 10) and: self isOnGround) ifTrue: [
       momz _ #world gravity * 3 .
       just_jumped _ 1 .
     ]
