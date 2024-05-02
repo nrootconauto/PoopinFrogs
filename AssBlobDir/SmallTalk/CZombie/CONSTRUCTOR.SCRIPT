@@ -1,6 +1,6 @@
 init | |
   #world addThing: self .
-  speed _ 128 / 30 * 2 .
+  speed _ 64 / 30 * 2 .
   health _ 100 .
   random_generator _ CFrogRandom new .
   template _ #world getThingTemplate: 'CZombie' .

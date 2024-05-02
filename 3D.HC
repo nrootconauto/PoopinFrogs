@@ -565,32 +565,41 @@ Bool RadiusHitsWall(C3DWorld *w,F64 angle,F64 *_x,F64 *_y,F64 height,F64 radius=
 	      ty=Ceil(y);
 	      break;
 	  }
+//ONLY CHECK FOR WALL WE ARE WALKING TOWARDS
+          if(xoff) {
+	    if(Sign(Cos(angle))!=xoff)
+	      goto skip;
+	  }
+          if(yoff) {
+	    if(Sign(Sin(angle))!=yoff)
+	      goto skip;
+	  }
 	  tile=ToI64(x)+xoff+(ToI64(y)+yoff)*w->world_width;
 	  if(0<=tile<w->world_height*w->world_width) {
 	    h=w->heightmap[tile];
 	    ch=w->ceilmap[tile];
 	    cr=w->ceilmap2[tile];
-
 	    if(flags&RADF_FLOOR&&height<h) {
 check:
-	      if(Abs(x-tx)<radius&&xoff) {
-	        if(adjust) {
-		  x=tx+radius*1.05*-xoff;
-		  hit=TRUE;
+	        if(Abs(x-tx)<radius&&xoff) {
+	          if(adjust) {
+		    x=tx+radius*1.05*-xoff;
+		    hit=TRUE;
+	          }
+	          ret|=TRUE;
 	        }
-	        ret|=TRUE;
-	      }
-	      if(Abs(y-ty)<radius&&yoff) {
-	        if(adjust) {
-		  y=ty+radius*1.05*-yoff;
-		  hit=TRUE;
+	        if(Abs(y-ty)<radius&&yoff) {
+	          if(adjust) {
+		    y=ty+radius*1.05*-yoff;
+		    hit=TRUE;
+	          }
+	          ret|=TRUE;
 	        }
-	        ret|=TRUE;
-	      }
 	    } else if(flags&RADF_CEIL&&ch<=height+tallness<ch+cr) {
 	      goto check;
 	    }
 	  }
+skip:;
         }
       }
   }
@@ -602,9 +611,9 @@ check:
 }
 Bool C3DWorldMoveZWithCollision(C3DWorld *w,F64 dist,F64 x,F64 y,F64 *_height,F64 tallness=.8) {
   F64 height=*_height;
-  F64 z=height+dist;
+  F64 z=height;
   F64 o=height;
-  F64 by=dist/16;
+  F64 by=dist/8;
   Bool hit=FALSE;
   F64 h_offset=0;
   I64 cnt=0,tile,best,ch,cr,h,flags;
@@ -612,23 +621,19 @@ Bool C3DWorldMoveZWithCollision(C3DWorld *w,F64 dist,F64 x,F64 y,F64 *_height,F6
     flags=RADF_CEIL;
   else
     flags=RADF_FLOOR;
-  while(RadiusHitsWall(w,0,&x,&y,z,THING_RADIUS,FALSE,tallness,flags)&&cnt!=16) {
-    hit=TRUE;
-    z-=by;
-    cnt++;
-  }
+  z+=dist;
   tile=ToI64(x/GRID_SZ)+ToI64(y/GRID_SZ)*w->world_width;
   if(0<=tile<w->world_width*w->world_height) {
     ch=w->ceilmap[tile];
     cr=w->ceilmap2[tile];
     h=w->heightmap[tile];
-    if(o<ch) {
+    if(ch+cr<=z) {
       o=z;
-      z=Clamp(z,h,ch);
+      z=Max(z,ch+cr);
       hit|=o!=z;
     } else {
       o=z;
-      z=Max(z,ch+cr);
+      z=Clamp(z,h,ch-tallness);
       hit|=o!=z;
     }
   }
@@ -643,16 +648,15 @@ Bool C3DWorldMoveWithCollision(C3DWorld *w,F64 angle,F64 dist,F64 *x,F64 *y,Bool
   F64 old_x=w->x,old_y=w->y,deflect_angle;
   F64 ox=FloorI64(*x,GRID_SZ),oy=FloorI64(*y,GRID_SZ);
   w->x=*x,w->y=*y;
-  if(dist<0) angle+=pi,dist=-dist;
+  if(dist<0.) angle+=pi,dist=-dist;
   force=-1==FindRayWall(w,Tan(angle),Cos(angle),Sin(angle),NULL,&dist2,&side,height);
-  if(dist2-THING_RADIUS>dist||force) {
+  if(dist2-THING_RADIUS/4>dist||force) {
     *x+=Cos(angle)*dist;
     *y+=Sin(angle)*dist;
-  } else if(walk_along_wall&&dist2>THING_RADIUS/4) {
+    hit_wall=(dist2-THING_RADIUS<dist);
+  } else if(walk_along_wall) {
 slide:    
     hit_wall=TRUE;
-    *x=Clamp(*x+Cos(angle)*Max(dist2,0),ox+1,ox+GRID_SZ-1);
-    *y=Clamp(*y+Sin(angle)*Max(dist2,0),oy+1,oy+GRID_SZ-1);
   } else
     hit_wall=TRUE;
 fin:
@@ -701,6 +705,7 @@ U0 PhysicsOnThing(C3DWorld *w,C2DThing *t,C3DWorldManager *wm) {
       }
     } 
   }
+  RadiusHitsWall(w,angle,&t->x,&t->y,t->z,THING_RADIUS,TRUE);
   if(rocket) {
     CallScript("checkExplode",rocket);
   }
@@ -2215,22 +2220,26 @@ U0 WalkAround() {
      every++;
      body=w->_2d_things->body;
      //Zero "tick rate" momentums before update
-     if(every%3==0)
-       for(idx=0;idx!=w->_2d_things->cnt;idx++) {
+     if(every%3==0) {
+       c=w->_2d_things->cnt;
+       for(idx=0;idx!=c;idx++) {
          if(player==body[idx]) {
 	 } else  {
 	   body[idx](C2DThing*)->momx2=0.;
 	   body[idx](C2DThing*)->momy2=0.;
 	 }
        }
+     }
      if(every%3==0) CallScript("update",man->value);
 // Do physics after update
-     for(idx=0;idx<w->_2d_things->cnt;idx++) {
+     c=w->_2d_things->cnt;
+     for(idx=0;idx<c;idx++) {
        PhysicsOnThing(w,body[idx],wm);
        if(body[idx]==player) {
 	  player->momx2=0;
 	  player->momy2=0;
        }
+       CallScript("animate",body[idx]);
      }     
 //if (ThingHasClass(player,"CPlayer")) {
       // set vars for multikey input

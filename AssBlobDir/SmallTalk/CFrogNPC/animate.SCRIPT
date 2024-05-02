@@ -1,0 +1,7 @@
+animate ->* ||
+  (tongue hasClass: CFrogTongue) ifTrue: [
+    tongue update ifFalse: [      
+      tongue _ 0 
+    ]
+    ^ 1 
+  ] .

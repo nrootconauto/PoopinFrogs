@@ -5,8 +5,6 @@ update -> * |
   new_t=C2DThingTemplate
   hit_wall=CFrogNum
 |
-  piss_stream update  .
-
   health <= 0 ifTrue: [
     new_t _ #world getThingTemplate: 'CZombie/Dead' .
     new_t ~= template ifTrue: [
@@ -81,12 +79,12 @@ update -> * |
   ] .  
 
   state = 'Chase' ifTrue: [   
-    speed _ 128 / 30 * 3 .
+    speed _ 64 / 30 * 3 .
   ] .
 
 
   state = 'Normal' ifTrue: [
-     speed _ 128 / 30  * 1.5 . 
+     speed _ 64 / 30  * 1.5 . 
   ] .  
 
 

@@ -38,17 +38,19 @@ update ->CFrogNum |
   'check if our angle with with 5 degrees of poo poo'.
 
   things do: [:t=C2DThing | 
-    angle _ (t angleBetween: from ) .
-    angle < 3.14 / 180 * 15 ifTrue: [
-      dist2 _ ((t xPos - fx) squared + (t yPos - fy) squared ) sqrt .
-      dist > dist2 ifTrue:[
-        r _ CFrogRandom new .
-        t damage: 5 + (r next * 16 ) .
-        t addMomX: (r next * 32)  * (angle cos negated). 
-        t addMomY: (r next * 32)  * (angle sin negated). 
-        t addMomZ: r next * 1 . 
-        ^0
-      ] .
+    t ~= from ifTrue: [
+      angle _ (t angleBetween: from ) .
+      angle < 3.14 / 180 * 15 ifTrue: [
+        dist2 _ ((t xPos - fx) squared + (t yPos - fy) squared ) sqrt .
+        dist > dist2 ifTrue:[
+          r _ CFrogRandom new .
+          t damage: 5 + (r next * 16 ) .
+          t addMomX: (r next * 32)  * (angle cos negated). 
+          t addMomY: (r next * 32)  * (angle sin negated). 
+          t addMomZ: r next * 1 . 
+          ^0
+        ] .
+      ]
     ]
   ] .
 
