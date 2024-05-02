@@ -2100,17 +2100,6 @@ AddMethod("C3DWorldManager","screenCoordIsOnFloor",&ScreenCoordOnFloor);
 DocClear;
 w=LoadWorldFromFile(,"Untitled.WORLD");
 I64 mp_thing_done=0;
-/*U0 MPDrawThings(C3DWorld *w) {
- I64 mpc=mp_cnt-1,idx=w->_2d_things->cnt;
-  C2DThing *t,**body=w->_2d_things->body;
-  LBtr(&mp_thing_done,Gs->num);
-  while(--idx>=0) {
-    if(idx%mpc==Gs->num) {
-      Draw2DThing(w,body[idx]);
-    }
-  }
-  LBts(&mp_thing_done,Gs->num);
-}*/
 U0 DrawIt(CTask *t,CDC *dc) {
   CDC *hand_gr;
   CDC *odc=dc;
@@ -2191,7 +2180,7 @@ U0 DrawIt(CTask *t,CDC *dc) {
         f%=c;
       GrBlot(dc,hand->x+hand->xoff-hand_gr->width/2,hand->y+hand->yoff-hand_gr->height/2,hand_gr+f);
     }
-  }
+  }
   DrawUIRoot(t,dc);
   dc->flags|=DCF_NO_TRANSPARENTS;
   GrBlot(odc,0,0,dc);
