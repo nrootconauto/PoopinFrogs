@@ -6,6 +6,7 @@ init ->CPlayer | |
   shell_casings _ #() .
   self makeUI .
   piss_stream _ CPissStream new .
+  piss_stream setFrom: self .
   #hand_item _ CGun1 new .
   CFrogDick new .
   CTalker  new .

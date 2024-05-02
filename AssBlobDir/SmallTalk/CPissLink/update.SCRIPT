@@ -3,7 +3,10 @@ updateWithWeight: w=CFrogNum makeParticles: part=CFrogNum ->* |
   stain*
   ch=CFrogNum
   rise=CFrogNum
+  around=CFrogArray 
+  rand=CFrogRandom
 |
+  rand _ CFrogRandom new .
   oldx _ x .
   oldy _ y .
   oldz _ z .
@@ -11,6 +14,21 @@ updateWithWeight: w=CFrogNum makeParticles: part=CFrogNum ->* |
   y _ y + (momy * w ) .
   z _ z + (momz * w ) .
   momz _ momz - (#world gravity / 3 * w ).
+
+  'Try to piss on things and damage them' .
+  around _ #world getThingsInRadiusFromX: x fromY: y withRadius: 25 .
+  around do: [:t* |
+    (t getHealth > 0 and: t ~= from ) ifTrue: [
+      (z - t zPos) abs < 25 ifTrue: [
+        1 to: 3 do:  [
+          #world newParticleAtX: x atY: y atZ: z withSpread: 8 withColor: #color_YELLOW
+        ] .
+        t damage: 3 * rand next + 2 from: from .
+        ^ #(x y z)
+      ] .
+    ] .
+  ] .
+
   'Use the old positions to ensure the entire piss stream in under the ground/wwal' .
   h _ #world tileHeightAtX: oldx / 128 atY: oldy / 128 .
   ch _ #world ceilHeightAtX: oldx / 128 atY: oldy / 128 .
@@ -19,7 +37,7 @@ updateWithWeight: w=CFrogNum makeParticles: part=CFrogNum ->* |
       #world newParticleAtX: x atY: y atZ: h withSpread: 8 withColor: #color_YELLOW
     ] .
     'TODO wall stain '.
-    (CFrogRandom new next < .2 ) ifTrue: [
+    (rand next < .2 ) ifTrue: [
       stain  _ CFloorStain new .
       stain setGraphics: 'GR/Dick/PISS_STAIN' atAngle: #world getPlayer getAngle .
       stain putAtX: x atY: y .

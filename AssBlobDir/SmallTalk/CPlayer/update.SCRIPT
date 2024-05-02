@@ -1,8 +1,4 @@
 update ->* | rand=CFrogRandom foot_print=CFloorStain move_angle=CFrogNum |
-  health_meter setValue: health .
-  ammo_meter setValue: #hand_item getAmmo .
-  ammo_meter setMax: 100 .
-
   (last_x ~= x or: last_y ~= y) ifTrue: [ 
     rand _ CFrogRandom new .
     rand next < ( 1 / 5 ) ifTrue: [

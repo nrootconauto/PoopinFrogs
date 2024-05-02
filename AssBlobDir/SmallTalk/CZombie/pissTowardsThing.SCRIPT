@@ -50,7 +50,7 @@ pissTowardsThing: who=C2DThing ->*
     launch_angle _ .35 arctan .
     targetd _  ((who xPos -  x ) squared + (who yPos -  y ) squared ) sqrt . 
     targetd _ targetd - 8 max: 0 .
-    force _ targetd * .275 / 8.6 .
+    force _ targetd * .275 / 8.6 min: 24 .
     best_force _ force .
     best_force_d _ 10000. .
 

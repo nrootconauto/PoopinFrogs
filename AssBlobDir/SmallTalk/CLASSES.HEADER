@@ -279,6 +279,7 @@ class CFrogDick:CHandItem {
 };
 
 class CPissLink:CFrogThing {
+  C2DThing *from;
   F64 oldx,oldy,oldz;
   F64 x,y,z;
   F64 momx,momy,momz;
@@ -360,9 +361,12 @@ class CZombie:C2DThing {
   C2DThing *target;
 };
 class CRocket:C2DThing {
-  C2DThing *from;
+  C2DThing *from;
 };
 class CRocketLauncher:CHandItem {
 };
 class CRocketLauncherPickup:CPickup {
+};
+
+class CWaterPickup:CPickup {
 };

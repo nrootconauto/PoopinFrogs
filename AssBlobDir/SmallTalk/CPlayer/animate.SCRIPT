@@ -1,2 +1,5 @@
 animate ->* ||
-  piss_stream update 
+  health_meter setValue: health .
+  ammo_meter setValue: #hand_item getAmmo .
+  ammo_meter setMax: 100 .
+  piss_stream update .

@@ -1341,7 +1341,7 @@ ceil2:
           );
       }
 
-//      if(ceil!=I8_MAX&&last_ceil!=ceil) {
+      if(ceil!=I8_MAX) {
         y0=GR_HEIGHT/2-h*(ceil+adj_height-w->cam_height);
         for(idx3=w->step_width;--idx3>=0;) {
           if(0<=x+idx3<w->to_dc->width) {
@@ -1359,7 +1359,7 @@ ceil2:
           DrawWallSegment(w,segment,x,y0+h*idx3,w->wall_textures[w->world_mat[idx]],h,dist,ceil+adj_height-idx3,idx,side);
         }
         last_ceil=ceil;
-//      }
+      }
       goto ent;
     }
 fin:
@@ -1636,10 +1636,12 @@ draw:
 //Check direction
   if(Sin(angle-w->angle)>0.) {
     angle=AngleBetween(angle,w->angle);
-    x0=GR_WIDTH/2+angle/((w->fov/GR_WIDTH))-width/2;
+//Eeriler i scaled by 1.5,so do opositie
+    x0=GR_WIDTH/2+angle/((w->fov/GR_WIDTH))-width/1.5/2;
   } else {
     angle=AngleBetween(angle,w->angle);
-    x0=GR_WIDTH/2-angle/((w->fov/GR_WIDTH))-width/2;
+//Eeriler i scaled by 1.5,so do opositie
+    x0=GR_WIDTH/2-angle/((w->fov/GR_WIDTH))-width/1.5/2;
   }
 
 //clamp'ed x

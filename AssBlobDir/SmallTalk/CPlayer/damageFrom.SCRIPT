@@ -1,0 +1,2 @@
+damage: d=CFrogNum from: f=C2DThing ->* ||
+  super damage: d

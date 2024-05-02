@@ -229,10 +229,14 @@ U0 _DumpSegmentHeight(CWorld *world,CLevelSegment *seg) {
 }
 U0 _DumpSegmentCeil(CWorld *world,CLevelSegment *seg) {
   I8 *ptr=world->data(I8*)+3*(world->h*world->w)+((seg->xoff-world->startx)+world->w*(seg->yoff-world->starty));
-  I64 x,y;
+  I64 x,y,h;
   for(y=0;y!=SEGMENT_SZ;y++) {
     for(x=0;x!=SEGMENT_SZ;x++) {
-      *ptr++=seg->ceil_heights[x][y];
+      h=seg->ceil_heights[x][y];
+      if(seg->heights[x][y]>=h) {
+	*ptr++=I8_MAX;
+      } else
+        *ptr++=seg->ceil_heights[x][y];
     }
     ptr-=SEGMENT_SZ;
     ptr+=world->w;
@@ -240,10 +244,14 @@ U0 _DumpSegmentCeil(CWorld *world,CLevelSegment *seg) {
 }
 U0 _DumpSegmentCeil2(CWorld *world,CLevelSegment *seg) {
   I8 *ptr=world->data(I8*)+4*(world->h*world->w)+((seg->xoff-world->startx)+world->w*(seg->yoff-world->starty));
-  I64 x,y;
+  I64 x,y,ch;
   for(y=0;y!=SEGMENT_SZ;y++) {
     for(x=0;x!=SEGMENT_SZ;x++) {
-      *ptr++=seg->ceil_heights2[x][y];
+      ch=seg->ceil_heights[x][y];
+      if(seg->heights[x][y]>=ch) {
+	*ptr++=0;
+      } else
+        *ptr++=seg->ceil_heights2[x][y];
     }
     ptr-=SEGMENT_SZ;
     ptr+=world->w;

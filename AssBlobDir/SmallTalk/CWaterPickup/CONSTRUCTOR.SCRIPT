@@ -1,0 +1,6 @@
+init -> CWaterPickup ||
+  count _ 20  .
+  #world addThing: self .
+  item_class _ CFrogDick .
+  template _ #world getThingTemplate: 'CWaterPickup' .
+  ^ self
