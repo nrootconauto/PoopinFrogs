@@ -455,7 +455,7 @@ U0 DrawEditor(CTask *t,CDC *dc) {
 U0 _TextureEdit(CDC **_image,U8 *blob_file=NULL,U8 *write_to_name=NULL) {
   CDC*image=*_image,*mask,mat[16];
   I64 w2,w,h,msg;
-  CDC *paste,*dummy;
+  CDC *paste,*dummy;
   I64 m1,m2,vis_x,vis_y,x,y,x2,y2,delta;
   Bool continue=TRUE,abort=FALSE;
   U8 *old_draw_ms=gr.fp_draw_ms;

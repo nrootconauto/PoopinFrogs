@@ -4,6 +4,11 @@ THIS IS A WIP FILE!!!
 
 #include "AnimDC.HC"
 #include "BlobFile.HC"
+F64 Lerp(F64 per,F64 min,F64 max) {
+  F64 t;
+  return Clamp(min+(max-min)*per,Min(min,max),Max(max,min));
+}
+
 #define GRID_SZ 16
 #define DIST_SCALE (GRID_SZ*GR_WIDTH)
 
@@ -13,7 +18,7 @@ THIS IS A WIP FILE!!!
 #define THING_HEIGHT (32*8)
 #define THING_WIDTH_SCALED 16
 #define THING_HEIGHT_SCALED 32
-class CLevelSegmentEditIns:CQue {
+class CLevelSegmentEditIns:CQue {
   I64 type;
   I64 xoff,yoff;
   I16 data;
@@ -74,6 +79,7 @@ class CLevelTexture:CQue {
 //These are the top dc
   CDC *orig_dc; //The unscaled DC
   CDC *dc; //The scaled DC for use with drawing the level
+  CDC *wall_dc; //The scaled DC for use with drawing the lewvel
   U8 wall_blob_name[STR_LEN];
   U8 floor_blob_name[STR_LEN];
   U8 ceil_blob_name[STR_LEN];
@@ -90,6 +96,7 @@ class CWorldEditor {
   I64 base_x,base_y;
   I64 w,h;
   CLevelTexture *textures[0x10000];
+  CLevelTexture *wall_textures[0x10000];
   CLevelThingTemplate *thing_templates[0x10000];
   CQue textures_que;
   CQue thing_templates_que;
@@ -132,11 +139,7 @@ CDC *LoadGr(U8 *blob,U8 *name) {
 I64 SegmentRoundDown(I64 s) {
   return FloorI64(s,SEGMENT_SZ);
 }
-F64 Lerp(F64 per,F64 min,F64 max) {
-  F64 t;
-  return Clamp(min+(max-min)*per,Min(min,max),Max(max,min));
-}
-CLevelTexture *LoadTexture(CDC *from_dc,I64 idx) {
+CLevelTexture *LoadTexture(CDC *from_dc,I64 idx,Bool wall_texture=FALSE) {
   I64 len,x;
   I64 greatest=0;
   CDC *scaled;
@@ -511,7 +514,7 @@ paint_selected:
 	  if(x<=world_edit.ms_x<x+8+GRID_SZ)
 	    if(y<=world_edit.ms_y<y+8+GRID_SZ) {
 edit_texture:
-	      world_edit.edit_texture=t;      
+	      world_edit.edit_texture=idx;
 	    }
         dc->color=LTGRAY;
         AnimDCBlot(dc,x,y,t->dc);
@@ -662,13 +665,115 @@ U0 DrawSegmentThings(CTask *t,CDC *dc) {
     }
   }
 }
-U0 DrawTexturedQuad(CDC *dc,CD3I32 *poly,CDC *texture=NULL) {
-  dc->color=BLUE;
-  GrFillTri0(dc,poly,poly+2,poly+1);
-  GrFillTri0(dc,poly,poly+2,poly+3);
+//https://stackoverflow.com/questions/40051279/affine-transform-given-4-points
+U0 Persp(F64 *matrix,F64 *x,F64 *y,Bool inverse=FALSE) {
+  I64 idx;
+  F64 x1=x[0];
+  F64 x2=x[1];
+  F64 x3=x[2];
+  F64 x4=x[3];
+  F64 y1=y[0];
+  F64 y2=y[1];
+  F64 y3=y[2];
+  F64 y4=y[3];
+  F64 i=1;
+
+  F64 j = (y1 - y2 + y3 - y4) / (y2 - y3);
+  F64 k = (x1 - x2 + x3 - x4) / (x4 - x3);
+  F64 m = (y4 - y3) / (y2 - y3);
+  F64 n = (x2 - x3) / (x4 - x3);
+
+  F64 h,g;
+  if((1-m*n)==0.||y2==y3||x4==x3)
+    h=0,g=0;
+  else {
+    h = i * (j - k * m) / (1 - m * n);
+    g = i * (k - j * n) / (1 - m * n);
+  }
+  F64 c = x1 * i;
+  F64 f = y1 * i;
+  F64 a = x4 * (g + i) - x1 * i;
+  F64 b = x2 * (h + i) - x1 * i;
+  F64 d = y4 * (g + i) - y1 * i;
+  F64 e = y2 * (h + i) - y1 * i;
+
+  //https://stackoverflow.com/questions/63981471/how-do-i-solve-inverse-of-3x3-matrices-without-using-a-library
+  if(inverse) {
+    F64 xx= e * i - h * f;
+    F64 yy = f * g - d * i;
+    F64 zz = d * h - g * e;
+    F64 det= a * xx + b * yy + c * zz;
+    matrix[0]=xx;
+    matrix[1]=c * h - b * i;
+    matrix[2]=b * f - c * e;
+    matrix[3]=yy;
+    matrix[4]=a * i - c * g;
+    matrix[5]=d * c - a * f;
+    matrix[6]=zz;
+    matrix[7]=g * b - a * h;
+    matrix[8]=a * e - d * b;
+    idx=9;
+    while(--idx>=0)
+      matrix[idx]/=det;
+    return;
+  }
+  matrix[0]=a;
+  matrix[1]=b;
+  matrix[2]=c;
+  matrix[3]=d;
+  matrix[4]=e;
+  matrix[5]=f;
+  matrix[6]=g;
+  matrix[7]=h;
+  matrix[8]=i;
+}
+//https://stackoverflow.com/questions/983999/simple-3x3-matrix-inverse-code-c
+U0 DrawTexturedQuad(CDC *dc,CD3I32 *poly,CDC *texture=NULL,I64 idist) {
+  F64 x[4],y[4],matrix[10];
+  F64 angle,plane_dist,dist;
+  F64 plane_normal;
+  CD2 center,point,*use1,*use2;
+  I64 x2,y2,idx2;
+  F64 ix,iy,ix2,iy2;
+  I64 minx,miny,maxx,maxy;
+  if(!texture) {
+    dc->color=BLUE;
+    GrFillTri0(dc,poly,poly+2,poly+1);
+    GrFillTri0(dc,poly,poly+2,poly+3);
+  } else {
+    minx=poly[0].x;
+    maxx=poly[0].x;
+    miny=poly[0].y;
+    maxy=poly[0].y;
+    for(x2=0;x2!=4;x2++) {
+      minx=MinI64(minx,poly[x2].x);
+      miny=MinI64(miny,poly[x2].y);
+      maxx=MaxI64(maxx,poly[x2].x);
+      maxy=MaxI64(maxy,poly[x2].y);
+      x[x2]=poly[x2].x;
+      y[x2]=poly[x2].y;
+    }
+    minx=ClampI64(minx,0,GR_WIDTH);
+    maxx=ClampI64(maxx,0,GR_WIDTH);
+    miny=ClampI64(miny,0,GR_HEIGHT);
+    maxy=ClampI64(maxy,0,GR_HEIGHT);
+    Persp(matrix,x,y,TRUE); //TRUE for inverse matrix
+    for(x2=minx;x2<maxx;x2++)
+      for(y2=miny;y2<maxy;y2++) {
+	ix=x2;
+	iy=y2;
+	ix2=(matrix[0]*ix+matrix[1]*iy+matrix[2]);
+	iy2=(matrix[3]*ix+matrix[4]*iy+matrix[5]);
+        if(0.<=ix2<1.)
+          if(0.<=iy2<1.) {
+	    dc->color=GrPeek0(texture,ix2*texture->width,iy2*texture->height);
+	    GrPlot3(dc,x2,y2,idist);
+	  }
+      }
+  }
 }
 // xoff/yoff specify which wall
-U0 DrawWall(CDC *dc,I64 dispx,I64 dispy,I64 tx,I64 ty,I64 xoff,I64 yoff,CDC *side,F64 height,I64 start_height=INVALID_PTR) {
+U0 DrawWall(CDC *dc,CDC *texture,I64 dispx,I64 dispy,I64 tx,I64 ty,I64 xoff,I64 yoff,I64 side,F64 height,I64 start_height=INVALID_PTR) {
   if(xoff&&yoff) return;
   I64 idist=(world_edit.cam_height-height)*GRID_SZ+2; //+2 to appear below tiles
   F64 width=DIST_SCALE/ToF64(idist);
@@ -709,37 +814,37 @@ U0 DrawWall(CDC *dc,I64 dispx,I64 dispy,I64 tx,I64 ty,I64 xoff,I64 yoff,CDC *sid
     points[1].y=ey;
     points[2].y=ey2;
     points[3].y=sy2;
-    DrawTexturedQuad(dc,points,idist);
+    DrawTexturedQuad(dc,points,texture,idist);
   } else if(xoff==-1&&x>GR_WIDTH/2) {
     points[0].x=sx;
     points[1].x=sx;
     points[2].x=ex2; 
     points[3].x=ex2;
-    points[0].y=ey;
-    points[1].y=sy;
-    points[2].y=sy2;
-    points[3].y=ey2;
-    DrawTexturedQuad(dc,points,idist);
-  } else if(yoff==1&&y<GR_HEIGHT/2) {
-    points[0].y=ey;
+    points[0].y=sy;
     points[1].y=ey;
-    points[2].y=sy2; 
+    points[2].y=ey2;
     points[3].y=sy2;
+    DrawTexturedQuad(dc,points,texture,idist);
+  } else if(yoff==1&&y<GR_HEIGHT/2) {
     points[0].x=sx;
     points[1].x=ex;
-    points[2].x=ex2;
+    points[2].x=ex2; 
     points[3].x=sx2;
-    DrawTexturedQuad(dc,points,idist);
+    points[0].y=ey;
+    points[1].y=ey;
+    points[2].y=sy2;
+    points[3].y=sy2;
+    DrawTexturedQuad(dc,points,texture,idist);
   } else if(yoff==-1&&y>GR_HEIGHT/2) {
+    points[0].x=sx;
+    points[1].x=ex;
+    points[2].x=ex2; 
+    points[3].x=sx2;
     points[0].y=sy;
     points[1].y=sy;
-    points[2].y=ey2; 
+    points[2].y=ey2;
     points[3].y=ey2;
-    points[0].x=ex;
-    points[1].x=sx;
-    points[2].x=sx2;
-    points[3].x=ex2;
-    DrawTexturedQuad(dc,points,idist);
+    DrawTexturedQuad(dc,points,texture,idist);
   }
 }
 U0 DrawTileSexy(CDC *dc,I64 dispx,I64 dispy,F64 height,CDC *top,CDC *side,I64 tx,I64 ty,I64 ceil_height2=INVALID_PTR) {
@@ -791,7 +896,7 @@ U0 DrawTileSexy(CDC *dc,I64 dispx,I64 dispy,F64 height,CDC *top,CDC *side,I64 tx
   if(side)
     for(xoff=-1;xoff<2;xoff++)
       for(yoff=-1;yoff<2;yoff++)
-        DrawWall(dc,dispx,dispy,tx,ty,xoff,yoff,side,height,ceil_height2);
+        DrawWall(dc,top,dispx,dispy,tx,ty,xoff,yoff,side,height,ceil_height2);
 }
 U0 DrawTileDumb(CDC *dc,I64 dispx,I64 dispy,CDC *top,I64 tx,I64 ty) {
   GrBlot(dc,tx*GRID_SZ+dispx,ty*GRID_SZ+dispy,top);
@@ -855,13 +960,24 @@ U0 LevelEditorDraw(CTask *t,CDC *dc) {
 	  DrawTileSexy(dc,world_edit.base_x,world_edit.base_y,theight,texture->orig_dc,texture->orig_dc,x,y);
 //DRAWCEILING TILE
 	  if(Blink) {
-	    cheight=seg->ceil_heights[x-seg->xoff][y-seg->yoff];
-	    ch2=seg->ceil_heights2[x-seg->xoff][y-seg->yoff];
-	    if(cheight!=I8_MAX&&cheight>theight)
-	      DrawTileSexy(dc,world_edit.base_x,world_edit.base_y,cheight+ch2,texture->orig_dc,texture->orig_dc,x,y,cheight);
+/*	    texture=world_edit.wall_textures[seg->data
+		  [(x)-seg->xoff]
+		  [(y)-seg->yoff]-I16_MIN];
+	    if(texture) {*/
+	      cheight=seg->ceil_heights[x-seg->xoff][y-seg->yoff];
+	      ch2=seg->ceil_heights2[x-seg->xoff][y-seg->yoff];
+	      if(cheight!=I8_MAX&&cheight>theight)
+	        DrawTileSexy(dc,world_edit.base_x,world_edit.base_y,cheight+ch2,texture->orig_dc,texture->orig_dc,x,y,cheight);
+//	    }
 	  }
-        } else
-	  DrawTileDumb(dc,world_edit.base_x,world_edit.base_y,texture->dc,x,y);
+        } else {
+	  if(Blink)
+	    texture=world_edit.wall_textures[seg->data
+		  [(x)-seg->xoff]
+		  [(y)-seg->yoff]-I16_MIN];
+          if(texture)
+	    DrawTileDumb(dc,world_edit.base_x,world_edit.base_y,texture->dc,x,y);
+	}
       }
 next:;
     }
@@ -884,19 +1000,19 @@ next:;
   dc->depth_buf=NULL;
 } 
 Bool EditDC(U8 *blob,U8 *name,I64 dft_w,I64 dft_h) {
-//TempleOS lexer gets rid of rest of line after #include
-Bool old_flat=world_edit.flat_mode;
-world_edit.flat_mode=TRUE;
-PopUpPrint(
-"Cd(\"%Q\");\n"
-"#include \"TextureEditor.HC\";\n"
-"StrCpy(%d,TextureEdit(\"%Q\",,%d,%d));\n",
-__DIR__,
-name,blob,dft_w,dft_h
-);
-world_edit.flat_mode=old_flat;
-//TODO ensure lump exists
-return TRUE;
+  //TempleOS lexer gets rid of rest of line after #include
+  Bool old_flat=world_edit.flat_mode;
+  world_edit.flat_mode=TRUE;
+  PopUpPrint(
+    "Cd(\"%Q\");\n"
+    "#include \"TextureEditor.HC\";\n"
+    "StrCpy(%d,TextureEdit(\"%Q\",,%d,%d));\n",
+    __DIR__,
+    name,blob,dft_w,dft_h
+  );
+  world_edit.flat_mode=old_flat;
+  //TODO ensure lump exists
+  return TRUE;
 }
 U0 EditThingTemplate(U8 *blob,CLevelThingTemplate *template) {
 enter:;
@@ -1017,33 +1133,6 @@ enter:;
   DocDel(what);
   world_edit.flat_mode=old_flat;
 }
-CLevelTexture *LevelEditorLoadTexture(U8 *blob,I64 idx) {
-  if(wall=DOCM_CANCEL)
-    return NULL;
-  Bool old_flat=world_edit.flat_mode;
-  world_edit.flat_mode=TRUE;
-  U8 *filename=BlobFileSelect(blob),*body; 
-  U64 type;
-  CDC *loaded;
-  CLevelTexture *texture;
-  body=LoadGr(blob,filename);
-  if(!body) {
-    PopUpOk("Not a graphics Lump? try again\n");
-    loaded=DCNew(1,1);
-  } else
-    loaded=body;
-  texture=LoadTexture(loaded,idx);
-  if(wall)
-    StrCpy(texture->wall_blob_name,filename);
-  else
-    StrCpy(texture->floor_blob_name,filename);
-  Free(body);
-  AnimDCDel(loaded);
-fin:
-  Free(filename);
-  world_edit.flat_mode=old_flat;
-  return texture;
-}
 U0 FreeEditorData() {
   CLevelTexture *texture;
   CLevelSegment *segment;
@@ -1120,6 +1209,7 @@ U0 LoadWorld(U8 *blob,U8 *filename) {
   I64 x,y,oldf=world_edit.floor_height,oldc=world_edit.ceil_height;
   I64 sx,sy;
   U64 type;
+  CDC *odc;
   I64 tsz;
   CLevelThingTemplate *template;
   CFileTexture *f_texture;
@@ -1164,10 +1254,18 @@ U0 LoadWorld(U8 *blob,U8 *filename) {
   while(f_texture<textures(U8*)+cap) {
     str=LoadGr(blob,f_texture->floor_blob_name);
     texture=LoadTexture(str,f_texture->idx);
+    Free(str);
     StrCpy(texture->wall_blob_name,f_texture->wall_blob_name);
     StrCpy(texture->floor_blob_name,f_texture->floor_blob_name);
     StrCpy(texture->ceil_blob_name,f_texture->ceil_blob_name);
-    Free(str);
+    str=LoadGr(blob,f_texture->wall_blob_name);
+    if(str) {
+      odc=AnimDCLoad(str);
+      world_edit.wall_textures[f_texture->idx]=ScaleDC(odc,GRID_SZ,GRID_SZ,world_edit.mem_task);
+      texture->wall_dc=world_edit.wall_textures[f_texture->idx];
+      AnimDCDel(odc);
+      Free(str);
+    }
     f_texture++;
   }
   f_template=templates;
@@ -1224,7 +1322,7 @@ I8 *GetHeightPtrAt(I64 at_x,I64 at_y) {
   if(!seg) return NULL;
   return &seg->heights[at_x-seg->xoff][at_y-seg->yoff];
 }
-U0 FloodFillFloor(I64 at_x,I64 at_y,I64 with,I64 target_tile=I64_MAX,I64 height=0,F64 ts=-1) {
+U0 FloodFillFloor(I64 at_x,I64 at_y,I64 with,I64 target_tile=I64_MAX,I64 height=0,F64 ts=-1,Bool add_undo=TRUE) {
   CLevelSegment *segment=GetSegmentForPos(at_x,at_y);
   if(!segment) return;
   I64 stk_sz=0x100000,stk_ptr=0,x,y,xo,yo;
@@ -1237,17 +1335,19 @@ U0 FloodFillFloor(I64 at_x,I64 at_y,I64 with,I64 target_tile=I64_MAX,I64 height=
   if(target_tile==with)
     goto fin;
   if(ts<0.) ts=tS;
-  edit_ff=CAlloc(sizeof(CLevelSegmentEditFill));
-  edit_ff->tS=ts;
-  edit_ff->xoff=at_x;
-  edit_ff->yoff=at_y;
-  edit_ff->type='FldFill';
-  stk[stk_ptr].at_x=at_x;
-  MemCpy(edit_ff->data,segment->data,2*SEGMENT_SZ*SEGMENT_SZ);
-  MemCpy(edit_ff->heights,segment->heights,SEGMENT_SZ*SEGMENT_SZ);
-  MemCpy(edit_ff->ceil_heights,segment->ceil_heights,SEGMENT_SZ*SEGMENT_SZ);
-  MemCpy(edit_ff->ceil_heights2,segment->ceil_heights2,SEGMENT_SZ*SEGMENT_SZ);
-  QueIns(edit_ff,world_edit.edits.last);
+  if(add_undo) {
+    edit_ff=CAlloc(sizeof(CLevelSegmentEditFill));
+    edit_ff->tS=ts;
+    edit_ff->xoff=at_x;
+    edit_ff->yoff=at_y;
+    edit_ff->type='FldFill';
+    stk[stk_ptr].at_x=at_x;
+    MemCpy(edit_ff->data,segment->data,2*SEGMENT_SZ*SEGMENT_SZ);
+    MemCpy(edit_ff->heights,segment->heights,SEGMENT_SZ*SEGMENT_SZ);
+    MemCpy(edit_ff->ceil_heights,segment->ceil_heights,SEGMENT_SZ*SEGMENT_SZ);
+    MemCpy(edit_ff->ceil_heights2,segment->ceil_heights2,SEGMENT_SZ*SEGMENT_SZ);
+    QueIns(edit_ff,world_edit.edits.last);
+  }
   stk[stk_ptr].at_y=at_y;
   stk_ptr++;
   while(stk_ptr) {
@@ -1257,28 +1357,28 @@ U0 FloodFillFloor(I64 at_x,I64 at_y,I64 with,I64 target_tile=I64_MAX,I64 height=
     *GetTilePtrAt(at_x,at_y)=with;
     *GetHeightPtrAt(at_x,at_y)=height;
     if(stk_sz<=stk_ptr+4) {
-      FloodFillFloor(at_x+1,at_y,with,target_tile,height,ts);
-      FloodFillFloor(at_x-1,at_y,with,target_tile,height,ts);
-      FloodFillFloor(at_x,at_y-1,with,target_tile,height,ts);
-      FloodFillFloor(at_x,at_y+1,with,target_tile,height,ts);
+      FloodFillFloor(at_x+1,at_y,with,target_tile,height,ts,add_undo);
+      FloodFillFloor(at_x-1,at_y,with,target_tile,height,ts,add_undo);
+      FloodFillFloor(at_x,at_y-1,with,target_tile,height,ts,add_undo);
+      FloodFillFloor(at_x,at_y+1,with,target_tile,height,ts,add_undo);
       goto next;
     }
     for(xo=-1;xo!=2;xo++)
       for(yo=-1;yo!=2;yo++) {
         if(xo^^yo) {
 	  if(ptr=GetTilePtrAt(at_x+xo,at_y+yo)) {
-	     if(*ptr==target_tile) {
-		if(GetSegmentForPos(at_x,at_y)!=segment) {
-		  FloodFillFloor(at_x+xo,at_y+yo,with,target_tile,height,ts);
-		} else {
-                  stk[stk_ptr].at_x=at_x+xo;
-                  stk[stk_ptr].at_y=at_y+yo;
-	          stk_ptr++;
-	        }
-             }
+	    if(*ptr==target_tile) {
+	      if(GetSegmentForPos(at_x,at_y)!=segment) {
+	        FloodFillFloor(at_x+xo,at_y+yo,with,target_tile,height,ts);
+	      } else {
+	        stk[stk_ptr].at_x=at_x+xo;
+	        stk[stk_ptr].at_y=at_y+yo;
+	        stk_ptr++;
+	      }
+	    }
 	  }
-	  
-	}
+
+        }
       }
 next:
   }
@@ -1356,6 +1456,7 @@ U0 WorldEdit(U8 *blob,U8 *filename=NULL) {
   I64 m1,m2;
   I64 tx,ty;
   I64 ch2,old;
+  I64 idx;
   I64 last_wheel=ms.pos.z;
   CLevelTexture *texture;
   CLevelSegment *segment;
@@ -1385,7 +1486,7 @@ U0 WorldEdit(U8 *blob,U8 *filename=NULL) {
   while(continue) {
     if(texture=world_edit.edit_texture) {
       world_edit.ms_right_down=FALSE;
-      switch(WallCeilFloor) {
+      switch(idx=WallCeilFloor) {
         case 2:
 	  EditDC(blob,texture->ceil_blob_name,128,128);
 	  break;
@@ -1398,9 +1499,16 @@ U0 WorldEdit(U8 *blob,U8 *filename=NULL) {
         default:
 	  goto no_edit_tile;
       }
-      texture->orig_dc=LoadGr(blob,texture->floor_blob_name);
-      AnimDCDel(texture->dc);
-      texture->dc=ScaleDC(texture->orig_dc,GRID_SZ,GRID_SZ,world_edit.mem_task);
+      if(idx) {
+        str=LoadGr(blob,texture->wall_blob_name);
+	if(texture->wall_dc) AnimDCDel(texture->wall_dc);
+        texture->wall_dc=ScaleDC(str,GRID_SZ,GRID_SZ,world_edit.mem_task);
+	AnimDCDel(str);
+      } else {
+        texture->orig_dc=LoadGr(blob,texture->floor_blob_name);
+        AnimDCDel(texture->dc);
+        texture->dc=ScaleDC(texture->orig_dc,GRID_SZ,GRID_SZ,world_edit.mem_task);
+      }
       world_edit.edit_texture=NULL;
 no_edit_tile:;
     }
@@ -1522,11 +1630,21 @@ save:
 	    MouseToPos(world_edit.ms_x,world_edit.ms_y,&tx,&ty);
 	    tx=FloorI64(tx,GRID_SZ)/16;
 	    ty=FloorI64(ty,GRID_SZ)/16;
+
+	    FloodFillFloor(tx,
+		  ty,
+		  -1,
+		  ,
+		  world_edit.floor_height,
+		  ,
+		  FALSE /*dont add undo*/); //First dummy fill with I16_MAX,then fill with real value
 	    FloodFillFloor(tx,
 		  ty,
 		  world_edit.wall_texture,
 		  ,
-		  world_edit.floor_height); 
+		  world_edit.floor_height,
+		  ,
+		  TRUE); //First dummy fill with I16_MAX,then fill with real value
 	    floor_fill=FALSE;
 	  }
       }
@@ -1551,7 +1669,7 @@ save:
 	    MouseToPos(world_edit.ms_x,world_edit.ms_y,&tx,&ty);
 	    tx=FloorI64(tx,16)/16;
 	    ty=FloorI64(ty,16)/16;
-	    segment=GetSegmentForPos(tx/16,ty/16);
+	    segment=GetSegmentForPos(tx,ty);
 	    if(segment) {
 	      edit_ins=CAlloc(sizeof(CLevelSegmentEditIns),world_edit.mem_task);
 	      edit_ins->type='Insert';
@@ -1575,20 +1693,22 @@ save:
         if(SIDEBAR_WIDTH<=world_edit.ms_x<Fs->pix_width-SIDEBAR_WIDTH) {
 	  MouseToPos(world_edit.ms_x,world_edit.ms_y,&tx,&ty);
 //Right click will decrease/increase ceil2 height or make/erase a ceiling
-	  segment=GetSegmentForPos(tx/GRID_SZ,ty/GRID_SZ);
+	  tx=FloorI64(tx,16)/16;
+          ty=FloorI64(ty,16)/16;
+	  segment=GetSegmentForPos(tx,ty);
 	  if(segment) {
 	      if(segment) {
 	        edit_ins=CAlloc(sizeof(CLevelSegmentEditIns),world_edit.mem_task);
 	        edit_ins->xoff=tx;
 	        edit_ins->type='Insert';
 	        edit_ins->yoff=ty;
-	        edit_ins->data=segment->data[tx-segment->xoff][ty-segment->yoff];
+	        edit_ins->data=segment->data[-segment->xoff][ty-segment->yoff];
 	        edit_ins->height=segment->heights[tx-segment->xoff][ty-segment->yoff];
 	        edit_ins->ceil=segment->ceil_heights[tx-segment->xoff][ty-segment->yoff];
 	        edit_ins->ceil2=segment->ceil_heights2[tx-segment->xoff][ty-segment->yoff];
 	        QueIns(edit_ins,world_edit.edits.last);
 	      }
-	    if(segment->ceil_heights[tx/GRID_SZ-segment->xoff][ty/GRID_SZ-segment->yoff]==I8_MAX) {
+	    if(segment->ceil_heights[tx-segment->xoff][ty-segment->yoff]==I8_MAX) {
 //Add a new ceil
 	      if(!Bt(kbd.down_bitmap,SC_SHIFT)) {
 	        WorldInsertTileAt(
@@ -1631,23 +1751,20 @@ save:
 	        world_edit.ceil_height=I8_MAX;
 	        world_edit.ceil_height2=0;
 	        WorldInsertTileAt(
-		      FloorI64(tx,16)/16,
-		      FloorI64(ty,16)/16,
+		      tx,ty,
 		      world_edit.floor_texture,
 		      1
 		      );
 	        world_edit.ceil_height2=0;
 	        WorldInsertTileAt(
-		      FloorI64(tx,16)/16,
-		      FloorI64(ty,16)/16,
+		      tx,ty,
 		      world_edit.floor_texture,
 		      2
 		      );
 	        world_edit.ceil_height=old;
 	      } else {
 	        WorldInsertTileAt(
-		      FloorI64(tx,16)/16,
-		      FloorI64(ty,16)/16,
+		      tx,ty,
 		      world_edit.floor_texture,
 		      2
 		      );

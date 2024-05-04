@@ -2180,7 +2180,7 @@ U0 DrawIt(CTask *t,CDC *dc) {
         f%=c;
       GrBlot(dc,hand->x+hand->xoff-hand_gr->width/2,hand->y+hand->yoff-hand_gr->height/2,hand_gr+f);
     }
-  }
+  }
   DrawUIRoot(t,dc);
   dc->flags|=DCF_NO_TRANSPARENTS;
   GrBlot(odc,0,0,dc);
