@@ -890,15 +890,16 @@ I64 ColorFloor(C3DWorld *w,I64 view_x,I64 floor_height,I64 sy,I64 ey,CDC *textur
   I32 *db_z;
   U64 idist;
   I64 poopx,poopy;
+  I64 idist32;
   ey=GR_HEIGHT-ey;
   sy=GR_HEIGHT-sy;
-  ey=ClampI64(ey,0,w->to_dc->height-2);
-  sy=ClampI64(sy,0,w->to_dc->height-2);
-  for(y=sy;y<ey;y+=w->step_width) {
+  ey=ClampI64(ey,0,w->to_dc->height-w->step_width);
+  sy=ClampI64(sy,0,w->to_dc->height-w->step_width);
+  for(y=sy;y<=ey;y+=w->step_width) {
     if(y-GR_HEIGHT/2==0)
       dist=I16_MAX;
     else {
-      dist=DIST_SCALE/((GR_HEIGHT/2-y)/(w->cam_height-floor_height+.001));
+      dist=DIST_SCALE/((GR_HEIGHT/2-y)/(w->cam_height-floor_height));
     }
     dist/=cos2_lookup_table[view_x];
 
@@ -906,7 +907,7 @@ I64 ColorFloor(C3DWorld *w,I64 view_x,I64 floor_height,I64 sy,I64 ey,CDC *textur
     fy=w->y+sin_lookup_table[view_x]*dist;
     tx=fx/GRID_SZ;
     ty=fy/GRID_SZ;
-//Floors stains from the camera can barley be seen  when far away
+//Floors stains from the camera can barley be seen when far away
     if(dist<16*128) {
       if(old_tx!=tx||old_ty!=ty) {
         stain=FloorStain(w,tx,ty,&poopx,&poopy,ceil);
@@ -915,8 +916,7 @@ I64 ColorFloor(C3DWorld *w,I64 view_x,I64 floor_height,I64 sy,I64 ey,CDC *textur
       }
     } else
       stain=NULL;
-    if(texture) {
- 
+    if(texture) { 
         colors=gr.to_8_colors[GrPeek0(
 	      texture+anim_frame,
 	      (fx&(GRID_SZ-1))/ToF64(GRID_SZ)*texture->width,
@@ -926,45 +926,52 @@ I64 ColorFloor(C3DWorld *w,I64 view_x,I64 floor_height,I64 sy,I64 ey,CDC *textur
 	  if(TRANSPARENT!=which&&which>=0)
 	    colors=gr.to_8_colors[which];
         }
-        if(0<=y<dc->height) {
+        if(0<=y<dc->height-w->step_width) {
 	  dst=dc->body+(dc->height-y-w->step_width)*width+view_x;
 	  db_z=dc->depth_buf+(dc->height-y-w->step_width)*width+view_x;
-	  if(dist<*db_z) {
 	    idist=dist;
+	    idist32=idist;
 	    //Make 64bit pair
 	    idist=(idist&0xffFFffFF)|idist<<32;
 	    if(w->step_width==2){ 
-	      dst(U16*)[0]=colors;
-	      db_z[0](U64)=idist;
+	      if(*db_z>=idist32) {
+	        dst(U16*)[0]=colors;
+	        db_z[0](U64)=idist;
+	      }
 	      dst+=width;
 	      db_z+=width;
-	      dst(U16*)[0]=colors;
-	      db_z[0](U64)=idist;
-	      dst+=width;
-	      db_z+=width;
+	      if(*db_z>=idist32) {
+	        dst(U16*)[0]=colors;
+	        db_z[0](U64)=idist;
+	      }
 	    } else if(w->step_width==4) {
-	      dst(U32*)[0]=colors;
-	      db_z[0](U64)=idist;
-	      db_z[2](U64)=idist;
+	      if(*db_z>=idist32) {
+	        dst(U32*)[0]=colors;
+	        db_z[0](U64)=idist;
+	        db_z[2](U64)=idist;
+	      }
 	      dst+=width;
 	      db_z+=width;
-	      dst(U32*)[0]=colors;
-	      db_z[0](U64)=idist;
-	      db_z[2](U64)=idist;
+	      if(*db_z>=idist32) {
+	        dst(U32*)[0]=colors;
+	        db_z[0](U64)=idist;
+	        db_z[2](U64)=idist;
+	      }
 	      dst+=width;
 	      db_z+=width;
-	      dst(U32*)[0]=colors;
-	      db_z[0](U64)=idist;
-	      db_z[2](U64)=idist;
+	      if(*db_z>=idist32) {
+	        dst(U32*)[0]=colors;
+	        db_z[0](U64)=idist;
+	        db_z[2](U64)=idist;
+	      }
 	      dst+=width;
 	      db_z+=width;
-	      dst(U32*)[0]=colors;
-	      db_z[0](U64)=idist;
-	      db_z[2](U64)=idist;
-	      dst+=width;
-	      db_z+=width;
+	      if(*db_z>=idist32) {
+	        dst(U32*)[0]=colors;
+	        db_z[0](U64)=idist;
+	        db_z[2](U64)=idist;
+	      }
 	    }
-	  }
         }
       }
     }
@@ -1089,7 +1096,7 @@ F64 ScreenCordsToDist(C3DWorld *w,I64 x,I64 y,F64 max=GRID_SZ*128,F64 *height=NU
       have=to_dc->depth_buf[y*to_dc->width_internal+x];
     }
   I64 *tiles=GetTilesInPath(w,angle,max),idx;
-  I64 total,xoff,yoff,adj_height;
+  I64 total,xoff,yoff,adj_height,side;
   if(height) *height=w->cam_height;
   if(hit_floor) *hit_floor=FALSE;
   for(idx=0;tiles[idx]!=-1;idx++) {
@@ -1114,20 +1121,32 @@ F64 ScreenCordsToDist(C3DWorld *w,I64 x,I64 y,F64 max=GRID_SZ*128,F64 *height=NU
 	      sin_lookup_table[x],
 	      NULL,
 	      &dist,
-	      NULL,
+	      &side,
 	      I8_MIN,
 	      tile,
 	      FALSE, //Near side of tile
 	      TRUE //allow ceil
 	      );
     adj_height=w->heightmap[tile];
-    for(xoff=-1;xoff<=1;xoff++)
-      for(yoff=-1;yoff<=1;yoff++) {
-	tile2=xoff+yoff*w->world_width+tile;
-	if(0<=tile2<w->world_width*w->world_height&&(xoff^^yoff)) {
-	  adj_height=MinI64(adj_height,w->heightmap[tile2]);
-	}
-      }
+    xoff=0;yoff=0;
+    switch(side) {
+       case 0:
+	 xoff=-1;
+	 break;
+       case 1:
+	 xoff=1;
+	 break;
+       case 2:
+	 yoff=-1;
+	 break;
+       case 3:
+	 yoff=1;
+	 break;
+    } 
+    tile2=xoff+yoff*w->world_width+tile;
+    if(0<=tile2<w->world_width*w->world_height&&(xoff^^yoff)) {
+      adj_height=MinI64(adj_height,w->heightmap[tile2]);
+    }
     h=DIST_SCALE/(dist*cos2_lookup_table[x]);
     y0=GR_HEIGHT/2-h*(w->heightmap[tile]-w->cam_height);
     h2=DIST_SCALE/(dist2*cos2_lookup_table[x]);
@@ -1186,6 +1205,7 @@ U0 MPCastCol(C3DWorld *w) {
   CDC *use_dc;
   I64 *tiles;
   I64 standing_at;
+  I64 other,tile2; 
   Bool computed;
   idx=GR_WIDTH/mp_cnt*Gs->num;
   cap=GR_WIDTH/mp_cnt*(Gs->num+1);
@@ -1194,7 +1214,7 @@ U0 MPCastCol(C3DWorld *w) {
     idx2=0;
     dist=0;
     floor_y=GR_HEIGHT;
-    ceily=GR_HEIGHT;
+    ceily=0;
     last_height=I64_MIN;
     last_ceil=I64_MAX;
     tiles=GetTilesInPath(w,angle,64*GRID_SZ);
@@ -1260,14 +1280,25 @@ ent:
           }
 	}
       }
-      adj_height=I64_MAX;
-      for(xoff=-1;xoff<=1;xoff++)
-        for(yoff=-1;yoff<=1;yoff++) {
-	  idx3=xoff+yoff*w->world_width+idx;
-	  if(0<=idx3<w->world_width*w->world_height&&(xoff^^yoff)) {
-	    adj_height=MinI64(adj_height,w->heightmap[idx3]);
-	  }
-        }
+      adj_height=height_cap;
+      xoff=0;yoff=0;
+      switch(side) {
+       case 0:
+	 xoff=-1;
+	 break;
+       case 1:
+	 xoff=1;
+	 break;
+       case 2:
+	 yoff=-1;
+	 break;
+       case 3:
+	 yoff=1;
+	 break;
+      } 
+      tile2=xoff+yoff*w->world_width+idx;
+      if(0<=tile2<w->world_width*w->world_height)
+        adj_height=MinI64(adj_height,w->heightmap[tile2]);
 //Dont straight lines on blocks with same height(hidden)
       if(last_height==height_cap)
         goto ceil2;
@@ -1310,34 +1341,51 @@ ceil2:
         if(use_dc=w->ceil_textures[w->world_mat[idx].u8[1]]) {
 	  standing_at=ToI64(w->x)/GRID_SZ+ToI64(w->y)/GRID_SZ*w->world_width;
 	  if(standing_at==idx) {
-            ColorFloor(w,x,ceil,
+            ceily=ColorFloor(w,x,ceil,
               GR_HEIGHT/2-h2*(ceil-w->cam_height),
               0,
               use_dc,
 	      TRUE
             );
 	  } else
-            ColorFloor(w,x,ceil,
+            ceily=MaxI64(ceily,ColorFloor(w,x,ceil,
               GR_HEIGHT/2-h2*(ceil-w->cam_height),
-              GR_HEIGHT/2-h*(ceil-w->cam_height),
+	      GR_HEIGHT/2-h*(ceil-w->cam_height),
               use_dc,
 	      TRUE
-            );
+            ));
 	}
-      } else if(ceil!=I8_MAX&&ceil+adj_height<w->cam_height) {
-//.u8[1] is ceil tile
-         use_dc=w->wall_textures[w->world_mat[idx].u8[1]];
-	 if(use_dc)
-          ColorFloor(w,x,ceil+adj_height,
-            GR_HEIGHT/2-h*(ceil+adj_height-w->cam_height),
-            GR_HEIGHT/2-h2*(ceil+adj_height-w->cam_height),
-            use_dc,
-	    TRUE
-          );
       }
-
       if(ceil!=I8_MAX) {
-        y0=GR_HEIGHT/2-h*(ceil+adj_height-w->cam_height);
+//Find tallest adjacent ceiling
+        adj_height=w->ceilmap2[idx];
+        switch(side) {
+         case 0:
+	   xoff=-1;
+	   break;
+         case 1:
+	   xoff=1;
+	   break;
+         case 2:
+	   yoff=-1;
+	   break;
+         case 3:
+	   yoff=1;
+	   break;
+        }
+        tile2=xoff+yoff*w->world_width+idx;
+        if(0<=tile2<w->world_width*w->world_height) {
+	  other=w->ceilmap[tile2]+w->ceilmap2[tile2];
+	  if(w->ceilmap[tile2]!=I8_MAX) {
+            if(other>=ceil) {
+	      if(other>=adj_height+ceil)
+	        adj_height=0;
+	      else
+	        adj_height=(adj_height+ceil)-other;
+	    }
+	  }
+        }
+        y0=GR_HEIGHT/2-h*(ceil+w->ceilmap2[idx]-w->cam_height);
         for(idx3=w->step_width;--idx3>=0;) {
           if(0<=x+idx3<w->to_dc->width) {
 	    ptr=w->blocked_cnts[x+idx3];
