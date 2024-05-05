@@ -7,7 +7,6 @@
 #define ENGINE_3D 1
 #define SCRN_TURN_MARGIN 100
 #define SCRN_TURN_RATE (pi/30.)
-
 //
 // From LevelEditor.HC
 //
@@ -272,21 +271,9 @@ I64 WallForCord(C3DWorld *w,I64 x,I64 y,I64 h=I64_MIN) {
   if(0<=x<w->world_width)
     if(0<=y<w->world_height) {
       t=w->world_mat[x+y*w->world_width];
-      if(t<=0) return 0;
-      if(w->wall_textures[t]&&w->heightmap[x+y*w->world_width]>h)
+//u8[0] is the floor tile
+      if(w->wall_textures[t&0xff]&&w->heightmap[x+y*w->world_width]>h)
          return t;
-      return 0;
-    }
-  return -1;
-}
-I64 FloorForCord(C3DWorld *w,I64 x,I64 y) {
-  I64 t;
-  if(0<=x<w->world_width)
-    if(0<=y<w->world_height) {
-      t=w->world_mat[x+y*w->world_width];
-      if(t>=0) return 0;
-      if(w->floor_textures[-t])
-        return -t;
       return 0;
     }
   return -1;
@@ -977,8 +964,6 @@ I64 ColorFloor(C3DWorld *w,I64 view_x,I64 floor_height,I64 sy,I64 ey,CDC *textur
 	      dst+=width;
 	      db_z+=width;
 	    }
-	  } else {
-	    y=MaxI64(VisSkipTo(w,view_x,y,dist)-w->step_width,y);
 	  }
         }
       }
@@ -1255,10 +1240,11 @@ ent:
         y0=GR_HEIGHT/2-h*(height_cap-w->cam_height);
         if(dist>.2&&dist2>.2) {
 	  standing_at=ToI64(w->x)/GRID_SZ+ToI64(w->y)/GRID_SZ*w->world_width;
-	  if(w->floor_textures[w->world_mat[idx]])
-	    use_dc=w->floor_textures[w->world_mat[idx]];
+//u8[0] is the flooro tile
+	  if(w->floor_textures[w->world_mat[idx].u8[0]])
+	    use_dc=w->floor_textures[w->world_mat[idx].u8[0]];
 	  else
-	    use_dc=w->wall_textures[w->world_mat[idx]];
+	    use_dc=w->wall_textures[w->world_mat[idx].u8[0]];
 	  if(standing_at==idx) {
 	     floor_y=ColorFloor(w,x,height_cap,
 	        GR_HEIGHT,
@@ -1297,23 +1283,31 @@ ent:
         if(0<=x+idx3<w->to_dc->width) {
 	  ptr=w->blocked_cnts[x+idx3];
 	  if(ptr<0x80) {
-	    w->blocked_cnts[x+idx3]=ptr+1;
 	    block_view=&w->blocked_views[x+idx3][ptr];
-	    block_view->start=y0;
-	    block_view->end=GR_HEIGHT;
-	    block_view->dist=dist;
+	    if(GR_HEIGHT>VisSkipTo(w,x+idx3,y0,dist)) {
+	      if(I16_MIN<=y0<=I16_MAX) {
+	        block_view->start=y0;
+	        block_view->end=GR_HEIGHT;
+	        block_view->dist=dist;
+	        w->blocked_cnts[x+idx3]=ptr+1;
+	      }
+	    }
 	  }
         }
       }
       for(idx3=0;idx3<AbsI64(height_cap-adj_height);idx3++) {
-        DrawWallSegment(w,segment,x,y0+h*idx3,w->wall_textures[w->world_mat[idx]],h,dist,height_cap-1-idx3,idx,side);
+//.u8[0] is floor tile
+        DrawWallSegment(w,segment,x,y0+h*idx3,w->wall_textures[w->world_mat[idx].u8[0]],h,dist,height_cap-1-idx3,idx,side);
       }
 ceil2:      
+      if(dist2<2.||dist<2.)
+	goto ent;
       ceil=w->ceilmap[idx];
       adj_height=w->ceilmap2[idx];
       //Draw Ceil
       if(ceil!=I8_MAX&&ceil>w->cam_height) {
-        if(use_dc=w->ceil_textures[w->world_mat[idx]]) {
+//.u8[1] is ceil tile
+        if(use_dc=w->ceil_textures[w->world_mat[idx].u8[1]]) {
 	  standing_at=ToI64(w->x)/GRID_SZ+ToI64(w->y)/GRID_SZ*w->world_width;
 	  if(standing_at==idx) {
             ColorFloor(w,x,ceil,
@@ -1331,7 +1325,8 @@ ceil2:
             );
 	}
       } else if(ceil!=I8_MAX&&ceil+adj_height<w->cam_height) {
-         use_dc=w->wall_textures[w->world_mat[idx]];
+//.u8[1] is ceil tile
+         use_dc=w->wall_textures[w->world_mat[idx].u8[1]];
 	 if(use_dc)
           ColorFloor(w,x,ceil+adj_height,
             GR_HEIGHT/2-h*(ceil+adj_height-w->cam_height),
@@ -1346,17 +1341,22 @@ ceil2:
         for(idx3=w->step_width;--idx3>=0;) {
           if(0<=x+idx3<w->to_dc->width) {
 	    ptr=w->blocked_cnts[x+idx3];
+	    block_view=&w->blocked_views[x+idx3][ptr];
 	    if(ptr<0x80) {
-	      w->blocked_cnts[x+idx3]=ptr+1;
-	      block_view=&w->blocked_views[x+idx3][ptr];
-	      block_view->start=y0;
-	      block_view->end=y0+h*adj_height;
-	      block_view->dist=dist;
+	      if(y0+h*adj_height>VisSkipTo(w,x+idx3,y0,dist)) {
+		if(I16_MIN<=y0<y0+h*adj_height<I16_MAX) {
+	          block_view->start=y0;
+	          block_view->end=y0+h*adj_height;
+	          block_view->dist=dist;
+	          w->blocked_cnts[x+idx3]=ptr+1;
+		}
+	      }
 	    }
           }
         }
         for(idx3=0;idx3<adj_height;idx3++) {
-          DrawWallSegment(w,segment,x,y0+h*idx3,w->wall_textures[w->world_mat[idx]],h,dist,ceil+adj_height-idx3,idx,side);
+//.u8[1] is ceil tile
+          DrawWallSegment(w,segment,x,y0+h*idx3,w->wall_textures[w->world_mat[idx].u8[1]],h,dist,ceil+adj_height-idx3,idx,side);
         }
         last_ceil=ceil;
       }

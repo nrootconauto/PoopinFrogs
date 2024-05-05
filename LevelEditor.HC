@@ -38,8 +38,8 @@ class CLevelSegment:CQue {
   I64 xoff,yoff;
   CQue edits;
   CQue things;
-//>0 for wall
-  //<0 for floor
+//u8[0] is the floor
+//u8[1] is the ceiliing
   I16 data[SEGMENT_SZ][SEGMENT_SZ];
   I8 heights[SEGMENT_SZ][SEGMENT_SZ];
   I8 ceil_heights[SEGMENT_SZ][SEGMENT_SZ];
@@ -96,7 +96,6 @@ class CWorldEditor {
   I64 base_x,base_y;
   I64 w,h;
   CLevelTexture *textures[0x10000];
-  CLevelTexture *wall_textures[0x10000];
   CLevelThingTemplate *thing_templates[0x10000];
   CQue textures_que;
   CQue thing_templates_que;
@@ -139,7 +138,7 @@ CDC *LoadGr(U8 *blob,U8 *name) {
 I64 SegmentRoundDown(I64 s) {
   return FloorI64(s,SEGMENT_SZ);
 }
-CLevelTexture *LoadTexture(CDC *from_dc,I64 idx,Bool wall_texture=FALSE) {
+CLevelTexture *LoadTexture(CDC *from_dc,I64 idx) {
   I64 len,x;
   I64 greatest=0;
   CDC *scaled;
@@ -155,7 +154,7 @@ CLevelTexture *LoadTexture(CDC *from_dc,I64 idx,Bool wall_texture=FALSE) {
 
   new->idx=idx;
   new->dc=scaled;
-  world_edit.textures[new->idx-I16_MIN]=new;
+  world_edit.textures[new->idx]=new;
   QueIns(new,&world_edit.textures_que);
   return new;
 }
@@ -499,7 +498,7 @@ paint_selected:
 	  goto paint_selected;
         }
       }
-      if(t=world_edit.textures[idx-I16_MIN]) {
+      if(t=world_edit.textures[idx]) {
         if(world_edit.ms_left_down)
 	  if(x<=world_edit.ms_x<x+8+GRID_SZ)
 	    if(y<=world_edit.ms_y<y+8+GRID_SZ) {
@@ -766,7 +765,10 @@ U0 DrawTexturedQuad(CDC *dc,CD3I32 *poly,CDC *texture=NULL,I64 idist) {
 	iy2=(matrix[3]*ix+matrix[4]*iy+matrix[5]);
         if(0.<=ix2<1.)
           if(0.<=iy2<1.) {
-	    dc->color=GrPeek0(texture,ix2*texture->width,iy2*texture->height);
+	    dc->color=GrPeek0(texture,
+		MinI64(ix2*texture->width,texture->width-1),
+		MinI64(iy2*texture->height,texture->height-1)
+	    );
 	    GrPlot3(dc,x2,y2,idist);
 	  }
       }
@@ -848,7 +850,7 @@ U0 DrawWall(CDC *dc,CDC *texture,I64 dispx,I64 dispy,I64 tx,I64 ty,I64 xoff,I64 
   }
 }
 U0 DrawTileSexy(CDC *dc,I64 dispx,I64 dispy,F64 height,CDC *top,CDC *side,I64 tx,I64 ty,I64 ceil_height2=INVALID_PTR) {
-  if(world_edit.cam_height<=height)
+  if(world_edit.cam_height<=height+1)
     return;
   I64 idist=(world_edit.cam_height-height)*GRID_SZ,wi;
   F64 width=DIST_SCALE/ToF64(idist);
@@ -896,7 +898,7 @@ U0 DrawTileSexy(CDC *dc,I64 dispx,I64 dispy,F64 height,CDC *top,CDC *side,I64 tx
   if(side)
     for(xoff=-1;xoff<2;xoff++)
       for(yoff=-1;yoff<2;yoff++)
-        DrawWall(dc,top,dispx,dispy,tx,ty,xoff,yoff,side,height,ceil_height2);
+        DrawWall(dc,side,dispx,dispy,tx,ty,xoff,yoff,side,height,ceil_height2);
 }
 U0 DrawTileDumb(CDC *dc,I64 dispx,I64 dispy,CDC *top,I64 tx,I64 ty) {
   GrBlot(dc,tx*GRID_SZ+dispx,ty*GRID_SZ+dispy,top);
@@ -945,39 +947,43 @@ U0 LevelEditorDraw(CTask *t,CDC *dc) {
 //Tile offsets
   I64 t_xoff=world_edit.base_x/GRID_SZ,t_yoff=world_edit.base_y/GRID_SZ;
   I64 x,y,minx,maxx,miny,maxy;
+  I64 data;
   U8 *str;
   WorldExtents(&minx,&maxx,&miny,&maxy);
   for(x=minx;x!=maxx;x++) {
     for(y=miny;y!=maxy;y++) {
       seg=GetSegmentForPos(x,y);
       if(!seg) goto next;
-      texture=world_edit.textures[seg->data
+      data=seg->data
 	    [(x)-seg->xoff]
-	    [(y)-seg->yoff]-I16_MIN];
+	    [(y)-seg->yoff];
+//u8[0] is floor tile
+      texture=world_edit.textures[data.u8[0]];
       theight=seg->heights[(x)-seg->xoff][(y)-seg->yoff];
       if(texture) {
         if(!world_edit.flat_mode) {
-	  DrawTileSexy(dc,world_edit.base_x,world_edit.base_y,theight,texture->orig_dc,texture->orig_dc,x,y);
-//DRAWCEILING TILE
-	  if(Blink) {
-/*	    texture=world_edit.wall_textures[seg->data
-		  [(x)-seg->xoff]
-		  [(y)-seg->yoff]-I16_MIN];
-	    if(texture) {*/
-	      cheight=seg->ceil_heights[x-seg->xoff][y-seg->yoff];
-	      ch2=seg->ceil_heights2[x-seg->xoff][y-seg->yoff];
-	      if(cheight!=I8_MAX&&cheight>theight)
-	        DrawTileSexy(dc,world_edit.base_x,world_edit.base_y,cheight+ch2,texture->orig_dc,texture->orig_dc,x,y,cheight);
-//	    }
+	  DrawTileSexy(dc,world_edit.base_x,world_edit.base_y,theight,texture->orig_dc,texture->wall_dc,x,y);
+//u8[1] is ceil tile
+          texture=world_edit.textures[data.u8[1]];
+	  if(Blink&&texture) {
+	    cheight=seg->ceil_heights[x-seg->xoff][y-seg->yoff];
+	    ch2=seg->ceil_heights2[x-seg->xoff][y-seg->yoff];
+	    if(cheight!=I8_MAX&&cheight>theight)
+	      DrawTileSexy(dc,world_edit.base_x,world_edit.base_y,cheight+ch2,texture->dc,texture->wall_dc,x,y,cheight);
 	  }
         } else {
-	  if(Blink)
-	    texture=world_edit.wall_textures[seg->data
-		  [(x)-seg->xoff]
-		  [(y)-seg->yoff]-I16_MIN];
-          if(texture)
+	  if(texture) {
 	    DrawTileDumb(dc,world_edit.base_x,world_edit.base_y,texture->dc,x,y);
-	}
+//u8[1] is ceil tile
+            texture=world_edit.textures[data.u8[1]];
+	    cheight=seg->ceil_heights[x-seg->xoff][y-seg->yoff];
+	    ch2=seg->ceil_heights2[x-seg->xoff][y-seg->yoff];
+	    if(cheight!=I8_MAX&&cheight>theight)
+	      if(texture&&Blink) {
+	        DrawTileDumb(dc,world_edit.base_x,world_edit.base_y,texture->dc,x,y);
+	      }
+	  }
+        }
       }
 next:;
     }
@@ -1178,7 +1184,10 @@ U0 WorldInsertTileAt(I64 x,I64 y,I64 thing,I64 floor_ceil_ceil2=0) {
   }
   x-=seg->xoff;
   y-=seg->yoff;
-  seg->data[x][y]=AbsI64(thing);
+  if(!floor_ceil_ceil2)
+    seg->data[x][y].u8[0]=AbsI64(thing);
+  else
+    seg->data[x][y].u8[1]=AbsI64(thing);
   if(floor_ceil_ceil2==2) {
     seg->ceil_heights2[x][y]=world_edit.ceil_height2;
   } else if(floor_ceil_ceil2==1) {
@@ -1211,6 +1220,7 @@ U0 LoadWorld(U8 *blob,U8 *filename) {
   U64 type;
   CDC *odc;
   I64 tsz;
+  I64 data;
   CLevelThingTemplate *template;
   CFileTexture *f_texture;
   CFileThingTemplate *f_template;
@@ -1245,9 +1255,10 @@ U0 LoadWorld(U8 *blob,U8 *filename) {
       world_edit.ceil_height=ceilmap[x+y*width];
       world_edit.floor_height=heightmap[x+y*width];
       world_edit.ceil_height2=ceilmap2[x+y*width];
-      WorldInsertTileAt(x+sx,y+sy,w->data[x+y*width]);
-      WorldInsertTileAt(x+sx,y+sy,w->data[x+y*width],1);
-      WorldInsertTileAt(x+sx,y+sy,w->data[x+y*width],2);
+      data=w->data[x+y*width];
+      WorldInsertTileAt(x+sx,y+sy,data.u8[0]);
+      WorldInsertTileAt(x+sx,y+sy,data.u8[1],1);
+      WorldInsertTileAt(x+sx,y+sy,data.u8[1],2);
     }
   f_texture=textures;
   cap=w->textures_where.len;
@@ -1260,11 +1271,8 @@ U0 LoadWorld(U8 *blob,U8 *filename) {
     StrCpy(texture->ceil_blob_name,f_texture->ceil_blob_name);
     str=LoadGr(blob,f_texture->wall_blob_name);
     if(str) {
-      odc=AnimDCLoad(str);
-      world_edit.wall_textures[f_texture->idx]=ScaleDC(odc,GRID_SZ,GRID_SZ,world_edit.mem_task);
-      texture->wall_dc=world_edit.wall_textures[f_texture->idx];
-      AnimDCDel(odc);
-      Free(str);
+      texture->wall_dc=ScaleDC(str,GRID_SZ,GRID_SZ,world_edit.mem_task);
+      AnimDCDel(str);
     }
     f_texture++;
   }
@@ -1712,26 +1720,25 @@ save:
 //Add a new ceil
 	      if(!Bt(kbd.down_bitmap,SC_SHIFT)) {
 	        WorldInsertTileAt(
-		      FloorI64(tx,16)/16,
-		      FloorI64(ty,16)/16,
+		      tx,
+		      ty,
 		      world_edit.floor_texture,
 		      1
 		      );
 //Set Ceil-height2
 	        world_edit.ceil_height2=1;
 	        WorldInsertTileAt(
-		      FloorI64(tx,16)/16,
-		      FloorI64(ty,16)/16,
+		      tx,ty,
 		      world_edit.floor_texture,
 		      2
 		      );
 	      } else {
 //For for things first
-	        segment=GetSegmentForPos(tx/GRID_SZ,ty/GRID_SZ);
+	        segment=GetSegmentForPos(tx,ty);
 	        if(segment) {
 		  for(thing=segment->things.next;thing!=&segment->things;thing=thing->next) {
-		    if(ToI64(thing->x)<=tx/16<ToI64(thing->x)+16)
-		      if(ToI64(thing->y)<=ty/16<ToI64(thing->y)+32) {
+		    if(ToI64(thing->x)<=tx<ToI64(thing->x)+16)
+		      if(ToI64(thing->y)<=ty<ToI64(thing->y)+32) {
 		        QueRem(thing);
 		        Free(thing);
 		        goto next;
@@ -1740,7 +1747,7 @@ save:
 	        }
 	      }
 	    } else {
-	      ch2=segment->ceil_heights2[tx/GRID_SZ-segment->xoff][ty/GRID_SZ-segment->yoff];
+	      ch2=segment->ceil_heights2[tx-segment->xoff][ty-segment->yoff];
 	      if(Bt(kbd.down_bitmap,SC_SHIFT))
 	        world_edit.ceil_height2=ch2-1;
 	      else
