@@ -1503,8 +1503,8 @@ Bool ClipLineToCamera(C3DWorld *w,CD3 *a,CD3 *b) {
   CD2 cam,left,right;
   CD2 dst;
   CD3 oa,ob;
-  F64 a_angle=Arg(a->x-cam.x,a->y-cam.y);
-  F64 b_angle=Arg(b->x-cam.x,b->y-cam.y);
+  F64 a_angle=Arg(a->x-w->x,a->y-w->y);
+  F64 b_angle=Arg(b->x-w->x,b->y-w->y);
   F64 aa=Sin(AngleBetween(a_angle,w->angle));
   F64 ba=Sin(AngleBetween(b_angle,w->angle));
   F64 dist=Sqrt(Sqr(b->x-a->x)+Sqr(b->y-a->y));

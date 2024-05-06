@@ -71,9 +71,73 @@ U0 AddClassMethod(U8 *cls,U8 *name,U8 *fptr) {
 
 
 extern U0 ThingDel(CFrogThing *thing,Bool recurse=TRUE);
-extern F64 AsF64(CFrogThing *t);
 extern U32 AsChar(CFrogThing *t);
-extern CFrogThing *ToFrogNum(F64 n);
+
+#ifdef TARGET_X86
+#ifdef __AIWNIOS__
+#define USE_AIWNIOS_ASM 1
+#endif
+#endif
+
+#ifdef USE_AIWNIOS_ASM
+asm {
+_AS_F64::
+  MOV RAX,8[RSP]
+  CMP AX,FROG_SMALL_NUM
+  JE @@is_num
+  CMP AX,FROG_SMALL_NUM
+  JE @@is_chr
+//Not a number type?
+  MOV RAX,0
+  CVTSI2SD XMM0,RAX
+  MOVQ RAX,XMM0
+  RET1 8
+@@is_num:
+//4th byte of first argument
+  CVTSS2SD XMM0,U32 12[RSP]
+  MOVQ RAX,XMM0
+  RET1 8
+@@is_chr:
+  SHRRAX,32
+  CVTSI2SD XMM0,RAX
+  MOVQ RAX,XMM0
+  RET1 8
+
+_TO_FROG_NUM::
+  CVTSD2SS XMM0,8[RSP]
+  PUSH FROG_SMALL_NUM
+  MOVSS U32 4[RSP],XMM0
+  POP RAX
+ MOVQ XMM0,RAX
+  RET1 8
+};
+_extern _AS_F64 F64 AsF64(CFrogThing *t);
+_extern _TO_FROG_NUM CFrogNum *ToFrogNum(F64);
+#else
+F64 AsF64(CFrogThing *t) {
+  CFrogSmallFixedPoint mfp=t;
+  F64 ret;
+  if(mfp&0xffff==FROG_SMALL_NUM) {
+     return (mfp>>16)/ToF64(I16_MAX);
+  }
+//Number-ish used for internal operations
+  if(mfp&0xffff==FROG_SMALL_CHR) {
+     return mfp>>32;
+  }
+  if(ThingHasClass(t,"CFrogNum")) { //Phat ass number
+    return t(CFrogNum*)->num;
+  }
+  return 0;
+}
+CFrogThing *ToFrogNum(F64 n) {
+  n*=I16_MAX;
+  I64 ipart=ToI64(n);
+  if(n-ipart>.5)
+    return ((ipart+1)<<16)|FROG_SMALL_NUM;
+  return (ipart<<16)|FROG_SMALL_NUM;
+}
+#endif
+
 
 Bool IsSmalltalkMember2(CHashClass *cls) {
   CHashClass *fc=HashFind("CFrogThing",frog_mem_task->hash_table,HTT_CLASS);
@@ -1396,24 +1460,6 @@ U0 FrogGarbageCollect(CFrogThing *root=FROG_SMALL_NIL) {
     }
   }
 }
-
-
-
-F64 AsF64(CFrogThing *t) {
-  CFrogSmallFixedPoint mfp=t;
-  F64 ret;
-  if(mfp&0xffff==FROG_SMALL_NUM) {
-     return (mfp>>16)/ToF64(I16_MAX);
-  }
-//Number-ish used for internal operations
-  if(mfp&0xffff==FROG_SMALL_CHR) {
-     return mfp>>32;
-  }
-  if(ThingHasClass(t,"CFrogNum")) { //Phat ass number
-    return t(CFrogNum*)->num;
-  }
-  return 0;
-}
 U32 AsChar(CFrogThing *t) {
 //CFrogSmallChr
   U64 sc=t;
@@ -1487,13 +1533,6 @@ CFrogSuper *FrogSuper(CFrogThing *from) {
 U0 FrogSuperDel(CFrogSuper *s) {
   ThingDel(s->from);
   Free(s);
-}
-CFrogThing *ToFrogNum(F64 n) {
-  n*=I16_MAX;
-  I64 ipart=ToI64(n);
-  if(n-ipart>.5)
-    return ((ipart+1)<<16)|FROG_SMALL_NUM;
-  return (ipart<<16)|FROG_SMALL_NUM;
 }
 U8 *AsString(CFrogThing *t) {
   I64 idx;

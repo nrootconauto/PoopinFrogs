@@ -1,2 +1,2 @@
 getThingTemplate: name=CFrogStr ->C2DThingTemplate ||
-  ^ thing_templates at: name
+  ^ thing_templates at: name .

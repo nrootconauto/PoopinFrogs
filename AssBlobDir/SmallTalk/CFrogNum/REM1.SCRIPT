@@ -1,3 +1,10 @@
-rem: other | |
+rem: other->CFrogNum | |
+  '64 bit integer limit(used for remainder)' .
+  self > 9e18 ifTrue: [
+    ^ 0 .
+  ] .
+  self < -9e18 ifTrue: [
+    ^ 0 .
+  ] .
   other = 0 ifTrue: [^ CFrogDivideError new ].
   ^ self basicRem: other  
