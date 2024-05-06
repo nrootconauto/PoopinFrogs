@@ -499,6 +499,18 @@ U0 NumPrim2(CDoc *doc,CLocals *l,CAST *ast,I64 stack_depth,U8 *op,U8*alt_name=N
   CompileAST(doc,b,l,stack_depth,,TRUE);
   DocPrint(doc,")");
 }
+U0 NumPrim2B(CDoc *doc,CLocals *l,CAST *ast,I64 stack_depth,U8 *op,U8*alt_name=NULL) {
+  if(!alt_name) alt_name=op;
+  CAST *a=ast->args.next,*b=ast->args.last;
+  CDoc *tmp;
+  U8 *save,*save2;
+  ast->is_f64=1;
+  DocPrint(doc,"%s(",op);
+  CompileAST(doc,a,l,stack_depth,,TRUE);
+  DocPrint(doc,",");
+  CompileAST(doc,b,l,stack_depth,,TRUE);
+  DocPrint(doc,")");
+}
 U0 NumPrim1(CDoc *doc,CLocals *l,CAST *ast,I64 stack_depth,U8 *op,U8 *alt_name=NULL) {
   if(!alt_name) alt_name=op;
   CDoc *tmp;
@@ -554,6 +566,25 @@ pass:
 //Skip past object we are calling to
       cur=ast->args.next->next;
 
+      if(!StrCmp(ast->op_name,"to:do:")) {
+        CompileAST(doc,ast->args.next,locals,stack_depth);
+        CompileAST(doc,ast->args.next->next,locals,stack_depth+1);
+        CompileAST(doc,ast->args.last,locals,stack_depth+2);
+        ast->switch_num=ast_case_num++;
+        idx=ast->switch_num;
+        DocPrint(doc,"case %d:\n",ast->switch_num);
+        ent=DocPrint(doc,"if(!(AsF64(%s)<AsF64(%s))) {
+	next_case=$$LK,\"dummy1\"$$;
+	goto enter;
+	}
+	",StackFrame2Var(stack_depth),
+	      StackFrame2Var(stack_depth+1),
+        );
+        DocPrint(doc,"retval=FrogBlockValue(%s,%s);",StackFrame2Var(stack_depth+2),StackFrame2Var(stack_depth));
+        DocPrint(doc,"%s=FrogNumNew(AsF64(%s)+1.);next_case=%d;goto enter;",StackFrame2Var(stack_depth),StackFrame2Var(stack_depth),idx);
+        ReplaceElem(doc,ent,"%d",ast_case_num);
+        return;
+      }
       if(!StrCmp(ast->op_name,"whileTrue:")) {
         idx=ast_case_num;
         UnrollBlock(doc,locals,stack_depth,ast->args.next);
@@ -562,7 +593,7 @@ pass:
         ent=DocPrint(doc,"if(AsF64(%s)==0.) {next_case=$$LK,\"dummy1\"$$;goto enter;}",StackFrame2Var(stack_depth));
         UnrollBlock(doc,locals,stack_depth,ast->args.last,idx);
         ReplaceElem(doc,ent,"%d",ast_case_num);
-	return;
+        return;
       }
       if(!StrCmp(ast->op_name,"whileFalse:")) {
         idx=ast_case_num;
@@ -572,46 +603,46 @@ pass:
         ent=DocPrint(doc,"if(AsF64(%s)) {next_case=$$LK,\"dummy2\"$$;goto enter;}",StackFrame2Var(stack_depth));
         UnrollBlock(doc,locals,stack_depth,ast->args.last,idx);
         ReplaceElem(doc,ent,"%d",ast_case_num);
-	return;
-	break;
+        return;
+        break;
       }
       if(!StrCmp(ast->op_name,"ifTrue:")) {
         cur=ast->args.next;
         if(IsF64ExprNode(locals,cur)) {
-          ast->switch_num=ast_case_num++;
-          DocPrint(doc,"case %d:\n",ast->switch_num);
-          DocPrint(doc,"if((");
-          CompileAST(doc,cur,locals,stack_depth,,TRUE);
-          ent=DocPrint(doc,")==0) {next_case=$$LK,\"dummy3\"$$;goto enter;}",StackFrame2Var(stack_depth));
+	  ast->switch_num=ast_case_num++;
+	  DocPrint(doc,"case %d:\n",ast->switch_num);
+	  DocPrint(doc,"if((");
+	  CompileAST(doc,cur,locals,stack_depth,,TRUE);
+	  ent=DocPrint(doc,")==0) {next_case=$$LK,\"dummy3\"$$;goto enter;}",StackFrame2Var(stack_depth));
         } else {
-          CompileAST(doc,cur,locals,stack_depth,,0);
-          ast->switch_num=ast_case_num++;
-          DocPrint(doc,"case %d:\n",ast->switch_num);
-          DocPrint(doc,"if(AsF64(%s",StackFrame2Var(stack_depth));
-          ent=DocPrint(doc,")==0) {next_case=$$LK,\"dummy3\"$$;goto enter;}",StackFrame2Var(stack_depth));
-	}
+	  CompileAST(doc,cur,locals,stack_depth,,0);
+	  ast->switch_num=ast_case_num++;
+	  DocPrint(doc,"case %d:\n",ast->switch_num);
+	  DocPrint(doc,"if(AsF64(%s",StackFrame2Var(stack_depth));
+	  ent=DocPrint(doc,")==0) {next_case=$$LK,\"dummy3\"$$;goto enter;}",StackFrame2Var(stack_depth));
+        }
         UnrollBlock(doc,locals,stack_depth,ast->args.next->next);
         ReplaceElem(doc,ent,"%d",ast_case_num);
-	break;
+        break;
       }
       if(!StrCmp(ast->op_name,"ifFalse:")) {
         cur=ast->args.next;
         if(IsF64ExprNode(locals,cur)) {
-          ast->switch_num=ast_case_num++;
-          DocPrint(doc,"case %d:\n",ast->switch_num);
-          DocPrint(doc,"if((");
-          CompileAST(doc,cur,locals,stack_depth,,TRUE);
-          ent=DocPrint(doc,")) {next_case=$$LK,\"dummy3\"$$;goto enter;}",StackFrame2Var(stack_depth));
+	  ast->switch_num=ast_case_num++;
+	  DocPrint(doc,"case %d:\n",ast->switch_num);
+	  DocPrint(doc,"if((");
+	  CompileAST(doc,cur,locals,stack_depth,,TRUE);
+	  ent=DocPrint(doc,")) {next_case=$$LK,\"dummy3\"$$;goto enter;}",StackFrame2Var(stack_depth));
         } else {
-          CompileAST(doc,cur,locals,stack_depth,,0);
-          ast->switch_num=ast_case_num++;
-          DocPrint(doc,"case %d:\n",ast->switch_num);
-          DocPrint(doc,"if(AsF64(%s",StackFrame2Var(stack_depth));
-          ent=DocPrint(doc,")) {next_case=$$LK,\"dummy3\"$$;goto enter;}",StackFrame2Var(stack_depth));
-	}
+	  CompileAST(doc,cur,locals,stack_depth,,0);
+	  ast->switch_num=ast_case_num++;
+	  DocPrint(doc,"case %d:\n",ast->switch_num);
+	  DocPrint(doc,"if(AsF64(%s",StackFrame2Var(stack_depth));
+	  ent=DocPrint(doc,")) {next_case=$$LK,\"dummy3\"$$;goto enter;}",StackFrame2Var(stack_depth));
+        }
         UnrollBlock(doc,locals,stack_depth,ast->args.next->next);
         ReplaceElem(doc,ent,"%d",ast_case_num);
-	break;
+        break;
       }
       if(!StrCmp(ast->op_name,"ifTrue:ifFalse:")) {
         cur=ast->args.next;
@@ -627,7 +658,7 @@ pass:
         ReplaceElem(doc,ent,"%d",ast_case_num);
         UnrollBlock(doc,locals,stack_depth,ast->args.last);
         ReplaceElem(doc,ent2,"%d",ast_case_num);
-	break;
+        break;
       }
 
       //Primtive method time
@@ -653,7 +684,7 @@ pass:
 	  cur=cur->next;
         }
       } else 
-	goto force_f64;
+        goto force_f64;
       if(allow_f64) {
 force_f64:;
         if(!StrCmp(ast->op_name,"+")) {
@@ -736,6 +767,14 @@ force_f64:;
 	  NumPrim1(doc,locals,ast,stack_depth,"Ceil","ceil");
 	  goto prim_skip;
         }
+        if(!StrCmp(ast->op_name,"sign")) {
+	  NumPrim1(doc,locals,ast,stack_depth,"Sign","sign");
+	  goto prim_skip;
+        }
+        if(!StrCmp(ast->op_name,"abs")) {
+	  NumPrim1(doc,locals,ast,stack_depth,"Abs","abs");
+	  goto prim_skip;
+        }
         if(!StrCmp(ast->op_name,"round")) {
 	  NumPrim1(doc,locals,ast,stack_depth,"Round","round");
 	  goto prim_skip;
@@ -744,7 +783,31 @@ force_f64:;
 	  NumPrim2(doc,locals,ast,stack_depth,"`","raisedTo:");
 	  goto prim_skip;
         }
-	NumPrimDft(doc,locals,ast,stack_depth);
+        if(!StrCmp(ast->op_name,"or:")) {
+	  NumPrim2(doc,locals,ast,stack_depth,"||","or:");
+	  goto prim_skip;
+        }
+        if(!StrCmp(ast->op_name,"and:")) {
+	  NumPrim2(doc,locals,ast,stack_depth,"&&","and:");
+	  goto prim_skip;
+        }
+        if(!StrCmp(ast->op_name,"max:")) {
+	  NumPrim2B(doc,locals,ast,stack_depth,"Max","max:");
+	  goto prim_skip;
+        }
+        if(!StrCmp(ast->op_name,"min:")) {
+	  NumPrim2B(doc,locals,ast,stack_depth,"Min","min:");
+	  goto prim_skip;
+        }
+        if(!StrCmp(ast->op_name,"not")) {
+	  NumPrim1(doc,locals,ast,stack_depth,"!","not");
+	  goto prim_skip;
+        }
+        if(!StrCmp(ast->op_name,"arg:")) {
+	  NumPrim2B(doc,locals,ast,stack_depth,"Arg","arg:");
+	  goto prim_skip;
+        }
+        NumPrimDft(doc,locals,ast,stack_depth);
         goto prim_skip;
       }
 //
@@ -800,37 +863,37 @@ assign_raw:
       DocPrint(doc,"  %s=FrogStrNew(\"%Q\");\n",StackFrame2Var(stack_depth),ast->str);
       break;case AST_VAR:
       if(ast->is_f64) {
-	conv_name="ToF64";
+        conv_name="ToF64";
       } else {
         ast->switch_num=ast_case_num++;
         DocPrint(doc,"case %d:%s=\n",ast->switch_num,StackFrame2Var(stack_depth));
-	conv_name="FrogNumNew";
+        conv_name="FrogNumNew";
       }
       if(STHasLocal(locals,ast->name)) {
-	idx=VarClassName(locals,ast->name);
+        idx=VarClassName(locals,ast->name);
         if(STIsSelfMember(locals,ast->name)) {
 	  mlst=MemberFind(ast->name,HashFind(FramePtr("MethodClass"),frog_mem_task->hash_table,HTT_CLASS));
 	  if(STIsRawMember(locals,ast->name)) {
 	    raw_class_name=RawAccessType(FramePtr("MethodClass"),ast->name);
 //ToF64 turns an I64(forced) into an F64
 	    if(ast->is_f64&&!StrCmp(raw_class_name,"F64"))
-		conv_name="";
+	      conv_name="";
 	    DocPrint(doc,"  %s((ToI64(FrogUnSuper(self))+%d)(%s*)[0])",conv_name,mlst->offset,raw_class_name);
-          } else {
+	  } else {
 	    if(ast->is_f64)
 	      DocPrint(doc,"AsF64(");
 	    DocPrint(doc,"  FrogIncRefCnt((ToI64(FrogUnSuper(self))+%d)(CFrogThing**)[0])",mlst->offset);
 	    if(ast->is_f64)
 	      DocPrint(doc,")");
-          }
+	  }
         } else if(!STIsRawMember(locals,ast->name)) {
-	    if(ast->is_f64)
-	      DocPrint(doc,"AsF64(");
+	  if(ast->is_f64)
+	    DocPrint(doc,"AsF64(");
 	  DocPrint(doc,"FrogIncRefCnt(*BungisReduce(self,&");
 	  STGetLocal(doc,locals,ast->name);
 	  DocPrint(doc,"))\n");
-	    if(ast->is_f64)
-	      DocPrint(doc,")");
+	  if(ast->is_f64)
+	    DocPrint(doc,")");
         } else {
 	  raw_class_name=RawAccessType(FramePtr("MethodClass"),ast->name);
 //ToF64 turns an I64(forced) into an F64

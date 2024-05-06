@@ -481,8 +481,10 @@ final:
       wall_y=(iy+1)*GRID_SZ;
     else
       wall_y=iy*GRID_SZ;
-    t1=(wall_x-w->x)/(cos+.0001);
-    t2=(wall_y-w->y)/(sin+.0001);
+    if(!cos) t1=1000000;
+    else t1=(wall_x-w->x)/cos;
+    if(!sin) t2=1000000;
+    else t2=(wall_y-w->y)/sin;
 
     if(t1<t2) {
       x=t2*cos+w->x;
@@ -1135,7 +1137,7 @@ F64 ScreenCordsToDist(C3DWorld *w,I64 x,I64 y,F64 max=GRID_SZ*128,F64 *height=NU
 	 break;
        case 1:
 	 xoff=1;
-	 break;
+	 break;
        case 2:
 	 yoff=-1;
 	 break;
@@ -1303,9 +1305,9 @@ ent:
       if(last_height==height_cap)
         goto ceil2;
       last_height=height_cap;
-      if(dist<=2.)
-        goto ceil2;
       if(adj_height>=height_cap)
+        goto ceil2;
+      if(dist<=2.)
         goto ceil2;
       y=GR_HEIGHT/2;
       y0=GR_HEIGHT/2-h*(height_cap-w->cam_height);

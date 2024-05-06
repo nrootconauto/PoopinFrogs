@@ -112,7 +112,7 @@ _TO_FROG_NUM::
   RET1 8
 };
 _extern _AS_F64 F64 AsF64(CFrogThing *t);
-_extern _TO_FROG_NUM CFrogNum *ToFrogNum(F64);
+_extern _TO_FROG_NUM CFrogNum *FrogNumNew(F64);
 #else
 F64 AsF64(CFrogThing *t) {
   CFrogSmallFixedPoint mfp=t;
@@ -129,7 +129,7 @@ F64 AsF64(CFrogThing *t) {
   }
   return 0;
 }
-CFrogThing *ToFrogNum(F64 n) {
+CFrogThing *FrogNumNew(F64 n) {
   n*=I16_MAX;
   I64 ipart=ToI64(n);
   if(n-ipart>.5)
@@ -506,9 +506,6 @@ CFrogSymbol *FrogSymbol(U8 *name) {
   return sym;
 }
 
-CFrogThing *FrogNumNew(F64 val) {
-  return ToFrogNum(val);
-}
 CFrogThing *FrogChrNew(U64 ch) {
   return (ch<<32)|FROG_SMALL_CHR;
 }
