@@ -110,7 +110,7 @@ CCutout *MakeCutout(CTextureEditor *ed) {
     bx2=MaxI64(bx2,cut->x);
     bx2=MaxI64(bx2,cut->x2);
     by2=MaxI64(by2,cut->y);
-    by2=MaxI64(by2,cut->y2);
+    by2=MaxI64(by2,cut->y2);
     GrLine3(mask,
 	  ClampI64(cut->x,0,w),
 	  ClampI64(cut->y,0,h),
@@ -440,6 +440,8 @@ U0 DrawEditor(CTask *t,CDC *dc) {
       h=paste->height;
       w2=alias->width/2;
       Mat4x4TranslationAdd(mat,-w/2-w2,-h/2-w2,0);
+      if(Bt(kbd.down_bitmap,SC_SHIFT))
+        Mat4x4RotY(mat,pi);
       Mat4x4RotZ(mat,ed->rotation);
       Mat4x4Scale(mat,ed->scale);
       Mat4x4TranslationAdd(mat,w/2+w2,h/2+w2,0);
@@ -681,6 +683,8 @@ U0 _TextureEdit(CDC **_image,U8 *blob_file=NULL,U8 *write_to_name=NULL) {
 	    h=paste->height;
 	    w2=dummy->width/2;
 	    Mat4x4TranslationAdd(mat,-w/2-w2,-h/2-w2,0);
+            if(Bt(kbd.down_bitmap,SC_SHIFT))
+              Mat4x4RotY(mat,pi);
 	    Mat4x4RotZ(mat,ed->rotation);
 	    Mat4x4Scale(mat,ed->scale);
 	    Mat4x4TranslationAdd(mat,w/2+w2,h/2+w2,0);

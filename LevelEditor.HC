@@ -1406,6 +1406,22 @@ I64 WallCeilFloor() {
   DocDel(doc);
   return wall;
 }
+Bool IsUndoNecescary(CLevelSegmentEditIns *ins) {
+  CLevelSegment *seg=GetSegmentForPos(ins->xoff,ins->yoff);
+  if(!seg) return TRUE;
+  I64 x=ins->xoff-seg->xoff;
+  I64 y=ins->yoff-seg->yoff;
+  if(ins->type=='Insert') {
+    if(ins->height!=seg->heights[x][y]||
+	ins->ceil!=seg->ceil_heights[x][y]||
+	ins->ceil2!=seg->ceil_heights2[x][y]||
+	ins->data!=seg->data[x][y]
+	)
+	return TRUE;
+    return FALSE;
+  }
+  return TRUE;
+}
 U0 WorldEditUndo() {
   CLevelSegmentEditFill *ff,*ff2;
   CLevelSegmentEditIns *ins,*ins2;
@@ -1678,6 +1694,7 @@ save:
 	    tx=FloorI64(tx,16)/16;
 	    ty=FloorI64(ty,16)/16;
 	    segment=GetSegmentForPos(tx,ty);
+	    edit_ins=NULL;
 	    if(segment) {
 	      edit_ins=CAlloc(sizeof(CLevelSegmentEditIns),world_edit.mem_task);
 	      edit_ins->type='Insert';
@@ -1687,13 +1704,18 @@ save:
 	      edit_ins->height=segment->heights[tx-segment->xoff][ty-segment->yoff];
 	      edit_ins->ceil=segment->ceil_heights[tx-segment->xoff][ty-segment->yoff];
 	      edit_ins->ceil2=segment->ceil_heights2[tx-segment->xoff][ty-segment->yoff];
-	      QueIns(edit_ins,world_edit.edits.last);
 	    }
 	    WorldInsertTileAt(
 		  tx,
 		  ty,
 		  world_edit.wall_texture
 		  );
+	   if(edit_ins) {
+	     if(IsUndoNecescary(edit_ins))
+	       QueIns(edit_ins,world_edit.edits.last);
+	     else
+	       Free(edit_ins);
+	   }
 	  }
         }
     } else if(world_edit.ms_right_down) {
@@ -1704,6 +1726,7 @@ save:
 	  tx=FloorI64(tx,16)/16;
           ty=FloorI64(ty,16)/16;
 	  segment=GetSegmentForPos(tx,ty);
+	  edit_ins=NULL;
 	  if(segment) {
 	      if(segment) {
 	        edit_ins=CAlloc(sizeof(CLevelSegmentEditIns),world_edit.mem_task);
@@ -1714,7 +1737,6 @@ save:
 	        edit_ins->height=segment->heights[tx-segment->xoff][ty-segment->yoff];
 	        edit_ins->ceil=segment->ceil_heights[tx-segment->xoff][ty-segment->yoff];
 	        edit_ins->ceil2=segment->ceil_heights2[tx-segment->xoff][ty-segment->yoff];
-	        QueIns(edit_ins,world_edit.edits.last);
 	      }
 	    if(segment->ceil_heights[tx-segment->xoff][ty-segment->yoff]==I8_MAX) {
 //Add a new ceil
@@ -1778,6 +1800,12 @@ save:
 	      }
 	    }
 	  }
+	  if(edit_ins) {
+	    if(IsUndoNecescary(edit_ins))
+	       QueIns(edit_ins,world_edit.edits.last);
+	    else
+	      Free(edit_ins);
+	  }
         }
 next:;
     }
@@ -1787,3 +1815,4 @@ next:;
   SettingsPop;
 }
 WorldEdit("ASS");
+

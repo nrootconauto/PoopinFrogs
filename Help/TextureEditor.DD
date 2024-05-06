@@ -92,5 +92,6 @@ $AN,"Rotating/Scaling selections",A="Copy"$
 
 Press ($BG,7$Ctrl+v$BD$)
 This pastes a selection from Cut/Copy. Use mouse wheel to rotate,and $FG,4$and Shift+Mouse-wheel to scale it$FD$
+Press $FG,4$Shift+Left Click$FD$ to Flip the image when pasting.
 $ID,-2$
 $ID,-2$
