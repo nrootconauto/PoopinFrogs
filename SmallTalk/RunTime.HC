@@ -72,6 +72,12 @@ U0 AddClassMethod(U8 *cls,U8 *name,U8 *fptr) {
 
 extern U0 ThingDel(CFrogThing *thing,Bool recurse=TRUE);
 extern U32 AsChar(CFrogThing *t);
+extern Bool ThingHasClass(CFrogThing *thing,U8 *name,I64 small_type=0);
+CFrogThing *FrogIncRefCnt(CFrogThing *t) {
+  if(!(t&1)) t->ref_cnt++;
+  return t;
+}
+
 
 #ifdef TARGET_X86
 #ifdef __AIWNIOS__
@@ -306,6 +312,111 @@ U0 SetClassMemberValI64(CFrogThing *t,U8 *member,I64 val) {
      }
   }
   return;
+}
+
+U0 SetClassMemberVal(CFrogThing *t,U8 *member,I64 val) {
+  t=FrogUnSuper(t);
+  if(t&1) return; //Special "small type"
+  CHashClass *cls=HashFind(FrogThingClassName(t),frog_mem_task->hash_table,HTT_CLASS);
+  CMemberLst *mlst;
+  CMemberLstMeta *meta;
+  CFrogThing dummy;
+  F64 v2;
+  MemSet(&dummy,0,sizeof CFrogThing);
+"%s\n",cls->str;
+  if(!cls) NULL;
+"%s\n",member;
+  if(mlst=MemberFind(member,cls)) {
+"%s\n",cls->str;
+     if(mlst->member_class->ptr_stars_cnt==1) {
+       StrCpy(dummy.class_name,mlst->member_class[-1].str);
+       if(ThingHasClass(&dummy,"CFrogThing")) { 
+         (t(U8*)+mlst->offset)(I64*)[0]=val;
+	 return ;
+       }
+     }
+     v2=AsF64(val);
+     switch(mlst->member_class->raw_type) {
+       case RT_U8:
+         *(t(U8*)+mlst->offset)=v2;
+	 break;
+       case RT_U16:
+         (t(U8*)+mlst->offset)(U16*)[0]=v2;
+	 break;
+       case RT_U32:
+         (t(U8*)+mlst->offset)(U32*)[0]=v2;
+	 break;
+       case RT_U64:
+         (t(U8*)+mlst->offset)(U64*)[0]=v2;
+	 break;
+       case RT_I8:
+         *(t(I8*)+mlst->offset)=v2;
+	 break;
+       case RT_I16:
+         (t(U8*)+mlst->offset)(I16*)[0]=v2;
+	 break;
+       case RT_I32:
+         (t(U8*)+mlst->offset)(I32*)[0]=v2;
+	 break;
+       case RT_I64:
+         (t(U8*)+mlst->offset)(I64*)[0]=v2;
+	 break;
+       case RT_F64:
+         (t(U8*)+mlst->offset)(F64*)[0]=v2;
+	 break;
+     }
+  }
+  return;
+}
+
+CFrogThing *GetClassMemberVal(CFrogThing *t,U8 *member) {
+  t=FrogUnSuper(t);
+  if(t&1) return FROG_SMALL_NIL; //Special "small type"
+  CHashClass *cls=HashFind(FrogThingClassName(t),frog_mem_task->hash_table,HTT_CLASS);
+  CMemberLst *mlst;
+  CMemberLstMeta *meta;
+  CFrogThing dummy;
+  F64 v;
+  MemSet(&dummy,0,sizeof CFrogThing);
+  if(mlst=MemberFind(member,cls)) {
+     if(mlst->member_class->ptr_stars_cnt==1) {
+       StrCpy(dummy.class_name,mlst->member_class[-1].str);
+       if(ThingHasClass(&dummy,"CFrogThing")) { 
+         return FrogIncRefCnt((t(U8*)+mlst->offset)(I64*)[0]);
+       }
+     }
+     switch(mlst->member_class->raw_type) {
+       case RT_U8:
+         v=*(t(U8*)+mlst->offset);
+	 break;
+       case RT_U16:
+         v=(t(U8*)+mlst->offset)(U16*)[0];
+	 break;
+       case RT_U32:
+         v=(t(U8*)+mlst->offset)(U32*)[0];
+	 break;
+       case RT_U64:
+         v=(t(U8*)+mlst->offset)(U64*)[0];
+	 break;
+       case RT_I8:
+         v=*(t(I8*)+mlst->offset);
+	 break;
+       case RT_I16:
+         v=(t(U8*)+mlst->offset)(I16*)[0];
+	 break;
+       case RT_I32:
+         v=(t(U8*)+mlst->offset)(I32*)[0];
+	 break;
+       case RT_I64:
+         v=(t(U8*)+mlst->offset)(I64*)[0];
+	 break;
+       case RT_F64:
+         v=(t(U8*)+mlst->offset)(F64*)[0];
+	 break;
+     }
+    return FrogNumNew(v);
+  } 
+  return FROG_SMALL_NIL;
 }
 
 U0 SetClassMemberValF64(CFrogThing *t,U8 *member,F64 val) {
@@ -562,12 +673,12 @@ fin:
 
 CFrogThing *CallPtr(U8 *fun_ptr,U8 *must_have,CFrogThing *self,...) {
   if(self==FROG_SMALL_NIL) return FROG_SMALL_NIL;
-  if(must_have) {
+/*  if(must_have) {
     if(!ThingHasClass(self,must_have)) {
      //ThingDel(self);
      return FROG_SMALL_NIL;
     }
-  }
+  }*/
   CFrogThing *ret=CallVaArgs(fun_ptr,argc,argv,self);
   //ThingDel(self);
   if(!ret)
@@ -629,10 +740,6 @@ U0 STFrameDel() {
   Fs->user_data=s->next;
   if(s->type=='Block'||s->type=='Method')
     ThingDel(s);
-}
-CFrogThing *FrogIncRefCnt(CFrogThing *t) {
-  if(!(t&1)) t->ref_cnt++;
-  return t;
 }
 
 CFrogClass *FrogClassNew(U8 *name) {

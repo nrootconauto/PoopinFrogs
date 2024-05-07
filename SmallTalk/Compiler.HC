@@ -359,13 +359,13 @@ U8 *CompileThunk(CAST *block,CLocals *parent=NULL) {
   head=&block->body;
   DocPrint(doc,"enter:");
   DocPrint(doc,"  if(*return_flag||ThingIsError(retval)) {goto ret;} \n");
-  DocPrint(doc,"switch(next_case) {\n");
+  DocPrint(doc,"switch[next_case] {\n");
   for(var=head->next;var!=head;var=var->next) {
     if(var->type!=AST_STR) {
       CompileASTFinal(doc,var,locals,0);
     }
   }
-
+  DocPrint(doc,"case %d:\n",ast_case_num++);
   head=&block->args;
   idx=0;
   DocPrint(doc,"}\n");
@@ -574,12 +574,12 @@ pass:
         idx=ast->switch_num;
         DocPrint(doc,"case %d:\n",ast->switch_num);
         ent=DocPrint(doc,"if(!(AsF64(%s)<AsF64(%s))) {
-	next_case=$$LK,\"dummy1\"$$;
-	goto enter;
-	}
-	",StackFrame2Var(stack_depth),
+next_case=$$LK,\"dummy1\"$$;
+goto enter;
+}
+",StackFrame2Var(stack_depth),
 	      StackFrame2Var(stack_depth+1),
-        );
+	      );
         DocPrint(doc,"retval=FrogBlockValue(%s,%s);",StackFrame2Var(stack_depth+2),StackFrame2Var(stack_depth));
         DocPrint(doc,"%s=FrogNumNew(AsF64(%s)+1.);next_case=%d;goto enter;",StackFrame2Var(stack_depth),StackFrame2Var(stack_depth),idx);
         ReplaceElem(doc,ent,"%d",ast_case_num);
@@ -854,7 +854,31 @@ assign_raw:
 	  raw_class_name=RawAccessType(FramePtr("MethodClass"),cur->name);
 	  DocPrint(doc,"tmp(%s*)[0]=AsF64(%s);\n",raw_class_name,StackFrame2Var(stack_depth));
         }
-      }else
+      } else if(cur->type==AST_MEMBER) {
+        cur=ast->args.next;
+//Compile variable node ,not the member node
+        CompileAST(doc,cur->args.last,locals,stack_depth,,FALSE);
+        cur=ast->args.last;
+        CompileAST(doc,cur,locals,stack_depth+1,,FALSE);
+        ast->switch_num=ast_case_num++;
+        DocPrint(doc,"case %d:\n",ast->switch_num);
+        if(cur->var_class_name&&HashFind(cur->var_class_name,Fs->hash_table,HTT_CLASS)) { 
+	  mlst=MemberFind(cur->name,HashFind(cur->var_class_name,Fs->hash_table,HTT_CLASS));        
+	  if(mlst) {
+	    DocPrint(doc,"if(ThingHasClass(%s,\"%Q\"))",StackFrame2Var(stack_depth),cur->var_class_name);
+	    if(raw_class_name=RawAccessType(cur->var_class_name,ast->name)) {
+	      DocPrint(doc,"(ToI64(FrogUnSuper(%s))+%d)(%s*)[0]=%s;",StackFrame2Var(stack_depth),mlst->offset,raw_class_name,StackFrame2Var(stack_depth+1));
+	    } else {
+	      DocPrint(doc,"(ToI64(FrogUnSuper(%s))+%d)(CFrogThing*)[0]=%s;",StackFrame2Var(stack_depth),mlst->offset,StackFrame2Var(stack_depth+1));
+	    }
+	  } else goto write_generic_member;
+        } else {
+write_generic_member:
+	  //Cur has the member name
+          cur=ast->args.next; //AST_MEMBER
+	  DocPrint(doc,"SetClassMemberVal(%s,\"%s\",%s);\n",StackFrame2Var(stack_depth),cur->name,StackFrame2Var(stack_depth+1));
+        }
+      } else
         throw('Compile');
       DocPrint(doc,"  stk0=retval=FROG_SMALL_NIL;\n");
       break;case AST_STR:
@@ -963,6 +987,27 @@ assign_raw:
         DocPrint(doc,"%n",ast->num);
         return;
       }
+      break;case AST_MEMBER:
+      cur=ast->args.next;
+      CompileAST(doc,cur,locals,stack_depth,,FALSE);
+      ast->switch_num=ast_case_num++;
+      DocPrint(doc,"case %d:\n",ast->switch_num);
+      if(cur->var_class_name&&HashFind(cur->var_class_name,Fs->hash_table,HTT_CLASS)) { 
+        mlst=MemberFind(cur->name,HashFind(cur->var_class_name,Fs->hash_table,HTT_CLASS));
+
+        if(mlst) {
+	  DocPrint(doc,"if(ThingHasClass(%s,\"%Q\"))",StackFrame2Var(stack_depth),cur->var_class_name);
+	  if(raw_class_name=RawAccessType(cur->var_class_name,ast->name)) {
+	    DocPrint(doc,"  %s=FrogNumNew((ToI64(FrogUnSuper(%s))+%d)(%s*)[0])",StackFrame2Var(stack_depth),StackFrame2Var(stack_depth),mlst->offset,raw_class_name);
+	  } else {
+	    DocPrint(doc,"  %s=FrogIncRefCnt((ToI64(FrogUnSuper(%s))+%d)(CFrogThing**)[0])",StackFrame2Var(stack_depth),StackFrame2Var(stack_depth),mlst->offset);
+	  }
+	  DocPrint(doc,"else %s=FROG_SMALL_NIL;",StackFrame2Var(stack_depth));
+        } else goto generic_member;
+      } else {
+generic_member:
+        DocPrint(doc,"%s=FrogIncRefCnt(GetClassMemberVal(%s,\"%s\"));\n",StackFrame2Var(stack_depth),StackFrame2Var(stack_depth),ast->name);
+      }
       break;case AST_RETURN:
       cur=ast->args.next;
       CompileAST(doc,cur,locals,stack_depth,,FALSE);
@@ -974,11 +1019,12 @@ assign_raw:
     default:
       throw('fuck');
   }
-  if(jump_to!=INVALID_PTR)
+  if(jump_to!=INVALID_PTR) {
     DocPrint(doc,"next_case=%d;\n",jump_to);
-  else
-    DocPrint(doc,"next_case=%d;\n",ast_case_num);
-  DocPrint(doc,"goto enter;\n");
+    DocPrint(doc,"goto enter;\n");
+  } else {
+    DocPrint(doc,"if(return_flag[0]) goto ret;");
+  }
 }
 U0 CompileToHolyC(U8 *src,U8 *class_name,U8 *src_path=NULL,Bool class_method=FALSE,Bool register_method=FALSE) {
 //Make a dummy hash table for the parser(may liter with dumb FramePtrs on throw)
@@ -1025,12 +1071,13 @@ U0 CompileToHolyC(U8 *src,U8 *class_name,U8 *src_path=NULL,Bool class_method=FAL
   head=&m->body;
   DocPrint(doc,"enter:");
   DocPrint(doc,"  if(*return_flag||ThingIsError(retval)) {goto ret;} \n");
-  DocPrint(doc,"switch(next_case) {\n");
+  DocPrint(doc,"switch[next_case] {\n");
   for(var=head->next;var!=head;var=var->next) {
     if(var->type!=AST_STR) {
       CompileASTFinal(doc,var,locals,0);
     }
   }
+  DocPrint(doc,"case %d:\n",ast_case_num++);
   head=&m->args;
   idx=0;
   DocPrint(doc,"}ret:\n");
@@ -1101,8 +1148,9 @@ U0 STRepl(U8 *dft="",Bool interactive=TRUE) {
       QueIns(ast,dummy.args);
       DocPrint(doc,"enter:");
       DocPrint(doc,"  if(*return_flag||ThingIsError(retval)) {goto ret;} \n");
-      DocPrint(doc,"switch(next_case) {\n");
+      DocPrint(doc,"switch[next_case] {\n");
       CompileASTFinal(doc,&dummy,NULL,0);
+      DocPrint(doc,"case %d:\n",ast_case_num++);
       DocPrint(doc,"};");
       DocPrint(doc,"ret:\n");
 //
@@ -1128,6 +1176,10 @@ skip:;
 U0 STRunStmt(U8 *str) {
   STRepl(str,FALSE);
 }
+class CFrogABC:CFrogThing {
+  F64 a,b;
+  CFrogNum *c;
+};
 #include "Studio.HC";;
 STRunStmt(
 "  #Y _ [:f=CFrogBlock | [:x=CFrogBlock | x value: x] value: [:g=CFrogBlock| f value: [:x| (g value: g) value: x] ] ]."

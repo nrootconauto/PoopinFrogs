@@ -15,6 +15,7 @@
 #define AST_RETURN 14
 #define AST_SELF 15
 #define AST_SUPER 16
+#define AST_MEMBER 17
 
 class CAST:CQue {
   CQue args;
@@ -43,6 +44,7 @@ class CMethod {
 extern U0 DumpAst(CAST *s);
 extern CAST *ParseAst(CLexer *l);
 extern CAST *ParseCascade(CLexer *l);
+extern Bool IsSmalltalkMember(CHashClass *cls);
 U0 AddToScope(U8 *name) {
   FramePtrAdd(name,1);
 }
@@ -76,6 +78,7 @@ CAST *ParseVarWithType(CLexer *l,Bool warn=FALSE) {
 }
 CAST *ParseLiteral(CLexer *l) {
   CAST *ret,*item;
+  CHashClass *cls;
   if(l->tok=='(') {
     Lex(l);
     ret=ParseCascade(l);
@@ -111,9 +114,9 @@ CAST *ParseLiteral(CLexer *l) {
       QueInit(&ret->args);
       QueInit(ret);
       StrCpy(ret->name,l->str);
-      Lex(l);
       ret->is_literal=TRUE;
-      return ret;
+      item=ret;
+      goto np;
     } else if(!l->tok)
       LexExcept(l,"Erection's over;Unexpected end of input.");
   } else if(l->tok=='[') {
@@ -157,11 +160,7 @@ CAST *ParseLiteral(CLexer *l) {
     item=CAlloc(sizeof CAST);
     item->type=AST_STR;
     item->str=StrNew(l->str);
-    QueInit(&item->args);
-    QueInit(item);
-    Lex(l);
-    item->is_literal=TRUE;
-    return item;
+    goto np;
   } else if(l->tok==TOK_NAME) {
     item=CAlloc(sizeof CAST);
     if(!StrCmp(l->str,"self")) {
@@ -180,7 +179,28 @@ np:
     QueInit(&item->args);
     QueInit(item);
     Lex(l);
-    item->is_literal=TRUE;
+    if(l->tok=='->') {
+      ret=CAlloc(sizeof CAST);
+      ret->type=AST_MEMBER;
+      Lex(l);
+      if(l->tok!=TOK_NAME)
+        LexExcept(l,"Expected a fucking member name.");
+      StrCpy(ret->name,l->str);
+      if(cls=HashFind(item->var_class_name,Fs->hash_table,HTT_CLASS)) {
+        if(MemberFind(l->str,cls)) {
+	  cls=MemberFind(l->str,cls)->member_class;
+	  if(IsSmalltalkMember(cls)) {
+	    StrCpy(ret->var_class_name,cls[-1].str);
+	  }
+        }
+      }
+      Lex(l);
+      QueInit(&ret->args);
+      QueInit(ret);
+      QueIns(item,&ret->args);
+      ret->is_literal=TRUE;
+      item=ret;
+    }
     item->is_literal=TRUE;
     return item;    
   } else if(l->tok==TOK_CHR) {
@@ -188,20 +208,12 @@ np:
     item->type=AST_CHR;
     item->name[0]=l->chr;
     item->name[1]=0;
-    QueInit(&item->args);
-    QueInit(item);
-    Lex(l);
-    item->is_literal=TRUE;
-    return item;    
+    goto np;
   } else if(l->tok==TOK_NUM) {
     item=CAlloc(sizeof CAST);
     item->type=AST_NUM;
     item->num=l->num;
-    QueInit(&item->args);
-    QueInit(item);
-    Lex(l);
-    item->is_literal=TRUE;
-    return item;    
+    goto np;
   }
   return NULL;
 }
@@ -231,6 +243,7 @@ again:
 }
 CAST *ParseBinop(CLexer *l,CAST *left=NULL) {
   CAST *right,*ret;
+  CHashClass *cls;
   if(!left) left=ParseUnop(l);
   if(!left) return NULL;
   I64 idx;
@@ -238,7 +251,7 @@ again:
   if(l->tok!=TOK_NAME) {
     for(idx=0;l->tok.u8[idx];idx++) {
       if(!IsOperatorChr(l->tok.u8[idx])) 
-	goto fail;
+        goto fail;
     }
     ret=CAlloc(sizeof CAST);
     ret->type=AST_BINOP;
@@ -309,7 +322,7 @@ CAST *ParseCascade(CLexer *l) {
       orig=left;
       left_parent=NULL;
       while(!left->is_literal) {
-        left_parent=left;
+         left_parent=left;
         left=left->args.next;
       }
       ret->cascade_head=left;
@@ -348,7 +361,8 @@ CAST *ParseCascade(CLexer *l) {
 }
 CAST *ParseAst(CLexer *l) {
   CLexer backup;
-  CAST *var,*right,*assign;
+  CAST *var,*right,*tmp,*assign;
+  CHashClass *cls;
   U8 assign_to[STR_LEN],symbol=FALSE;
   I64 old_pos=l->pos,old_flags=l->flags,old_ch=l->last_chr;
   if(l->tok==TOK_NAME||l->tok=='#') {
@@ -356,18 +370,44 @@ CAST *ParseAst(CLexer *l) {
     if(l->tok=='#') {
       symbol=TRUE;
       if(Lex(l)!=TOK_NAME) {
-         goto cont;
+        goto cont;
       }
     }
     StrCpy(assign_to,l->str);
-    if(Lex(l)=='_') {
-      var=CAlloc(sizeof CAST);
-      QueInit(var);
-      if(symbol)
-        var->type=AST_SYMBOL;
-      else
-        var->type=AST_VAR;
-      StrCpy(var->name,assign_to);
+    Lex(l);
+
+    var=CAlloc(sizeof CAST);
+    QueInit(var);
+    StrCpy(var->name,assign_to);
+
+    if(symbol)
+      var->type=AST_SYMBOL;
+    else
+      var->type=AST_VAR;
+    if(l->tok=='->') {
+      tmp=CAlloc(sizeof CAST);
+      tmp->type=AST_MEMBER;
+      Lex(l);
+      if(l->tok!=TOK_NAME)
+        LexExcept(l,"Expected a fucking member name.");
+      StrCpy(tmp->name,l->str);
+      if(cls=HashFind(var->var_class_name,Fs->hash_table,HTT_CLASS)) {
+        if(MemberFind(l->str,cls)) {
+	  cls=MemberFind(l->str,cls)->member_class;
+	  if(IsSmalltalkMember(cls)) {
+	    StrCpy(tmp->var_class_name,cls[-1].str);
+	  }
+        }
+      }
+      Lex(l);
+      QueInit(&tmp->args);
+      QueInit(tmp);
+      QueIns(var,&tmp->args);
+      tmp->is_literal=TRUE;
+      var=tmp;
+    }
+
+    if(l->tok=='_') {
       Lex(l);
       if(right=ParseCascade(l)) {
         assign=CAlloc(sizeof CAST);
@@ -380,6 +420,7 @@ CAST *ParseAst(CLexer *l) {
       } else 
         LexExcept(l,"I want something to asign to '%s' asswipe.",assign_to);
     } else {
+      Free(var);
 cont:
       MemCpy(l,&backup,sizeof CLexer);
     }
@@ -400,7 +441,6 @@ cont:
   return var;
 }
 
-extern Bool IsSmalltalkMember(CHashClass *cls);
 CMethod *ParseMethod(CLexer *l,CHashClass *cls=NULL) {
   CMethod *m=CAlloc(sizeof CMethod);
   CAST *name,*head;
@@ -536,6 +576,9 @@ U0 DumpAst(CAST *s) {
 	  DumpAst(cur);
 	break;
     start:
+      case AST_MEMBER:
+        "->%s\n",s->name;
+	break;
       case AST_RETURN:
         "RETURN\n";
 	break;
@@ -636,10 +679,11 @@ U0 MethodDel(CMethod *m) {
   }
   Free(m);  
 }
-/*CLexer *l=LexerNew("123.4 + 456.789 +(3 + 4) add: 100 sqrt to: 1");
+CLexer *l=LexerNew("123.4->x + 456.789 +(3 + 4) add: 100 sqrt to: 1");
+CLexer *l=LexerNew("1 -> xyz _123 ");
 Lex(l);
 DumpAst(ParseAst(l));
-CLexer *l=LexerNew("^ (#Window new) + 2 ; open ; addButton: 'hi' ");
+/*CLexer *l=LexerNew("^ (#Window new) + 2 ; open ; addButton: 'hi' ");
 Lex(l);
 DumpAst(ParseAst(l));
 CLexer *l=LexerNew("Method: a  |b c_c|
@@ -650,5 +694,4 @@ Lex(l);
 CMethod *m=ParseMethod(l);
 DumpAst(m->body.next);
 DumpAst(m->body.last);
-*/
- 
+ */
