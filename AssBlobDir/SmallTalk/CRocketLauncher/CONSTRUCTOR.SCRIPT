@@ -1,5 +1,4 @@
 init ->CRocketLauncher | |
-  'pop' show .
   self setGraphics: 'GR/RocketL/idle' .
   self setMaxAmmo: 50 .
   ammo _ 5 .

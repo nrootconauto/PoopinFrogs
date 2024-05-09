@@ -3,7 +3,7 @@ addNewThingFromClass: st_class* atX: x=CFrogNum atY: y=CFrogNum ->* |new=C2DThin
   new isNil ifTrue: [
     ^ new
   ] .
-  new setX: x .
-  new setY: y .
+  new ->x _ x .
+  new ->y _ y .
   self addThing: new .
   ^ new

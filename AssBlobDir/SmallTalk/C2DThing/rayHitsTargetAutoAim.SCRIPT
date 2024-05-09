@@ -3,6 +3,8 @@ screenRayHitsTarget: t=C2DThing
   withAutoAim: mul=C2DThing
   -> CFrogNum
 | 
+  xx=CFrogNum
+  yy=CFrogNum 
   dist=C2DThing
   dist_scale=C2DThing
   tolerance=C2DThing
@@ -11,11 +13,14 @@ screenRayHitsTarget: t=C2DThing
     ^ 0
   ] .
   'See 3D.HC' .
-  dist_scale _ 128 * 480 .
-  dist _ ( (x - t xPos ) squared + (y - t yPos ) squared ) sqrt .
-  dist _ dist_scale / ( dist + .1 ) .
-  tolerance _ ( 3.14 / 4 / 640 ) * dist * mul.
-  (self angleBetween: t) < tolerance ifTrue: [
+  tolerance _ ( 3.14 / 8 ) * mul.
+  xx _ t->x - self->x .
+  yy _ t->y - self->y .
+  a _ ((xx arg: yy ) - a) cos arccos.
+  a > 3.14 ifTrue: [
+    a _ a - 3.14 .
+  ] .
+  a abs < tolerance ifTrue: [
     ^ 1
   ] .
-  ^ 0. 
+  ^ 0.

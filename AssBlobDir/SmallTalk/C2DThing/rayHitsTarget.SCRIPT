@@ -10,7 +10,7 @@ screenRayHitsTarget: t=C2DThing atAngle: a=CFrogNum
   ] .
   'See 3D.HC' .
   dist_scale _ 128 * 480 .
-  dist _ ( (x - t xPos ) squared + (y - t yPos ) squared ) sqrt .
+  dist _ ( (x - t ->x ) squared + (y - t ->y ) squared ) sqrt .
   dist _ dist_scale / ( dist + .1 ) .
   tolerance _ ( 3.14 / 4 / 640 ) * dist.
   (self angleBetween: t) < tolerance ifTrue: [

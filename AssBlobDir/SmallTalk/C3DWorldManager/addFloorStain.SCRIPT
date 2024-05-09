@@ -3,8 +3,8 @@ addFloorStain: s=CFloorStain ->* | other=CFloorStain add=CFloorStain new_set=CFr
 'Make a new set to avoid modifying the set while we work on it'.
   new_set _floor_stains copy .
   new_set do: [:s2=CFloorStain |
-    ((s getTileX - s2 getTileX) abs <= 1 and: (s getTileY - s2 getTileY ) abs  <= 1 ) ifTrue: [
-      ((s getTileX = s2 getTileX ) and:  (s getTileY = s2 getTileY )) ifTrue: [
+    ((s ->tile_x - s2 ->tile_x) abs <= 1 and: (s ->tile_y - s2 ->tile_y ) abs  <= 1 ) ifTrue: [
+      ((s ->tile_x = s2 ->tile_x ) and:  (s ->tile_y = s2 ->tile_y )) ifTrue: [
         add _ s2 mergeWith: s .
         floor_stains remove: s2 .
       ] ifFalse: [

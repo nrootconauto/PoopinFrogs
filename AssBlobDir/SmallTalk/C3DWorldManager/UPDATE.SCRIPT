@@ -4,7 +4,7 @@ update ->* | p=CPlayer |
     self removeFromGrid: t .
     t update .
     p = t ifTrue: [
-      ((grid at: (p xPos / 128 / 16) ) at: p yPos / 128 / 16) do: [:pu* |
+      ((grid at: (p ->x / 128 / 16) ) at: p ->y / 128 / 16) do: [:pu* |
         (pu hasClass: CPickup ) ifTrue: [
            (pu hitsThing: p ) ifTrue: [ pu addToPlayer: p ]
         ].

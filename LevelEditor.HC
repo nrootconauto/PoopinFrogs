@@ -1815,4 +1815,3 @@ next:;
   SettingsPop;
 }
 WorldEdit("ASS");
-

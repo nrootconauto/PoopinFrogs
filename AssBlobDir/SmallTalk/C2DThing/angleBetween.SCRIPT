@@ -5,8 +5,8 @@ angleBetween: other=C2DThing -> CFrogNum |
   oy=CFrogNum
   r=CFrogNum
 |
-  ox _ other xPos - x .
-  oy _ other yPos - y .
+  ox _ other ->x - x .
+  oy _ other ->y - y .
   px _ angle cos * 100 .
   py _ angle sin * 100 .
   r _ (

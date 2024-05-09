@@ -2,7 +2,7 @@ updateThingPos: thing=C2DThing  ->* | X=CFrogNum Y=CFrogNum|
   (thing hasClass: C2DThing) ifTrue: [
     self removeFromGrid: thing .
     'GRID_SZ is 128' .
-    X _ thing xPos .
-    Y _ thing yPos .
+    X _ thing ->x .
+    Y _ thing ->y .
     ((grid at: X / 128 / 16 ) at: Y / 128 / 16) add: thing .
   ]

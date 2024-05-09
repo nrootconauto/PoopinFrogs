@@ -24,7 +24,7 @@ update -> * |
 
 'Check if close enough to bite'.
   state = 'Chase' ifTrue: [
-    dist _ ((target xPos - x ) squared + (target yPos - y) squared ) sqrt .
+    dist _ ((target ->x - x ) squared + (target ->y - y) squared ) sqrt .
     dist < (1.5 * 128) ifTrue: [
       state _ 'Bite' .
       state_start_tS _ cur_tS .
@@ -71,7 +71,7 @@ update -> * |
       target _player .
       state _ 'Chase' .
       state_duration _ random_generator next * 2 + .5 .
-      angle _ ((target xPos - x ) arg: (target yPos - y )) .
+      angle _ ((target ->x - x ) arg: (target ->y - y )) .
       template _ #world getThingTemplate: 'CZombie' .
     ] ifFalse: [
       state _ 'Normal' .

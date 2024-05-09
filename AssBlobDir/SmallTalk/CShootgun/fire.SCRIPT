@@ -30,7 +30,7 @@ fire ->CFrogNum |
         spread _ CFrogRandom new next - .5  * (3.14 / 16 ) .
         hit _ 0 .
         canidates do: [ :t=C2DThing |
-          (player ~= t and: t getHealth > 0. ) ifTrue: [
+          (player ~= t and: t ->health > 0. ) ifTrue: [
             (player screenRayHitsTarget: t atAngle: player getAngle + spread
             ) ifTrue: [
                 hit ifFalse: [
@@ -52,8 +52,8 @@ fire ->CFrogNum |
             wall_hole _ CWallStain new .
             wall_hole
             placeAtAngle: player getAngle + spread
-              fromX: player xPos 
-              fromY: player yPos
+              fromX: player ->x 
+              fromY: player ->y
               atHeight: sz .
           ] .
         ] .

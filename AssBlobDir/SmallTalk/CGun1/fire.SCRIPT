@@ -30,8 +30,8 @@ fire ->* |
         wall_hole _ CWallStain new .
         wall_hole
           placeAtAngle: player getAngle
-          fromX: player xPos 
-          fromY: player yPos
+          fromX: player ->x 
+          fromY: player ->y
           atHeight: sz .
       ] .
 
@@ -41,7 +41,7 @@ fire ->* |
       inventory_item setCount: ammo .
       canidates _ #world thingsInDist: 128 * 64 atAngle: player getAngle fromThing: player .
       canidates do: [ :t=C2DThing |
-        (player ~= t and: t getHealth > 0. ) ifTrue: [
+        (player ~= t and: t ->health > 0. ) ifTrue: [
           (player screenRayHitsTarget: t atAngle: player getAngle 
              withAutoAim: 1.5
              ) ifTrue: [

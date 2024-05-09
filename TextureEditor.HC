@@ -110,7 +110,7 @@ CCutout *MakeCutout(CTextureEditor *ed) {
     bx2=MaxI64(bx2,cut->x);
     bx2=MaxI64(bx2,cut->x2);
     by2=MaxI64(by2,cut->y);
-    by2=MaxI64(by2,cut->y2);
+    by2=MaxI64(by2,cut->y2);
     GrLine3(mask,
 	  ClampI64(cut->x,0,w),
 	  ClampI64(cut->y,0,h),

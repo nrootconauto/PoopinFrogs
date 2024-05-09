@@ -179,6 +179,7 @@ np:
     QueInit(&item->args);
     QueInit(item);
     Lex(l);
+again:
     if(l->tok=='->') {
       ret=CAlloc(sizeof CAST);
       ret->type=AST_MEMBER;
@@ -200,7 +201,9 @@ np:
       QueIns(item,&ret->args);
       ret->is_literal=TRUE;
       item=ret;
+      goto again;
     }
+
     item->is_literal=TRUE;
     return item;    
   } else if(l->tok==TOK_CHR) {
@@ -362,7 +365,7 @@ CAST *ParseCascade(CLexer *l) {
 CAST *ParseAst(CLexer *l) {
   CLexer backup;
   CAST *var,*right,*tmp,*assign;
-  CHashClass *cls;
+  CHashClass *cls;
   U8 assign_to[STR_LEN],symbol=FALSE;
   I64 old_pos=l->pos,old_flags=l->flags,old_ch=l->last_chr;
   if(l->tok==TOK_NAME||l->tok=='#') {

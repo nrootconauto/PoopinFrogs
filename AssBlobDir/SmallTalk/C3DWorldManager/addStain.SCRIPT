@@ -1,6 +1,6 @@
 addWallStain: s=CWallStain ->* | new=CWallStain |
   wall_stains do: [:s2=CWallStain |
-    (s getTileX = s2 getTileX and: s getTileY = s2 getTileY) ifTrue: [
+    (s->tile->x = s2->tile->x and: s->tile->y = s2->tile->y) ifTrue: [
       s getSide = s2 getSide ifTrue: [
         new _ s2 mergeWith: s .
         wall_stains remove: s2 .
@@ -11,5 +11,5 @@ addWallStain: s=CWallStain ->* | new=CWallStain |
   ].
   wall_stains size > 32 ifTrue: [
     wall_stains removeAt: 0 
-  ] . 
+  ] .  
   wall_stains add: s

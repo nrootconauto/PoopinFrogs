@@ -1,9 +1,9 @@
 rem: other->CFrogNum | |
-  '64 bit integer limit(used for remainder)' .
-  self > 9e18 ifTrue: [
+  '32.16 bit fixed point limit(used for remainder)' .
+  self > 4294967296 ifTrue: [
     ^ 0 .
   ] .
-  self < -9e18 ifTrue: [
+  self < -4294967295 ifTrue: [
     ^ 0 .
   ] .
   other = 0 ifTrue: [^ CFrogDivideError new ].

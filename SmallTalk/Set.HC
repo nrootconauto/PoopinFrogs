@@ -47,8 +47,8 @@ class CU8Set {
 CU8Set *U8SetNew(CTask *mem_task=NULL) {
   CU8Set *s=CAlloc(sizeof(CU8Set),mem_task);
   s->mem_task=mem_task;
-  s->cap=16;
-  s->body=CAlloc(16,mem_task);
+  s->cap=64;
+  s->body=CAlloc(64,mem_task);
   return s;
 }
 U0 U8SetAdd(CU8Set *s,I64 v) {

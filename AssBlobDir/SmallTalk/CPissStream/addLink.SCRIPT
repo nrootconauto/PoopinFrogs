@@ -2,5 +2,5 @@ addLink:l=CPissLink | tmp=CFrogArray |
   'newest pisses come firstr in the stream' .
   tmp _  #( l ) .
   tmp addAll: links .
-  l setFrom: from .
+  l -> from _ from .
   links _ tmp .

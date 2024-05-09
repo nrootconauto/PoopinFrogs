@@ -15,8 +15,8 @@ thingsInDist: dist=CFrogNum atAngle: angle=CFrogNum fromThing: thing=C2DThing
   cos _ angle cos .
   sin _ angle sin .
   ret _ #() .
-  x _ thing xPos .
-  y _ thing yPos .
+  x _ thing ->x .
+  y _ thing ->y .
   add_thing _ [:bx=CFrogNum :by=CFrogNum |
     tmp _ (grid at: bx ) at: by .
     tmp do: [:t=C2DThing |

@@ -5,14 +5,14 @@ eatTarget: thing=C2DThing  fromFrog: f=C2DThing ->* |
   dist=CFrogNum
  |
   from _ f .
-  xx _ thing xPos - from xPos.
-  yy _ thing yPos - from yPos.
+  xx _ thing ->x - from ->x.
+  yy _ thing ->y - from ->y.
   angle _ xx arg: yy .
   dist _ (xx squared + yy squared ) sqrt max: 256 .
   dist > 32 ifTrue: [
      dist _ dist - 32 .
   ] .
-  target_x _ from xPos + (dist * angle cos ).
-  target_y _ from yPos + (dist * angle sin ).
-  target_z _ thing zPos + .5 .
+  target_x _ from ->x + (dist * angle cos ).
+  target_y _ from ->y + (dist * angle sin ).
+  target_z _ thing ->z + .5 .
   start_tS _ CFrogTime now asSeconds .

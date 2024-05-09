@@ -5,7 +5,6 @@ addToPlayer: player=CPlayer ->CFrogNum | item* have=CFrogArray new_cnt=CFrogNum 
     item _ t getItem .
     (item hasClass: item_class) ifTrue: [
       new_cnt _ item getAmmo + count .
-      item getMaxAmmo show .
       item getMaxAmmo < (new_cnt) ifTrue: [
         'Fill up the old item and add remainder'.
 

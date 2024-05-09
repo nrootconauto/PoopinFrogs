@@ -2,16 +2,22 @@ class CFrogThing:CQue {
 #define THINGF_TO_DELETE 1
 #define THINGF_FRAME_TYPE 2
 #define THINGF_GC_LOCK 4
+#define THINGF_CALL_LOCK 8
 #define THINGf_TO_DELETE 0
 #define THINGf_GC_LOCK 2
+#define THINGf_CALL_LOCK 3
   I32 thing_flags,shadow_ref_cnt;
   I32 id,ref_cnt;
+  CCPU *owner_cpu;
+  I64 lock_cnt;
   U8 class_name[32];
 };
 class CFrogFrame {
   CQue *pad,*pad;
   I32 thing_flags,pad;
   I32 id,ref_cnt;
+  CCPU *owner_cpu;
+  I64 lock_cnt;
 }
 class CFrogNum:CFrogThing {
   F64 num;

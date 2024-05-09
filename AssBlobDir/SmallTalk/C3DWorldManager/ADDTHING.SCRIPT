@@ -37,7 +37,7 @@ addThing: thing* ->* |
      ('Retard')
      ('Ben')
   ) .
-  first _ names at: (thing xPos * 123.456  rem:  names size ) .
+  first _ names at: (thing ->x * 123.456  rem:  names size ) .
   names _ #(
     ('Assholeingston')
     ('Ballsackingston')
@@ -66,7 +66,7 @@ addThing: thing* ->* |
     ('Wuggis')
     ('Z80')
   ) .
-  last _ names at: (thing yPos * 567.89  rem: names size ) .
+  last _ names at: (thing ->y * 567.89  rem: names size ) .
   thing setName: first , ' ' , last .
   thing getName show .
   things add: thing .

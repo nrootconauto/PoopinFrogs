@@ -24,8 +24,8 @@ fire ->CFrogNum |
       hit _ 0 .
       best_dist _ 16000 .
       canidates do: [:t=C2DThing |
-        (player ~= t and: t getHealth > 0. ) ifTrue: [
-          dist _ (t xPos - player xPos ) squared + (t yPos - player yPos ) squared .
+        (player ~= t and: t ->health > 0. ) ifTrue: [
+          dist _ (t ->x - player ->x ) squared + (t ->y - player ->y ) squared .
           dist < best_dist ifTrue: [
             best_dist _ dist .
             best _ t          
@@ -34,20 +34,20 @@ fire ->CFrogNum |
       ] .
       rocket _ CRocket new .
       (best hasClass: C2DThing ) ifTrue: [
-        angle _ best xPos - player xPos arg: best yPos - player yPos .
-        targetz _ best zPos + .5 .
+        angle _ best ->x - player ->x arg: best ->y - player ->y .
+        targetz _ best ->z + .5 .
       ] ifFalse: [
         angle _ player getAngle  .
-        targetz _ player zPos + .5 .
+        targetz _ player ->z + .5 .
       ] .
-      rocket setFrom: player .
-      rocket setX: player xPos + (32* angle cos).
-      rocket setY: player yPos + (32* angle sin).
-      rocket setZ: player zPos + .5  .
-      rocket setAngle: angle .
+      rocket ->from _  player .
+      rocket ->x _ player ->x + (32* angle cos).
+      rocket ->y _ player ->y + (32* angle sin).
+      rocket ->z _  player ->z + .5  .
+      rocket ->angle _ angle .
       rocket addMomX: 75 * angle cos .
       rocket addMomY: 75 * angle sin .
-      rocket addMomZ: (targetz  - rocket zPos ) / best_dist sqrt .
+      rocket addMomZ: (targetz  - rocket ->z ) / best_dist sqrt .
     ] .
   ] .
 

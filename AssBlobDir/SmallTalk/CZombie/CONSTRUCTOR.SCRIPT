@@ -7,5 +7,5 @@ init | |
   animation_start_tS _ 0 .
   state _ 'Normal' . 
   piss_stream _ CPissStream new .
-  piss_stream setFrom: self .
+  piss_stream ->from _ self .
   ^ self

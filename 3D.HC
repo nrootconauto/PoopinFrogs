@@ -97,7 +97,6 @@ class C3DWorld {
    CTask *mem_task;
    F64 cam_height;
 //Private
-   F64 plane_dist;
    CBlockedView blocked_views[GR_WIDTH][0x80];
    I64 blocked_cnts[GR_WIDTH];
    CQue particles;
@@ -135,7 +134,6 @@ U0 C2DThingTemplateDel(C2DThingTemplate *t) {
 }
 U0 C3DWorldSetFov(C3DWorld *w,F64 fov=pi/4) {
   w->fov=fov;
-  w->plane_dist=(GR_WIDTH/2)/(Tan(fov/2));
 }
 //Returns the first availbe y pixel for a distance(checks whats blocked),or returns input y if ok
 I64 VisSkipTo(C3DWorld *w,I64 x,I64 y,I64 dist) {
@@ -253,8 +251,7 @@ C3DWorld *LoadWorldFromFile(U8 *blob_file="ASS",U8 *filename,F64 fov=pi/4) {
 	  thing->angle=fptr(CFileThing*)->rot;
 	  CallScript("init",thing);
 	  I64SetAdd(ret->_2d_things,thing);
-        } else
-	  ThingDel(thing);
+        }
       }
       Free(tmp);
     }
@@ -396,6 +393,7 @@ I64 FindRayWall(C3DWorld *w,F64 slope,F64 cos,F64 sin,I64 *segment=NULL,F64 *dis
   F64 hit_x=-1,hit_y=-12345,dist2=32*GRID_SZ,check_dist=0,t1,t2,wall_x,wall_y,res_dist;
   I64 sign_c=Sign(cos),sign_s=Sign(sin);
   static F64 step=GRID_SZ-1;
+  if(dist) *dist=-1;
   if(force_tile!=INVALID_PTR) {
     ix=force_tile%w->world_width;
     iy=force_tile/w->world_width;
@@ -642,7 +640,7 @@ Bool C3DWorldMoveWithCollision(C3DWorld *w,F64 angle,F64 dist,F64 *x,F64 *y,Bool
   if(dist2-THING_RADIUS/4>dist||force) {
     *x+=Cos(angle)*dist;
     *y+=Sin(angle)*dist;
-    hit_wall=(dist2-THING_RADIUS<dist);
+    if(dist2>= 0.) hit_wall=(dist2-THING_RADIUS<dist);
   } else if(walk_along_wall) {
 slide:    
     hit_wall=TRUE;
@@ -1137,7 +1135,7 @@ F64 ScreenCordsToDist(C3DWorld *w,I64 x,I64 y,F64 max=GRID_SZ*128,F64 *height=NU
 	 break;
        case 1:
 	 xoff=1;
-	 break;
+	 break;
        case 2:
 	 yoff=-1;
 	 break;
@@ -1581,11 +1579,15 @@ U0 DrawFrogTongue(C3DWorld *w,CFrogTongue *t) {
   }
 }
 U0 DrawPissStream(C3DWorld *w,CPissStream *ps) {
+  FrogThingLock(ps);
   CDC *dc=w->to_dc;
   CD3 stp,enp,last;
   CPissLink **links=ps->links(CFrogArray*)->items->body;
   I64 idx,cnt=ps->links(CFrogArray*)->items->cnt;
-  if(cnt<1) return;
+  if(cnt<1) {
+    FrogThingUnlock(ps);
+    return;
+  }
   last.x=links[0]->x;
   last.y=links[0]->y;
   last.z=links[0]->z;
@@ -1605,6 +1607,7 @@ U0 DrawPissStream(C3DWorld *w,CPissStream *ps) {
     last.y=links[idx]->y;
     last.z=links[idx]->z;
   }
+  FrogThingUnlock(ps);
 }
 U0 Draw2DThing(C3DWorld *w,C2DThing *thing) {
   if(thing->no_draw) goto fin;
@@ -1788,7 +1791,6 @@ CFrogThing *FloorStainSetGr(CFloorStain *self,...) {
     Free(raw);
   }
   Free(name);
-  ThingDel(str);
   return FROG_SMALL_NIL;
 }
 AddMethod("CFloorStain","setGraphics:atAngle:",&FloorStainSetGr);
@@ -1821,7 +1823,6 @@ CFrogThing *FloorStainMerge(CFloorStain *self,...) {
   if(other->dc)
     GrBlot(new,xoff+other->x-other->center_x-x1,yoff+other->y-other->center_y-y1,other->dc);
 fin:;
-  ThingDel(other);
   return ret;
 }
 AddMethod("CFloorStain","mergeWith:",&FloorStainMerge);
@@ -1844,7 +1845,6 @@ CFrogThing *WallStainSetGr(CWallStain *self,...) {
     Free(raw);
   }
   Free(name);
-  ThingDel(str);
   return FROG_SMALL_NIL;
 }
 AddMethod("CWallStain","setGraphics:",&WallStainSetGr);
@@ -1860,7 +1860,7 @@ CFrogThing *WallStainMerge(CWallStain *self,...) {
   x2=MaxI64(self->x-self->center_x+self->dc->width,other->x-other->center_x+other->dc->width);
   y1=MinI64(self->y-self->center_y,other->y-other->center_y);
   y2=MaxI64(self->y-self->center_y+self->dc->height,other->y-other->center_y+other->dc->height);
-  CDC *new=DCNew(x2-x1+1,y2-y1+1);
+  CDC *new=AnimDCNew(x2-x1+1,y2-y1+1);
   ret=ConstructThing("CWallStain");
   ret->dc=new;
   ret->x=x1;
@@ -1873,7 +1873,6 @@ CFrogThing *WallStainMerge(CWallStain *self,...) {
   GrBlot(new,self->x-self->center_x-x1,self->y-self->center_y-y1,self->dc);
   GrBlot(new,other->x-other->center_x-x1,other->y-other->center_y-y1,other->dc);
 fin:;
-  ThingDel(other);
   return ret;
 }
 AddMethod("CWallStain","mergeWith:",&WallStainMerge);
@@ -1908,8 +1907,6 @@ CFrogThing *C2DThingMoveAtAngle(C2DThing *self,...) {
   self->y=old_y;
   self->momx2+=AsF64(dist)*Cos(AsF64(angle)); 
   self->momy2+=AsF64(dist)*Sin(AsF64(angle)); 
-  ThingDel(dist);
-  ThingDel(angle);
   return FrogNumNew(hit_wall);
 }
 AddMethod("C2DThing","move:atAngle:",&C2DThingMoveAtAngle);
@@ -1963,7 +1960,6 @@ CFrogThing *WorldManagerTileHeightAt(C3DWorldManager *self,...) {
     if(0<=p->y<w->world_height) {
       ret=FrogNumNew(w->heightmap[p->x+p->y*w->world_width]);
     }
-  ThingDel(p);
   return ret;
 }
 AddMethod("C3DWorldManager","tileHeightAt:",&WorldManagerTileHeightAt);
@@ -1994,7 +1990,6 @@ CFrogThing *WorldManagerRaySideForTile(C3DWorldManager *self,...) {
 	    );
   w->x=oldx;
   w->y=oldy;
-  ThingDel(p);
   return FrogNumNew(side);
 }
 AddMethod("C3DWorldManager","raySideAtX:atY:atAngle:atHeight:forTile:",&WorldManagerRaySideForTile);
@@ -2024,7 +2019,6 @@ CFrogThing *WorldManagerRaySegmentForTile(C3DWorldManager *self,...) {
 	    );
   w->x=oldx;
   w->y=oldy;
-  ThingDel(p);
   return FrogNumNew(segment);
 }
 AddMethod("C3DWorldManager","raySegmentAtX:atY:atAngle:atHeight:forTile:",&WorldManagerRaySegmentForTile);
@@ -2063,12 +2057,11 @@ AddMethod("C3DWorldManager","rayTileAtX:atY:atAngle:atHeight:",&WorldManagerRayT
 CFrogThing *ShellCasingSetGr(CShellCasing *self,...) {
   U8 *name=AsString(argv[0]);
   U8 *grl=BlobFileGetLump("ASS.BLOB",name);
+  if(self->dc) AnimDCDel(self->dc);
   if(grl) {
-    if(self->dc) AnimDCDel(self->dc);
     self->dc=AnimDCLoad(grl); 
   }
   Free(name),Free(grl); 
-  ThingDel(argv[0]);
   return FROG_SMALL_NIL;
 }
 AddMethod("CShellCasing","setGraphics:",&ShellCasingSetGr);
@@ -2085,7 +2078,6 @@ CFrogThing *HandItemSetGr(CHandItem *self,...) {
     self->gr=AnimDCLoad(grl);
     Free(grl);
   }
-  ThingDel(argv[0]);
   Free(name);
   return FROG_SMALL_NIL;
 }
@@ -2106,7 +2098,6 @@ CFrogThing *ThingCanSeeThing(C2DThing *self,...) {
   w->x=old_x;
   w->y=old_y;
   w->cam_height=old_z;
-  ThingDel(other);
   return ret;
 }
 AddMethod("C2DThing","canSeeThing:",&ThingCanSeeThing);
@@ -2175,7 +2166,7 @@ U0 DrawIt(CTask *t,CDC *dc) {
     Draw2DThing(w,body[idx]);
   
   head=&w->particles;
-  for(p=head->next;head!=p;p=p->next) {
+  for(p=head->next;head!=p;p=n) {
     p->x+=p->momx;
     p->y+=p->momy;
     p->z+=p->momz;
@@ -2189,8 +2180,8 @@ U0 DrawIt(CTask *t,CDC *dc) {
 	p->z=Max(w->heightmap[tx+ty*w->world_width]-1,p->z);
       }
     DrawParticle(w,p);
+    n=p->next;
     if(tS>1+p->born_at) {
-      n=p->next;
       QueRem(p);
       Free(p);
       w->particle_cnt--;
@@ -2231,10 +2222,37 @@ U0 DrawIt(CTask *t,CDC *dc) {
       GrBlot(dc,hand->x+hand->xoff-hand_gr->width/2,hand->y+hand->yoff-hand_gr->height/2,hand_gr+f);
     }
   }
+fin:
   DrawUIRoot(t,dc);
   dc->flags|=DCF_NO_TRANSPARENTS;
   GrBlot(odc,0,0,dc);
   dc->depth_buf=odepth_buf;
+}
+class CCSPair {
+  U8 *name;
+  CFrogThing *thing;
+  CHashTable *ht;
+};
+U0 JobCallScript(CCSPair *p) {
+  CHashTable *t=Fs->hash_table;
+  Fs->hash_table=p->ht;
+  CallScript(p->name,p->thing);
+  Free(p);
+  Fs->hash_table=t;
+}
+U0 QueCallScript(U8 *name,CFrogThing *t) {
+  CCSPair *p=CAlloc(sizeof CCSPair);
+  I64 c=mp_cnt-1,best=c;
+  while(--c>=0) {
+    if(cpu_structs[c].idle_factor>cpu_structs[best].idle_factor)
+      best=c;
+  }
+  p->name=name;
+  p->ht=Fs->hash_table;
+  p->thing=t;
+  c=0;
+  if(!c) JobCallScript(p);
+  else JobQue(&JobCallScript,p,best);
 }
 U0 WalkAround() {
   I64 c,ch=0,sc=0,m1,m2,msg,jump=FALSE;
@@ -2280,8 +2298,8 @@ U0 WalkAround() {
 	  player->momx2=0;
 	  player->momy2=0;
        }
-       CallScript("animate",body[idx]);
-     }     
+       QueCallScript("animate",body[idx]);
+     }
 //if (ThingHasClass(player,"CPlayer")) {
       // set vars for multikey input
       while(msg=ScanMsg(&m1,&m2)) {        
@@ -2390,8 +2408,8 @@ next:;
 	  }
         }
      }
-      if(every&15==0) FrogGarbageCollect;
       Refresh;
+      FrogGarbageCollect;
     } catch PutExcept(TRUE);
 en:
   FlushMsgs;

@@ -17,11 +17,12 @@ updateWithWeight: w=CFrogNum makeParticles: part=CFrogNum ->* |
   z _ z + (momz * w ) .
   momz _ momz - (world gravity / 3 * w ).
 
+
   'Try to piss on things and damage them' .
   around _ world getThingsInRadiusFromX: x fromY: y withRadius: 25 .
   around do: [:t* |
-    (t getHealth > 0 and: t ~= from ) ifTrue: [
-      (z - t zPos) abs < 25 ifTrue: [
+    (t ->health > 0 and: t ~= from ) ifTrue: [
+      (z - t ->z) abs < 25 ifTrue: [
         1 to: 3 do:  [
           world newParticleAtX: x atY: y atZ: z withSpread: 8 withColor: #color_YELLOW
         ] .

@@ -20,15 +20,15 @@ update ->CFrogNum |
     ((to - from ) * t) + from 
   ].
   t _ t sin  .
-  fx _ from xPos .
-  fy _ from yPos .
+  fx _ from ->x .
+  fy _ from ->y .
   angle _ target_x - fx arg: target_y - fy .
   dist _ ((target_x - fx) squared + (target_y - fy) squared ) sqrt * t .
 
   x _ (dist * angle cos ) + fx .
   y _ (dist * angle sin ) + fy .
 
-  z _ lerp value: from zPos + .6  value: target_z .
+  z _ lerp value: from ->z + .6  value: target_z .
   h _ #world tileHeightAtX: x / 128 atY: y / 128 .
   h >= z ifTrue: [
      ^ 0 .
@@ -41,7 +41,7 @@ update ->CFrogNum |
     t ~= from ifTrue: [
       angle _ (t angleBetween: from ) .
       angle < 3.14 / 180 * 15 ifTrue: [
-        dist2 _ ((t xPos - fx) squared + (t yPos - fy) squared ) sqrt .
+        dist2 _ ((t ->x - fx) squared + (t ->y - fy) squared ) sqrt .
         dist > dist2 ifTrue:[
           r _ CFrogRandom new .
           t damage: 5 + (r next * 16 ) .

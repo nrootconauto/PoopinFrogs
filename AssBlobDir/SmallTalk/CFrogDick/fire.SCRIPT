@@ -30,12 +30,12 @@ fire ->* |
       a _ player getAngle + (3.14 / 100 * rand next )  .
       0 to: step do: [:v|
         piss _ CPissLink new .
-        piss setX: player xPos + (16 * a cos ) .
-        piss setY: player yPos + (16 * a sin ) .
-        piss setZ: player zPos + .3 .
-        piss setMomX: (force * a cos).
-        piss setMomY: (force * a sin).
-        piss setMomZ: .35 .
+        piss -> x _  player ->x + (16 * a cos ) .
+        piss -> y _  player ->y + (16 * a sin ) .
+        piss -> z _  player ->z + .3 .
+        piss -> momx _  (force * a cos).
+        piss -> momy _  (force * a sin).
+        piss -> momz _  .35 .
         (piss updateWithWeight:  1  / step * ( step - v )  makeParticles: 0) ifTrue: [ 
           'test if wee havent hit the ground '.
           piss_stream addLink: piss .
