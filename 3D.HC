@@ -1057,7 +1057,8 @@ dy_type:
       for(ix=old_tx;TRUE;ix+=dirx) {
         idx=ix+iy*w->world_width;
         if(t->body[t->cnt-1]!=idx) {
-	  if(PassesThoughBlock(w,slope,ix,iy,NULL,cos,sin)) {
+	  if(PassesThoughBlock(w,slope,ix,iy,&res_dist,cos,sin)) {
+	    if(res_dist<dist)
 	    I64SetAdd(t,idx);
 	  }
         }
@@ -2250,7 +2251,6 @@ U0 QueCallScript(U8 *name,CFrogThing *t) {
   p->name=name;
   p->ht=Fs->hash_table;
   p->thing=t;
-  c=0;
   if(!c) JobCallScript(p);
   else JobQue(&JobCallScript,p,best);
 }
@@ -2289,7 +2289,7 @@ U0 WalkAround() {
 	 }
        }
      }
-     if(every%3==0) CallScript("update",man->value);
+     if(every%3==0) QueCallScript("update",man->value);
 // Do physics after update
      c=w->_2d_things->cnt;
      for(idx=0;idx<c;idx++) {

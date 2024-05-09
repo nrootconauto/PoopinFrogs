@@ -1,7 +1,11 @@
-update ->* | p=CPlayer |
+update ->* | p=CPlayer now=CFrogNum |
   p _self getPlayer .
+  now _ CFrogTime now asSeconds .
+  last_update + .25 > now ifTrue: [
+    ^ 0
+  ] .
+  last_update _ now .
   things do: [:t* |
-    self removeFromGrid: t .
     t update .
     p = t ifTrue: [
       ((grid at: (p ->x / 128 / 16) ) at: p ->y / 128 / 16) do: [:pu* |
@@ -10,7 +14,6 @@ update ->* | p=CPlayer |
         ].
       ]
     ] .
-    self updateThingPos: t
   ] .
 
   'UI and stuf' .

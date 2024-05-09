@@ -355,7 +355,7 @@ BlobFileDeleteLump("ASS2","abd");
 "%s\n",BlobFileGetLump("ASS2","ab/d");*/
 #ifdef DEVELOPMENT_MODE
 //Del("ASS.BLOB*");
-DumpBlobFile("ASS.BLOB","AssBlobDir");
-//UndumpBlobFile(#exe {StreamPrint("\"%Q\"",__DIR__);} "/ASS.BLOB",DEVELOPMENT_DIR);
+//DumpBlobFile("ASS.BLOB","AssBlobDir");
+UndumpBlobFile(#exe {StreamPrint("\"%Q\"",__DIR__);} "/ASS.BLOB",DEVELOPMENT_DIR);
 #endif
 #endif

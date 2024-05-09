@@ -201,7 +201,7 @@ class C3DWorldManager:CFrogThing {
   CFrogArray *floor_stains;
   CFrogDictionary *thing_templates;
   CFrogDictionary *tile_templates;
-  F64 gravity;
+  F64 gravity,last_update;
   I64 screen_x,screen_y;
 //A grid of things having the things(128*128 size)
   CFrogArray *grid;
