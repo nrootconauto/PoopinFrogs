@@ -5,6 +5,8 @@ update -> * |
   new_t=C2DThingTemplate
   hit_wall=CFrogNum
 |
+  momx2 _ 0 .
+  momy2 _ 0 .
   health <= 0 ifTrue: [
     new_t _ #world getThingTemplate: 'CZombie/Dead' .
     new_t ~= template ifTrue: [

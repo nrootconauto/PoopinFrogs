@@ -1,0 +1,8 @@
+init->CPoopMan | |
+  #world addThing: self .
+  template _ #world getThingTemplate: 'CPoopMan' .
+  state_start_tS _ CFrogTime now asSeconds .
+  state _ 'Normal' .
+  random_generator _ CFrogRandom new .
+  health _ 100 .
+  ^ self

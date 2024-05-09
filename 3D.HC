@@ -2278,18 +2278,7 @@ U0 WalkAround() {
   try while (cont) {
      every++;
      body=w->_2d_things->body;
-     //Zero "tick rate" momentums before update
-     if(every%3==0) {
-       c=w->_2d_things->cnt;
-       for(idx=0;idx!=c;idx++) {
-         if(player==body[idx]) {
-	 } else  {
-	   body[idx](C2DThing*)->momx2=0.;
-	   body[idx](C2DThing*)->momy2=0.;
-	 }
-       }
-     }
-     if(every%3==0) QueCallScript("update",man->value);
+     if(every%3==0) QueCallScript("update",man->value);
 // Do physics after update
      c=w->_2d_things->cnt;
      for(idx=0;idx<c;idx++) {
