@@ -349,7 +349,15 @@ class CPlayer:C2DThing {
 //How many bloody footprints will be made
   F64 bloody_foot_count;
 }; 
-
+class CPoopMan:C2DThing {
+  CFrogRandom *random_generator;
+  CEliza *chat_bot;
+  CFrogStr *state;
+  F64 state_start_tS,speed;
+  F64 state_duration;
+  I64 just_jumped;
+  C2DThing *target;  
+};
 class CZombie:C2DThing {
   CFrogRandom *random_generator;
   F64 speed;

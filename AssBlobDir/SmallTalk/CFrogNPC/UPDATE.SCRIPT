@@ -6,6 +6,8 @@ update ->* |
   old_y=CFrogNum
   old_z=CFrogNum
 |
+  momx2 _ 0 .
+  momy2 _ 0 .
   health <= 0 ifTrue: [
     new_t _ #world getThingTemplate: 'CFrogNPC/DEAD' .
     new_t ~= template ifTrue: [

@@ -1,7 +1,7 @@
 update ->* | p=CPlayer now=CFrogNum |
   p _self getPlayer .
   now _ CFrogTime now asSeconds .
-  last_update + .25 > now ifTrue: [
+  last_update + .3333 > now ifTrue: [
     ^ 0
   ] .
   last_update _ now .
