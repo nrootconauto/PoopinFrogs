@@ -687,6 +687,7 @@ U0 PhysicsOnThing(C3DWorld *w,C2DThing *t,C3DWorldManager *wm) {
 	TRUE,
 	t->z)) {
       if(rocket) {
+explode:
         CallScript("explode",rocket);
         return;
       }
@@ -694,6 +695,10 @@ U0 PhysicsOnThing(C3DWorld *w,C2DThing *t,C3DWorldManager *wm) {
   }
   RadiusHitsWall(w,angle,&t->x,&t->y,t->z,THING_RADIUS,TRUE);
   if(rocket) {
+    if(!(0.<=t->x<w->world_width*128))
+      goto explode;
+    if(!(0.<=t->y<w->world_height*128))
+      goto explode;
     CallScript("checkExplode",rocket);
   }
   CallScript("updateThingPos:",wm,FrogIncRefCnt(t));
@@ -2278,7 +2283,18 @@ U0 WalkAround() {
   try while (cont) {
      every++;
      body=w->_2d_things->body;
-     if(every%3==0) QueCallScript("update",man->value);
+     //Zero "tick rate" momentums before update
+     if(every%3==0) {
+       c=w->_2d_things->cnt;
+       for(idx=0;idx!=c;idx++) {
+         if(player==body[idx]) {
+	 } else  {
+	   body[idx](C2DThing*)->momx2=0.;
+	   body[idx](C2DThing*)->momy2=0.;
+	 }
+       }
+     }
+     if(every%3==0) QueCallScript("update",man->value);
 // Do physics after update
      c=w->_2d_things->cnt;
      for(idx=0;idx<c;idx++) {

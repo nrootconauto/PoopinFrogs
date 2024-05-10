@@ -353,9 +353,10 @@ class CPoopMan:C2DThing {
   CFrogRandom *random_generator;
   CEliza *chat_bot;
   CFrogStr *state;
-  F64 state_start_tS,speed;
+  F64 state_start_tS,speed;
   F64 state_duration;
   I64 just_jumped;
+  I64 threw;
   C2DThing *target;  
 };
 class CZombie:C2DThing {
@@ -373,8 +374,7 @@ class CZombie:C2DThing {
 class CRocket:C2DThing {
   C2DThing *from;
 };
-class CPoopRocket:C2DThing {
-  C2DThing *from;
+class CPoopRocket:CRocket {
 };
 class CRocketLauncher:CHandItem {
 };

@@ -1,0 +1,4 @@
+init ->CPoopRocket| |
+  #world addThing: self .
+  template _ #world getThingTemplate: 'CPoopRocket' .
+  ^ self
