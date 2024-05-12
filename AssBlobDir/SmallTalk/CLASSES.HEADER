@@ -21,7 +21,6 @@ class CFrogBlock:CFrogThing {
   CFrogThing *self;
   CFrogThing *frame;
   U8 (*fun_ptr)(CFrogThing *self,U8 *);//CSTFrame
-  U8 *destroy dft "FrogBlockDel";
 };
 #ifndef CI64Set 
 extern class CI64Set;
@@ -183,7 +182,7 @@ class C3DThingTemplate:CFrogThing {
   CDC *front;
   CDC *side;
   CDC *back;
-  U8 *destroy dft "C3DThingTemplateDel";
+  U8 *destroy dft "C3DThingTemplateDel";
 };
 class C3DThing:CFrogThing {
   C3DThingTemplate *template;
@@ -374,7 +373,7 @@ class CZombie:C3DThing {
 class CRocket:C3DThing {
   C3DThing *from;
 };
-class CPoopRocket:CRocket {
+class CPoopRocket:CRocket {
 };
 class CRocketLauncher:CHandItem {
 };

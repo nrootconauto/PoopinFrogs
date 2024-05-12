@@ -1186,7 +1186,6 @@ STRunStmt(
 "  #Y _ [:f=CFrogBlock | [:x=CFrogBlock | x value: x] value: [:g=CFrogBlock| f value: [:x| (g value: g) value: x] ] ]."
 "  #fib _ #Y value: [:f| [:i=CFrogNum | i <= 1 ifTrue: [i] ifFalse: [(f value: i - 1) + (f value: i - 2)] ] ]."
 "  (#fib value: 10 ) show ."
-"  #foo _ [#arr _ #() . 0 to: 10 do: [:x| #arr add: (#fib value: x) . (#fib value: x) show ]. ]."
 );;
 #endif
 #endif

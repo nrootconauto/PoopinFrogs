@@ -4,10 +4,59 @@
 #include "Intersect.HC";
 #define TEST_3D
 #ifndef ENGINE_3D
-//#define mp_cnt 1
 #define ENGINE_3D 1
 #define SCRN_TURN_MARGIN 100
 #define SCRN_TURN_RATE (pi/30.)
+I64 cpu_job_cnts_lock=0;
+I64 cpu_job_cnts[mp_cnt];
+MemSetI64(cpu_job_cnts,0,mp_cnt);
+class CCSPair {
+  U8 *name;
+  CFrogThing *thing;
+  CHashTable *ht;
+};
+U0 JobCallScript(CCSPair *p) {
+  CHashTable *t=Fs->hash_table;
+  Fs->hash_table=p->ht;
+  CallScript(p->name,p->thing);
+  Free(p);
+  while(LBts(&cpu_job_cnts_lock,Gs->num))
+    Sleep(1);
+  cpu_job_cnts[Gs->num]--;
+  LBtr(&cpu_job_cnts_lock,Gs->num);
+  Fs->hash_table=t;
+}
+U0 QueCallScript(U8 *name,CFrogThing *t) {
+  CCSPair *p=CAlloc(sizeof CCSPair);
+  I64 c=mp_cnt-1,best=c;
+  while(--c>=0) {
+    if(cpu_structs[c].idle_factor>cpu_structs[best].idle_factor)
+      best=c;
+  }
+  p->name=name;
+  p->ht=Fs->hash_table;
+  p->thing=t;
+
+  while(LBts(&cpu_job_cnts_lock,best))
+    Sleep(1);
+  cpu_job_cnts[best]++;
+  LBtr(&cpu_job_cnts_lock,best);
+
+  if(!best) JobCallScript(p);
+  else JobQue(&JobCallScript,p,best);
+}
+U0 WaitForJobsFinish() {
+  I64 c=mp_cnt-1;
+  while(c>=0) {
+    while(LBts(&cpu_job_cnts_lock,c))
+      Sleep(1);
+    if(!cpu_job_cnts[c]) {
+      LBtr(&cpu_job_cnts_lock,c);
+      c--;
+    } else
+      LBtr(&cpu_job_cnts_lock,c);
+  }
+}
 //
 // From LevelEditor.HC
 //
@@ -1586,13 +1635,11 @@ U0 DrawFrogTongue(C3DWorld *w,CFrogTongue *t) {
   }
 }
 U0 DrawPissStream(C3DWorld *w,CPissStream *ps) {
-  FrogThingLock(ps);
   CDC *dc=w->to_dc;
   CD3 stp,enp,last;
   CPissLink **links=ps->links(CFrogArray*)->items->body;
   I64 idx,cnt=ps->links(CFrogArray*)->items->cnt;
   if(cnt<1) {
-    FrogThingUnlock(ps);
     return;
   }
   last.x=links[0]->x;
@@ -1614,7 +1661,6 @@ U0 DrawPissStream(C3DWorld *w,CPissStream *ps) {
     last.y=links[idx]->y;
     last.z=links[idx]->z;
   }
-  FrogThingUnlock(ps);
 }
 U0 Draw2DThing(C3DWorld *w,C3DThing *thing) {
   if(thing->no_draw) goto fin;
@@ -1769,7 +1815,7 @@ fin:
 }
 C3DWorld *w;
 U0 WallStainDel(CWallStain *s) {
-  AnimDCDel(s->dc);
+  if(s->dc) AnimDCDel(s->dc);
   Free(s);
 }
 //
@@ -2147,19 +2193,18 @@ AddMethod("C3DWorldManager","screenCoordIsOnFloor",&ScreenCoordOnFloor);
 #include "UI.HC"
 w=LoadWorldFromFile(,"Untitled.WORLD");
 I64 mp_thing_done=0;
-U0 DrawIt(CTask *t,CDC *dc) {
+U0 UpdateDrawBuffer() {
+  WaitForJobsFinish; //MAke sure there world data is all ours all not belong to anyone else
+  CFrogSymbol *man=FrogSymbol("world");
+  CPlayer *player=CallScript("getPlayer",man->value);
   CDC *hand_gr;
-  CDC *odc=dc;
   I32 *odepth_buf;
   I64 tx,ty,c,f;
   CI64Set *s;
   C3DParticle *p,*head,*n;
   CShellCasing *shellc;
-  CPlayer *player;
-  CFrogSymbol *man=FrogSymbol("world");
   CHandItem *hand=FrogSymbol("hand_item")->value;
-
-  dc=w->to_dc;
+  CDC *dc=w->to_dc;
   DCFill(dc,TRANSPARENT);
   DCDepthBufRst(dc);
   odepth_buf=dc->depth_buf;
@@ -2197,7 +2242,6 @@ U0 DrawIt(CTask *t,CDC *dc) {
 
   
   Fs->user_data=0;
-  player=CallScript("getPlayer",man->value);
   if(ThingHasClass(player,"CPlayer")) {
     if(ThingHasClass(player->shell_casings,"CFrogArray")) {
       s=player->shell_casings->items;
@@ -2229,35 +2273,12 @@ U0 DrawIt(CTask *t,CDC *dc) {
     }
   }
 fin:
-  DrawUIRoot(t,dc);
-  dc->flags|=DCF_NO_TRANSPARENTS;
-  GrBlot(odc,0,0,dc);
+  DrawUIRoot(Fs,dc);
   dc->depth_buf=odepth_buf;
 }
-class CCSPair {
-  U8 *name;
-  CFrogThing *thing;
-  CHashTable *ht;
-};
-U0 JobCallScript(CCSPair *p) {
-  CHashTable *t=Fs->hash_table;
-  Fs->hash_table=p->ht;
-  CallScript(p->name,p->thing);
-  Free(p);
-  Fs->hash_table=t;
-}
-U0 QueCallScript(U8 *name,CFrogThing *t) {
-  CCSPair *p=CAlloc(sizeof CCSPair);
-  I64 c=mp_cnt-1,best=c;
-  while(--c>=0) {
-    if(cpu_structs[c].idle_factor>cpu_structs[best].idle_factor)
-      best=c;
-  }
-  p->name=name;
-  p->ht=Fs->hash_table;
-  p->thing=t;
-  if(!c) JobCallScript(p);
-  else JobQue(&JobCallScript,p,best);
+U0 DrawIt(CTask *t,CDC *dc) {
+  w->to_dc->flags|=DCF_NO_TRANSPARENTS;
+  GrBlot(dc,0,0,w->to_dc);
 }
 U0 WalkAround() {
   I64 c,ch=0,sc=0,m1,m2,msg,jump=FALSE;
@@ -2414,13 +2435,18 @@ next:;
 	  }
         }
      }
+      UpdateDrawBuffer;
       Refresh;
       FrogGarbageCollect;
     } catch {PutExcept(TRUE);}
 en:
+  WaitForJobsFinish;
   FlushMsgs;
   Fs->draw_it=NULL;
   Refresh;
+/*  FrogNullifySymbols;
+  FrogGarbageCollect;
+  HeapWho(Fs);*/
 }
 WalkAround;
 #endif

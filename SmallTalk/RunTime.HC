@@ -1550,9 +1550,7 @@ U0 FrogGarbageCollectThing(CFrogThing *root,Bool debug=FALSE) {
 fin:
   if(debug) "$$ID,-2$$\n";
 }
-//Run this on core 0,it will wait for cores to be done
-U0 FrogGarbageCollect(CFrogThing *root=FROG_SMALL_NIL) {
-  CFrogThing *head=&allocs_head,*cur,*next;
+U0 FrogDisableScripts() {
   LBts(&gc_lock,0);  
   I64 c=mp_cnt;
   while(--c>=0) {
@@ -1560,6 +1558,27 @@ U0 FrogGarbageCollect(CFrogThing *root=FROG_SMALL_NIL) {
       Sleep(1);
     }
   }
+}
+U0 FrogEnableScripts() {
+  I64 c=mp_cnt;
+  while(--c>=0)
+    LBtr(&cpu_call_script_lock,c);
+  LBtr(&gc_lock,0);
+}
+U0 FrogNullifySymbols() {
+  CFrogSymbol *head=&allocs_head,*cur;
+  FrogDisableScripts;
+  for(cur=head->next;cur!=head;cur=cur->next) {
+    if(ThingHasClass(cur,"CFrogSymbol")) {
+      cur->value=FROG_SMALL_NIL;
+    }
+  }
+  FrogEnableScripts;
+}
+//Run this on core 0,it will wait for cores to be done
+U0 FrogGarbageCollect(CFrogThing *root=FROG_SMALL_NIL) {
+  FrogDisableScripts;
+  CFrogThing *head=&allocs_head,*cur,*next;
   for(cur=head->next;cur!=head;cur=cur->next) {
     if(!ThingHasClass(cur,"CFrogSymbol")) {
       LBts(&cur->thing_flags,THINGf_TO_DELETE);
@@ -1585,10 +1604,7 @@ U0 FrogGarbageCollect(CFrogThing *root=FROG_SMALL_NIL) {
       LBtr(&cur->thing_flags,THINGf_GC_LOCK);
     }
   }
-  c=mp_cnt;
-  while(--c>=0)
-    LBtr(&cpu_call_script_lock,c);
-  LBtr(&gc_lock,0);
+  FrogEnableScripts;
 }
 U32 AsChar(CFrogThing *t) {
 //CFrogSmallChr
@@ -1721,7 +1737,4 @@ U0 FrogBinDel(CFrogBin *bin) {
   Free(bin->data);
   Free(bin);
 }
-U0 FrogBlockDel(CFrogBlock *b) {
-}
-
 Fs->user_data=0;
