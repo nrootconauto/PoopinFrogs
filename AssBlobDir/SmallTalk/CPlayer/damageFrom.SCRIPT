@@ -1,2 +1,2 @@
-damage: d=CFrogNum from: f=C2DThing ->* ||
+damage: d=CFrogNum from: f=C3DThing ->* ||
   super damage: d

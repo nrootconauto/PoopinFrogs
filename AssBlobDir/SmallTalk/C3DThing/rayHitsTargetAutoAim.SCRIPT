@@ -1,13 +1,13 @@
-screenRayHitsTarget: t=C2DThing
-  atAngle: a=C2DThing
-  withAutoAim: mul=C2DThing
+screenRayHitsTarget: t=C3DThing
+  atAngle: a=C3DThing
+  withAutoAim: mul=C3DThing
   -> CFrogNum
 | 
   xx=CFrogNum
   yy=CFrogNum 
-  dist=C2DThing
-  dist_scale=C2DThing
-  tolerance=C2DThing
+  dist=C3DThing
+  dist_scale=C3DThing
+  tolerance=C3DThing
 |
   (self canSeeThing: t ) ifFalse: [
     ^ 0

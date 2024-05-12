@@ -1,5 +1,5 @@
-updateThingPos: thing=C2DThing  ->* | X=CFrogNum Y=CFrogNum|
-  (thing hasClass: C2DThing) ifTrue: [
+updateThingPos: thing=C3DThing  ->* | X=CFrogNum Y=CFrogNum|
+  (thing hasClass: C3DThing) ifTrue: [
     self removeFromGrid: thing .
     'GRID_SZ is 128' .
     X _ thing ->x .

@@ -1,4 +1,4 @@
-thingsInDist: dist=CFrogNum atAngle: angle=CFrogNum fromThing: thing=C2DThing 
+thingsInDist: dist=CFrogNum atAngle: angle=CFrogNum fromThing: thing=C3DThing 
   ->CFrogArray
   | 
   gx=CFrogNum
@@ -19,7 +19,7 @@ thingsInDist: dist=CFrogNum atAngle: angle=CFrogNum fromThing: thing=C2DThing
   y _ thing ->y .
   add_thing _ [:bx=CFrogNum :by=CFrogNum |
     tmp _ (grid at: bx ) at: by .
-    tmp do: [:t=C2DThing |
+    tmp do: [:t=C3DThing |
       (ret indexOf: t) = -1 ifTrue: [
          ret add: t
       ] .

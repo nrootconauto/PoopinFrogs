@@ -1,4 +1,4 @@
-angleBetween: other=C2DThing -> CFrogNum |
+angleBetween: other=C3DThing -> CFrogNum |
   px=CFrogNum
   py=CFrogNum
   ox=CFrogNum

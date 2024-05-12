@@ -37,7 +37,7 @@ update ->CFrogNum |
 
   'check if our angle with with 5 degrees of poo poo'.
 
-  things do: [:t=C2DThing | 
+  things do: [:t=C3DThing | 
     t ~= from ifTrue: [
       angle _ (t angleBetween: from ) .
       angle < 3.14 / 180 * 15 ifTrue: [

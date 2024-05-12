@@ -177,16 +177,16 @@ class CUIGrid:CUIElem {
 class C2DPoint:CFrogThing {
   I64 x,y;
 };
-class C2DThingTemplate:CFrogThing {
+class C3DThingTemplate:CFrogThing {
   I64 flags;
   CFrogStr *name;
   CDC *front;
   CDC *side;
   CDC *back;
-  U8 *destroy dft "C2DThingTemplateDel";
+  U8 *destroy dft "C3DThingTemplateDel";
 };
-class C2DThing:CFrogThing {
-  C2DThingTemplate *template;
+class C3DThing:CFrogThing {
+  C3DThingTemplate *template;
   F64 x,y,z,angle,health;
   F64 momx,momy,momz,animation_start_tS;
   F64 momx2,momy2;
@@ -281,19 +281,19 @@ class CFrogDick:CHandItem {
 };
 
 class CPissLink:CFrogThing {
-  C2DThing *from;
+  C3DThing *from;
   F64 oldx,oldy,oldz;
   F64 x,y,z;
   F64 momx,momy,momz;
 };
 class CPissStream:CFrogThing {
-  C2DThing *from;
+  C3DThing *from;
 //CPissLink
   CFrogArray *links;
 };
 
 //This [redacted for GH] is for picking up items in the world
-class CPickup:C2DThing {
+class CPickup:C3DThing {
   CFrogClass *item_class;
   I64 count;
 };
@@ -303,7 +303,7 @@ class CShootgunPickup:CPickup {
 };
 
 class CFrogTongue:CFrogThing {
-  C2DThing *from;
+  C3DThing *from;
   F64 start_tS;
   F64 x,y,z;
   F64 target_x,target_y,target_z;
@@ -315,14 +315,14 @@ class CGun1:CHandItem {
 class CShootgun:CHandItem {
 };
 class CTalker:CHandItem {
-  C2DThing *talking_to;
+  C3DThing *talking_to;
 };
-class CFrogNPC:C2DThing {
+class CFrogNPC:C3DThing {
   CFrogRandom *random_generator;
   F64 speed;
   CFrogTongue *tongue;
 //Who are we chasing/attacking
-  C2DThing *target;
+  C3DThing *target;
 //The state varaible does things like move the frog around
 // or run around if low health. It will attack if provoked
   F64 state_start_tS;
@@ -331,9 +331,9 @@ class CFrogNPC:C2DThing {
   CFrogStr *state;
   CEliza *chat_bot;
 };
-class CPooka:C2DThing {
+class CPooka:C3DThing {
 };
-class CPlayer:C2DThing {
+class CPlayer:C3DThing {
   CFrogArray *items;
   CFrogArray *shell_casings;
   CUIMeter *health_meter;
@@ -349,7 +349,7 @@ class CPlayer:C2DThing {
 //How many bloody footprints will be made
   F64 bloody_foot_count;
 }; 
-class CPoopMan:C2DThing {
+class CPoopMan:C3DThing {
   CFrogRandom *random_generator;
   CEliza *chat_bot;
   CFrogStr *state;
@@ -357,9 +357,9 @@ class CPoopMan:C2DThing {
   F64 state_duration;
   I64 just_jumped;
   I64 threw;
-  C2DThing *target;  
+  C3DThing *target;  
 };
-class CZombie:C2DThing {
+class CZombie:C3DThing {
   CFrogRandom *random_generator;
   F64 speed;
   CEliza *chat_bot;
@@ -369,10 +369,10 @@ class CZombie:C2DThing {
   CFrogStr *state;
  CPissStream *piss_stream;
   I64 just_jumped;
-  C2DThing *target;
+  C3DThing *target;
 };
-class CRocket:C2DThing {
-  C2DThing *from;
+class CRocket:C3DThing {
+  C3DThing *from;
 };
 class CPoopRocket:CRocket {
 };

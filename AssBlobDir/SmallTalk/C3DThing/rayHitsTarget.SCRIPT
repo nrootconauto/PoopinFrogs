@@ -1,4 +1,4 @@
-screenRayHitsTarget: t=C2DThing atAngle: a=CFrogNum 
+screenRayHitsTarget: t=C3DThing atAngle: a=CFrogNum 
   ->CFrogNum
 |
   dist=CFrogNum

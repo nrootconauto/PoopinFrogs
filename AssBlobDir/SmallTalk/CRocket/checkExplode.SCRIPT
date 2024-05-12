@@ -2,7 +2,7 @@ checkExplode ->CFrogNum |
   in_radius=CFrogArray
 |
   in_radius _ #world getThingsInRadiusFromX: x fromY: y withRadius: 64 .
-  in_radius do:[:t=C2DThing |
+  in_radius do:[:t=C3DThing |
     t ~= from ifTrue: [
       t ->health > 0 ifTrue: [
         self explode .

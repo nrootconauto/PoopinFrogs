@@ -2,7 +2,7 @@ update -> * |
   player=CPlayer
   cur_tS=CFrogNum
   dist=CFrogNum
-  new_t=C2DThingTemplate
+  new_t=C3DThingTemplate
   hit_wall=CFrogNum
 |
   momx2 _ 0 .
@@ -20,7 +20,7 @@ update -> * |
   cur_tS _ CFrogTime now asSeconds .
   player _ #world getPlayer .  
 
-  (target hasClass: C2DThing) ifFalse: [
+  (target hasClass: C3DThing) ifFalse: [
     target _ player
   ] .
 

@@ -42,7 +42,7 @@ update->* |
       just_jumped _ 0 .
     ].
 
-    (target hasClass: C2DThing) ifFalse: [
+    (target hasClass: C3DThing) ifFalse: [
       target _w getPlayer .
     ] .
 

@@ -29,7 +29,7 @@ fire ->CFrogNum |
       0 to: 6 do: [
         spread _ CFrogRandom new next - .5  * (3.14 / 16 ) .
         hit _ 0 .
-        canidates do: [ :t=C2DThing |
+        canidates do: [ :t=C3DThing |
           (player ~= t and: t ->health > 0. ) ifTrue: [
             (player screenRayHitsTarget: t atAngle: player getAngle + spread
             ) ifTrue: [

@@ -1,6 +1,6 @@
 update ->* |
   hit_wall=CFrogNum
-  new_t=C2DThingTemplate
+  new_t=C3DThingTemplate
   ts=CFrogNum
   old_x=CFrogNum
   old_y=CFrogNum

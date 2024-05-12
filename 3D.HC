@@ -4,6 +4,7 @@
 #include "Intersect.HC";
 #define TEST_3D
 #ifndef ENGINE_3D
+//#define mp_cnt 1
 #define ENGINE_3D 1
 #define SCRN_TURN_MARGIN 100
 #define SCRN_TURN_RATE (pi/30.)
@@ -102,7 +103,7 @@ class C3DWorld {
    CQue particles;
    I64 particle_cnt;
 };
-extern U0 Draw2DThing(C3DWorld *w,C2DThing *thing);
+extern U0 Draw2DThing(C3DWorld *w,C3DThing *thing);
 #define MAX_PARTICLES 64
 U0 NewParticle(C3DWorld *w,I64 color,I64 sz,F64 x,F64 y,F64 z,F64 mx,F64 my,F64 mz) {
   C3DParticle *p;
@@ -126,7 +127,7 @@ U0 NewParticle(C3DWorld *w,I64 color,I64 sz,F64 x,F64 y,F64 z,F64 mx,F64 my,F64 
 }
 #define THINGF_FACE_FORWARD 1
 //These are defined in the blob header.
-U0 C2DThingTemplateDel(C2DThingTemplate *t) {
+U0 C3DThingTemplateDel(C3DThingTemplate *t) {
   DCDel(t->front);
   DCDel(t->side);
   DCDel(t->back);
@@ -158,8 +159,8 @@ C3DWorld *LoadWorldFromFile(U8 *blob_file="ASS",U8 *filename,F64 fov=pi/4) {
   U8 *fptr=world,*to,*tmp;
   I64 idx;
   CDC *unscaled;
-  C2DThingTemplate **templates=CAlloc(0x10000*8),*template;
-  C2DThing *thing;
+  C3DThingTemplate **templates=CAlloc(0x10000*8),*template;
+  C3DThing *thing;
   C3DWorldManager *man;
   C3DWorldSetFov(ret,fov);
   QueInit(&ret->particles);
@@ -220,7 +221,7 @@ C3DWorld *LoadWorldFromFile(U8 *blob_file="ASS",U8 *filename,F64 fov=pi/4) {
   fptr=world(U8*)+world->thing_templates_where.ptr;
   to=fptr+world->thing_templates_where.len;  
   while(fptr<to) {
-    template=ConstructThing("C2DThingTemplate");
+    template=ConstructThing("C3DThingTemplate");
     idx=fptr(CFileThingTemplate*)->idx;
     templates[idx-I16_MIN]=template;
     tmp=BlobFileGetLump(blob_file,fptr(CFileThingTemplate*)->blob_front_name);
@@ -245,7 +246,7 @@ C3DWorld *LoadWorldFromFile(U8 *blob_file="ASS",U8 *filename,F64 fov=pi/4) {
     if(template) {
       tmp=AsString(template->name);
       if(thing=ConstructThing(tmp)) {
-        if(ThingHasClass(thing,"C2DThing")) {
+        if(ThingHasClass(thing,"C3DThing")) {
 	  thing->x=fptr(CFileThing*)->x*GRID_SZ-xoff;
 	  thing->y=fptr(CFileThing*)->y*GRID_SZ-yoff;
 	  thing->angle=fptr(CFileThing*)->rot;
@@ -502,8 +503,8 @@ final:
   goto fin;
 
 }
-C2DThing *BumpsIntoThing(C2DThing *self,...) {
-  C2DThing *who=argv[0];
+C3DThing *BumpsIntoThing(C3DThing *self,...) {
+  C3DThing *who=argv[0];
   F64 radius=THING_RADIUS*THING_RADIUS;
   F64 x,y;
   x=who->x-self->x;
@@ -512,7 +513,7 @@ C2DThing *BumpsIntoThing(C2DThing *self,...) {
     return FrogNumNew(1);
   return FrogNumNew(0);
 } 
-AddMethod("C2DThing","hitsThing:",&BumpsIntoThing);
+AddMethod("C3DThing","hitsThing:",&BumpsIntoThing);
 #define RADF_CEIL 1
 #define RADF_FLOOR 2
 Bool RadiusHitsWall(C3DWorld *w,F64 angle,F64 *_x,F64 *_y,F64 height,F64 radius=THING_RADIUS,Bool adjust=FALSE,F64 tallness=.8,I64 flags=RADF_CEIL|RADF_FLOOR) {
@@ -653,7 +654,7 @@ fin:
   w->x=old_x,w->y=old_y;
   return hit_wall;
 }
-U0 PhysicsOnThing(C3DWorld *w,C2DThing *t,C3DWorldManager *wm) {
+U0 PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm) {
   I64 wx=t->x/GRID_SZ,wy=t->y/GRID_SZ;
   if(!(0<=wx<w->world_width))
     return;
@@ -1449,7 +1450,7 @@ F64 NormalizeAngle(F64 a) {
   if(a<0) a+=2*pi;
   return a;
 }
-Bool CanSee2DThing(C3DWorld *w,C2DThing *t) {
+Bool CanSee2DThing(C3DWorld *w,C3DThing *t) {
   Bool ret=TRUE;
   F64 dist=Sqrt(Sqr(t->x-w->x)+Sqr(t->y-w->y)),rd;
   F64 angle=Arg(t->x-w->x,t->y-w->y);
@@ -1567,7 +1568,7 @@ U0 Line3D(C3DWorld *w,CDC *dc,CD3 *st,CD3 *en) {
 U0 DrawFrogTongue(C3DWorld *w,CFrogTongue *t) {
   if(!ThingHasClass(t,"CFrogTongue"))
     return;
-  if(!ThingHasClass(t->from,"C2DThing"))
+  if(!ThingHasClass(t->from,"C3DThing"))
     return;
   CD3 stp,enp;
   CDC *dc=w->to_dc;
@@ -1615,10 +1616,10 @@ U0 DrawPissStream(C3DWorld *w,CPissStream *ps) {
   }
   FrogThingUnlock(ps);
 }
-U0 Draw2DThing(C3DWorld *w,C2DThing *thing) {
+U0 Draw2DThing(C3DWorld *w,C3DThing *thing) {
   if(thing->no_draw) goto fin;
-  C2DThingTemplate *template=thing->template;
-  if(!ThingHasClass(template,"C2DThingTemplate")) {
+  C3DThingTemplate *template=thing->template;
+  if(!ThingHasClass(template,"C3DThingTemplate")) {
     return;
   }
   CDC *dc=w->to_dc;
@@ -1896,7 +1897,7 @@ CFrogThing *WorldManagerNewParticle(C3DWorldManager *man,...) {
 AddMethod("C3DWorldManager","newParticleAtX:atY:atZ:withSpread:withColor:",&WorldManagerNewParticle);
 
 //Returns 1. if COLLISION,else 0
-CFrogThing *C2DThingMoveAtAngle(C2DThing *self,...) {
+CFrogThing *C3DThingMoveAtAngle(C3DThing *self,...) {
   CFrogThing *dist=argv[0];
   CFrogThing *angle=argv[1];
   Bool hit_wall=FALSE;
@@ -1915,7 +1916,7 @@ CFrogThing *C2DThingMoveAtAngle(C2DThing *self,...) {
   self->momy2+=AsF64(dist)*Sin(AsF64(angle)); 
   return FrogNumNew(hit_wall);
 }
-AddMethod("C2DThing","move:atAngle:",&C2DThingMoveAtAngle);
+AddMethod("C3DThing","move:atAngle:",&C3DThingMoveAtAngle);
 
 CFrogThing *WorldManagerWidth(C3DWorldManager *self,...) {
   return FrogNumNew(self->world_handle(C3DWorld*)->world_width);
@@ -2092,10 +2093,10 @@ U0 HandItemDel(CHandItem *i) {
   if(i->gr) AnimDCDel(i->gr);
   Free(i);
 }
-CFrogThing *ThingCanSeeThing(C2DThing *self,...) {
+CFrogThing *ThingCanSeeThing(C3DThing *self,...) {
   F64 old_x=w->x,old_y=w->y,old_z=w->cam_height;
   CFrogThing *ret;
-  C2DThing *other=argv[0];
+  C3DThing *other=argv[0];
   if(other==FROG_SMALL_NIL) return FROG_SMALL_NIL;
   w->x=self->x;
   w->y=self->y;
@@ -2106,7 +2107,7 @@ CFrogThing *ThingCanSeeThing(C2DThing *self,...) {
   w->cam_height=old_z;
   return ret;
 }
-AddMethod("C2DThing","canSeeThing:",&ThingCanSeeThing);
+AddMethod("C3DThing","canSeeThing:",&ThingCanSeeThing);
 
 
 CFrogThing *ScreenCoordToDist(C3DWorldManager *self,...) {
@@ -2144,7 +2145,6 @@ AddMethod("C3DWorldManager","screenCoordIsOnFloor",&ScreenCoordOnFloor);
 //
 #ifdef TEST_3D
 #include "UI.HC"
-DocClear;
 w=LoadWorldFromFile(,"Untitled.WORLD");
 I64 mp_thing_done=0;
 U0 DrawIt(CTask *t,CDC *dc) {
@@ -2271,6 +2271,7 @@ U0 WalkAround() {
   CShellCasing *shellc;
   C3DWorldManager *wm=man->value;
   I64 every=0;
+  DocClear;
   WinMax;
   WinBorder;
   AutoComplete;
@@ -2289,8 +2290,8 @@ U0 WalkAround() {
        for(idx=0;idx!=c;idx++) {
          if(player==body[idx]) {
 	 } else  {
-	   body[idx](C2DThing*)->momx2=0.;
-	   body[idx](C2DThing*)->momy2=0.;
+	   body[idx](C3DThing*)->momx2=0.;
+	   body[idx](C3DThing*)->momy2=0.;
 	 }
        }
      }
@@ -2366,20 +2367,20 @@ next:;
            jump=FALSE;
         }
         if (up)
-          C2DThingMoveAtAngle(player,
+          C3DThingMoveAtAngle(player,
 	      FrogNumNew(GRID_SZ/4),
 	      FrogNumNew(player->angle));
         if (down)
-          C2DThingMoveAtAngle(player,
+          C3DThingMoveAtAngle(player,
 	      FrogNumNew(-GRID_SZ/4),
 	      FrogNumNew(player->angle));
         if (left) {
-          C2DThingMoveAtAngle(player,
+          C3DThingMoveAtAngle(player,
 	      FrogNumNew(GRID_SZ/4),
 	      FrogNumNew(player->angle-pi/2));
         }
         if (right)
-          C2DThingMoveAtAngle(player,
+          C3DThingMoveAtAngle(player,
 	      FrogNumNew(GRID_SZ/4),
 	      FrogNumNew(player->angle+pi/2));
         if(msx<SCRN_TURN_MARGIN) {
@@ -2415,7 +2416,7 @@ next:;
      }
       Refresh;
       FrogGarbageCollect;
-    } catch PutExcept(TRUE);
+    } catch {PutExcept(TRUE);}
 en:
   FlushMsgs;
   Fs->draw_it=NULL;

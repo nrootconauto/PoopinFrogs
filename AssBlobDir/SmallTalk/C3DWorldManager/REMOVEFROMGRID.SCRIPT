@@ -1,2 +1,2 @@
-removeFromGrid: thing=C2DThing ->* | |
+removeFromGrid: thing=C3DThing ->* | |
   ((grid at: thing ->x / 128 / 16) at: thing ->y  / 128 / 16) remove: thing
