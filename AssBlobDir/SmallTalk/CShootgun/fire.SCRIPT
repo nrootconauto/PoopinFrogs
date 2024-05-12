@@ -8,6 +8,9 @@ fire ->CFrogNum |
  floor_stain=CFloorStain
  spread=CFrogNum
  hit=CFrogNum
+ best_angle=CFrogNum
+ from_angle=CFrogNum
+ best_thing*
  |
   player _ #world getPlayer .
   ammo >= 2 ifTrue: [
@@ -28,19 +31,11 @@ fire ->CFrogNum |
       canidates _ #world thingsInDist: 128 * 64 atAngle: player getAngle fromThing: player .
       0 to: 6 do: [
         spread _ CFrogRandom new next - .5  * (3.14 / 16 ) .
-        hit _ 0 .
-        canidates do: [ :t=C3DThing |
-          (player ~= t and: t ->health > 0. ) ifTrue: [
-            (player screenRayHitsTarget: t atAngle: player getAngle + spread
-            ) ifTrue: [
-                hit ifFalse: [
-                  t damage: 10 * CFrogRandom new next + 5 from: player .
-                  hit _ 1 
-                ] .
-            ] 
-          ]
-        ].
-        hit ifFalse: [
+        best_thing _ player bestTargetAtAngle: player getAngle + spread .
+        hit _ best_thing hasClass: C3DThing .
+        hit ifTrue: [
+          best_thing  damage: 10 * CFrogRandom new next + 5 from: player .
+        ] ifFalse: [
           sz _ #world screenCoordToZ .
           #world screenCoordIsOnFloor ifTrue: [
             floor_stain _ CFloorStain new .

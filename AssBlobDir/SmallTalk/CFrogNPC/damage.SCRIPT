@@ -4,8 +4,6 @@ damage: amt=CFrogNum from: t=C3DThing ->* | |
     #world newParticleAtX: x atY: y atZ: z + .5 withSpread: 64 withColor: #color_RED 
   ] .
  
-  'Stop attacking ' .
-  tongue _  0 . 
 
   'Attack target if in good health '.
   target _ t .

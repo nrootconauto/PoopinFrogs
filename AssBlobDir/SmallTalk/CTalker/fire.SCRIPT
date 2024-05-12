@@ -5,16 +5,11 @@ fire ->CFrogNum |
   canidates=CFrogArray
 |
   player _ #world getPlayer .
-  canidates _ #world thingsInDist: 128 * 64 atAngle: player getAngle fromThing: player .
-  canidates do: [:hit*|
-    (player screenRayHitsTarget: hit atAngle: player getAngle 
-     withAutoAim: 1.5) ifTrue: [
-       chatter _ hit getChatBot .
-      (chatter hasClass: CEliza) ifTrue: [ 
-        hit getName show .
-        player chatWith: hit .
-        ^ 1
-      ]
-    ]
-  ]
+  hit _ player bestTargetAtAngle: player->angle .
+  chatter _ hit getChatBot .
+  (chatter hasClass: CEliza) ifTrue: [ 
+    hit getName show .
+    player chatWith: hit .
+     ^ 1
+  ] .
   ^ 0 .

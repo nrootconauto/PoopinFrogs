@@ -13,6 +13,19 @@ update->* |
   momy2 _ 0 .
   w _ #world .
 
+  health <= 0 ifTrue: [
+    state ~= 'Dead' ifTrue: [
+      state _ 'Dead' .
+      template _ w getThingTemplate: 'CPoopMan/Dead' .
+      animation_no_repeat _ 1 .
+      animation_start_tS _ tS .
+    ] .
+  ] .
+
+  state = 'Dead' ifTrue: [
+    ^ 1
+  ] .
+
   state = 'Normal' ifTrue: [
     speed _ 64 / 30 * 3.4 .
     template _ w getThingTemplate: 'CPoopMan' .
@@ -53,6 +66,7 @@ update->* |
       animation_start_tS _ tS.
       state_start_tS _  tS.
       state_duration _ 8 / 4 .
+      angle _ (target->x - x) arg: (target->y - y) .
       threw _ 0 .
     ] .
   ] .
@@ -70,7 +84,7 @@ update->* |
       rocket->momx _ rocket->angle cos * 64 .
       rocket->momy _ rocket->angle sin * 64 .
       dist _ ((target->x - rocket->x) squared +(target->y - rocket->y)) sqrt .
-'64 is the throw force' .
+      '64 is the throw force' .
       rocket->momz _ (target->z +.5 - rocket->z + ((random_generator next - .5 ) / 2 ) ) / dist * 64 .
     ].
     (tS - state_start_tS) > state_duration ifTrue: [

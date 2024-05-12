@@ -12,12 +12,12 @@ update ->CFrogNum |
   dist2=CFrogNum
   angle=CFrogNum
  |
-  t _ ((CFrogTime now asSeconds - start_tS)   ) .
+  t _ ((CFrogTime now asSeconds - start_tS)   )  * 2 .
   t > 3.14 ifTrue: [
     ^ 0 
   ] .
   lerp _ [:from=CFrogNum :to=CFrogNum |
-    ((to - from ) * t) + from 
+    ((to - from ) * (t / 3.14 ) ) + from 
   ].
   t _ t sin  .
   fx _ from ->x .
@@ -28,7 +28,7 @@ update ->CFrogNum |
   x _ (dist * angle cos ) + fx .
   y _ (dist * angle sin ) + fy .
 
-  z _ lerp value: from ->z + .6  value: target_z .
+  z _ lerp value: from ->z + .5  value: target_z .
   h _ #world tileHeightAtX: x / 128 atY: y / 128 .
   h >= z ifTrue: [
      ^ 0 .
@@ -40,7 +40,7 @@ update ->CFrogNum |
   things do: [:t=C3DThing | 
     t ~= from ifTrue: [
       angle _ (t angleBetween: from ) .
-      angle < 3.14 / 180 * 15 ifTrue: [
+      angle < (3.14 / 180 * 15) ifTrue: [
         dist2 _ ((t ->x - fx) squared + (t ->y - fy) squared ) sqrt .
         dist > dist2 ifTrue:[
           r _ CFrogRandom new .

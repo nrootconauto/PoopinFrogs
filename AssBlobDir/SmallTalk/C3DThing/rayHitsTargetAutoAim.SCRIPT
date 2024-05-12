@@ -1,6 +1,5 @@
-screenRayHitsTarget: t=C3DThing
-  atAngle: a=C3DThing
-  withAutoAim: mul=C3DThing
+angleFromThing: t=C3DThing
+  facingAngle: a=C3DThing
   -> CFrogNum
 | 
   xx=CFrogNum
@@ -9,17 +8,11 @@ screenRayHitsTarget: t=C3DThing
   dist_scale=C3DThing
   tolerance=C3DThing
 |
-  (self canSeeThing: t ) ifFalse: [
-    ^ 0
-  ] .
   'See 3D.HC' .
   xx _ t->x - self->x .
   yy _ t->y - self->y .
-  dist _ (xx squared + yy squared ) sqrt .
-  tolerance _ ( 3.14 / 6 ) * mul .
-  tolerance _ tolerance - ((tolerance * (dist / 1280 )) * .75 ).
   a _ ((xx arg: yy ) - a) rem: 6.24 .
-  a < tolerance ifTrue: [
-    ^ 1
+  a > 3.14 ifTrue: [
+    a _ 6.24 - a 
   ] .
-  ^ 0.
+  ^ a abs .

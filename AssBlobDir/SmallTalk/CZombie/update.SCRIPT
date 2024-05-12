@@ -70,7 +70,6 @@ update -> * |
     ] .
 
     ((self canSeeThing:  target) and: state ~= 'Chase') ifTrue: [
-      target _player .
       state _ 'Chase' .
       state_duration _ random_generator next * 2 + .5 .
       angle _ ((target ->x - x ) arg: (target ->y - y )) .

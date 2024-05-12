@@ -6,7 +6,7 @@ explode ->CFrogNum
   things _ #world getThingsInRadiusFromX: x fromY: y withRadius: 3 * 128 .
   things do:[:t*|
     dist _ ((t ->x - x) squared + (t ->y - y ) squared) sqrt .
-    t damage: (5 * 128 - dist) / 5 from: from . 
+    t damage: (5 * 128 - dist) / ( 5 * 128 ) * 50  from: from . 
   ] .
 'TODOexplosion' .
   0 to: 20 do: [

@@ -182,7 +182,7 @@ class C3DThingTemplate:CFrogThing {
   CDC *front;
   CDC *side;
   CDC *back;
-  U8 *destroy dft "C3DThingTemplateDel";
+  U8 *destroy dft "C3DThingTemplateDel";
 };
 class C3DThing:CFrogThing {
   C3DThingTemplate *template;

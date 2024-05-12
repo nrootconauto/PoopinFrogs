@@ -2,5 +2,8 @@ addLink:l=CPissLink | tmp=CFrogArray |
   'newest pisses come firstr in the stream' .
   tmp _  #( l ) .
   tmp addAll: links .
+  tmp size > 10 ifTrue: [
+   tmp removeAt: tmp size - 1 
+  ] .
   l -> from _ from .
   links _ tmp .

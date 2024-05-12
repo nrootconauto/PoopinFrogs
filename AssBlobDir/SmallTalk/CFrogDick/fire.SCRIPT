@@ -14,7 +14,7 @@ fire ->* |
  |
   player _ #world getPlayer .
   cur_ts _ CFrogTime now asSeconds .
-  step _ 5 .
+  step _ 1 .
   ammo ifTrue: [
     timeout < cur_ts ifTrue: [
       rand _ CFrogRandom new .

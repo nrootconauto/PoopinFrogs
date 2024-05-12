@@ -6,6 +6,7 @@ fire ->* |
  case*
  sz=CFrogNum
  floor_stain=CFloorStain
+ best_thing*
  |
   player _ #world getPlayer .
   ammo ifTrue: [
@@ -39,16 +40,7 @@ fire ->* |
       self setGraphics: 'GR/GUN1/FIRE' .
       ammo _ ammo - 1 max: 0 .
       inventory_item setCount: ammo .
-      canidates _ #world thingsInDist: 128 * 64 atAngle: player getAngle fromThing: player .
-      canidates do: [ :t=C3DThing |
-        (player ~= t and: t ->health > 0. ) ifTrue: [
-          (player screenRayHitsTarget: t atAngle: player getAngle 
-             withAutoAim: 1.5
-             ) ifTrue: [
-              t damage: 10 * CFrogRandom new next + 5 from: player .
-              ^ t 
-          ] 
-        ]
-      ] .
+      best_thing _ player bestTargetAtAngle: player->angle .
+      best_thing damage: 10 * CFrogRandom new next + 5 from: player 
     ] .
   ]

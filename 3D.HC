@@ -1483,7 +1483,7 @@ U0 C3DWorldCastRays(C3DWorld *w) {
   MPCastCol(w);
   for(idx=mp_cnt-1;idx>=1;idx--) {
     while(!Bt(&mp_done,idx))
-      Sleep(1);
+      __Sleep(1);
   }
 }
 F64 AngleBetween(F64 a,F64 b) {
@@ -2304,21 +2304,10 @@ U0 WalkAround() {
   I64 idx;
   try while (cont) {
      every++;
-     body=w->_2d_things->body;
-     //Zero "tick rate" momentums before update
-     if(every%3==0) {
-       c=w->_2d_things->cnt;
-       for(idx=0;idx!=c;idx++) {
-         if(player==body[idx]) {
-	 } else  {
-	   body[idx](C3DThing*)->momx2=0.;
-	   body[idx](C3DThing*)->momy2=0.;
-	 }
-       }
-     }
-     if(every%3==0) QueCallScript("update",man->value);
+     if(every%3==0) QueCallScript("update",man->value);
 // Do physics after update
      c=w->_2d_things->cnt;
+     body=w->_2d_things->body;
      for(idx=0;idx<c;idx++) {
        PhysicsOnThing(w,body[idx],wm);
        if(body[idx]==player) {
