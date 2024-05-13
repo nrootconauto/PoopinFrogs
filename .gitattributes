@@ -1,1 +1,2 @@
- *.SCRIPT diff merge text
+*.SCRIPT diff merge text
+*.SCRIPT linguist-language=Smalltalk
