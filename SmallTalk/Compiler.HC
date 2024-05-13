@@ -361,7 +361,7 @@ U8 *CompileThunk(CAST *block,CLocals *parent=NULL) {
   DocPrint(doc,"FrogThingLock(self);\n");
   DocPrint(doc,"enter:");
   DocPrint(doc,"  if(*return_flag||ThingIsError(retval)) {goto ret;} \n");
-  DocPrint(doc,"switch[next_case] {\n");
+  DocPrint(doc,"switch(next_case) {\n");
   for(var=head->next;var!=head;var=var->next) {
     if(var->type!=AST_STR) {
       CompileASTFinal(doc,var,locals,0);
@@ -1077,7 +1077,7 @@ U0 CompileToHolyC(U8 *src,U8 *class_name,U8 *src_path=NULL,Bool class_method=FAL
   head=&m->body;
   DocPrint(doc,"enter:");
   DocPrint(doc,"  if(*return_flag||ThingIsError(retval)) {goto ret;} \n");
-  DocPrint(doc,"switch[next_case] {\n");
+  DocPrint(doc,"switch(next_case) {\n");
   for(var=head->next;var!=head;var=var->next) {
     if(var->type!=AST_STR) {
       CompileASTFinal(doc,var,locals,0);
@@ -1154,7 +1154,7 @@ U0 STRepl(U8 *dft="",Bool interactive=TRUE) {
       QueIns(ast,dummy.args);
       DocPrint(doc,"enter:");
       DocPrint(doc,"  if(*return_flag||ThingIsError(retval)) {goto ret;} \n");
-      DocPrint(doc,"switch[next_case] {\n");
+      DocPrint(doc,"switch(next_case) {\n");
       CompileASTFinal(doc,&dummy,NULL,0);
       DocPrint(doc,"case %d:\n",ast_case_num++);
       DocPrint(doc,"};");
@@ -1186,6 +1186,6 @@ STRunStmt(
 "  #Y _ [:f=CFrogBlock | [:x=CFrogBlock | x value: x] value: [:g=CFrogBlock| f value: [:x| (g value: g) value: x] ] ]."
 "  #fib _ #Y value: [:f| [:i=CFrogNum | i <= 1 ifTrue: [i] ifFalse: [(f value: i - 1) + (f value: i - 2)] ] ]."
 "  (#fib value: 10 ) show ."
-);;
+);
 #endif
 #endif

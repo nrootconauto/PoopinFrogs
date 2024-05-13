@@ -21,35 +21,20 @@ U0 JobCallScript(CCSPair *p) {
   CallScript(p->name,p->thing);
   Free(p);
   while(LBts(&cpu_job_cnts_lock,Gs->num))
-    Sleep(1);
+    Yield;
   cpu_job_cnts[Gs->num]--;
   LBtr(&cpu_job_cnts_lock,Gs->num);
   Fs->hash_table=t;
 }
 U0 QueCallScript(U8 *name,CFrogThing *t) {
-  CCSPair *p=CAlloc(sizeof CCSPair);
-  I64 c=mp_cnt-1,best=c;
-  while(--c>=0) {
-    if(cpu_structs[c].idle_factor>cpu_structs[best].idle_factor)
-      best=c;
-  }
-  p->name=name;
-  p->ht=Fs->hash_table;
-  p->thing=t;
-
-  while(LBts(&cpu_job_cnts_lock,best))
-    Sleep(1);
-  cpu_job_cnts[best]++;
-  LBtr(&cpu_job_cnts_lock,best);
-
-  if(!best) JobCallScript(p);
-  else JobQue(&JobCallScript,p,best);
+  CallScript(name,t);
 }
 U0 WaitForJobsFinish() {
   I64 c=mp_cnt-1;
   while(c>=0) {
-    while(LBts(&cpu_job_cnts_lock,c))
+    while(LBts(&cpu_job_cnts_lock,c)) {
       Sleep(1);
+    }
     if(!cpu_job_cnts[c]) {
       LBtr(&cpu_job_cnts_lock,c);
       c--;
@@ -2304,7 +2289,7 @@ U0 WalkAround() {
   I64 idx;
   try while (cont) {
      every++;
-     if(every%3==0) QueCallScript("update",man->value);
+     if(every%3==0) QueCallScript("update",man->value);
 // Do physics after update
      c=w->_2d_things->cnt;
      body=w->_2d_things->body;
@@ -2314,7 +2299,7 @@ U0 WalkAround() {
 	  player->momx2=0;
 	  player->momy2=0;
        }
-       QueCallScript("animate",body[idx]);
+       CallScript("animate",body[idx]);
      }
 //if (ThingHasClass(player,"CPlayer")) {
       // set vars for multikey input
@@ -2373,7 +2358,7 @@ next:;
       }
       if(!player->main_inventory_active) {
         if (jump) {
-           CallScript("jump",player);
+           QueCallScript("jump",player);
            jump=FALSE;
         }
         if (up)
@@ -2401,7 +2386,7 @@ next:;
         if (ms.lb&&20<msy<GR_HEIGHT-75) { // mouse input is best handled with ms, not ScanMsg
 	  mouse_angle=(ms.pos.x-GR_WIDTH/2)*(w->fov/GR_WIDTH);
 	  player->angle+=mouse_angle;
-          CallScript("fire",FrogSymbol("hand_item")->value);
+          QueCallScript("fire",FrogSymbol("hand_item")->value);
 	  player->angle-=mouse_angle;
         }
       }
@@ -2420,7 +2405,7 @@ next:;
         while(--idx>=0) {
           shellc=body[idx];
 	  if(ThingHasClass(shellc,"CShellCasing")) {
-	    CallScript("update",shellc);
+	    QueCallScript("update",shellc);
 	  }
         }
      }

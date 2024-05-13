@@ -116,7 +116,7 @@ _TO_FROG_NUM::
  MOVQ XMM0,RAX
   RET1 8
 };
-_extern _AS_F64 F64 AsF64(CFrogThing *t);
+_extern _AS_F64 F64 AsF64(CFrogThing *t);
 _extern _TO_FROG_NUM CFrogNum *FrogNumNew(F64);
 #else
 F64 AsF64(CFrogThing *t) {
