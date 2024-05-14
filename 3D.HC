@@ -186,6 +186,19 @@ enter:
   }
   return y;
 }
+CBlockedView *VisAt(C3DWorld *w,I64 x,I64 y,I64 dist) {
+  I64 cnt=w->blocked_cnts[x],idx;
+  CBlockedView *blocked;
+  for(idx=0;idx!=cnt;idx++) {
+    blocked=&w->blocked_views[x][idx];
+    if(blocked->dist<dist) {
+      if(blocked->start<=y<blocked->end) {
+	return blocked;
+      }
+    }
+  }
+  return NULL;
+}
 C3DWorld *LoadWorldFromFile(U8 *blob_file="ASS",U8 *filename,F64 fov=pi/4) {
   C3DWorld *ret=CAlloc(sizeof(C3DWorld));
   CFileWorld *world=BlobFileGetLump(blob_file,filename);
@@ -922,27 +935,40 @@ I64 ColorFloor(C3DWorld *w,I64 view_x,I64 floor_height,I64 sy,I64 ey,CDC *textur
   CDC *dc=w->to_dc,*stain=NULL;
   F64 angley=0;
   F64 step;
-  F64 dist;
-  I64 y,fx,fy,anim_frame=ToI64(tS/ANIM_DELAY)%AnimDCCnt(texture),idx,which,tx,ty;
+  F64 dist,dist2;
+  CBlockedView *v;
+  I64 y,fx,fy,anim_frame=ToI64(tS/ANIM_DELAY)%AnimDCCnt(texture),idx,which,tx,ty,y2;
   I64 old_tx=-1,old_ty=-1;
   U64 colors,width=dc->width_internal,cnt;
   U8 *dst;
   I32 *db_z;
   U64 idist;
-  I64 poopx,poopy;
+  I64 poopx,poopy,dir;
   I64 idist32;
   ey=GR_HEIGHT-ey;
   sy=GR_HEIGHT-sy;
   ey=ClampI64(ey,0,w->to_dc->height-w->step_width);
   sy=ClampI64(sy,0,w->to_dc->height-w->step_width);
-  for(y=sy;y<=ey;y+=w->step_width) {
+  if(ceil) {dir=-1;y=ey;}
+  else dir=1,y=sy;
+  for(;TRUE;y+=w->step_width*dir) {
     if(y-GR_HEIGHT/2==0)
       dist=I16_MAX;
     else {
       dist=DIST_SCALE/((GR_HEIGHT/2-y)/(w->cam_height-floor_height));
     }
     dist/=cos2_lookup_table[view_x];
-
+    if(GR_HEIGHT-y<GR_HEIGHT/2)
+     //Disatnce above horizon groews further,so we are safe to block down
+     if(ceil&&(v=VisAt(w,view_x,dc->height-y,dist))) {
+       dist2=v->dist;
+       y2=DIST_SCALE/dist2*(w->cam_height-floor_height)-GR_HEIGHT/2;
+       y2=-y2;
+       y=MinI64(y,y2);
+       y=MinI64(y,GR_HEIGHT-v->end);
+     }
+      if(!(sy<=y<=ey))
+        break;
     fx=w->x+cos_lookup_table[view_x]*dist;
     fy=w->y+sin_lookup_table[view_x]*dist;
     tx=fx/GRID_SZ;
@@ -1359,7 +1385,7 @@ ent:
 	    if(GR_HEIGHT>VisSkipTo(w,x+idx3,y0,dist)) {
 	      if(I16_MIN<=y0<=I16_MAX) {
 	        block_view->start=y0;
-	        block_view->end=GR_HEIGHT;
+	        block_view->end=y0+h*AbsI64(height_cap-adj_height);
 	        block_view->dist=dist;
 	        w->blocked_cnts[x+idx3]=ptr+1;
 	      }
@@ -1417,7 +1443,7 @@ ceil2:
         tile2=xoff+yoff*w->world_width+idx;
         if(0<=tile2<w->world_width*w->world_height) {
 	  other=w->ceilmap[tile2]+w->ceilmap2[tile2];
-	  if(w->ceilmap[tile2]!=I8_MAX) {
+	  if(w->ceilmap[tile2]==ceil) {
             if(other>=ceil) {
 	      if(other>=adj_height+ceil)
 	        adj_height=0;

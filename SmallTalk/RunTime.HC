@@ -147,6 +147,7 @@ I64 cpu_halts=1<<mp_cnt-1,cpu_halts_lock=0;
 I64 cpu_active_cnts[mp_cnt];
 MemSetI64(cpu_active_cnts,0,mp_cnt);
 CFrogThing *FrogThingLock(CFrogThing *f) {
+  return f;
   if(f&1) return f;
   I64 other;
   if(Bt(&f->owner_cpu,Gs->num))
