@@ -38,6 +38,7 @@ class CLevelSegment:CQue {
   I64 xoff,yoff;
   CQue edits;
   CQue things;
+  CQue doors;
 //u8[0] is the floor
   //u8[1] is the ceiliing
   I16 data[SEGMENT_SZ][SEGMENT_SZ];
@@ -68,6 +69,11 @@ class CLevelThing:CQue {
 //In width of tiles
   F64 x,y,rot;
   I64 thing_template_idx;
+  I64 flags;
+};
+class CLevelDoor:CQue {
+  I64 x,y,act_as_tile;
+  F64 ceil_rise;
   I64 flags;
 };
 class CLevelSegmentAddThing:CQue {
@@ -195,6 +201,11 @@ class CFileThingTemplate {
   U8 blob_front_name[STR_LEN];
   U8 blob_back_name[STR_LEN];
 };
+class CFileDoor {
+  I64 x,y,act_as_tile;
+  F64 ceil_rise;
+  I64 flags;
+};
 class CFileThing {
   U16 thing_template_idx;
 //x/y are in tiles 
@@ -225,6 +236,8 @@ class CWorld {
   CFilePtrLen heightmap;
   CFilePtrLen ceilmap;
   CFilePtrLen ceilmap2;
+  CFilePtrLen world_start;
+  CFilePtrLen doors;
   U0 start;
 }; 
 U0 _DumpSegment(CWorld *world,CLevelSegment *seg) {
@@ -285,9 +298,11 @@ U0 LevelEditorExport(U8 *blob,U8 *filename) {
   CLevelSegment *cur;
   CLevelThingTemplate *template;
   CLevelThing *thing;
+  CLevelDoor *door;
   U8 *fptr,save,*fptr2;
   WorldExtents(&minx,&maxx,&miny,&maxy);
   I64 textures_sz=0,tsz,templates_sz=0,things_sz=0;
+  I64 doors_sz=0;
   for(
         template=world_edit.thing_templates_que.next;
         template!=&world_edit.thing_templates_que;
@@ -299,10 +314,11 @@ U0 LevelEditorExport(U8 *blob,U8 *filename) {
         cur!=&world_edit.segments;
         cur=cur->next) {
     things_sz+=sizeof(CFileThing)*QueCnt(&cur->things);
+    doors_sz+=sizeof(CFileDoor)*QueCnt(&cur->doors);
   }
   textures_sz=sizeof(CFileTexture)*QueCnt(&world_edit.textures_que);
   I64 w=maxx-minx,h=maxy-miny;
-  I64 fsz=(w*h)+(w*h)+(w*h)+2*(w*h)+sizeof(CWorld)+textures_sz+templates_sz+things_sz;
+  I64 fsz=(w*h)+(w*h)+(w*h)+2*(w*h)+sizeof(CWorld)+textures_sz+templates_sz+things_sz+doors_sz;
   CWorld *data=CAlloc(fsz);
   data->startx=minx;
   data->starty=miny;
@@ -363,6 +379,19 @@ U0 LevelEditorExport(U8 *blob,U8 *filename) {
   if(fptr-data->things(U8*)!=things_sz) {
     throw('Save');
   }
+  data->doors.ptr=fptr(U8*)-data(U8*);
+  data->doors.len=doors_sz;
+  for(cur=world_edit.segments.next;cur!=&world_edit.segments;cur=cur->next) {
+    door=cur->doors.next;
+    while(door!=&cur->doors) {
+      fptr(CFileDoor*)->x=door->x;
+      fptr(CFileDoor*)->y=door->y;
+      fptr(CFileDoor*)->act_as_tile=door->act_as_tile;
+      fptr(CFileDoor*)->ceil_rise=door->ceil_rise;
+      fptr(CFileDoor*)++;
+      door=door->next;
+    }
+  }  
   data->textures_where.ptr=data->textures(U8*)-data(U8*);
   data->textures_where.len=sizeof(CFileTexture)*QueCnt(&world_edit.textures_que);
   data->thing_templates_where.ptr=data->thing_templates(U8*)-data(U8*);
@@ -376,6 +405,8 @@ U0 LevelEditorExport(U8 *blob,U8 *filename) {
   data->ceilmap.ptr=data->heightmap.ptr+w*h;
   data->ceilmap2.ptr=data->ceilmap.ptr+w*h;
 //  MemSet(data(U8*)+data->ceilmap.ptr,I8_MAX,w*h);
+  data->world_start.len=w*h;
+  data->world_start.ptr=sizeof(CWorld);
   data->data=w*h;
   BlobFileAddLump(blob,filename,data,fsz,'LEVEL');
   Free(data);
@@ -386,6 +417,7 @@ CLevelSegment *LevelEditorNewSegment(I64 at_x,I64 at_y) {
   CLevelSegment *new=CAlloc(sizeof(CLevelSegment),world_edit.mem_task),*cur;
   MemSet(new->ceil_heights,I8_MAX,SEGMENT_SZ*SEGMENT_SZ);
   QueInit(&new->things);
+  QueInit(&new->doors);
   QueInit(&new->edits);
   QueIns(new,world_edit.segments.last);
   new->xoff=at_x;
@@ -845,6 +877,9 @@ U0 DrawWall(CDC *dc,CDC *texture,I64 dispx,I64 dispy,I64 tx,I64 ty,I64 xoff,I64 
     DrawTexturedQuad(dc,points,texture,idist);
   }
 }
+
+
+
 U0 DrawTileSexy(CDC *dc,I64 dispx,I64 dispy,F64 height,CDC *top,CDC *side,I64 tx,I64 ty,I64 ceil_height2=INVALID_PTR) {
   if(world_edit.cam_height<=height+1)
     return;
@@ -894,11 +929,98 @@ U0 DrawTileSexy(CDC *dc,I64 dispx,I64 dispy,F64 height,CDC *top,CDC *side,I64 tx
   if(side)
     for(xoff=-1;xoff<2;xoff++)
       for(yoff=-1;yoff<2;yoff++)
-        DrawWall(dc,side,dispx,dispy,tx,ty,xoff,yoff,side,height,ceil_height2);
+        DrawWall(dc,side,dispx,dispy,tx,ty,xoff,yoff,side,height);
 }
 U0 DrawTileDumb(CDC *dc,I64 dispx,I64 dispy,CDC *top,I64 tx,I64 ty) {
   GrBlot(dc,tx*GRID_SZ+dispx,ty*GRID_SZ+dispy,top);
 }
+
+U0 DrawDoorSexy(CDC *dc,I64 dispx,I64 dispy,CDC *top,CDC *side,I64 tx,I64 ty,F64 rise) {
+  CLevelSegment *s=GetSegmentForPos(tx,ty);
+  F64 height=s->heights[tx-s->xoff][ty-s->yoff];
+  height+=rise;
+  if(world_edit.cam_height<=height+1)
+    return;
+  I64 idist=(world_edit.cam_height-height)*GRID_SZ,wi;
+  F64 width=DIST_SCALE/ToF64(idist);
+  I64 x=(tx*16-GR_WIDTH/2+dispx)*width/16+GR_WIDTH/2;
+  I64 y=(ty*16-GR_HEIGHT/2+dispy)*width/16+GR_HEIGHT/2;
+  I64 sx=x-width/2; 
+  I64 sy=y-width/2; 
+  I64 ex=x+width/2,ey=y+width/2;
+  I64 xoff,yoff,c;
+  U8 *base,*dst;
+  I32 *depth_buf,depth=world_edit.cam_height-height;
+  wi=top->width_internal;
+  sx=MaxI64(sx,0);
+  sy=MaxI64(sy,0);
+  ex=MinI64(ex,dc->width-4);
+  ey=MinI64(ey,dc->height-4);
+  if(dc->flags&DCF_SCRN_BITMAP) {
+    sx=MinI64(sx+dc->win_task->pix_left,dc->win_task->pix_right);
+    sy=MinI64(sy+dc->win_task->pix_top,dc->win_task->pix_bottom);
+    ex=MinI64(ex+dc->win_task->pix_left,dc->win_task->pix_right);
+    ey=MinI64(ey+dc->win_task->pix_top,dc->win_task->pix_bottom);    
+  }
+//Align to 2
+  sx=sx&~1;
+  for(yoff=sy;yoff<ey;yoff+=2) {
+    base=&top->body[ToI64((yoff-sy)/width*top->height)*wi]; 
+    dst=&dc->body[dc->width_internal*yoff+sx];
+    depth_buf=&dc->depth_buf[dc->width_internal*yoff+sx];
+    for(xoff=sx;xoff<ex;xoff+=2) {
+      if(*depth_buf>idist) {
+        for(c=2;--c>=0;) {
+	  dst(U16*)[0]=gr.to_8_colors[base[MinI64((xoff-sx)/width*top->width,top->width-1)]];
+	  depth_buf[0]=idist;
+	  depth_buf[1]=idist;
+	  dst+=dc->width_internal;
+	  depth_buf+=dc->width_internal;
+        }
+        dst-=dc->width_internal*2;
+        depth_buf-=dc->width_internal*2;
+      }
+      depth_buf+=2;
+      dst+=2;
+    }
+  }
+  if(Blink)
+    dc->color=BLUE;
+  else
+    dc->color=RED;
+  GrPutS(dc,x-16,y-4,"Door");
+  if(side)
+    for(xoff=-1;xoff<2;xoff++)
+      for(yoff=-1;yoff<2;yoff++)
+        DrawWall(dc,side,dispx,dispy,tx,ty,xoff,yoff,side,height,height-rise);
+}
+
+U0 DrawSegmentDoors(CTask *t,CDC *dc) {
+  CLevelSegment *segment=world_edit.segments.next;
+  CLevelDoor *door;
+  CLevelTexture *txr;
+  I64 tx=world_edit.base_x/GRID_SZ,ty=world_edit.base_y/GRID_SZ;
+  while(segment!=&world_edit.segments) {
+    door=segment->doors.next;
+    while(door!=&segment->doors) {
+      txr=world_edit.textures[door->act_as_tile];
+      if(txr) {
+        if(world_edit.flat_mode) {
+	  ;//        DrawThingDumb(dc,world_edit.base_x,world_edit.base_y,thing->x*GRID_SZ,thing->y*GRID_SZ,template->front_dc);
+        } else  
+{
+	  DrawDoorSexy(dc,world_edit.base_x,world_edit.base_y,
+	        txr->dc,
+	        txr->wall_dc,
+	        door->x,door->y,door->ceil_rise);
+        }
+      }
+      door=door->next;
+    }
+    segment=segment->next;
+  }
+}
+
 //Returns GRID_SZ*tile cordnate
 U0 MouseToPos(I64 ms_x,I64 ms_y,I64 *_x,I64 *_y) {
   I64 idist;
@@ -985,6 +1107,7 @@ next:;
     }
   }
   DrawSegmentThings(t,dc);
+  DrawSegmentDoors(t,dc);
   DrawSidebar(dc,0);
   DrawSidebar(dc,t->pix_width-SIDEBAR_WIDTH,TRUE);
   DrawThingBar(dc,t);
@@ -1016,6 +1139,30 @@ world_edit.flat_mode=old_flat;
 //TODO ensure lump exists
 return TRUE;
 }
+U0 InsertDoor(I64 tx,I64 ty) {
+  CLevelSegment *seg=GetSegmentForPos(tx,ty);
+  CLevelDoor *d;
+  if(!seg) return;
+  d=seg->doors.next;
+  while(d!=&seg->doors) {
+    if(d->x==tx&&d->y==ty) {
+      if(d->act_as_tile==world_edit.wall_texture)
+        return;
+      else {
+        QueRem(d);
+	Free(d);
+	break;
+      }
+    }
+    d=d->next;
+  }
+  d=CAlloc(sizeof CLevelDoor,world_edit.mem_task);
+  d->x=tx;
+  d->y=ty;
+  d->act_as_tile=world_edit.wall_texture;
+  d->ceil_rise=1;
+  QueIns(d,seg->doors.last);
+} 
 U0 EditThingTemplate(U8 *blob,CLevelThingTemplate *template) {
 enter:;
   CDoc *what=DocNew(blkdev.tmp_filename);
@@ -1225,6 +1372,7 @@ U0 LoadWorld(U8 *blob,U8 *filename) {
   CLevelThing *thing;
   CLevelSegment *segment;
   CLevelTexture *texture;
+  CFileDoor *doors;
   CWorld *w=NULL;
   Bool old_flat=world_edit.flat_mode;
   world_edit.flat_mode=TRUE;
@@ -1239,7 +1387,8 @@ U0 LoadWorld(U8 *blob,U8 *filename) {
   world_edit.filename=StrNew(filename);
   width=w->w;
   height=w->h;
-  w->data=&w->start;
+  w->data=w(U8*)+w->world_start.ptr;
+  doors=w(U8*)+w->doors.ptr;
   textures=w(U8*)+w->textures_where.ptr;
   templates=w(U8*)+w->thing_templates_where.ptr;
   heightmap=w(U8*)+w->heightmap.ptr;
@@ -1257,6 +1406,11 @@ U0 LoadWorld(U8 *blob,U8 *filename) {
       WorldInsertTileAt(x+sx,y+sy,data.u8[1],1);
       WorldInsertTileAt(x+sx,y+sy,data.u8[1],2);
     }
+  cap=w->doors.len/sizeof (CFileDoor);
+  while(--cap>=0) {
+    world_edit.wall_texture=doors[cap].act_as_tile;
+    InsertDoor(doors[cap].x,doors[cap].y);
+  }
   f_texture=textures;
   cap=w->textures_where.len;
   while(f_texture<textures(U8*)+cap) {
@@ -1487,6 +1641,7 @@ U0 WorldEdit(U8 *blob,U8 *filename=NULL) {
   CLevelThingTemplate *thingt;
   CLevelThing *thing;
   CLevelSegmentEditIns *edit_ins;
+  CLevelDoor *door;
   U8 *str;
   Bool continue=TRUE,*which_key,floor_fill=FALSE;
   Bool old_flat;
@@ -1651,7 +1806,12 @@ save:
     }
     world_edit.at_x=world_edit.base_x+world_edit.ms_x;
     world_edit.at_y=world_edit.base_y+world_edit.ms_y;
-    if(Bt(kbd.down_bitmap,Char2ScanCode('f'))){
+    if(Bt(kbd.down_bitmap,Char2ScanCode('d'))) {
+	    MouseToPos(world_edit.ms_x,world_edit.ms_y,&tx,&ty);
+	    tx=FloorI64(tx,GRID_SZ)/16;
+	    ty=FloorI64(ty,GRID_SZ)/16;
+	    InsertDoor(tx,ty);
+    } else if(Bt(kbd.down_bitmap,Char2ScanCode('f'))){
       if(Bt(kbd.down_bitmap,SC_SHIFT)) {
 //This is for toggling the "flat mode" then
       } else {
@@ -1760,11 +1920,19 @@ FALSE /*dont add undo*/);*/ //First dummy fill with I16_MAX,then fill with real 
 		      2
 		      );
 	      } else {
-// Look For for things second
 	        if(segment) {
+//Look for doors first
+		  for(door=segment->doors.next;door!=&segment->doors;door=door->next) {
+		    if(door->x==tx&&door->y==ty) {
+		      QueRem(door);
+		      Free(door);
+		      goto next;
+		    }
+		  }
+// Look For for things second
 		  for(thing=segment->things.next;thing!=&segment->things;thing=thing->next) {
-		    if(ToI64(thing->x)<=tx<ToI64(thing->x)+16)
-		      if(ToI64(thing->y)<=ty<ToI64(thing->y)+32) {
+		    if(ToI64(thing->x)-16<=tx<ToI64(thing->x)+16)
+		      if(ToI64(thing->y)-32<=ty<ToI64(thing->y)+32) {
 		        QueRem(thing);
 		        Free(thing);
 		        goto next;

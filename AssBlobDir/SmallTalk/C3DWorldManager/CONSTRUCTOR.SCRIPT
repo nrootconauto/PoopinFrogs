@@ -19,4 +19,6 @@ init | gx=CFrogNum gy=CFrogNum col=CFrogArray |
     ].
     grid add: col .
   ] .
+  doors _ #() .
+
   ^ self

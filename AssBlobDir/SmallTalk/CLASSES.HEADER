@@ -204,6 +204,7 @@ class C3DWorldManager:CFrogThing {
   I64 screen_x,screen_y;
 //A grid of things having the things(128*128 size)
   CFrogArray *grid;
+  CFrogArray *doors;
 };
 
 class CHandItem:CFrogThing {
@@ -381,4 +382,11 @@ class CRocketLauncherPickup:CPickup {
 };
 
 class CWaterPickup:CPickup {
+};
+class CDoor:CFrogThing {
+  F64 height,percent;
+  F64 activated_at;
+  F64 speed;
+  F64 open_duration;
+  I64 x,y,act_as_wall;
 };

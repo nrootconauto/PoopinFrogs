@@ -20,3 +20,7 @@ update ->* | p=CPlayer now=CFrogNum |
   (#hand_item hasClass: CHandItem) ifTrue: [
     #hand_item animate
   ] .
+
+  doors do:[:d=CDoor|
+    d update
+  ] .
