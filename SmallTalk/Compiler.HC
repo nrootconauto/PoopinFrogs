@@ -92,6 +92,16 @@ CLocalsGeneric *STNewBlockFrame(U8 *frame_title,CLocalsGeneric *parent) {
   return fr;
 }
 
+U0 STSetReturnFlags(I64 *who) {
+  CLocalsGeneric *g=Fs->user_data;
+  while(g) {
+    g->return_flag[0]=1;
+    if(g->return_flag==who&&g->type=='Method')
+      break;
+    g=g->next;
+  }
+}
+
 CLocalsGeneric *STAddMethodFrame(CMethod *method,U8 *frame_title,U8*class_name) {
   CHashClass *as=HashFind(frame_title,frog_mem_task->hash_table,HTT_CLASS);
   CHashClass *cls;
@@ -103,6 +113,7 @@ CLocalsGeneric *STAddMethodFrame(CMethod *method,U8 *frame_title,U8*class_name) 
   fr->thing_flags=THINGF_FRAME_TYPE;
   fr->ref_cnt=1;
   fr->type='Method';
+  fr->ret_flag=0;
   fr->return_flag=&fr->ret_flag;
   fr->next=Fs->user_data;
   fr->parent=Fs->user_data;
@@ -1018,17 +1029,17 @@ generic_member:
       CompileAST(doc,cur,locals,stack_depth,,FALSE);
       ast->switch_num=ast_case_num++;
       DocPrint(doc,"case %d:\n",ast->switch_num);
-      DocPrint(doc,"  return_flag[0]=TRUE;\n");
+      DocPrint(doc,"  return_flag[0]=1;\n");
+      DocPrint(doc,"STSetReturnFlags(return_flag);");
       DocPrint(doc,"  retval=%s;\n  unwind=%d;\n  goto ret;\n",StackFrame2Var(stack_depth),stack_depth);
       break; 
     default:
       throw('fuck');
   }
+  DocPrint(doc,"if(return_flag[0]) { goto ret;}");
   if(jump_to!=INVALID_PTR) {
     DocPrint(doc,"next_case=%d;\n",jump_to);
     DocPrint(doc,"goto enter;\n");
-  } else {
-    DocPrint(doc,"if(return_flag[0]) goto ret;");
   }
 }
 U0 CompileToHolyC(U8 *src,U8 *class_name,U8 *src_path=NULL,Bool class_method=FALSE,Bool register_method=FALSE) {

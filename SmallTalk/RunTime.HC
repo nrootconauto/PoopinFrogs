@@ -1290,7 +1290,7 @@ CFrogThing *FrogThingShow(CFrogStr *self,...) {
       break;
     } else  {
       if(!(self&1))
-        "<%s>\n",self->class_name;
+        "<%s.%x>\n",self->class_name,self;
       else
         "???\n";
       break;

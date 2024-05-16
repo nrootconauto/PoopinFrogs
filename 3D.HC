@@ -742,7 +742,7 @@ U0 PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm) {
     t->momz=0;
   } else if(!rocket)
       t->momz-=wm->gravity;
-  if(t->momy+t->momy2||t->momx+t->momx2) {
+  if(t->momy+t->momy2||t->momx+t ->momx2) {
     if(!rocket) {
       t->momx*=29/30.;
       t->momy*=29/30.;

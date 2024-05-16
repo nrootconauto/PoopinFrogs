@@ -1,2 +1,13 @@
-removeFromGrid: thing=C3DThing ->* | |
-  ((grid at: thing ->x / 128 / 16) at: thing ->y  / 128 / 16) remove: thing
+removeFromGrid: thing=C3DThing ->* | a=CFrogArray |
+  a _ ((grid at: thing ->x / 128 / 16) at: thing ->y  / 128 / 16).
+  (a includes: thing) ifTrue: [
+   a remove: thing . 
+   ^ 1 
+  ] .
+  grid do: [:arr=CFrogArray|
+   arr do: [:arr2=CFrogArray|
+     ( arr2 includes: thing) ifTrue: [
+      arr2 remove: thing .
+     ] .
+   ].
+  ] .
