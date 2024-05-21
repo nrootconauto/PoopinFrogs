@@ -672,7 +672,8 @@ Bool C3DWorldMoveZWithCollision(C3DWorld *w,F64 dist,F64 x,F64 y,F64 *_height,F6
   F64 by=dist/8;
   Bool hit=FALSE;
   F64 h_offset=0;
-  I64 cnt=0,tile,best,ch,cr,h,flags;
+  F64 h;
+  I64 cnt=0,tile,best,ch,cr,flags;
   if(dist>0.)
     flags=RADF_CEIL;
   else
@@ -682,7 +683,10 @@ Bool C3DWorldMoveZWithCollision(C3DWorld *w,F64 dist,F64 x,F64 y,F64 *_height,F6
   if(0<=tile<w->world_width*w->world_height) {
     ch=w->ceilmap[tile];
     cr=w->ceilmap2[tile];
-    h=w->heightmap[tile];
+    h=AsF64(CallScript("getPlatformHeightAtX:atY:",
+	FrogSymbol("world")->value,
+	FrogNumNew(x),
+	FrogNumNew(y)));
     if(ch+cr<=z) {
       o=z;
       z=Max(z,ch+cr);
@@ -697,7 +701,7 @@ Bool C3DWorldMoveZWithCollision(C3DWorld *w,F64 dist,F64 x,F64 y,F64 *_height,F6
   return hit;
 }
 //Returns true on wall hit
-Bool C3DWorldMoveWithCollision(C3DWorld *w,F64 angle,F64 dist,F64 *x,F64 *y,Bool walk_along_wall=TRUE,I64 height=0) {
+Bool C3DWorldMoveWithCollision(C3DWorld *w,F64 angle,F64 dist,F64 *x,F64 *y,Bool walk_along_wall=TRUE,I64 height=0) {
   F64 dist2;
   I64 side;
   Bool hit_wall=FALSE,force;
@@ -2535,7 +2539,7 @@ next:;
         if (ms.lb&&20<msy<GR_HEIGHT-75) { // mouse input is best handled with ms, not ScanMsg
 	  mouse_angle=(ms.pos.x-GR_WIDTH/2)*(w->fov/GR_WIDTH);
 	  player->angle+=mouse_angle;
-          QueCallScript("fire",FrogSymbol("hand_item")->value);
+          QueCallScript("fire",FrogSymbol("hand_item")->value);
 	  player->angle-=mouse_angle;
         }
       }

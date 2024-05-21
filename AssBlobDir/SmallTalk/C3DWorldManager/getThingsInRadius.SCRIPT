@@ -11,9 +11,11 @@ getThingsInRadiusFromX: x=CFrogNum fromY: y=CFrogNum withRadius: r=CFrogNum
   -1 to: 2 do: [:xo=CFrogNum |
     -1 to: 2 do: [:yo=CFrogNum |
       ((grid at: X + xo) at: Y + yo) do: [:t=C3DThing| 
-        r >= ((x - t ->x) squared + (y - t ->y ) squared) ifTrue: [
-         ret add: t .
-       ]
+        (t hasClass: C3DThing) ifTrue: [
+          r >= ((x - t ->x) squared + (y - t ->y ) squared) ifTrue: [
+            ret add: t .
+          ]
+        ]
       ]. 
     ] .
   ] .

@@ -1,0 +1,4 @@
+addDoor:d=CDoor->* ||
+  doors add: d .
+  ((grid at: d->x / 16 )
+    at: d->y / 16 ) add: d

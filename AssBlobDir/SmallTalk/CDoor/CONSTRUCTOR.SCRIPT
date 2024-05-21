@@ -1,0 +1,6 @@
+init->CDoor | |
+  activated_at _ -1 .
+  open_duration _ 3 .
+  speed _ 1 / 2 .
+  percent _ 0 .
+ ^ self

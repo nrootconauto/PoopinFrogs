@@ -374,7 +374,7 @@ class CZombie:C3DThing {
 class CRocket:C3DThing {
   C3DThing *from;
 };
-class CPoopRocket:CRocket {
+class CPoopRocket:CRocket {
 };
 class CRocketLauncher:CHandItem {
 };
@@ -384,7 +384,7 @@ class CRocketLauncherPickup:CPickup {
 class CWaterPickup:CPickup {
 };
 class CDoor:CFrogThing {
-  F64 height,percent;
+  F64 height,percent;
   F64 activated_at;
   F64 speed;
   F64 open_duration;

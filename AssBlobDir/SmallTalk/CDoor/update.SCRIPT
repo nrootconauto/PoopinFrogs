@@ -1,0 +1,19 @@
+update->* |
+  rise_time=CFrogNum
+  tS=CFrogNum
+|
+  tS _ CFrogTime now asSeconds .
+  activated_at < 0 ifFalse: [
+    rise_time _ height / speed .
+    tS < rise_time ifTrue: [
+      percent _ (tS - activated_at) / rise_time .
+      ^ 1 .
+    ] .
+    tS > (rise_time + open_duration) ifTrue: [
+      percent _  1 - ((tS - activated_at - rise_time - open_duration ) / rise_time) .
+      percent < 0. ifTrue: [
+        activated_at _ -1 .
+      ]
+      ^ 1 .
+    ]
+  ].
