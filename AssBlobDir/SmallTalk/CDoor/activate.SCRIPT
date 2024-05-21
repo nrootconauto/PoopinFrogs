@@ -1,5 +1,7 @@
 activate->CFrogNum ||
+activated_at show .
   activated_at < 0. ifTrue: [
+'at ' show .
     activated_at _ CFrogTime now asSeconds .
    ^ 1 .
   ].

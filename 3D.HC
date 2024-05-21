@@ -4,6 +4,7 @@
 #include "Intersect.HC";
 #define TEST_3D
 #ifndef ENGINE_3D
+extern I64 *GetTilesInPath(U8 *w,F64 angle,F64 dist);
 #define ENGINE_3D 1
 #define SCRN_TURN_MARGIN 100
 #define SCRN_TURN_RATE (pi/30.)
@@ -317,6 +318,7 @@ C3DWorld *LoadWorldFromFile(U8 *blob_file="ASS",U8 *filename,F64 fov=pi/4) {
   to=fptr+world->doors.len;
   while(fptr<to) {
     door=ConstructThing("CDoor");
+    CallScript("init",door);
     door->x=fptr(CFileDoor*)->x-world->startx;
     door->y=fptr(CFileDoor*)->y-world->starty;
     door->act_as_wall=fptr(CFileDoor*)->act_as_wall;
@@ -584,6 +586,7 @@ C3DThing *BumpsIntoThing(C3DThing *self,...) {
 AddMethod("C3DThing","hitsThing:",&BumpsIntoThing);
 #define RADF_CEIL 1
 #define RADF_FLOOR 2
+#define RADF_DOOR 4
 Bool RadiusHitsWall(C3DWorld *w,F64 angle,F64 *_x,F64 *_y,F64 height,F64 radius=THING_RADIUS,Bool adjust=FALSE,F64 tallness=.8,I64 flags=RADF_CEIL|RADF_FLOOR) {
   F64 x=*_x;
   F64 y=*_y;
@@ -592,8 +595,8 @@ Bool RadiusHitsWall(C3DWorld *w,F64 angle,F64 *_x,F64 *_y,F64 height,F64 radius=
   radius/=GRID_SZ;
   F64 by=1/4.;
   Bool ret=FALSE,hit=TRUE;
-  I64 xoff,yoff,h,ch,cr,tile,i;
-  F64 tx,ty;
+  I64 xoff,yoff,ch,cr,tile,i;
+  F64 tx,ty,h;
   for(i=0;i!=4&&hit;i++)  {
     hit=FALSE;
     for(xoff=-1;xoff<2;xoff++)
@@ -632,10 +635,18 @@ Bool RadiusHitsWall(C3DWorld *w,F64 angle,F64 *_x,F64 *_y,F64 height,F64 radius=
 	  }
 	  tile=ToI64(x)+xoff+(ToI64(y)+yoff)*w->world_width;
 	  if(0<=tile<w->world_height*w->world_width) {
-	    h=w->heightmap[tile];
+	    if(flags&RADF_DOOR) {
+              h=AsF64(CallScript("getPlatformHeightAtX:atY:",
+		FrogSymbol("world")->value,
+		FrogNumNew(ToI64(x)*GRID_SZ+xoff*GRID_SZ+GRID_SZ/2),
+		FrogNumNew(ToI64(y)*GRID_SZ+yoff*GRID_SZ+GRID_SZ/2))
+	      );
+	    } else
+	      h=w->heightmap[tile];
 	    ch=w->ceilmap[tile];
 	    cr=w->ceilmap2[tile];
-	    if(flags&RADF_FLOOR&&height<h) {
+//.2 for stepping over partly open doors
+	    if(flags&RADF_FLOOR&&height+.2<h) {
 check:
 	        if(Abs(x-tx)<radius&&xoff) {
 	          if(adjust) {
@@ -701,29 +712,43 @@ Bool C3DWorldMoveZWithCollision(C3DWorld *w,F64 dist,F64 x,F64 y,F64 *_height,F6
   return hit;
 }
 //Returns true on wall hit
-Bool C3DWorldMoveWithCollision(C3DWorld *w,F64 angle,F64 dist,F64 *x,F64 *y,Bool walk_along_wall=TRUE,I64 height=0) {
-  F64 dist2;
-  I64 side;
+Bool C3DWorldMoveWithCollision(C3DWorld *w,F64 angle,F64 dist,F64 *x,F64 *y,Bool walk_along_wall=TRUE,I64 height=0) {
+  F64 dist2=0;
   Bool hit_wall=FALSE,force;
   F64 old_x=w->x,old_y=w->y,deflect_angle;
-  F64 ox=FloorI64(*x,GRID_SZ),oy=FloorI64(*y,GRID_SZ);
   w->x=*x,w->y=*y;
   if(dist<0.) angle+=pi,dist=-dist;
-  force=-1==FindRayWall(w,Tan(angle),Cos(angle),Sin(angle),NULL,&dist2,&side,height);
-  if(dist2-THING_RADIUS/4>dist||force) {
-    *x+=Cos(angle)*dist;
-    *y+=Sin(angle)*dist;
-    if(dist2>= 0.) hit_wall=(dist2-THING_RADIUS<dist);
-  } else if(walk_along_wall) {
-slide:    
-    hit_wall=TRUE;
-  } else
-    hit_wall=TRUE;
-fin:
-  if(RadiusHitsWall(w,angle,x,y,height,THING_RADIUS,TRUE)) {
-    hit_wall=TRUE;
+  I64 *tiles=GetTilesInPath(w,angle,dist),idx,idx2;
+  for(idx=0;tiles[idx]!=-1;idx++) {
+    if(!idx) {
+      *x=w->x+Cos(angle)*dist2;
+      *y=w->y+Sin(angle)*dist2;
+      if(RadiusHitsWall(w,angle,x,y,height,THING_RADIUS,TRUE,,RADF_CEIL|RADF_FLOOR|RADF_DOOR)) {
+        hit_wall=TRUE;
+        goto fin;
+      }
+    }
+    for(idx2=0;idx2!=5;idx2++) {
+      dist2+=GRID_SZ/5;
+      if(dist2>=dist) {
+        dist2=dist;
+      }
+      if(!idx) {
+        *x=w->x+Cos(angle)*dist2;
+        *y=w->y+Sin(angle)*dist2;
+        if(RadiusHitsWall(w,angle,x,y,height,THING_RADIUS,TRUE,,RADF_CEIL|RADF_FLOOR|RADF_DOOR)) {
+          hit_wall=TRUE;
+          goto fin;
+        }
+      }
+
+      if(dist2>=dist)
+         goto fin;
+    }
   }
+fin:
   w->x=old_x,w->y=old_y;
+  Free(tiles);
   return hit_wall;
 }
 U0 PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm) {
@@ -739,6 +764,7 @@ U0 PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm) {
   I64 raise=w->ceilmap2[tile];
   CRocket *rocket=NULL;
   CFrogArray *in_radius;
+  CDoor *to_open;
   if(ThingHasClass(t,"CRocket"))
     rocket=t;
   CallScript("removeFromGrid:",wm,FrogIncRefCnt(t));
@@ -759,14 +785,21 @@ U0 PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm) {
 	&t->y,
 	TRUE,
 	t->z)) {
+hit:
       if(rocket) {
 explode:
         CallScript("explode",rocket);
         return;
+      } else if(!ThingHasClass(t,"CPickup")) {
+        to_open=CallScript("doorInRadius:atX:atY:atAngle:",
+	  wm,FrogNumNew(THING_RADIUS),FrogNumNew(t->x),FrogNumNew(t->y),FrogNumNew(t->angle));
+        if(ThingHasClass(to_open,"CDoor")) {
+           CallScript("activateBy:",to_open,t);
+        }
       }
     } 
-  }
-  RadiusHitsWall(w,angle,&t->x,&t->y,t->z,THING_RADIUS,TRUE);
+  } else if(RadiusHitsWall(w,angle,&t->x,&t->y,t->z,THING_RADIUS,TRUE,,RADF_CEIL|RADF_FLOOR|RADF_DOOR))
+    goto hit;
   if(rocket) {
     if(!(0.<=t->x<w->world_width*128))
       goto explode;
@@ -1852,7 +1885,7 @@ fin:
     DrawPissStream(w,thing(CPlayer*)->piss_stream);
   }
   if(ThingHasClass(thing,"CZombie")) {
-    DrawPissStream(w,thing(CZombie*)->piss_stream);
+    DrawPissStream(w,thing(CZombie*)->piss_stream);
   }
 }
 C3DWorld *w;
@@ -2289,7 +2322,6 @@ U0 DrawDoor(CDoor *d) {
 	    tile,
 	    TRUE
 	    );
-      d->percent=Abs(Sin(tS*3));
       if(d->percent>.03)
         top=d->height*d->percent+w->heightmap[tile];
       else
@@ -2443,6 +2475,10 @@ U0 WalkAround() {
   try while (cont) {
      every++;
      if(every%3==0) QueCallScript("update",man->value);
+     body=wm->doors->items->body;
+     c=wm->doors->items->cnt;
+     for(idx=0;idx<c;idx++)
+       CallScript("update",body[idx]);
 // Do physics after update
      c=w->_2d_things->cnt;
      body=w->_2d_things->body;

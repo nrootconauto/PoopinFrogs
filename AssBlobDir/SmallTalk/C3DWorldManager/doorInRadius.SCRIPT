@@ -1,0 +1,20 @@
+doorInRadius: r=CFrogNum 
+  atX: x=CFrogNum
+  atY: y=CFrogNum
+  atAngle: a=CFrogNum 
+    ->CDoor
+|
+|
+  r _ r / 128 .
+  x _ x / 128 .
+  y _ y / 128 .
+  ((grid at: x / 16)
+    at: y /16) do:[:d=CDoor|
+     (d hasClass: CDoor) ifTrue: [
+    
+    ((d ->x + .5 - x ) squared + (d->y + .5 - y) squared ) sqrt < 2 ifTrue: [
+      ^ d
+    ]
+]
+  ]. 
+  ^ 0 

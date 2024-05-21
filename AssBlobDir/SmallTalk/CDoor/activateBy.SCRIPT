@@ -1,0 +1,4 @@
+activateBy: t=C3DThing  ->CFrogNum
+  ||
+  'TODOaccount for locsk'.
+  ^ self activate  
