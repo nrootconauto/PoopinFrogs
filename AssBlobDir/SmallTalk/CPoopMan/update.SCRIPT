@@ -15,11 +15,11 @@ update->* |
 
   health <= 0 ifTrue: [
     state ~= 'Dead' ifTrue: [
-      state _ 'Dead' .
       template _ w getThingTemplate: 'CPoopMan/Dead' .
+      state _ 'Dead' .
       animation_no_repeat _ 1 .
       animation_start_tS _ tS .
-    ] .
+    ]
   ] .
 
   state = 'Dead' ifTrue: [

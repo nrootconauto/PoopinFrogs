@@ -370,18 +370,14 @@ U8 *CompileThunk(CAST *block,CLocals *parent=NULL) {
 
   head=&block->body;
   DocPrint(doc,"FrogThingLock(self);\n");
-  DocPrint(doc,"enter:");
-  DocPrint(doc,"  if(*return_flag||ThingIsError(retval)) {goto ret;} \n");
-  DocPrint(doc,"switch(next_case) {\n");
   for(var=head->next;var!=head;var=var->next) {
     if(var->type!=AST_STR) {
       CompileASTFinal(doc,var,locals,0);
     }
   }
-  DocPrint(doc,"case %d:\n",ast_case_num++);
+  DocPrint(doc,"L%d:\n",ast_case_num++);
   head=&block->args;
   idx=0;
-  DocPrint(doc,"}\n");
   DocPrint(doc,"ret:\n");
   DocPrint(doc,"  FrogThingUnlock(self);\n");
   DocPrint(doc,"  STFrameDel;\n");
@@ -550,14 +546,12 @@ U0 UnrollBlock(CDoc *doc,CLocals *l,I64 stack_depth,CAST *bl,I64 jump_to=INVALID
   }
   if(!bl->switch_num) {
     bl->switch_num=ast_case_num++;
-    DocPrint(doc,"case %d:\n",bl->switch_num);
+    DocPrint(doc,"L%d:\n",bl->switch_num);
   }
   DocPrint(doc,"  retval=FrogBlockValue(%s);",StackFrame2Var(stack_depth));
   DocPrint(doc,"  %s=retval;\n",StackFrame2Var(stack_depth));
-  if(jump_to==INVALID_PTR)
-    DocPrint(doc,"next_case=%d;goto enter;\n",ast_case_num);
-  else
-    DocPrint(doc,"next_case=%d;goto enter;\n",jump_to);
+  if(jump_to!=INVALID_PTR)
+    DocPrint(doc,"goto L%d;\n",jump_to);
 }
 U0 CompileAST(CDoc *doc,CAST *ast,CLocals *locals,I64 stack_depth,I64 jump_to=INVALID_PTR,Bool allow_f64=FALSE) {
   U8 dummy[STR_LEN];
@@ -577,23 +571,21 @@ U0 CompileAST(CDoc *doc,CAST *ast,CLocals *locals,I64 stack_depth,I64 jump_to=IN
 pass:
 //Skip past object we are calling to
       cur=ast->args.next->next;
-
       if(!StrCmp(ast->op_name,"to:do:")) {
         CompileAST(doc,ast->args.next,locals,stack_depth);
         CompileAST(doc,ast->args.next->next,locals,stack_depth+1);
         CompileAST(doc,ast->args.last,locals,stack_depth+2);
         ast->switch_num=ast_case_num++;
         idx=ast->switch_num;
-        DocPrint(doc,"case %d:\n",ast->switch_num);
+        DocPrint(doc,"L%d:\n",ast->switch_num);
         ent=DocPrint(doc,"if(!(AsF64(%s)<AsF64(%s))) {
-next_case=$$LK,\"dummy1\"$$;
-goto enter;
+goto L$$LK,\"dummy1\"$$;
 }
 ",StackFrame2Var(stack_depth),
 	      StackFrame2Var(stack_depth+1),
 	      );
         DocPrint(doc,"retval=FrogBlockValue(%s,%s);",StackFrame2Var(stack_depth+2),StackFrame2Var(stack_depth));
-        DocPrint(doc,"%s=FrogNumNew(AsF64(%s)+1.);next_case=%d;goto enter;",StackFrame2Var(stack_depth),StackFrame2Var(stack_depth),idx);
+        DocPrint(doc,"%s=FrogNumNew(AsF64(%s)+1.);goto L%d;",StackFrame2Var(stack_depth),StackFrame2Var(stack_depth),idx);
         ReplaceElem(doc,ent,"%d",ast_case_num);
         return;
       }
@@ -601,8 +593,8 @@ goto enter;
         idx=ast_case_num;
         UnrollBlock(doc,locals,stack_depth,ast->args.next);
         ast->switch_num=ast_case_num++;
-        DocPrint(doc,"case %d:\n",ast->switch_num);
-        ent=DocPrint(doc,"if(AsF64(%s)==0.) {next_case=$$LK,\"dummy1\"$$;goto enter;}",StackFrame2Var(stack_depth));
+        DocPrint(doc,"L%d:\n",ast->switch_num);
+        ent=DocPrint(doc,"if(AsF64(%s)==0.) {goto L$$LK,\"dummy1\"$$;}",StackFrame2Var(stack_depth));
         UnrollBlock(doc,locals,stack_depth,ast->args.last,idx);
         ReplaceElem(doc,ent,"%d",ast_case_num);
         return;
@@ -611,8 +603,8 @@ goto enter;
         idx=ast_case_num;
         UnrollBlock(doc,locals,stack_depth,ast->args.next);
         ast->switch_num=ast_case_num++;
-        DocPrint(doc,"case %d:\n",ast->switch_num);
-        ent=DocPrint(doc,"if(AsF64(%s)) {next_case=$$LK,\"dummy2\"$$;goto enter;}",StackFrame2Var(stack_depth));
+        DocPrint(doc,"L%d:\n",ast->switch_num);
+        ent=DocPrint(doc,"if(AsF64(%s)) {goto L$$LK,\"dummy2\"$$;}",StackFrame2Var(stack_depth));
         UnrollBlock(doc,locals,stack_depth,ast->args.last,idx);
         ReplaceElem(doc,ent,"%d",ast_case_num);
         return;
@@ -622,37 +614,38 @@ goto enter;
         cur=ast->args.next;
         if(IsF64ExprNode(locals,cur)) {
 	  ast->switch_num=ast_case_num++;
-	  DocPrint(doc,"case %d:\n",ast->switch_num);
+	  DocPrint(doc,"L%d:\n",ast->switch_num);
 	  DocPrint(doc,"if((");
 	  CompileAST(doc,cur,locals,stack_depth,,TRUE);
-	  ent=DocPrint(doc,")==0) {next_case=$$LK,\"dummy3\"$$;goto enter;}",StackFrame2Var(stack_depth));
+	  ent=DocPrint(doc,")==0) {goto L$$LK,\"dummy3\"$$;}",StackFrame2Var(stack_depth));
         } else {
 	  CompileAST(doc,cur,locals,stack_depth,,0);
 	  ast->switch_num=ast_case_num++;
-	  DocPrint(doc,"case %d:\n",ast->switch_num);
+	  DocPrint(doc,"L%d:\n",ast->switch_num);
 	  DocPrint(doc,"if(AsF64(%s",StackFrame2Var(stack_depth));
-	  ent=DocPrint(doc,")==0) {next_case=$$LK,\"dummy3\"$$;goto enter;}",StackFrame2Var(stack_depth));
+	  ent=DocPrint(doc,")==0) {goto L$$LK,\"dummy3\"$$;}",StackFrame2Var(stack_depth));
         }
-        UnrollBlock(doc,locals,stack_depth,ast->args.next->next);
-        ReplaceElem(doc,ent,"%d",ast_case_num);
+        UnrollBlock(doc,locals,stack_depth,ast->args.last);
+        ReplaceElem(doc,ent,"%d",ast_case_num++);
+        DocPrint(doc,"L%d:\n",ast_case_num-1);
         break;
       }
       if(!StrCmp(ast->op_name,"ifFalse:")) {
         cur=ast->args.next;
         if(IsF64ExprNode(locals,cur)) {
 	  ast->switch_num=ast_case_num++;
-	  DocPrint(doc,"case %d:\n",ast->switch_num);
+	  DocPrint(doc,"L%d:\n",ast->switch_num);
 	  DocPrint(doc,"if((");
 	  CompileAST(doc,cur,locals,stack_depth,,TRUE);
-	  ent=DocPrint(doc,")) {next_case=$$LK,\"dummy3\"$$;goto enter;}",StackFrame2Var(stack_depth));
+	  ent=DocPrint(doc,")) {goto L$$LK,\"dummy3\"$$;}",StackFrame2Var(stack_depth));
         } else {
 	  CompileAST(doc,cur,locals,stack_depth,,0);
 	  ast->switch_num=ast_case_num++;
-	  DocPrint(doc,"case %d:\n",ast->switch_num);
+	  DocPrint(doc,"L%d:\n",ast->switch_num);
 	  DocPrint(doc,"if(AsF64(%s",StackFrame2Var(stack_depth));
-	  ent=DocPrint(doc,")) {next_case=$$LK,\"dummy3\"$$;goto enter;}",StackFrame2Var(stack_depth));
+	  ent=DocPrint(doc,")) {goto L$$LK,\"dummy3\"$$;}",StackFrame2Var(stack_depth));
         }
-        UnrollBlock(doc,locals,stack_depth,ast->args.next->next);
+        UnrollBlock(doc,locals,stack_depth,ast->args.last);
         ReplaceElem(doc,ent,"%d",ast_case_num);
         break;
       }
@@ -660,19 +653,18 @@ goto enter;
         cur=ast->args.next;
         CompileAST(doc,cur,locals,stack_depth,,FALSE);
         ast->switch_num=ast_case_num++;
-        DocPrint(doc,"case %d:\n",ast->switch_num);
+        DocPrint(doc,"L%d:\n",ast->switch_num);
         DocPrint(doc,"if(AsF64(%s",StackFrame2Var(stack_depth));
-        ent=DocPrint(doc,")==0.) {next_case=$$LK,\"dummy5\"$$;goto enter;}",StackFrame2Var(stack_depth));
+        ent=DocPrint(doc,")==0.) {goto L$$LK,\"dummy5\"$$;}",StackFrame2Var(stack_depth));
         UnrollBlock(doc,locals,stack_depth,ast->args.next->next);
 //Make a dummy switch statement that delegates to end
-        DocPrint(doc,"case %d:\n",ast_case_num++);
-        ent2=DocPrint(doc,"next_case=$$TX+CX,\"dummy6\"$$;goto enter;");
+        DocPrint(doc,"L%d:\n",ast_case_num++);
+        ent2=DocPrint(doc,"goto L$$TX+CX,\"dummy6\"$$;");
         ReplaceElem(doc,ent,"%d",ast_case_num);
         UnrollBlock(doc,locals,stack_depth,ast->args.last);
         ReplaceElem(doc,ent2,"%d",ast_case_num);
         break;
       }
-
       //Primtive method time
       if(!IsAllF64(ast)) { //These(is_f64) are computed beforehand
         cur=ast->args.next;
@@ -684,7 +676,7 @@ goto enter;
         }
 ///Compile F64 after the label prolog
         ast->switch_num=ast_case_num++;
-        DocPrint(doc,"case %d:\n",ast->switch_num);
+        DocPrint(doc,"L%d:\n",ast->switch_num);
 
         cur=ast->args.next;
         for(idx=0;idx<cnt+1;idx++) { //+1 includes self
@@ -822,7 +814,6 @@ force_f64:;
         NumPrimDft(doc,locals,ast,stack_depth);
         goto prim_skip;
       }
-//
       DftCall(doc,locals,ast,stack_depth,ast->op_name,cnt);
       break;
 prim_skip:
@@ -832,7 +823,7 @@ prim_skip:
       goto pass;
       break;case AST_SYMBOL:
       ast->switch_num=ast_case_num++;
-      DocPrint(doc,"case %d:\n",ast->switch_num);
+      DocPrint(doc,"L%d:\n",ast->switch_num);
       DocPrint(doc,"  %s=FrogSymbolValueGet(\"%Q\");\n",StackFrame2Var(stack_depth),ast->name);
       break;case AST_KEYWORD:
       cnt=StrOcc(ast->op_name,':');
@@ -840,7 +831,7 @@ prim_skip:
       break;case AST_ASSIGN:
       CompileAST(doc,ast->args.last,locals,stack_depth);
       ast->switch_num=ast_case_num++;
-      DocPrint(doc,"case %d:\n",ast->switch_num);
+      DocPrint(doc,"L%d:\n",ast->switch_num);
       cur=ast->args.next;
       if(cur->type==AST_SYMBOL) {
         DocPrint(doc,"\n  FrogSymbolValueSet(\"%Q\",%s);\n",cur->name,StackFrame2Var(stack_depth));
@@ -870,7 +861,7 @@ assign_raw:
         CompileAST(doc,cur->args.next,locals,stack_depth,,FALSE);
         CompileAST(doc,ast->args.last,locals,stack_depth+1,,FALSE);
         ast->switch_num=ast_case_num++;
-        DocPrint(doc,"case %d:\n",ast->switch_num);
+        DocPrint(doc,"L%d:\n",ast->switch_num);
         cur=ast->args.next; //AST_ASSIGN
         cur=cur->args.next; //AST_MEMBER
         DocPrint(doc,"FrogThingLock(%s);\n",StackFrame2Var(stack_depth));
@@ -897,14 +888,14 @@ write_generic_member:
       DocPrint(doc,"  stk0=retval=FROG_SMALL_NIL;\n");
       break;case AST_STR:
       ast->switch_num=ast_case_num++;
-      DocPrint(doc,"case %d:\n",ast->switch_num);
+      DocPrint(doc,"L%d:\n",ast->switch_num);
       DocPrint(doc,"  %s=FrogStrNew(\"%Q\");\n",StackFrame2Var(stack_depth),ast->str);
       break;case AST_VAR:
       if(ast->is_f64) {
         conv_name="ToF64";
       } else {
         ast->switch_num=ast_case_num++;
-        DocPrint(doc,"case %d:%s=\n",ast->switch_num,StackFrame2Var(stack_depth));
+        DocPrint(doc,"L%d:%s=\n",ast->switch_num,StackFrame2Var(stack_depth));
         conv_name="FrogNumNew";
       }
       if(STHasLocal(locals,ast->name)) {
@@ -953,7 +944,7 @@ write_generic_member:
         CompileAST(doc,cur,locals,stack_depth+idx++);
       }
       ast->switch_num=ast_case_num++;
-      DocPrint(doc,"case %d:\n",ast->switch_num);
+      DocPrint(doc,"L%d:\n",ast->switch_num);
       DocPrint(doc,"  %s=FrogArrayNew;\n",StackFrame2Var(stack_depth-1));
       idx=0;
       for(cur=ast->body.next;cur!=&ast->body;cur=cur->next) {
@@ -973,30 +964,30 @@ write_generic_member:
       return;
       break;case AST_BLOCK:
       ast->switch_num=ast_case_num++;
-      DocPrint(doc,"case %d:\n",ast->switch_num);
+      DocPrint(doc,"L%d:\n",ast->switch_num);
       thunk_name=CompileThunk(ast,locals);
       DocPrint(doc,"  %s=FrogBlockNew(&%s,parent_frame,self);\n",StackFrame2Var(stack_depth),thunk_name);
       Free(thunk_name);
       break;case AST_CHR:
       ast->switch_num=ast_case_num++;
-      DocPrint(doc,"case %d:\n",ast->switch_num);
+      DocPrint(doc,"L%d:\n",ast->switch_num);
       DocPrint(doc,"  %s=FrogChrNew(%d);\n",StackFrame2Var(stack_depth),ast->name[0](U64));
       break;case AST_CASCADE_HEAD:
       ast->switch_num=ast_case_num++;
-      DocPrint(doc,"case %d:\n",ast->switch_num);
+      DocPrint(doc,"L%d:\n",ast->switch_num);
       DocPrint(doc,"  %s=FrogIncRefCnt(%s)\n;",StackFrame2Var(stack_depth),StackFrame2Var(FramePtr("?CascadeDepth"))); 
       break;case AST_SUPER:
       ast->switch_num=ast_case_num++;
-      DocPrint(doc,"case %d:\n",ast->switch_num);
+      DocPrint(doc,"L%d:\n",ast->switch_num);
       DocPrint(doc,"  %s=FrogSuper(self);\n",StackFrame2Var(stack_depth),stack_depth);
       break;case AST_SELF:
       ast->switch_num=ast_case_num++;
-      DocPrint(doc,"case %d:\n",ast->switch_num);
+      DocPrint(doc,"L%d:\n",ast->switch_num);
       DocPrint(doc,"  %s=FrogIncRefCnt(self);\n",StackFrame2Var(stack_depth)); 
       break;case AST_NUM:
       if(!ast->is_f64) { 
         ast->switch_num=ast_case_num++;
-        DocPrint(doc,"case %d:\n",ast->switch_num);
+        DocPrint(doc,"L%d:\n",ast->switch_num);
         DocPrint(doc,"  %s=FrogNumNew(%n);\n",StackFrame2Var(stack_depth),ast->num); 
       } else {
         DocPrint(doc,"%n",ast->num);
@@ -1006,7 +997,7 @@ write_generic_member:
       cur=ast->args.next;
       CompileAST(doc,cur,locals,stack_depth,,FALSE);
       ast->switch_num=ast_case_num++;
-      DocPrint(doc,"case %d:\n",ast->switch_num);
+      DocPrint(doc,"L%d:\n",ast->switch_num);
       if(HashFind(cur->var_class_name,Fs->hash_table,HTT_CLASS)) { 
         mlst=MemberFind(ast->name,HashFind(cur->var_class_name,Fs->hash_table,HTT_CLASS));
         if(mlst) {
@@ -1028,7 +1019,7 @@ generic_member:
       cur=ast->args.next;
       CompileAST(doc,cur,locals,stack_depth,,FALSE);
       ast->switch_num=ast_case_num++;
-      DocPrint(doc,"case %d:\n",ast->switch_num);
+      DocPrint(doc,"L%d:\n",ast->switch_num);
       DocPrint(doc,"  return_flag[0]=1;\n");
       DocPrint(doc,"STSetReturnFlags(return_flag);");
       DocPrint(doc,"  retval=%s;\n  unwind=%d;\n  goto ret;\n",StackFrame2Var(stack_depth),stack_depth);
@@ -1038,8 +1029,7 @@ generic_member:
   }
   DocPrint(doc,"if(return_flag[0]) { goto ret;}");
   if(jump_to!=INVALID_PTR) {
-    DocPrint(doc,"next_case=%d;\n",jump_to);
-    DocPrint(doc,"goto enter;\n");
+    DocPrint(doc,"goto L%d;\n",jump_to);
   }
 }
 U0 CompileToHolyC(U8 *src,U8 *class_name,U8 *src_path=NULL,Bool class_method=FALSE,Bool register_method=FALSE) {
@@ -1047,7 +1037,7 @@ U0 CompileToHolyC(U8 *src,U8 *class_name,U8 *src_path=NULL,Bool class_method=FAL
   FramePtrAdd("MethodClass",class_name);
   try {
   Bool old=Option(OPTf_WARN_UNUSED_VAR,FALSE);
-  CDoc *doc=DocNew;
+  CDoc *doc=DocNew("/st.HC");
   static I64 fun_num=0;
   U8 *ret,*fun_name;
   CDocEntry *replace;
@@ -1086,18 +1076,15 @@ U0 CompileToHolyC(U8 *src,U8 *class_name,U8 *src_path=NULL,Bool class_method=FAL
   }
   DocPrint(doc,"FrogThingLock(self);\n");
   head=&m->body;
-  DocPrint(doc,"enter:");
-  DocPrint(doc,"  if(*return_flag||ThingIsError(retval)) {goto ret;} \n");
-  DocPrint(doc,"switch(next_case) {\n");
   for(var=head->next;var!=head;var=var->next) {
     if(var->type!=AST_STR) {
       CompileASTFinal(doc,var,locals,0);
     }
   }
-  DocPrint(doc,"case %d:\n",ast_case_num++);
+  DocPrint(doc,"L%d:\n",ast_case_num++);
   head=&m->args;
   idx=0;
-  DocPrint(doc,"}ret:\n");
+  DocPrint(doc,"ret:\n");
   DocPrint(doc,"  FrogThingUnlock(self);\n");
   DocPrint(doc,"  *return_flag=0;\n"); //Allow blocks made in the method to be called agian
   DocPrint(doc,"  STFrameDel;\n");
@@ -1113,11 +1100,9 @@ U0 CompileToHolyC(U8 *src,U8 *class_name,U8 *src_path=NULL,Bool class_method=FAL
     DocPrint(doc,"AddClassMethod(\"%Q\",\"%Q\",&%s);;",class_name,m->name,fun_name);
   }
   ReplaceElem(doc,replace,"%d",MaxI64(FramePtr("ST@@stk_depth")-6,0));
-  ret=DocSave(doc);
-  ExePutS(ret);
+  ExeDoc(doc);
   DocDel(doc);
   Free(fun_name);
-  Free(ret);
   LocalsDel(locals);
   Option(OPTf_WARN_UNUSED_VAR,old);
 //DONE WITH IT
@@ -1163,12 +1148,8 @@ U0 STRepl(U8 *dft="",Bool interactive=TRUE) {
       dummy.type=AST_RETURN;
       QueInit(&dummy.args);
       QueIns(ast,dummy.args);
-      DocPrint(doc,"enter:");
-      DocPrint(doc,"  if(*return_flag||ThingIsError(retval)) {goto ret;} \n");
-      DocPrint(doc,"switch(next_case) {\n");
       CompileASTFinal(doc,&dummy,NULL,0);
-      DocPrint(doc,"case %d:\n",ast_case_num++);
-      DocPrint(doc,"};");
+      DocPrint(doc,"L%d:\n",ast_case_num++);
       DocPrint(doc,"ret:\n");
 //
 // Dumb hack,blocks have a reference to the retunr_flag,so reset it.
@@ -1179,9 +1160,7 @@ U0 STRepl(U8 *dft="",Bool interactive=TRUE) {
       DocPrint(doc,"}REPLFun(FrogNil);\n");
       ReplaceElem(doc,replace,"%d",MaxI64(FramePtr("ST@@stk_depth")-6,0));
       FramePtrDel("ST@@stk_depth");
-      str=DocSave(doc);
-      ExePutS(str);
-      Free(str);
+      ExeDoc(doc);
       DocDel(doc);
       ASTDel(ast);
       FrogGarbageCollect(FROG_SMALL_NIL);

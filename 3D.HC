@@ -1885,7 +1885,7 @@ fin:
     DrawPissStream(w,thing(CPlayer*)->piss_stream);
   }
   if(ThingHasClass(thing,"CZombie")) {
-    DrawPissStream(w,thing(CZombie*)->piss_stream);
+    DrawPissStream(w,thing(CZombie*)->piss_stream);
   }
 }
 C3DWorld *w;
@@ -2600,14 +2600,14 @@ next:;
      }
       UpdateDrawBuffer;
       Refresh;
-      FrogGarbageCollect;
+      if(every&15==0) FrogGarbageCollect;
     } catch {PutExcept(TRUE);}
 en:
   WaitForJobsFinish;
   FlushMsgs;
   Fs->draw_it=NULL;
   Refresh;
-/*  FrogNullifySymbols;
+  /*FrogNullifySymbols;
   FrogGarbageCollect;
   HeapWho(Fs);*/
 }
