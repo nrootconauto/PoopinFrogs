@@ -439,11 +439,21 @@ I64 PassesThoughBlock(C3DWorld *w,F64 slope,I64 x,I64 y,F64 *dist,F64 cos,F64 si
   }
   return found;
 }
-Bool HeightPasses(C3DWorld *w,I64 ix,I64 iy,I64 above,Bool allow_ceil) {
+Bool HeightPasses(C3DWorld *w,I64 ix,I64 iy,F64 above,Bool allow_ceil) {
   I64 c,idx=iy*w->world_width+ix;
+  F64 h;
   if(0<=ix<w->world_width)
     if(0<=iy<w->world_height) {
-      if(above<w->heightmap[idx])
+      if(1)
+        h=AsF64(CallScriptUniverse(
+	  #exe{StreamPrint("%d",NameToUniverseNumber("getPlatformHeightAtX:atY:"));},
+          FrogSymbol("world")->value,
+	  FrogNumNew(ix*GRID_SZ+GRID_SZ/2),
+	  FrogNumNew(iy*GRID_SZ+GRID_SZ/2)
+        ));
+      else
+	h=w->heightmap[idx];
+      if(above<h)
 	return TRUE;
       c=w->ceilmap[idx];
       if(c!=I8_MAX)
@@ -453,7 +463,7 @@ Bool HeightPasses(C3DWorld *w,I64 ix,I64 iy,I64 above,Bool allow_ceil) {
     }
   return FALSE;
 }
-I64 FindRayWall(C3DWorld *w,F64 slope,F64 cos,F64 sin,I64 *segment=NULL,F64 *dist=NULL,I64 *side=NULL,I64 above=I8_MIN,I64 force_tile=INVALID_PTR,Bool far_side=FALSE,Bool allow_ceil=FALSE) {
+I64 FindRayWall(C3DWorld *w,F64 slope,F64 cos,F64 sin,I64 *segment=NULL,F64 *dist=NULL,I64 *side=NULL,F64 above=I8_MIN,I64 force_tile=INVALID_PTR,Bool far_side=FALSE,Bool allow_ceil=FALSE) {
   F64 x=w->x;
   F64 y=w->y;
   Bool found_hit=FALSE;
@@ -636,7 +646,7 @@ Bool RadiusHitsWall(C3DWorld *w,F64 angle,F64 *_x,F64 *_y,F64 height,F64 radius=
 	  tile=ToI64(x)+xoff+(ToI64(y)+yoff)*w->world_width;
 	  if(0<=tile<w->world_height*w->world_width) {
 	    if(flags&RADF_DOOR) {
-              h=AsF64(CallScript("getPlatformHeightAtX:atY:",
+              h=AsF64(CallScriptUniverse(#exe{StreamPrint("%d",NameToUniverseNumber("getPlatformHeightAtX:atY:"));},
 		FrogSymbol("world")->value,
 		FrogNumNew(ToI64(x)*GRID_SZ+xoff*GRID_SZ+GRID_SZ/2),
 		FrogNumNew(ToI64(y)*GRID_SZ+yoff*GRID_SZ+GRID_SZ/2))
@@ -860,7 +870,7 @@ skip:;
 en:;
   return NULL;
 }
-U0 DrawWallSegment(C3DWorld *w,I64 segment,I64 x,I64 start_y,CDC *texture,I64 height,I64 dist,I64 z,I64 tile_idx,I64 side) {
+U0 DrawWallSegment(C3DWorld *w,I64 segment,I64 x,I64 start_y,CDC *texture,I64 height,I64 dist,F64 z,I64 tile_idx,I64 side) {
   I64 offx,offy,stain_color;
   CDC *stain=WallStain(w,tile_idx,z,side,&offx,&offy);
   if(!texture||!height) return;
@@ -1648,10 +1658,10 @@ Bool ClipLineToCamera(C3DWorld *w,CD3 *a,CD3 *b) {
   ob.z=b->z;
   cam.x=w->x;
   cam.y=w->y;
-  left.x=cam.x+I16_MAX*Cos(w->fov+w->angle);
-  left.y=cam.y+I16_MAX*Sin(w->fov+w->angle);
-  right.x=cam.x+I16_MAX*Cos(-w->fov+w->angle);
-  right.y=cam.y+I16_MAX*Sin(-w->fov+w->angle);
+  left.x=cam.x+I16_MAX*Cos(w->fov/2+w->angle);
+  left.y=cam.y+I16_MAX*Sin(w->fov/2+w->angle);
+  right.x=cam.x+I16_MAX*Cos(-w->fov/2+w->angle);
+  right.y=cam.y+I16_MAX*Sin(-w->fov/2+w->angle);
   if(PlaneIntersect(&dst,a,b,&cam,&left)) {
      if(aa>0.) {
        a->z=Lerp(Sqrt(Sqr(dst.x-oa.x)+Sqr(dst.y-oa.y))/dist,oa.z,ob.z);
@@ -1676,6 +1686,7 @@ Bool ClipLineToCamera(C3DWorld *w,CD3 *a,CD3 *b) {
      }
     in_view=TRUE;
   }
+  if(in_view) return TRUE;
   if(Cos(a_angle-w->angle)<0&&Cos(b_angle-w->angle)<0)
     return FALSE;
   return TRUE;
@@ -1958,9 +1969,6 @@ U0 FloorStainDel(CFloorStain *s) {
   if(s->dc) AnimDCDel(s->dc);
   Free(s);
 }
-
-
-
 
 CFrogThing *WallStainSetGr(CWallStain *self,...) {
   CFrogStr *str=argv[0];
@@ -2287,9 +2295,7 @@ U0 DrawDoor(CDoor *d) {
   points[3].x=d->x*GRID_SZ;
   points[3].y=(d->y+1)*GRID_SZ;
   in_view|=ClipLineToCamera(w,&points[0],&points[1]);
-  in_view|=ClipLineToCamera(w,&points[1],&points[2]);
   in_view|=ClipLineToCamera(w,&points[2],&points[3]);
-  in_view|=ClipLineToCamera(w,&points[3],&points[0]);
   if(!in_view)
     return;
   for(idx=0;idx!=4;idx++) {
@@ -2351,7 +2357,7 @@ U0 DrawDoor(CDoor *d) {
 	  }
         }
       }
-      DrawWallSegment(w,segment,minx,y0,w->wall_textures[d->act_as_wall],h*d->percent*d->height,dist,I8_MAX,tile,side);
+      DrawWallSegment(w,segment,minx,y0,w->wall_textures[d->act_as_wall],h*d->percent*d->height,dist,w->heightmap[tile],tile,side);
 next:;
       minx+=w->step_width;
   }
