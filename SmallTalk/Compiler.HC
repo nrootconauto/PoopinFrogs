@@ -425,9 +425,7 @@ try_class:
   }
 //TODO static return-type of method
   I64 idx;
-  DocPrint(doc,"  retval=CallScriptFast(\n");
-  DocPrint(doc,"  #exe{ExeKey2StringLiteral(\"%s\");},\n",op);
-  DocPrint(doc,"  #exe{ExeKey2StringLiteral(\".%s\");},\n",op);
+  DocPrint(doc,"  retval=CallScriptUniverse(%d,\n",NameToUniverseNumber(op));
 args:
   DocPrint(doc,"%s\n",StackFrame2Var(stack_depth));
   for(idx=0;idx<cnt;idx++) {
@@ -549,6 +547,7 @@ U0 UnrollBlock(CDoc *doc,CLocals *l,I64 stack_depth,CAST *bl,I64 jump_to=INVALID
     DocPrint(doc,"L%d:\n",bl->switch_num);
   }
   DocPrint(doc,"  retval=FrogBlockValue(%s);",StackFrame2Var(stack_depth));
+  DocPrint(doc,"if(return_flag[0]) goto ret;\n");
   DocPrint(doc,"  %s=retval;\n",StackFrame2Var(stack_depth));
   if(jump_to!=INVALID_PTR)
     DocPrint(doc,"goto L%d;\n",jump_to);
@@ -571,24 +570,6 @@ U0 CompileAST(CDoc *doc,CAST *ast,CLocals *locals,I64 stack_depth,I64 jump_to=IN
 pass:
 //Skip past object we are calling to
       cur=ast->args.next->next;
-      if(!StrCmp(ast->op_name,"to:do:")) {
-        CompileAST(doc,ast->args.next,locals,stack_depth);
-        CompileAST(doc,ast->args.next->next,locals,stack_depth+1);
-        CompileAST(doc,ast->args.last,locals,stack_depth+2);
-        ast->switch_num=ast_case_num++;
-        idx=ast->switch_num;
-        DocPrint(doc,"L%d:\n",ast->switch_num);
-        ent=DocPrint(doc,"if(!(AsF64(%s)<AsF64(%s))) {
-goto L$$LK,\"dummy1\"$$;
-}
-",StackFrame2Var(stack_depth),
-	      StackFrame2Var(stack_depth+1),
-	      );
-        DocPrint(doc,"retval=FrogBlockValue(%s,%s);",StackFrame2Var(stack_depth+2),StackFrame2Var(stack_depth));
-        DocPrint(doc,"%s=FrogNumNew(AsF64(%s)+1.);goto L%d;",StackFrame2Var(stack_depth),StackFrame2Var(stack_depth),idx);
-        ReplaceElem(doc,ent,"%d",ast_case_num);
-        return;
-      }
       if(!StrCmp(ast->op_name,"whileTrue:")) {
         idx=ast_case_num;
         UnrollBlock(doc,locals,stack_depth,ast->args.next);
@@ -815,6 +796,7 @@ force_f64:;
         goto prim_skip;
       }
       DftCall(doc,locals,ast,stack_depth,ast->op_name,cnt);
+      DocPrint(doc,"if(return_flag[0]) { goto ret;}");
       break;
 prim_skip:
       return;
@@ -829,6 +811,7 @@ prim_skip:
       cnt=StrOcc(ast->op_name,':');
       goto pass;
       break;case AST_ASSIGN:
+      DocPrint(doc,"if(return_flag[0]) { goto ret;}");
       CompileAST(doc,ast->args.last,locals,stack_depth);
       ast->switch_num=ast_case_num++;
       DocPrint(doc,"L%d:\n",ast->switch_num);
@@ -933,8 +916,10 @@ write_generic_member:
 	  STGetLocal(doc,locals,ast->name);
 	  DocPrint(doc,")(%s*)[0])",raw_class_name);
         }
-      } else 
-        DocPrint(doc,"  %s=STGetVar(self,\"%Q\");\n",StackFrame2Var(stack_depth),ast->name);
+      } else if(HashFind(ast->name,Fs->hash_table,HTT_CLASS)) {
+	DocPrint(doc,"FrogClassNew(%d);",UniverseAddClass(ast->name));
+      } else
+	DocPrint(doc,"FROG_SMALL_NIL;");
       if(!ast->is_f64) DocPrint(doc,";");
       else return;
       break;case AST_ARRAY:
@@ -1021,13 +1006,12 @@ generic_member:
       ast->switch_num=ast_case_num++;
       DocPrint(doc,"L%d:\n",ast->switch_num);
       DocPrint(doc,"  return_flag[0]=1;\n");
-      DocPrint(doc,"STSetReturnFlags(return_flag);");
+      DocPrint(doc,"  STSetReturnFlags(return_flag);");
       DocPrint(doc,"  retval=%s;\n  unwind=%d;\n  goto ret;\n",StackFrame2Var(stack_depth),stack_depth);
       break; 
     default:
       throw('fuck');
   }
-  DocPrint(doc,"if(return_flag[0]) { goto ret;}");
   if(jump_to!=INVALID_PTR) {
     DocPrint(doc,"goto L%d;\n",jump_to);
   }

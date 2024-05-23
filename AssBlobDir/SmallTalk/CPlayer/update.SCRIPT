@@ -19,4 +19,3 @@ update ->* | rand=CFrogRandom foot_print=CFloorStain move_angle=CFrogNum |
   ] .
   last_x _ x .
   last_y _ y .
-  super update

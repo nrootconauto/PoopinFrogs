@@ -4,4 +4,4 @@ damage: d=CFrogNum from: t=C3DThing ->* ||
   ] .
 
   target _  t .
-  super damage: d . 
+  self damage: d . 

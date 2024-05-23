@@ -12,7 +12,8 @@ class CFrogNum:CFrogThing {
 class CFrogUndefined:CFrogThing {
 };
 class CFrogClass:CFrogThing {
-  U8 name[STR_LEN];
+  U8 name[STR_LEN];
+  I64 class_id;
 };
 class CFrogChr:CFrogThing {
   U64 ch;
@@ -374,7 +375,7 @@ class CZombie:C3DThing {
 class CRocket:C3DThing {
   C3DThing *from;
 };
-class CPoopRocket:CRocket {
+class CPoopRocket:CRocket {
 };
 class CRocketLauncher:CHandItem {
 };

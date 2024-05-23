@@ -26,6 +26,7 @@ class CFrogUndefined:CFrogThing {
 };
 class CFrogClass:CFrogThing {
   U8 name[STR_LEN];
+  I64 class_id;
 };
 class CFrogChr:CFrogThing {
   U64 ch;

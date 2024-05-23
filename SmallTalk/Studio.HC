@@ -477,7 +477,7 @@ U0 LoadMethodsFromBlob(U8 *blob_file="../ASS") {
 #if __CMD_LINE__
 STStudio;
 LoadMethodsFromBlob;
-STRepl;
+//STRepl;
 #else
 LoadMethodsFromBlob;
 #endif

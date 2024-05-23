@@ -1,5 +1,7 @@
 addInventoryItem: item=CUIGridItem -> CFrogNum  | |
   (quick_inventory addItem: item) ifTrue: [
+'pass 'show .
    ^ 1 .
   ] .
+'fail 'show .
   ^ main_inventory addItem: item

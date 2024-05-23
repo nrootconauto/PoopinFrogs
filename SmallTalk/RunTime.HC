@@ -2,7 +2,6 @@
 #include "Parser.HC";
 #include "RunTime.HH";
 #include "Set.HC";
-#include "FastLookup.HC";
 //MAlloc'ed variables are aligned  to 8 0b1000,so we set bit 0 for "Small Var"
 #define FROG_SMALL_NUM 0b1
 #define FROG_SMALL_NIL 0b11
@@ -52,23 +51,6 @@ class CConstructorPair {
   U8 *destroy;
 };
 
-U0 AddMethod(U8 *cls,U8 *name,U8 *fptr) {
-//See GenerateMethodCall
-  U8 *canon=MStrPrint("METHOD_%s.%s",cls,name);
-//Replace(possibly dummy) method.
-  if(FramePtr(canon))
-    FramePtrSet(canon,fptr);
-  else
-    FramePtrAdd(canon,fptr);
-  Free(canon);
-  FastLookupAddValue(name,fptr,cls);
-}
-U0 AddClassMethod(U8 *cls,U8 *name,U8 *fptr) {
-  name=MStrPrint(".%s",name);
-  FastLookupAddValue(name,fptr,cls);
-  Free(name);
-}
-
 
 extern U0 ThingDel(CFrogThing *thing,Bool recurse=TRUE);
 extern U32 AsChar(CFrogThing *t);
@@ -77,6 +59,24 @@ CFrogThing *FrogIncRefCnt(CFrogThing *t) {
   if(!(t&1)) t->ref_cnt++;
   return t;
 }
+
+#include "Universe";
+U0 AddMethod(U8 *cls,U8 *name,U8 *fptr) {
+//See GenerateMethodCall
+  U8 *canon=MStrPrint("METHOD_%s.%s",cls,name);
+//Replace(possibly dummy) method.
+  if(FramePtr(canon))
+    FramePtrSet(canon,fptr);
+  else
+    FramePtrAdd(canon,fptr);
+  UniverseAddMethod(name,cls,fptr);
+  Free(canon);
+}
+U0 AddClassMethod(U8 *cls,U8 *name,U8 *fptr) {
+  UniverseAddClassMethod(name,cls,fptr);
+}
+
+
 
 
 #ifdef TARGET_X86
@@ -618,41 +618,39 @@ CFrogThing *_ConstructThing(U8 *class_name,I64 argc,I64 *argv) {
   }
 fin:
   t->ref_cnt=1;
+  t->id=UniverseAddClass(class_name);
   QueIns(t,allocs_head.next);
   return t;
+}
+U8 *Str2FunPtr(U8 *str)  {
+  if(!str) return NULL;
+  CHashFun *fun=HashFind(str,Fs->hash_table,HTT_FUN);
+  if(!fun) return NULL;
+  return fun->exe_addr;
+
 }
 CFrogThing *ConstructThing(U8 *name,...) {
   CConstructorPair *p;
   CFrogThing *ret;
   CHashFun *fun;
   U0 (*init)(CFrogThing*);
-  if(!StrCmp(name,"CFrogSuper"))
-    return _ConstructThing(name,argc,argv);
-  if(!argc)
-    if(p=FastLookupByStr(".dft",name)) {
-      ret=MAllocIdent(p->dft);
-      ret->ref_cnt=1;
-      QueIns(ret,allocs_head.next);
-      if(p->constructor) {
-        fun=HashFind(p->constructor,frog_mem_task->hash_table,HTT_FUN);
-        if(fun) {
-          init=fun->exe_addr;
-	  (*init)(ret);
-	}
-      }
+
+  if(!argc) {
+    if(ret=UniverseConstructThingS(name)) {
+      QueIns(ret,allocs_head.last);
       return ret;
     }
-  ret=_ConstructThing(name,argc,argv);
-  if(!argc&&ret) {
-    p=MAlloc(sizeof(CConstructorPair),frog_mem_task);
-    p->dft=ret;
-    QueRem(ret);//This is a template for new creation
-    p->constructor=GetClassMemberValI64(ret,"constructor");
-    p->destroy=GetClassMemberValI64(ret,"destroy");
-    FastLookupAddValue(".dft",p,name);
-    //Make a new one from the template
-    ret=ConstructThing(name);
-  }
+    ret=_ConstructThing(name,argc,argv);
+    if(!ret) return FROG_SMALL_NIL;
+    UniverseAddConstructorPair(name,
+      ret,
+      Str2FunPtr(GetClassMemberValI64(ret,"constructor")),
+      Str2FunPtr(GetClassMemberValI64(ret,"destroy"))
+    );
+    QueRem(ret); //Remove from GC
+    return ConstructThing(name);
+  } else
+    ret=_ConstructThing(name,argc,argv);
   if(!ret) ret=FROG_SMALL_NIL;
   return ret;
 }
@@ -694,36 +692,6 @@ CFrogThing *FrogStrNew(U8 *s) {
   return str;
 }
 
-CFrogThing *CallScriptFast(U8 *key1,U8 *key2,CFrogThing *self,...) {
-  U8 *cn=FrogThingClassName(self);
-  CFrogThing *(*fun_ptr)(CFrogThing *,...);
-  CFrogThing *ret=NULL;
-  CFastLookupKey *k;
-  CHashClass *cls=HashFind(cn,frog_mem_task->hash_table,HTT_CLASS);
-  if(ThingHasClass(self,"CFrogClass")) {
-    cls=HashFind(self(CFrogClass*)->name,frog_mem_task->hash_table,HTT_CLASS);
-    while(!ret&&cls) {
-       if(fun_ptr=FastLookupGet(key2,cls->str)) {
-        ret=CallVaArgs(fun_ptr,argc,argv,self);
-	break;
-      }
-      cls=cls->base_class;
-    }
-    goto fin;
-  }
-  while(!ret&&cls) {
-    if(fun_ptr=FastLookupGet(key1,cls->str)) {
-      ret=CallVaArgs(fun_ptr,argc,argv,self);
-      break;
-    }
-    cls=cls->base_class;
-  }
-fin:
-  if(!ret)
-    ret=FROG_SMALL_NIL;
-  return ret;
-}
-
 CFrogThing *CallPtr(U8 *fun_ptr,U8 *must_have,CFrogThing *self,...) {
   if(self==FROG_SMALL_NIL) return FROG_SMALL_NIL;
   if(must_have) {
@@ -739,60 +707,69 @@ CFrogThing *CallPtr(U8 *fun_ptr,U8 *must_have,CFrogThing *self,...) {
 
 
 CFrogThing *CallScript(U8 *name,CFrogThing *self,...) {
-  Bool old_active=LBts(&cpu_call_script_lock,Gs->num);
-  if(!old_active) {
-//LBtr mark as "not in use"
-    LBtr(&cpu_call_script_lock,Gs->num);
-    while(Bt(&gc_lock,0)) {
-      Sleep(1);
-    }
-    LBts(&cpu_call_script_lock,Gs->num);
-  }
-  U8 *cn=FrogThingClassName(self);
-  U8 *full=NULL;
-  CFrogThing *(*fun_ptr)(CFrogThing *,...);
+  U8* fptr,id;
   CFrogThing *ret=NULL;
-  CFastLookupKey *k;
-  CHashClass *cls=HashFind(cn,frog_mem_task->hash_table,HTT_CLASS);
-  full=MStrPrint(".%s",name);
-  k=FastLookupKeyNew(full);
   if(ThingHasClass(self,"CFrogClass")) {
-    cls=HashFind(self(CFrogClass*)->name,frog_mem_task->hash_table,HTT_CLASS);
-    while(!ret&&cls) {
-      if(fun_ptr=FastLookupGet(k,cls->str)) {
-        ret=CallVaArgs(fun_ptr,argc,argv,self);
-	break;
-      }
-      cls=cls->base_class;
+    fptr=UniverseGetClassMethodForClassByIdx(NameToUniverseNumber(self(CFrogClass*)->name),self->id);   
+    if(fptr)  {
+      ret=CallVaArgs(fptr,argc,argv,self);
     }
     goto fin;
   }
-  Free(k);
-  k=FastLookupKeyNew(name);
-  while(!ret&&cls) {
-    if(fun_ptr=FastLookupGet(k,cls->str)) {
-      ret=CallVaArgs(fun_ptr,argc,argv,self);
-      break;
-    }
-    cls=cls->base_class;
+  if(!(self&1)) {
+    fptr=UniverseGetMethodForClassByIdx(NameToUniverseNumber(name),self->id);   
+    if(fptr) 
+      ret=CallVaArgs(fptr,argc,argv,self);
+    goto fin;
+  } else {
+    id=UniverseAddClass(FrogThingClassName(self));
+    fptr=UniverseGetMethodForClassByIdx(NameToUniverseNumber(name),id);
+    if(fptr) 
+      ret=CallVaArgs(fptr,argc,argv,self);
+    goto fin;
   }
 fin:
-  if(!old_active) LBtr(&cpu_call_script_lock,Gs->num);
-  Free(k);
-  Free(full);
-
+  if(!ret)
+    ret=FROG_SMALL_NIL;
+  return ret;
+}
+CFrogThing *CallScriptUniverse(I64 who,CFrogThing *self,...) {
+  U8* fptr;
+  I64 id;
+  CFrogThing *ret=NULL;
+  if(ThingHasClass(self,"CFrogClass")) {
+    id=NameToUniverseNumber(self(CFrogClass*)->name);
+    fptr=UniverseGetClassMethodForClassByIdx(who,id);   
+    if(fptr) {
+      ret=CallVaArgs(fptr,argc,argv,self);
+    }
+    goto fin;
+  }
+  if(!(self&1)) {
+    fptr=UniverseGetMethodForClassByIdx(who,self->id);   
+    if(fptr) 
+      ret=CallVaArgs(fptr,argc,argv,self);
+    goto fin;
+  } else {
+    id=UniverseAddClass(FrogThingClassName(self));
+    fptr=UniverseGetMethodForClassByIdx(who,id);
+    if(fptr) 
+      ret=CallVaArgs(fptr,argc,argv,self);
+    goto fin;
+  }
+fin:
   if(!ret)
     ret=FROG_SMALL_NIL;
   return ret;
 }
 
-CFrogClass *FrogClassNew(U8 *name) {
+CFrogClass *FrogClassNew(I64 cls_idx) {
   CFrogClass *ret;
-  if(HashFind(name,frog_mem_task->hash_table,HTT_CLASS)) {
-    ret=ConstructThing("CFrogClass");
+  ret=ConstructThing("CFrogClass");
+  ret->class_id=cls_idx;
+  U8 *name;
+  if(name=I64SetGetAt(universe_values,cls_idx))
     StrCpy(ret->name,name);
-  } else
-    ret=FROG_SMALL_NIL;
   return ret;
 }
 Bool IsSmalltalkMember(CHashClass *cls) {
@@ -819,21 +796,6 @@ Bool IsSmalltalkMember(CHashClass *cls) {
   return FALSE;
 }
 
-CFrogThing *STGetVar(U8 *self,U8 *name) {
-  CLocalsGeneric *var=Fs->user_data;
-  CHashGeneric *g;
-  CFrogThing *f;
-  CHashClass *cls;
-  CMemberLst *lst;
-  if(!var) return FROG_SMALL_NIL;
-  self=FrogUnSuper(self);
-  if(g=HashFind(name,frog_mem_task->hash_table,HTT_CLASS)) {
-      return FrogClassNew(name);
-  }
-"UNDEF:%s\n",name;
-  return FROG_SMALL_NIL;
-}
-
 //Returns FROG_SMALL_NIL if successful,else FROG_SMALL_ERR
 CFrogThing *STSetVar(U8 *self,U8 *name,CFrogThing *val) {
   CLocalsGeneric *var=Fs->user_data;
@@ -853,7 +815,11 @@ CFrogNum *FrogThingIsKindOf(CFrogThing *obj,CFrogClass *cls) {
   return FrogNumNew(ThingHasClass(obj,cls->name));
 }
 CFrogClass *FrogThingClass(CFrogThing *obj) {
-  return FrogClassNew(FrogThingClassName(obj));
+  if(obj&1) {
+//TODOoptimize
+    return FrogClassNew(UniverseAddClass(FrogThingClassName(obj)));
+  }
+  return FrogClassNew(obj->id);
 }
 CFrogClass *FrogThingIsNil(CFrogThing *obj) {
   return FrogNumNew(ThingHasClass(obj,"CFrogUndefined",FROG_SMALL_NIL));
@@ -1072,7 +1038,6 @@ CFrogThing *FrogThingCopy(CFrogThing *t) {
 }
 #exe {
 //Object
-  ConstructBuiltin("FrogThingIsKindOf(self,thing)","CFrogThing","isKindOf:","CFrogClass","thing");
   ConstructBuiltin("FrogThingClass(self)","CFrogThing","class");
   ConstructBuiltin("FrogThingIsNil(self)","CFrogThing","isNil");
   ConstructBuiltin("FrogNumNew(self==a)","CFrogThing","=","CFrogThing","a");
@@ -1444,51 +1409,8 @@ U0 ThingDel(CFrogThing *thing,Bool recurse=TRUE) {
       return;
     }
     QueRem(thing);
-    if(cpair=FastLookupByStr(".dft",thing->class_name)) {
-      if(cpair->destroy) {
-        fun=HashFind(cpair->destroy,frog_mem_task->hash_table,HTT_FUN);
-//Special case,CFrogBlock's destroy is a recursive
-        if(!fun) {
-en:
-          FrogThingUnlock(thing);
-	  return;
-	}
-        if(fun) {
-          FrogThingUnlock(thing);
-          destroy=fun->exe_addr;
-	  (*destroy)(thing);
-          return;
-	}
-      } else {
-normal:
-        if(recurse) {
-	  cls=HashFind(thing->class_name,frog_mem_task->hash_table,HTT_CLASS);
-	  MemSet(&dummy,0,sizeof CFrogThing);
-	  while(cls) {
-	    mlst=cls->member_lst_and_root;
-	    while(mlst) {
-	      if(mlst->member_class->ptr_stars_cnt==1) {
-	        StrCpy(dummy.class_name,mlst->member_class[-1].str);
-	        if(ThingHasClass(&dummy,"CFrogThing")) {
-		  idx=mlst->dim.total_cnt;
-		  f=thing(U8*)+mlst->offset;
-		  while(--idx>=0)
-		    ThingDel(f[idx]);
-	        }
-	      }
-	        mlst=mlst->next;
-	    }
-	      cls=cls->base_class;
-	  }
-        }
-        FrogThingUnlock(thing);
-        Free(thing);
-	return;
-      }
-    } else
-      goto normal;
+    UniverseDestroyThing(thing);
   }
-  goto en;
 }
 CFrogUndefined *FrogNil() {
   return FROG_SMALL_NIL;
@@ -1615,35 +1537,25 @@ U32 AsChar(CFrogThing *t) {
 
 //This is temporary,exepct changes
 CFrogThing *FrogThingNew(CFrogClass *cls,...) {
-  CFrogThing *t=FROG_SMALL_NIL;
   CHashClass *tmph;
-  if(ThingHasClass(cls,"CFrogClass")) {
-    tmph=HashFind(cls->name,frog_mem_task->hash_table,HTT_CLASS);
-    while(tmph) {
-      if(!StrCmp(tmph->str,"CFrogError")) {
-	if(t=FramePtr(FROG_FP_ERROR)) {
-	  FramePtrDel(FROG_FP_ERROR);
-        }
-	FramePtrAdd(FROG_FP_ERROR,ConstructThing(cls->name));
-        t=FROG_SMALL_ERROR;
-	goto fin;
-      }
-      tmph=tmph->base_class;
-    }
-    t=ConstructThing(cls->name);
-  }
-fin:
-  return t;
+  I64 cls_id=#exe{StreamPrint("%d",UniverseAddClass("CFrogClass"));};
+  if(cls->id!=cls_id) return FROG_SMALL_NIL;
+  U8 *name=I64SetGetAt(universe_values,cls->class_id);
+  return ConstructThing(name);
 }
 AddClassMethod("CFrogThing","basicNew",&FrogThingNew);
 
 CFrogNum *FrogHasClass(CFrogClass *self,...) {
+  I64 id;
+  if(self&1) {
+    id=UniverseAddClass(FrogThingClassName(self));
+  } else 
+    id=self->id;
   CFrogClass *c=argv[0];
-  CFrogNum *ret=FROG_SMALL_NIL;
-  if(ThingHasClass(c,"CFrogClass")) {
-    ret=FrogNumNew(ThingHasClass(self,c->name));
-  }
-  return ret;
+  if(c&1) return FROG_SMALL_NIL;
+  I64 cls_id=#exe{StreamPrint("%d",UniverseAddClass("CFrogClass"));};
+  if(c->id!=cls_id) return FROG_SMALL_NIL;
+  return FrogNumNew(UniverseIsSubClassOf(id,c->class_id));
 }
 AddMethod("CFrogThing","hasClass:",&FrogHasClass);
 
@@ -1733,3 +1645,15 @@ U0 FrogBinDel(CFrogBin *bin) {
   Free(bin);
 }
 Fs->user_data=0;
+CFrogThing *FrogArrayDo(CFrogArray *self, CFrogBlock *t) {
+  I64 *clone=MAllocIdent(self->items->body);
+  CLocalsGeneric *g=Fs->user_data;
+  I64 cnt=self->items->cnt,idx;
+  for(idx=0;idx!=cnt;idx++) {
+    FrogBlockValue(t,clone[idx]);
+    if(g->return_flag[0]) break;
+  }
+fin:
+  Free(clone);
+  return FROG_SMALL_NIL;
+}

@@ -1885,7 +1885,7 @@ fin:
     DrawPissStream(w,thing(CPlayer*)->piss_stream);
   }
   if(ThingHasClass(thing,"CZombie")) {
-    DrawPissStream(w,thing(CZombie*)->piss_stream);
+   DrawPissStream(w,thing(CZombie*)->piss_stream);
   }
 }
 C3DWorld *w;
@@ -2265,6 +2265,7 @@ AddMethod("C3DWorldManager","screenCoordIsOnFloor",&ScreenCoordOnFloor);
 // Test section
 //
 #ifdef TEST_3D
+  DocClear;
 #include "UI.HC"
 w=LoadWorldFromFile(,"Untitled.WORLD");
 I64 mp_thing_done=0;
@@ -2462,7 +2463,6 @@ U0 WalkAround() {
   CShellCasing *shellc;
   C3DWorldManager *wm=man->value;
   I64 every=0;
-  DocClear;
   WinMax;
   WinBorder;
   AutoComplete;
