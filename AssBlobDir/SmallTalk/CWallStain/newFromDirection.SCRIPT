@@ -7,7 +7,6 @@ placeAtAngle: a=CFrogNum
   tile _ #world rayTileAtX: xx atY: yy atAngle: a atHeight: zz .
   'Heres the deal,floating point reounding may give an improper'
   'tile so be sure to check if the stain hit the wall'.
-  h _ #world getPlatformHeightAtX: tile->x * 128 atY: tile->y * 128 .
   side _ #world raySideAtX: xx atY: yy atAngle: a atHeight: zz forTile: tile .
   seg _ #world raySegmentAtX: xx atY: yy atAngle: a atHeight: zz forTile: tile .
   rando _ CFrogRandom new .

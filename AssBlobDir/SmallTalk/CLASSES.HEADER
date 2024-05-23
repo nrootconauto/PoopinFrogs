@@ -12,7 +12,7 @@ class CFrogNum:CFrogThing {
 class CFrogUndefined:CFrogThing {
 };
 class CFrogClass:CFrogThing {
-  U8 name[STR_LEN];
+  U8 name[STR_LEN];
   I64 class_id;
 };
 class CFrogChr:CFrogThing {
@@ -391,3 +391,6 @@ class CDoor:CFrogThing {
   F64 open_duration;
   I64 x,y,act_as_wall;
 };
+
+class CKnife:CHandItem {
+};

@@ -1,0 +1,10 @@
+animate ->* | cycle=CFrogNum tS=CFrogNum |
+  tS _ CFrogTime now asSeconds .
+  (timeout > 0 and: timeout > tS) ifTrue: [
+    '2.5 Knifes per second' .
+    cycle _ (timeout - tS) * 2.5 .
+    xoff _ 50 * (cycle * 6.24) cos .
+    yoff _ 75 * (cycle negated * 3.14) sin .
+  ] ifFalse: [
+    timeout _ 0 .
+  ] .

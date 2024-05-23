@@ -2604,6 +2604,7 @@ next:;
 	  }
         }
      }
+      QueCallScript("animate",FrogSymbol("hand_item")->value);
       UpdateDrawBuffer;
       Refresh;
       if(every&15==0) FrogGarbageCollect;
