@@ -1645,15 +1645,17 @@ U0 FrogBinDel(CFrogBin *bin) {
   Free(bin);
 }
 Fs->user_data=0;
-CFrogThing *FrogArrayDo(CFrogArray *self, CFrogBlock *t) {
+CFrogThing *FrogArrayDo(CFrogArray *self,...) {
+  CFrogBlock *t=argv[0];
   I64 *clone=MAllocIdent(self->items->body);
   CLocalsGeneric *g=Fs->user_data;
   I64 cnt=self->items->cnt,idx;
+  CFrogThing *ret=FROG_SMALL_NIL;
   for(idx=0;idx!=cnt;idx++) {
-    FrogBlockValue(t,clone[idx]);
-    if(g->return_flag[0]) break;
+    ret=FrogBlockValue(t,clone[idx]);
+    if(g->return_flag[0]||g->ret_flag) break;
   }
-fin:
   Free(clone);
-  return FROG_SMALL_NIL;
+  return ret;
 }
+AddMethod("CFrogArray","do:",&FrogArrayDo);

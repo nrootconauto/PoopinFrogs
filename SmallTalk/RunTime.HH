@@ -16,8 +16,6 @@ class CFrogFrame {
   CQue *pad,*pad;
   I32 thing_flags,pad;
   I32 id,ref_cnt;
-  CCPU *owner_cpu;
-  I64 lock_cnt;
 }
 class CFrogNum:CFrogThing {
   F64 num;
