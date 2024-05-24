@@ -1229,7 +1229,7 @@ F64 ScreenCordsToDist(C3DWorld *w,I64 x,I64 y,F64 max=GRID_SZ*128,F64 *height=NU
   CDC *to_dc=w->to_dc;
   I32 have=I32_MAX;
   F64 wx,wy;
-  F64 d=-1,dist,h,y0,dist2,h2,y1;
+  F64 d=-1,dist,h,y0,dist2,h2,y1,hm;
   I64 tile2,tile;
 //Check for floor from ZBuf
   if(0<=x<GR_WIDTH)
@@ -1268,7 +1268,7 @@ F64 ScreenCordsToDist(C3DWorld *w,I64 x,I64 y,F64 max=GRID_SZ*128,F64 *height=NU
 	      FALSE, //Near side of tile
 	      TRUE //allow ceil
 	      );
-    adj_height=w->heightmap[tile];
+   adj_height=w->heightmap[tile];
     xoff=0;yoff=0;
     switch(side) {
        case 0:
@@ -1288,21 +1288,27 @@ F64 ScreenCordsToDist(C3DWorld *w,I64 x,I64 y,F64 max=GRID_SZ*128,F64 *height=NU
     if(0<=tile2<w->world_width*w->world_height&&(xoff^^yoff)) {
       adj_height=MinI64(adj_height,w->heightmap[tile2]);
     }
+    hm=AsF64(CallScriptUniverse(
+	#exe{StreamPrint("%d",NameToUniverseNumber("getPlatformHeightAtX:atY:"));},
+        FrogSymbol("world")->value,
+	FrogNumNew(tile%w->world_width*GRID_SZ+GRID_SZ/2),
+        FrogNumNew(tile/w->world_width*GRID_SZ+GRID_SZ/2)
+    ));
     h=DIST_SCALE/(dist*cos2_lookup_table[x]);
-    y0=GR_HEIGHT/2-h*(w->heightmap[tile]-w->cam_height);
+    y0=GR_HEIGHT/2-h*(hm-w->cam_height);
     h2=DIST_SCALE/(dist2*cos2_lookup_table[x]);
-    y1=GR_HEIGHT/2-h2*(w->heightmap[tile]-w->cam_height);    
+    y1=GR_HEIGHT/2-h2*(hm-w->cam_height);    
     if(have<dist2) {
       if(y1-2<=y<=y0+2) {
-	if(height) *height=w->heightmap[tile];
+	if(height) *height=hm;
 	if(hit_floor) *hit_floor=TRUE;
 	d=have;
 	break;
       }
     }
-    if(y0<=y<y0+h*(w->heightmap[tile]-adj_height)) {
+    if(y0<=y<y0+h*(hm-adj_height)) {
 //TODOtest floor intersection
-      if(height) *height=Lerp((y-y0)/(h*(w->heightmap[tile]-adj_height)),w->heightmap[tile],adj_height);
+      if(height) *height=Lerp((y-y0)/(h*(hm-adj_height)),hm,adj_height);
       d=dist;
       break;
     }
@@ -2357,7 +2363,7 @@ U0 DrawDoor(CDoor *d) {
 	  }
         }
       }
-      DrawWallSegment(w,segment,minx,y0,w->wall_textures[d->act_as_wall],h*d->percent*d->height,dist,w->heightmap[tile],tile,side);
+      DrawWallSegment(w,segment,minx,y0,w->wall_textures[d->act_as_wall],h*d->percent*d->height,dist,w->heightmap[tile]-1+d->height,tile,side);
 next:;
       minx+=w->step_width;
   }

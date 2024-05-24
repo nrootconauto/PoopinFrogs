@@ -1112,15 +1112,29 @@ next:;
   DrawSidebar(dc,t->pix_width-SIDEBAR_WIDTH,TRUE);
   DrawThingBar(dc,t);
   dc->color=BLUE;
-  GrRect(dc,SIDEBAR_WIDTH,t->pix_height-16,t->pix_width-SIDEBAR_WIDTH*2,16);
+  GrRect(dc,SIDEBAR_WIDTH,t->pix_height-24,t->pix_width-SIDEBAR_WIDTH*2,16);
   str=MStrPrint("Floor Height(%d),Ceil Height(%d)(Shift+Wheel == Change Ceil Height)",
         world_edit.floor_height,
         world_edit.ceil_height
         );
   dc->color=YELLOW;
-  GrPutS(dc,SIDEBAR_WIDTH,t->pix_height-16,str);
+  GrPutS(dc,SIDEBAR_WIDTH,t->pix_height-24,str);
   Free(str);
-  GrPrint(dc,SIDEBAR_WIDTH,t->pix_height-8,"Ceil-Raise(%d)==Ctrl+Wheel", world_edit.ceil_height2);
+  GrPrint(dc,SIDEBAR_WIDTH,t->pix_height-16,"Ceil-Raise(%d)==Ctrl+Wheel", world_edit.ceil_height2);
+//Draw Tile Info bar
+  GrRect(dc,SIDEBAR_WIDTH,t->pix_height-8,t->pix_width-SIDEBAR_WIDTH*2,8);
+  dc->color=RED;
+  MouseToPos(world_edit.ms_x,world_edit.ms_y,&x,&y);
+  x/=GRID_SZ;
+  y/=GRID_SZ;
+  seg=GetSegmentForPos(x,y);
+  if(seg) {
+    GrPrint(dc,SIDEBAR_WIDTH,t->pix_height-8,"Flr=%d,Ceil=%d,Rise=%d",
+	seg->heights[x-seg->xoff][y-seg->yoff],
+	seg->ceil_heights[x-seg->xoff][y-seg->yoff],
+	seg->ceil_heights2[x-seg->xoff][y-seg->yoff],
+	);
+  }
   Free(dc->depth_buf);
   dc->depth_buf=NULL;
 } 
@@ -1139,9 +1153,10 @@ world_edit.flat_mode=old_flat;
 //TODO ensure lump exists
 return TRUE;
 }
-U0 InsertDoor(I64 tx,I64 ty) {
+CLevelDoor *InsertDoor(I64 tx,I64 ty,Bool ask=FALSE) {
   CLevelSegment *seg=GetSegmentForPos(tx,ty);
   CLevelDoor *d;
+  Bool old;
   if(!seg) return;
   d=seg->doors.next;
   while(d!=&seg->doors) {
@@ -1160,8 +1175,15 @@ U0 InsertDoor(I64 tx,I64 ty) {
   d->x=tx;
   d->y=ty;
   d->act_as_tile=world_edit.wall_texture;
-  d->ceil_rise=1;
+  if(ask) {
+    old=world_edit.flat_mode;
+    world_edit.flat_mode=TRUE;
+    d->ceil_rise=PopUpRangeI64(1,16,,"Door Height");
+    world_edit.flat_mode=old;
+  } else
+    d->ceil_rise=1;
   QueIns(d,seg->doors.last);
+  return d;
 } 
 U0 EditThingTemplate(U8 *blob,CLevelThingTemplate *template) {
 enter:;
@@ -1807,10 +1829,23 @@ save:
     world_edit.at_x=world_edit.base_x+world_edit.ms_x;
     world_edit.at_y=world_edit.base_y+world_edit.ms_y;
     if(Bt(kbd.down_bitmap,Char2ScanCode('d'))) {
-	    MouseToPos(world_edit.ms_x,world_edit.ms_y,&tx,&ty);
-	    tx=FloorI64(tx,GRID_SZ)/16;
-	    ty=FloorI64(ty,GRID_SZ)/16;
-	    InsertDoor(tx,ty);
+      MouseToPos(world_edit.ms_x,world_edit.ms_y,&tx,&ty);
+      tx=FloorI64(tx,GRID_SZ)/16;
+      ty=FloorI64(ty,GRID_SZ)/16;
+      segment=GetSegmentForPos(tx,ty); 
+      if(Bt(kbd.down_bitmap,SC_SHIFT)) {
+        door=segment->doors.next;
+        while(door!=&segment->doors) {
+	  if(door->x==tx&&door->y==ty) {
+	    QueRem(door);
+	    Free(door);
+	    goto door_pass;
+	  }
+	  door=door->next;
+        }
+      }
+      InsertDoor(tx,ty,TRUE);
+door_pass:;
     } else if(Bt(kbd.down_bitmap,Char2ScanCode('f'))){
       if(Bt(kbd.down_bitmap,SC_SHIFT)) {
 //This is for toggling the "flat mode" then
@@ -1971,9 +2006,9 @@ next:;
         }
     }
   }
-    Fs->draw_it=NULL;
-    FreeEditorData;
-    SettingsPop;
+  Fs->draw_it=NULL;
+  FreeEditorData;
+  SettingsPop;
 }
 WorldEdit("ASS");
  
