@@ -343,6 +343,8 @@ class CPlayer:C3DThing {
   CUIButton *open_inventory_button;
   CUIChatLog *chat_log;
   CUITextBar *chat_log_input;
+  CUIElem *message;
+  F64 message_start_tS;
   I64 main_inventory_active;
   I64 chatting_active;
   CPissStream *piss_stream;
@@ -393,4 +395,4 @@ class CDoor:CFrogThing {
 };
 
 class CKnife:CHandItem {
-};
+};

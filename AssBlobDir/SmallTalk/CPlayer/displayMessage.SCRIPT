@@ -1,0 +1,15 @@
+displayMessage: m=CFrogStr ->*
+|
+tS=CFrogNum
+label=CUILabel
+|
+  tS _ CFrogTime now asSeconds .
+  message_start_tS _ tS .
+  label _ CUILabel new .
+  label->label _ m copy .
+  label->color _ #color_RED .
+  #ui_root removeChild: message .
+  #ui_root addChild: label . 
+  message _ label .
+  'Update message position' .
+  self animate .

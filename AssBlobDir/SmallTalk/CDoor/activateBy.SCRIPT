@@ -1,4 +1,7 @@
 activateBy: t=C3DThing  ->CFrogNum
   ||
   'TODOaccount for locsk'.
+  #world getPlayer = t ifTrue: [
+    #world getPlayer displayMessage: 'Opened door ' .
+  ]
   ^ self activate  

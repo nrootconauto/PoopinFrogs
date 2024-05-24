@@ -443,30 +443,58 @@ I64 PassesThoughBlock(C3DWorld *w,F64 slope,I64 x,I64 y,F64 *dist,F64 cos,F64 si
   }
   return found;
 }
-Bool HeightPasses(C3DWorld *w,I64 ix,I64 iy,F64 above,Bool allow_ceil) {
-  I64 c,idx=iy*w->world_width+ix;
+class CPlatformCache {
+  I64 x,y;
+  F64 h;
+} platform_cache[16];
+I64 platform_cache_ptr;
+//Maybe a door raised
+U0 ClearPlatformCache() {
+  I64 cache=16;
+  while(--cache>=0) {
+    platform_cache[cache].x=-1;
+    platform_cache[cache].y=-1;
+  }
+}
+F64 GetPlatformHeight(C3DWorld *w,I64 ix,I64 iy) {
+  I64 idx=iy*w->world_width+ix,cache;
+  for(cache=0;cache!=16;cache++) {
+    if(platform_cache[cache].x==ix&&platform_cache[cache].y==iy) {
+      return platform_cache[cache].h;
+    }
+  }
+  F64 h=AsF64(CallScriptUniverse(
+	#exe{StreamPrint("%d",NameToUniverseNumber("getPlatformHeightAtX:atY:"));},
+        FrogSymbol("world")->value,
+	  FrogNumNew(ix*GRID_SZ+GRID_SZ/2),
+	  FrogNumNew(iy*GRID_SZ+GRID_SZ/2)
+  ));
+  cache=platform_cache_ptr++&15;
+  platform_cache[cache].x=ix;
+  platform_cache[cache].y=iy;
+  platform_cache[cache].h=h;
+
+}
+Bool HeightImpossible(C3DWorld *w,I64 ix,I64 iy,F64 above,Bool allow_ceil,F64 tallness=.1,F64 wiggle_room=0) {
+  I64 c,idx=iy*w->world_width+ix,cache;
   F64 h;
   if(0<=ix<w->world_width)
     if(0<=iy<w->world_height) {
-      if(1)
-        h=AsF64(CallScriptUniverse(
-	  #exe{StreamPrint("%d",NameToUniverseNumber("getPlatformHeightAtX:atY:"));},
-          FrogSymbol("world")->value,
-	  FrogNumNew(ix*GRID_SZ+GRID_SZ/2),
-	  FrogNumNew(iy*GRID_SZ+GRID_SZ/2)
-        ));
-      else
+      if(1) {
+        h=GetPlatformHeight(w,ix,iy);
+      } else
 	h=w->heightmap[idx];
-      if(above<h)
+      if(above+wiggle_room<h) //wiigle_room for stepping over partlyy open doors
 	return TRUE;
       c=w->ceilmap[idx];
       if(c!=I8_MAX)
-        if(c<above<=c+w->ceilmap2[idx]) {
+        if(c<above+tallness<=c+w->ceilmap2[idx]) {
 	  return TRUE;
       }
     }
   return FALSE;
 }
+
 I64 FindRayWall(C3DWorld *w,F64 slope,F64 cos,F64 sin,I64 *segment=NULL,F64 *dist=NULL,I64 *side=NULL,F64 above=I8_MIN,I64 force_tile=INVALID_PTR,Bool far_side=FALSE,Bool allow_ceil=FALSE) {
   F64 x=w->x;
   F64 y=w->y;
@@ -495,7 +523,7 @@ I64 FindRayWall(C3DWorld *w,F64 slope,F64 cos,F64 sin,I64 *segment=NULL,F64 *dis
     x=w->x+check_dist*cos;
     y=w->y+check_dist*sin;
     ix=x/GRID_SZ,iy=y/GRID_SZ;
-    if(HeightPasses(w,ix,iy,above,allow_ceil)&&PassesThoughBlock(w,slope,ix,iy,&res_dist,cos,sin)) {
+    if(HeightImpossible(w,ix,iy,above,allow_ceil)&&PassesThoughBlock(w,slope,ix,iy,&res_dist,cos,sin)) {
       found_hit=TRUE;
       if(res_dist<smallest) {
         smallest=res_dist;
@@ -504,7 +532,7 @@ I64 FindRayWall(C3DWorld *w,F64 slope,F64 cos,F64 sin,I64 *segment=NULL,F64 *dis
       }
     }
     if(check_dist>ToF64(GRID_SZ)) {
-      if(HeightPasses(w,ix-sign_c,iy,above,allow_ceil)&&PassesThoughBlock(w,slope,ix-sign_c,iy,&res_dist,cos,sin)) {
+      if(HeightImpossible(w,ix-sign_c,iy,above,allow_ceil)&&PassesThoughBlock(w,slope,ix-sign_c,iy,&res_dist,cos,sin)) {
         found_hit=TRUE;
         if(res_dist<smallest) {
 	  smallest=res_dist;
@@ -512,7 +540,7 @@ I64 FindRayWall(C3DWorld *w,F64 slope,F64 cos,F64 sin,I64 *segment=NULL,F64 *dis
 	  iy2=iy;
         }
       }
-      if(HeightPasses(w,ix,iy-sign_s,above,allow_ceil)&&PassesThoughBlock(w,slope,ix,iy-sign_s,&res_dist,cos,sin)) {
+      if(HeightImpossible(w,ix,iy-sign_s,above,allow_ceil)&&PassesThoughBlock(w,slope,ix,iy-sign_s,&res_dist,cos,sin)) {
         found_hit=TRUE;
         if(res_dist<smallest) {
 	  smallest=res_dist;
@@ -611,8 +639,9 @@ Bool RadiusHitsWall(C3DWorld *w,F64 angle,F64 *_x,F64 *_y,F64 height,F64 radius=
   Bool ret=FALSE,hit=TRUE;
   I64 xoff,yoff,ch,cr,tile,i;
   F64 tx,ty,h;
-  for(i=0;i!=4&&hit;i++)  {
+  do {
     hit=FALSE;
+  for(i=0;i!=4;i++)  {
     for(xoff=-1;xoff<2;xoff++)
       for(yoff=-1;yoff<2;yoff++) {
         if(xoff^^yoff) {
@@ -650,11 +679,7 @@ Bool RadiusHitsWall(C3DWorld *w,F64 angle,F64 *_x,F64 *_y,F64 height,F64 radius=
 	  tile=ToI64(x)+xoff+(ToI64(y)+yoff)*w->world_width;
 	  if(0<=tile<w->world_height*w->world_width) {
 	    if(flags&RADF_DOOR) {
-              h=AsF64(CallScriptUniverse(#exe{StreamPrint("%d",NameToUniverseNumber("getPlatformHeightAtX:atY:"));},
-		FrogSymbol("world")->value,
-		FrogNumNew(ToI64(x)*GRID_SZ+xoff*GRID_SZ+GRID_SZ/2),
-		FrogNumNew(ToI64(y)*GRID_SZ+yoff*GRID_SZ+GRID_SZ/2))
-	      );
+	      h=GetPlatformHeight(w,x+xoff,y+yoff);
 	    } else
 	      h=w->heightmap[tile];
 	    ch=w->ceilmap[tile];
@@ -662,14 +687,14 @@ Bool RadiusHitsWall(C3DWorld *w,F64 angle,F64 *_x,F64 *_y,F64 height,F64 radius=
 //.2 for stepping over partly open doors
 	    if(flags&RADF_FLOOR&&height+.2<h) {
 check:
-	        if(Abs(x-tx)<radius&&xoff) {
+	        if(Abs(x-tx)<=radius&&xoff) {
 	          if(adjust) {
 		    x=tx+radius*1.05*-xoff;
 		    hit=TRUE;
 	          }
 	          ret|=TRUE;
 	        }
-	        if(Abs(y-ty)<radius&&yoff) {
+	        if(Abs(y-ty)<=radius&&yoff) {
 	          if(adjust) {
 		    y=ty+radius*1.05*-yoff;
 		    hit=TRUE;
@@ -684,6 +709,7 @@ skip:;
         }
       }
   }
+  } while(hit);
   if(adjust) {
     *_x=x*GRID_SZ;
     *_y=y*GRID_SZ;
@@ -706,20 +732,19 @@ Bool C3DWorldMoveZWithCollision(C3DWorld *w,F64 dist,F64 x,F64 y,F64 *_height,F6
   z+=dist;
   tile=ToI64(x/GRID_SZ)+ToI64(y/GRID_SZ)*w->world_width;
   if(0<=tile<w->world_width*w->world_height) {
-    ch=w->ceilmap[tile];
-    cr=w->ceilmap2[tile];
-    h=AsF64(CallScript("getPlatformHeightAtX:atY:",
-	FrogSymbol("world")->value,
-	FrogNumNew(x),
-	FrogNumNew(y)));
-    if(ch+cr<=z) {
-      o=z;
-      z=Max(z,ch+cr);
-      hit|=o!=z;
-    } else {
-      o=z;
-      z=Clamp(z,h,ch-tallness);
-      hit|=o!=z;
+    if(HeightImpossible(w,x/GRID_SZ,y/GRID_SZ,z,TRUE,.8,)) {
+      h=GetPlatformHeight(w,x/GRID_SZ,y/GRID_SZ);
+      ch=w->ceilmap[tile];
+      cr=w->ceilmap2[tile];
+      if(ch+cr<=z) {
+        o=z;
+        z=Max(z,ch+cr);
+        hit|=o!=z;
+      } else {
+        o=z;
+        z=Clamp(z,h,ch-tallness);
+        hit|=o!=z;
+      }
     }
   }
   *_height=z;
@@ -727,42 +752,42 @@ Bool C3DWorldMoveZWithCollision(C3DWorld *w,F64 dist,F64 x,F64 y,F64 *_height,F6
 }
 //Returns true on wall hit
 Bool C3DWorldMoveWithCollision(C3DWorld *w,F64 angle,F64 dist,F64 *x,F64 *y,Bool walk_along_wall=TRUE,I64 height=0) {
-  F64 dist2=0;
+  F64 dist2=0,boundary;
   Bool hit_wall=FALSE,force;
   F64 old_x=w->x,old_y=w->y,deflect_angle;
   w->x=*x,w->y=*y;
+  I64 at_tile;
   if(dist<0.) angle+=pi,dist=-dist;
-  I64 *tiles=GetTilesInPath(w,angle,dist),idx,idx2;
-  for(idx=0;tiles[idx]!=-1;idx++) {
-    if(!idx) {
-      *x=w->x+Cos(angle)*dist2;
-      *y=w->y+Sin(angle)*dist2;
-      if(RadiusHitsWall(w,angle,x,y,height,THING_RADIUS,TRUE,,RADF_CEIL|RADF_FLOOR|RADF_DOOR)) {
+  I64 idx,idx2;
+  I64 h,ch,cr;
+    if(RadiusHitsWall(w,angle,x,y,height,THING_RADIUS,TRUE,,RADF_CEIL|RADF_FLOOR|RADF_DOOR)) {
+      hit_wall=TRUE;
+      goto fin;
+    }
+  while(dist2<dist) {
+    for(idx=0;idx!=5;idx++) {
+    dist2+=GRID_SZ/5.;
+    if(dist2>=dist) dist2=dist;
+    *x=w->x+Cos(angle)*dist2;
+    *y=w->y+Sin(angle)*dist2;
+    if(RadiusHitsWall(w,angle,x,y,height,THING_RADIUS,TRUE,,RADF_CEIL|RADF_FLOOR|RADF_DOOR)) {
+      hit_wall=TRUE;
+      goto fin;
+    }
+      if(HeightImpossible(w,*x/GRID_SZ,*y/GRID_SZ,height,TRUE,,.2)) {//.2 wiggle room for stepping over partly open doors
+//Totally reject move,something when wrong
+//     (would be placed on top of unreachable wall)
+	*x=w->x;
+	*y=w->y;
         hit_wall=TRUE;
         goto fin;
       }
-    }
-    for(idx2=0;idx2!=5;idx2++) {
-      dist2+=GRID_SZ/5;
-      if(dist2>=dist) {
-        dist2=dist;
-      }
-      if(!idx) {
-        *x=w->x+Cos(angle)*dist2;
-        *y=w->y+Sin(angle)*dist2;
-        if(RadiusHitsWall(w,angle,x,y,height,THING_RADIUS,TRUE,,RADF_CEIL|RADF_FLOOR|RADF_DOOR)) {
-          hit_wall=TRUE;
-          goto fin;
-        }
-      }
-
-      if(dist2>=dist)
-         goto fin;
+    if(dist2>=dist)
+      goto fin;
     }
   }
 fin:
   w->x=old_x,w->y=old_y;
-  Free(tiles);
   return hit_wall;
 }
 U0 PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm) {
@@ -1292,12 +1317,7 @@ F64 ScreenCordsToDist(C3DWorld *w,I64 x,I64 y,F64 max=GRID_SZ*128,F64 *height=NU
     if(0<=tile2<w->world_width*w->world_height&&(xoff^^yoff)) {
       adj_height=MinI64(adj_height,w->heightmap[tile2]);
     }
-    hm=AsF64(CallScriptUniverse(
-	#exe{StreamPrint("%d",NameToUniverseNumber("getPlatformHeightAtX:atY:"));},
-        FrogSymbol("world")->value,
-	FrogNumNew(tile%w->world_width*GRID_SZ+GRID_SZ/2),
-        FrogNumNew(tile/w->world_width*GRID_SZ+GRID_SZ/2)
-    ));
+    hm=GetPlatformHeight(w,tile%w->world_width,tile/w->world_width);
     h=DIST_SCALE/(dist*cos2_lookup_table[x]);
     y0=GR_HEIGHT/2-h*(hm-w->cam_height);
     h2=DIST_SCALE/(dist2*cos2_lookup_table[x]);
@@ -2616,6 +2636,7 @@ next:;
      }
       QueCallScript("animate",FrogSymbol("hand_item")->value);
       UpdateDrawBuffer;
+      ClearPlatformCache; //Clear the cache becuase of changeing doors
       Refresh;
       if(every&15==0) FrogGarbageCollect;
     } catch {PutExcept(TRUE);}

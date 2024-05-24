@@ -1,5 +1,16 @@
-animate ->* ||
+animate ->* |tS=CFrogNum|
   health_meter setValue: health .
   ammo_meter setValue: #hand_item getAmmo .
   ammo_meter setMax: 100 .
   piss_stream update .
+  tS _ CFrogTime now asSeconds .
+  message_start_tS  + 3 < tS ifTrue: [
+    #ui_root removeChild: message .
+    message_start_tS _ -1 .
+  ] ifFalse: [
+    (message hasClass: CUILabel) ifTrue: [
+      message->x _ (640 / 2) - (message ->label size * 8 /2 ).
+      message->y _ (480 / 4) + ((tS *7) sin  * 40) .
+      message->color _ 10 + (tS * 2.5 floor rem: 5) floor .
+    ] .
+  ]

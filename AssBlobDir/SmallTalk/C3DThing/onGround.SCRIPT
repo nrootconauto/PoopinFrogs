@@ -1,5 +1,5 @@
 isOnGround ->CFrogNum |ch=CFrogNum cr=CFrogNum |
-  (z - (#world tileHeightAtX: x / 128 atY: y / 128)  < .1 )  ifTrue: [
+  (z - (#world getPlatformHeightAtX: x atY: y)  < .1 )  ifTrue: [
    ^ 1 
   ]  .
   ch _ (#world ceilHeightAtX: x / 128 atY: y / 128) .
