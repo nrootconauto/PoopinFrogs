@@ -70,6 +70,10 @@ class CFileThing {
 //x/y are in tiles 
   F64 x,y,rot;
 };
+#define DOORF_SMALL_KEY 1
+#define DOORF_BIG_KEY 2
+#define DOORF_TO_CEILING 4
+#define DOORF_SIDE_DOOR 8
 class CFileDoor {
   I64 x,y,act_as_wall;
   F64 height;

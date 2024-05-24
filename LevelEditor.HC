@@ -95,6 +95,7 @@ class CLevelTexture:CQue {
 //See grow_force
 #define EDITOR_TOOLF_RADIUS 1 //This will grow depending on the radius
 class CWorldEditor {
+  CDC *scrn;
   CTask *mem_task;
 //In pixels,not tiles
   I64 at_x,at_y;
@@ -201,6 +202,12 @@ class CFileThingTemplate {
   U8 blob_front_name[STR_LEN];
   U8 blob_back_name[STR_LEN];
 };
+
+#define DOORF_SMALL_KEY 1
+#define DOORF_BIG_KEY 2
+#define DOORF_TO_CEILING 4
+#define DOORF_SIDE_DOOR 8
+
 class CFileDoor {
   I64 x,y,act_as_tile;
   F64 ceil_rise;
@@ -388,6 +395,7 @@ U0 LevelEditorExport(U8 *blob,U8 *filename) {
       fptr(CFileDoor*)->y=door->y;
       fptr(CFileDoor*)->act_as_tile=door->act_as_tile;
       fptr(CFileDoor*)->ceil_rise=door->ceil_rise;
+      fptr(CFileDoor*)->flags=door->flags;
       fptr(CFileDoor*)++;
       door=door->next;
     }
@@ -660,6 +668,7 @@ U0 DrawThingSexy(CDC *dc,I64 dispx,I64 dispy,F64 x,F64 y,CDC *thing) {
   CLevelSegment *segment=GetSegmentForPos(x/GRID_SZ,y/GRID_SZ);
   if(!segment) return;
   I64 height=segment->heights[ToI64(x/GRID_SZ)-segment->xoff][ToI64(y/GRID_SZ)-segment->yoff];
+  if(world_edit.cam_height-height<=0) return;
   I64 idist=(world_edit.cam_height-height)*GRID_SZ;
   F64 width=DIST_SCALE/ToF64(idist);
   x=(x-GR_WIDTH/2+dispx)*width/16+GR_WIDTH/2;
@@ -880,7 +889,7 @@ U0 DrawWall(CDC *dc,CDC *texture,I64 dispx,I64 dispy,I64 tx,I64 ty,I64 xoff,I64 
 
 
 
-U0 DrawTileSexy(CDC *dc,I64 dispx,I64 dispy,F64 height,CDC *top,CDC *side,I64 tx,I64 ty,I64 ceil_height2=INVALID_PTR) {
+U0 DrawTileSexy(CDC *dc,I64 dispx,I64 dispy,F64 height,CDC *top,CDC *side,I64 tx,I64 ty,I64 ceil_height2=INVALID_PTR,Bool highlight=FALSE) {
   if(world_edit.cam_height<=height+1)
     return;
   I64 idist=(world_edit.cam_height-height)*GRID_SZ,wi;
@@ -926,6 +935,13 @@ U0 DrawTileSexy(CDC *dc,I64 dispx,I64 dispy,F64 height,CDC *top,CDC *side,I64 tx
       dst+=2;
     }
   }
+  if(highlight) {
+    if(Blink)
+      dc->color=(TRANSPARENT<<16)|LTCYAN|ROPF_DITHER;
+    else
+      dc->color=(TRANSPARENT<<16)|LTRED|ROPF_DITHER;
+    GrRect(dc,sx,sy,ex-sx+2,ey-sy+2);
+  }
   if(side)
     for(xoff=-1;xoff<2;xoff++)
       for(yoff=-1;yoff<2;yoff++)
@@ -934,8 +950,44 @@ U0 DrawTileSexy(CDC *dc,I64 dispx,I64 dispy,F64 height,CDC *top,CDC *side,I64 tx
 U0 DrawTileDumb(CDC *dc,I64 dispx,I64 dispy,CDC *top,I64 tx,I64 ty) {
   GrBlot(dc,tx*GRID_SZ+dispx,ty*GRID_SZ+dispy,top);
 }
+//Returns GRID_SZ*tile cordnate
+U0 MouseToPos(I64 ms_x,I64 ms_y,I64 *_x,I64 *_y) {
+  I64 idist;
+  F64 width;
+  I64 height=0;
+  F64 x;
+  F64 y;
+  I64 dispx=world_edit.base_x;
+  I64 dispy=world_edit.base_y;
+  CLevelSegment *seg;
+  if(world_edit.flat_mode) {
+    if(_x) *_x=ms_x-dispx;
+    if(_y) *_y=ms_y-dispy;
+    return;
+  }
+  for(height=I8_MAX;height>=I8_MIN;height--) {
+    idist=(world_edit.cam_height-height)*GRID_SZ;
+    width=DIST_SCALE/ToF64(idist);
+    x=FloorI64((ms_x+width/2-GR_WIDTH/2)*16/width-dispx+GR_WIDTH/2,GRID_SZ)/GRID_SZ;
+    y=FloorI64((ms_y+width/2-GR_HEIGHT/2)*16/width-dispy+GR_HEIGHT/2,GRID_SZ)/GRID_SZ;
+    if(seg=GetSegmentForPos(x,y)) {
+      if(seg->heights[ToI64(x)-seg->xoff][ToI64(y)-seg->yoff]==height) {
+        if(_x) *_x=x*16;
+        if(_y) *_y=y*16;
+        return;
+      }
+    }
+  }
+//Assume new tile at 0
+  idist=(world_edit.cam_height-0)*GRID_SZ;
+  width=DIST_SCALE/ToF64(idist);
+  x=((ms_x+width/2-GR_WIDTH/2)*16/width-dispx+GR_WIDTH/2)/16;
+  y=((ms_y+width/2-GR_HEIGHT/2)*16/width-dispy+GR_HEIGHT/2)/16;
+  if(_x) *_x=x*16;
+  if(_y) *_y=y*16;
+}
 
-U0 DrawDoorSexy(CDC *dc,I64 dispx,I64 dispy,CDC *top,CDC *side,I64 tx,I64 ty,F64 rise) {
+U0 DrawDoorSexy(CDC *dc,I64 dispx,I64 dispy,CDC *top,CDC *side,I64 tx,I64 ty,F64 rise,Bool highlight=FALSE) {
   CLevelSegment *s=GetSegmentForPos(tx,ty);
   F64 height=s->heights[tx-s->xoff][ty-s->yoff];
   height+=rise;
@@ -984,6 +1036,13 @@ U0 DrawDoorSexy(CDC *dc,I64 dispx,I64 dispy,CDC *top,CDC *side,I64 tx,I64 ty,F64
       dst+=2;
     }
   }
+  if(highlight) {
+    if(Blink)
+      dc->color=(TRANSPARENT<<16)|LTRED|ROPF_DITHER;
+    else
+      dc->color=(TRANSPARENT<<16)|LTCYAN|ROPF_DITHER;
+    GrRect(dc,sx,sy,ex-sx+2,ey-sy+2);
+  }
   if(Blink)
     dc->color=BLUE;
   else
@@ -999,7 +1058,10 @@ U0 DrawSegmentDoors(CTask *t,CDC *dc) {
   CLevelSegment *segment=world_edit.segments.next;
   CLevelDoor *door;
   CLevelTexture *txr;
-  I64 tx=world_edit.base_x/GRID_SZ,ty=world_edit.base_y/GRID_SZ;
+  I64 tx=world_edit.base_x/GRID_SZ,ty=world_edit.base_y/GRID_SZ,atx,aty;
+  MouseToPos(world_edit.ms_x,world_edit.ms_y,&atx,&aty);
+  atx=FloorI64(atx,GRID_SZ)/GRID_SZ;
+  aty=FloorI64(aty,GRID_SZ)/GRID_SZ;
   while(segment!=&world_edit.segments) {
     door=segment->doors.next;
     while(door!=&segment->doors) {
@@ -1012,7 +1074,7 @@ U0 DrawSegmentDoors(CTask *t,CDC *dc) {
 	  DrawDoorSexy(dc,world_edit.base_x,world_edit.base_y,
 	        txr->dc,
 	        txr->wall_dc,
-	        door->x,door->y,door->ceil_rise);
+	        door->x,door->y,door->ceil_rise,door->x==atx&&door->y==aty);
         }
       }
       door=door->next;
@@ -1021,73 +1083,43 @@ U0 DrawSegmentDoors(CTask *t,CDC *dc) {
   }
 }
 
-//Returns GRID_SZ*tile cordnate
-U0 MouseToPos(I64 ms_x,I64 ms_y,I64 *_x,I64 *_y) {
-  I64 idist;
-  F64 width;
-  I64 height=0;
-  F64 x;
-  F64 y;
-  I64 dispx=world_edit.base_x;
-  I64 dispy=world_edit.base_y;
-  CLevelSegment *seg;
-  if(world_edit.flat_mode) {
-    if(_x) *_x=ms_x-dispx;
-    if(_y) *_y=ms_y-dispy;
-    return;
-  }
-  for(height=I8_MAX;height>=I8_MIN;height--) {
-    idist=(world_edit.cam_height-height)*GRID_SZ;
-    width=DIST_SCALE/ToF64(idist);
-    x=((ms_x+width/2-GR_WIDTH/2)*16/width-dispx+GR_WIDTH/2)/16;
-    y=((ms_y+width/2-GR_HEIGHT/2)*16/width-dispy+GR_HEIGHT/2)/16;
-    if(seg=GetSegmentForPos(x,y)) {
-      if(seg->heights[ToI64(x)-seg->xoff][ToI64(y)-seg->yoff]==height) {
-        if(_x) *_x=x*16;
-        if(_y) *_y=y*16;
-        return;
-      }
-    }
-  }
-//Assume new tile at 0
-  idist=(world_edit.cam_height-0)*GRID_SZ;
-  width=DIST_SCALE/ToF64(idist);
-  x=((ms_x+width/2-GR_WIDTH/2)*16/width-dispx+GR_WIDTH/2)/16;
-  y=((ms_y+width/2-GR_HEIGHT/2)*16/width-dispy+GR_HEIGHT/2)/16;
-  if(_x) *_x=x*16;
-  if(_y) *_y=y*16;
-}
 U0 LevelEditorDraw(CTask *t,CDC *dc) {
+  CDC *main=dc;
+  dc=world_edit.scrn;
+  DCFill(dc,WHITE);
   DCDepthBufAlloc(dc);
   CLevelSegment *seg;
   CLevelTexture *texture;
   I64 theight,cheight,ch2;
 //Tile offsets
   I64 t_xoff=world_edit.base_x/GRID_SZ,t_yoff=world_edit.base_y/GRID_SZ;
-  I64 x,y,minx,maxx,miny,maxy;
+  I64 x,y,minx,maxx,miny,maxy,atx,aty;
   I64 data;
   U8 *str;
   WorldExtents(&minx,&maxx,&miny,&maxy);
+  MouseToPos(world_edit.ms_x,world_edit.ms_y,&atx,&aty);
+  atx=FloorI64(atx,GRID_SZ)/GRID_SZ;
+  aty=FloorI64(aty,GRID_SZ)/GRID_SZ;
   for(x=minx;x!=maxx;x++) {
     for(y=miny;y!=maxy;y++) {
       seg=GetSegmentForPos(x,y);
       if(!seg) goto next;
       data=seg->data
-	    [(x)-seg->xoff]
-	    [(y)-seg->yoff];
+	    [x-seg->xoff]
+	    [y-seg->yoff];
 //u8[0] is floor tile
       texture=world_edit.textures[data.u8[0]];
       theight=seg->heights[(x)-seg->xoff][(y)-seg->yoff];
       if(texture) {
         if(!world_edit.flat_mode) {
-	  DrawTileSexy(dc,world_edit.base_x,world_edit.base_y,theight,texture->orig_dc,texture->wall_dc,x,y);
+	  DrawTileSexy(dc,world_edit.base_x,world_edit.base_y,theight,texture->orig_dc,texture->wall_dc,x,y,,atx==x&&aty==y);
 //u8[1] is ceil tile
 	  texture=world_edit.textures[data.u8[1]];
 	  if(Blink&&texture) {
 	    cheight=seg->ceil_heights[x-seg->xoff][y-seg->yoff];
 	    ch2=seg->ceil_heights2[x-seg->xoff][y-seg->yoff];
 	    if(cheight!=I8_MAX&&cheight>theight)
-	      DrawTileSexy(dc,world_edit.base_x,world_edit.base_y,cheight+ch2,texture->dc,texture->wall_dc,x,y,cheight);
+	      DrawTileSexy(dc,world_edit.base_x,world_edit.base_y,cheight+ch2,texture->dc,texture->wall_dc,x,y,cheight,atx==x&&aty==y);
 	  }
         } else {
 	  if(texture) {
@@ -1125,8 +1157,8 @@ next:;
   GrRect(dc,SIDEBAR_WIDTH,t->pix_height-8,t->pix_width-SIDEBAR_WIDTH*2,8);
   dc->color=RED;
   MouseToPos(world_edit.ms_x,world_edit.ms_y,&x,&y);
-  x/=GRID_SZ;
-  y/=GRID_SZ;
+  x=FloorI64(x,GRID_SZ)/GRID_SZ;
+  y=FloorI64(y,GRID_SZ)/GRID_SZ;
   seg=GetSegmentForPos(x,y);
   if(seg) {
     GrPrint(dc,SIDEBAR_WIDTH,t->pix_height-8,"Flr=%d,Ceil=%d,Rise=%d",
@@ -1137,6 +1169,8 @@ next:;
   }
   Free(dc->depth_buf);
   dc->depth_buf=NULL;
+  world_edit.scrn->flags|=DCF_NO_TRANSPARENTS;
+  GrBlot(main,0,0,dc);
 } 
 Bool EditDC(U8 *blob,U8 *name,I64 dft_w,I64 dft_h) {
 //TempleOS lexer gets rid of rest of line after #include
@@ -1152,6 +1186,24 @@ name,blob,dft_w,dft_h
 world_edit.flat_mode=old_flat;
 //TODO ensure lump exists
 return TRUE;
+}
+
+class CDoorFlags {
+  Bool small_key format "$$CB,\"Small Key\"$$\n";
+  Bool big_key format "$$CB,\"Big Key\"$$\n";
+  Bool side_door format "$$CB,\"Side Door(opened w/ other doors)\"$$\n";
+  Bool to_ceiling format "$$CB,\"Rise to ceiling\"$$\n";
+};
+I64 DoorFlagsForm() {
+  I64 ret=0;
+  CDoorFlags df;
+  MemSet(&df,0,sizeof CDoorFlags);
+  PopUpForm(&df);
+  if(df.small_key)  ret|=DOORF_SMALL_KEY;
+  if(df.big_key)  ret|=DOORF_BIG_KEY;
+  if(df.side_door)  ret|=DOORF_SIDE_DOOR;
+  if(df.to_ceiling)  ret|=DOORF_TO_CEILING;
+  return ret;
 }
 CLevelDoor *InsertDoor(I64 tx,I64 ty,Bool ask=FALSE) {
   CLevelSegment *seg=GetSegmentForPos(tx,ty);
@@ -1179,6 +1231,7 @@ CLevelDoor *InsertDoor(I64 tx,I64 ty,Bool ask=FALSE) {
     old=world_edit.flat_mode;
     world_edit.flat_mode=TRUE;
     d->ceil_rise=PopUpRangeI64(1,16,,"Door Height");
+    d->flags=DoorFlagsForm;
     world_edit.flat_mode=old;
   } else
     d->ceil_rise=1;
@@ -1395,6 +1448,7 @@ U0 LoadWorld(U8 *blob,U8 *filename) {
   CLevelSegment *segment;
   CLevelTexture *texture;
   CFileDoor *doors;
+  CLevelDoor *door;
   CWorld *w=NULL;
   Bool old_flat=world_edit.flat_mode;
   world_edit.flat_mode=TRUE;
@@ -1431,7 +1485,9 @@ U0 LoadWorld(U8 *blob,U8 *filename) {
   cap=w->doors.len/sizeof (CFileDoor);
   while(--cap>=0) {
     world_edit.wall_texture=doors[cap].act_as_tile;
-    InsertDoor(doors[cap].x,doors[cap].y);
+    door=InsertDoor(doors[cap].x,doors[cap].y);
+    door->ceil_rise=doors[cap].ceil_rise;
+    door->flags=doors[cap].flags;
   }
   f_texture=textures;
   cap=w->textures_where.len;
@@ -1677,10 +1733,12 @@ U0 WorldEdit(U8 *blob,U8 *filename=NULL) {
   QueInit(&world_edit.segments);
   QueInit(&world_edit.edits);
   SettingsPush;
+  WinBorder;
   WinMax;
   DocClear;
   if(filename)
     world_edit.filename=StrNew(filename);
+  world_edit.scrn=DCNew(GR_WIDTH,GR_HEIGHT);
   Fs->draw_it=&LevelEditorDraw;
 //See WinQueIPMsgs,needed to avoid waiting for dbl click
   Bts(&(Fs->win_inhibit),WIf_FOCUS_TASK_MS_L_D);
@@ -2007,6 +2065,7 @@ next:;
     }
   }
   Fs->draw_it=NULL;
+  DCDel(world_edit.scrn);
   FreeEditorData;
   SettingsPop;
 }
