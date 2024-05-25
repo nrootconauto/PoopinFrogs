@@ -3,6 +3,7 @@ activate->CFrogNum |
   world=C3DWorldManager
 |
   world _ #world .
+  activated _ 1 .
   
   activated_at < 0. ifTrue: [
     activated_at _ CFrogTime now asSeconds .

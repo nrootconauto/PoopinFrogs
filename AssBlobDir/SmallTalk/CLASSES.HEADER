@@ -278,8 +278,20 @@ class CEliza:CFrogThing {
 //
 // Game Section
 //
-class CFrogDick:CHandItem {
+
+//This [redacted for GH] is for picking up items in the world
+class CPickup:C3DThing {
+  CFrogClass *item_class;
+  I64 count;
 };
+
+class CFrogDick:CHandItem {};
+
+class CSmallKey:CHandItem {};
+class CSmallKeyPickup:CPickup {};
+
+class CBigKey:CHandItem {};
+class CBigKeyPickup:CPickup{};
 
 class CPissLink:CFrogThing {
   C3DThing *from;
@@ -293,11 +305,6 @@ class CPissStream:CFrogThing {
   CFrogArray *links;
 };
 
-//This [redacted for GH] is for picking up items in the world
-class CPickup:C3DThing {
-  CFrogClass *item_class;
-  I64 count;
-};
 class CGun1Pickup:CPickup {
 };
 class CShootgunPickup:CPickup {
@@ -344,7 +351,7 @@ class CPlayer:C3DThing {
   CUIChatLog *chat_log;
   CUITextBar *chat_log_input;
   CUIElem *message;
-  F64 message_start_tS;
+  F64 message_start_tS;
   I64 main_inventory_active;
   I64 chatting_active;
   CPissStream *piss_stream;
@@ -392,6 +399,8 @@ class CDoor:CFrogThing {
   F64 speed;
   F64 open_duration;
   I64 x,y,act_as_wall;
+  Bool activated;
+  Bool side_door,small_key,big_key,rise_to_ceiling;
 };
 
 class CKnife:CHandItem {

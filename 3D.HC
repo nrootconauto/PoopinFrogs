@@ -327,6 +327,10 @@ C3DWorld *LoadWorldFromFile(U8 *blob_file="ASS",U8 *filename,F64 fov=pi/4) {
     door->y=fptr(CFileDoor*)->y-world->starty;
     door->act_as_wall=fptr(CFileDoor*)->act_as_wall;
     door->height=fptr(CFileDoor*)->height;
+    door->small_key=fptr(CFileDoor*)->flags&DOORF_SMALL_KEY;
+    door->big_key=fptr(CFileDoor*)->flags&DOORF_BIG_KEY;
+    door->rise_to_ceiling=fptr(CFileDoor*)->flags&DOORF_TO_CEILING;
+    door->side_door=fptr(CFileDoor*)->flags&DOORF_SIDE_DOOR;
     fptr(CFileDoor*)++;
     CallScript("addDoor:",man,door);
   }
@@ -446,21 +450,27 @@ I64 PassesThoughBlock(C3DWorld *w,F64 slope,I64 x,I64 y,F64 *dist,F64 cos,F64 si
 class CPlatformCache {
   I64 x,y;
   F64 h;
-} platform_cache[16];
-I64 platform_cache_ptr;
+} platform_cache[16][mp_cnt];
+I64 platform_cache_ptr[mp_cnt];
+MemSetI64(platform_cache_ptr,0,mp_cnt);
 //Maybe a door raised
 U0 ClearPlatformCache() {
-  I64 cache=16;
-  while(--cache>=0) {
-    platform_cache[cache].x=-1;
-    platform_cache[cache].y=-1;
+  I64 c,cache;
+  c=mp_cnt;
+  while(--c>=0) {
+    cache=16;
+    while(--cache>=0) {
+      platform_cache[cache][c].x=-1;
+      platform_cache[cache][c].y=-1;
+    }
   }
 }
 F64 GetPlatformHeight(C3DWorld *w,I64 ix,I64 iy) {
   I64 idx=iy*w->world_width+ix,cache;
+  I64 c=Gs->num;
   for(cache=0;cache!=16;cache++) {
-    if(platform_cache[cache].x==ix&&platform_cache[cache].y==iy) {
-      return platform_cache[cache].h;
+    if(platform_cache[cache][c].x==ix&&platform_cache[cache][c].y==iy) {
+      return platform_cache[cache][c].h;
     }
   }
   F64 h=AsF64(CallScriptUniverse(
@@ -470,9 +480,9 @@ F64 GetPlatformHeight(C3DWorld *w,I64 ix,I64 iy) {
 	  FrogNumNew(iy*GRID_SZ+GRID_SZ/2)
   ));
   cache=platform_cache_ptr++&15;
-  platform_cache[cache].x=ix;
-  platform_cache[cache].y=iy;
-  platform_cache[cache].h=h;
+  platform_cache[cache][c].x=ix;
+  platform_cache[cache][c].y=iy;
+  platform_cache[cache][c].h=h;
 
 }
 Bool HeightImpossible(C3DWorld *w,I64 ix,I64 iy,F64 above,Bool allow_ceil,F64 tallness=.1,F64 wiggle_room=0) {
@@ -1616,14 +1626,46 @@ F64 NormalizeAngle(F64 a) {
 }
 Bool CanSee2DThing(C3DWorld *w,C3DThing *t) {
   Bool ret=TRUE;
-  F64 dist=Sqrt(Sqr(t->x-w->x)+Sqr(t->y-w->y)),rd;
+  F64 dist=Sqrt(Sqr(t->x-w->x)+Sqr(t->y-w->y)),near,far,interp;
   F64 angle=Arg(t->x-w->x,t->y-w->y);
   I64 *ti=GetTilesInPath(w,angle,dist),idx;
+  I64 at_tile=ToI64(w->x/GRID_SZ)+ToI64(w->y/GRID_SZ)*w->world_width;
   for(idx=0;ti[idx]!=-1;idx++) {
-/*TODO*/
-    if(w->heightmap[ti[idx]]>w->cam_height) {
-      ret=FALSE;
-      break;
+    if(ti[idx]==at_tile) {
+    } else {
+      FindRayWall(w,
+	    Tan(angle),
+	    Cos(angle),
+	    Sin(angle),
+	    NULL,
+	    &near,
+	    NULL,
+	    I8_MIN,
+	    ti[idx],
+	    FALSE,
+	    TRUE
+      );
+      FindRayWall(w,
+	    Tan(angle),
+	    Cos(angle),
+	    Sin(angle),
+	    NULL,
+	    &far,
+	    NULL,
+	    I8_MIN,
+	    ti[idx],
+	    TRUE,//far sdie
+	    TRUE
+      );
+      interp=Lerp(Min((near+far)/2,dist)/dist,w->cam_height,t->z);
+      if(HeightImpossible(w,
+	ti[idx]%w->world_width,
+	ti[idx]/w->world_width,
+	interp,
+	TRUE)) {
+         ret=FALSE;
+         break;
+      }
     }
   }
   Free(ti);

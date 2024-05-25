@@ -10,11 +10,17 @@ update->* |
       percent _ 1 - (tS / rise_time) .
       ^ 1 .
     ] .
+    (big_key or: small_key) ifTrue: [
+      'Dont reopen if we are a locked door ' .
+       activated_at _ -1 .
+       ^ 0
+    ] .
     tS > (rise_time + open_duration) ifTrue: [
       percent _  ((tS- rise_time - open_duration ) / rise_time) .
       percent >= 1. ifTrue: [
         activated_at _ -1 .
         percent _ 1 .
+        activated _ 0 .
         ^ 0 
       ]
       ^ 1 .

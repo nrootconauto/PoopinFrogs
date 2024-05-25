@@ -1,0 +1,6 @@
+init | |
+  count _ 1  .
+  #world addThing: self .
+  item_class _ CBigKey .
+  template _ #world getThingTemplate: 'CBigKeyPickup' .
+  ^ self

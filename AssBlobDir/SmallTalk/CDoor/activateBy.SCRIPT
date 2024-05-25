@@ -1,7 +1,58 @@
 activateBy: t=C3DThing  ->CFrogNum
-  ||
-  'TODOaccount for locsk'.
-  #world getPlayer = t ifTrue: [
-    #world getPlayer displayMessage: 'Opened door ' .
-  ]
-  ^ self activate  
+  |
+  player=CPlayer
+  items=CFrogArray 
+  key=CHandItem
+  locked=CFrogNum
+|
+  activated ifTrue: [^ 0 . ] .
+  player _ #world getPlayer .
+  key _ 0 .
+  locked _ 0 .
+'Not openable except by having an adjacent door open' .
+  side_door ifTrue: [
+   ^ 0
+  ] .
+  small_key ifTrue: [
+    locked _ 1 .
+    items _ player getInventoryItems .
+    items do: [:i*|
+      (i->item hasClass: CSmallKey) ifTrue: [
+        key _ i
+      ] .
+    ] .
+  ]. 
+  big_key ifTrue: [
+    locked _ 1 .
+    items _ player getInventoryItems .
+    items do: [:i*|
+      (i->item hasClass: CBigKey) ifTrue: [
+        key _ i
+      ] .
+    ] .
+  ]. 
+  locked ifTrue: [
+    (key hasClass:CUIGridItem) ifTrue: [
+      self activate ifTrue: [
+        player removeItem: key .
+        player displayMessage: 'Unlocked door' .  
+        ^ 1 .
+      ] .
+      ^ 0 .
+    ] .
+    small_key ifTrue: [
+      player displayMessage: 'You need a small key' .  
+    ] .
+    big_key ifTrue: [
+      player displayMessage: 'You need a big ass motherfuckin key' .  
+    ] .
+    ^ 0 .
+  ] ifFalse: [
+    self activate ifTrue: [
+     player displayMessage: 'Mpotherfuckiing door opened' .
+     ^ 1
+    ] ifFalse: [
+     ^ 0
+    ] .
+  ] .
+  ^ 0

@@ -1,0 +1,7 @@
+init | |
+  count _ 1  .
+  #world addThing: self .
+  item_class _ CSmallKey .
+  template _ #world getThingTemplate: 'CSmallKeyPickup' .
+  ^ self
+
