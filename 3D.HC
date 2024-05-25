@@ -443,11 +443,11 @@ F64 GetPlatformHeight(C3DWorld *w,I64 ix,I64 iy) {
 	  FrogNumNew(ix*GRID_SZ+GRID_SZ/2),
 	  FrogNumNew(iy*GRID_SZ+GRID_SZ/2)
   ));
-  cache=platform_cache_ptr++&15;
+  cache=platform_cache_ptr[c]++&15;
   platform_cache[cache][c].x=ix;
   platform_cache[cache][c].y=iy;
   platform_cache[cache][c].h=h;
-
+  return h;
 }
 Bool HeightImpossible(C3DWorld *w,I64 ix,I64 iy,F64 above,Bool allow_ceil,F64 tallness=.1,F64 wiggle_room=0) {
   I64 c,idx=iy*w->world_width+ix,cache;
@@ -1008,7 +1008,7 @@ I64 ColorFloor(C3DWorld *w,I64 view_x,F64 floor_height,I64 sy,I64 ey,CDC *textur
   sy=GR_HEIGHT-sy;
   ey=ClampI64(ey,0,w->to_dc->height-w->step_width);
   sy=ClampI64(sy,0,w->to_dc->height-w->step_width);
-  if(ceil) {dir=-1;y=ey;}
+  if(ceil) {dir=-1;y=ey;}
   else dir=1,y=sy;
   for(;TRUE;y+=w->step_width*dir) {
 ent:
