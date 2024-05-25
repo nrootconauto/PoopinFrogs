@@ -9,6 +9,7 @@ CI64Set *universe_values=I64SetNew; //I64
 CI64Set *universe_init_pairs=I64SetNew; //I64
 CI64Set *universe_methods=I64SetNew; //CI64Set(set of method indexes)
 CI64Set *universe_class_methods=I64SetNew; //CI64Set(set of method indexes)
+CI64Set *universe_symbols=I64SetNew; //CFrogSymbol
 I64 universe_cnt=1;
 CI64Set *universe_class_matrix=I64SetNew;
 U0 I64SetSetMinSize(CI64Set *s,I64 sz) {
@@ -157,4 +158,15 @@ U0 UniverseDestroyThing(CFrogThing *t) {
   if(!p) {Free(t);return NULL;}
   if(p->destroy) (*p->destroy)(t);
   else Free(t);
+}
+CFrogSymbol *FrogSymbol0(I64 idx) {
+  CFrogThing *t=I64SetGetAt(universe_symbols,idx);
+  if(!t) {
+    t=ConstructThing("CFrogSymbol");
+    I64SetInsAt(universe_symbols,idx,t);
+  }
+  return t;
+}
+CFrogSymbol *FrogSymbol(U8 *s) {
+  return FrogSymbol0(NameToUniverseNumber(s));
 }

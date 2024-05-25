@@ -94,11 +94,6 @@ class CFileWorld {
 }; 
  
 
-class CBlockedView {
-  I16 start,end;
-  I32 dist;
-};
-
 F64 cos_lookup_table[GR_WIDTH];
 F64 cos2_lookup_table[GR_WIDTH];
 F64 sin_lookup_table[GR_WIDTH];
@@ -144,8 +139,6 @@ class C3DWorld {
    CTask *mem_task;
    F64 cam_height;
 //Private
-   CBlockedView blocked_views[GR_WIDTH][0x80];
-   I64 blocked_cnts[GR_WIDTH];
    CQue particles;
    I64 particle_cnt;
 };
@@ -181,35 +174,6 @@ U0 C3DThingTemplateDel(C3DThingTemplate *t) {
 }
 U0 C3DWorldSetFov(C3DWorld *w,F64 fov=pi/4) {
   w->fov=fov;
-}
-//Returns the first availbe y pixel for a distance(checks whats blocked),or returns input y if ok
-I64 VisSkipTo(C3DWorld *w,I64 x,I64 y,I64 dist) {
-  I64 cnt=w->blocked_cnts[x],idx;
-  CBlockedView *blocked;
-enter:
-  for(idx=0;idx!=cnt;idx++) {
-    blocked=&w->blocked_views[x][idx];
-    if(blocked->dist<dist) {
-      if(blocked->start<=y<blocked->end) {
-	y=blocked->end;
-        goto enter;
-      }
-    }
-  }
-  return y;
-}
-CBlockedView *VisAt(C3DWorld *w,I64 x,I64 y,I64 dist) {
-  I64 cnt=w->blocked_cnts[x],idx;
-  CBlockedView *blocked;
-  for(idx=0;idx!=cnt;idx++) {
-    blocked=&w->blocked_views[x][idx];
-    if(blocked->dist<dist) {
-      if(blocked->start<=y<blocked->end) {
-	return blocked;
-      }
-    }
-  }
-  return NULL;
 }
 C3DWorld *LoadWorldFromFile(U8 *blob_file="ASS",U8 *filename,F64 fov=pi/4) {
   C3DWorld *ret=CAlloc(sizeof(C3DWorld));
@@ -734,11 +698,7 @@ Bool C3DWorldMoveZWithCollision(C3DWorld *w,F64 dist,F64 x,F64 y,F64 *_height,F6
   Bool hit=FALSE;
   F64 h_offset=0;
   F64 h;
-  I64 cnt=0,tile,best,ch,cr,flags;
-  if(dist>0.)
-    flags=RADF_CEIL;
-  else
-    flags=RADF_FLOOR;
+  I64 cnt=0,tile,best,ch,cr;
   z+=dist;
   tile=ToI64(x/GRID_SZ)+ToI64(y/GRID_SZ)*w->world_width;
   if(0<=tile<w->world_width*w->world_height) {
@@ -924,13 +884,6 @@ U0 DrawWallSegment(C3DWorld *w,I64 segment,I64 x,I64 start_y,CDC *texture,I64 he
   xp=Lerp(segment/ToF64(GRID_SZ),0,texture->width-1);
 ent:
   for(i=0;i<=height;i+=w->step_width) {
-    tmp=VisSkipTo(w,x,i+start_y,dist)-start_y;
-    if(tmp) {
-      i=tmp;
-      dst=w->to_dc->body+(start_y+i)*width+x;
-      if(w->to_dc->depth_buf)
-	depth_dst=w->to_dc->depth_buf+(start_y+i)*width+x;
-    }
     if(i+start_y<0) {
       i=-start_y;
       dst=w->to_dc->body+(start_y+i)*width+x;
@@ -1043,7 +996,6 @@ I64 ColorFloor(C3DWorld *w,I64 view_x,F64 floor_height,I64 sy,I64 ey,CDC *textur
   F64 angley=0;
   F64 step;
   F64 dist,dist2;
-  CBlockedView *v;
   I64 y,fx,fy,anim_frame=ToI64(tS/ANIM_DELAY)%AnimDCCnt(texture),idx,which,tx,ty,y2;
   I64 old_tx=-1,old_ty=-1;
   U64 colors,width=dc->width_internal,cnt;
@@ -1066,22 +1018,8 @@ ent:
       dist=DIST_SCALE/((GR_HEIGHT/2-y)/(w->cam_height-floor_height));
     }
     dist/=cos2_lookup_table[view_x];
-    v=VisAt(w,view_x,dc->height-y,dist);
-    if(GR_HEIGHT-y<GR_HEIGHT/2) {
-     //Disatnce above horizon groews further,so we are safe to block down
-     if(ceil&&v) {
-       dist2=v->dist;
-       y2=DIST_SCALE/dist2*(w->cam_height-floor_height)-GR_HEIGHT/2;
-       y2=-y2;
-       y=MinI64(y,y2);
-       y=MinI64(y,GR_HEIGHT-v->end);
-     }
-    } else if(v) {
-       y+=w->step_width*dir;
-       goto ent;
-    }
-      if(!(sy<=y<=ey))
-        break;
+    if(!(sy<=y<=ey))
+      break;
     fx=w->x+cos_lookup_table[view_x]*dist;
     fy=w->y+sin_lookup_table[view_x]*dist;
     tx=fx/GRID_SZ;
@@ -1381,7 +1319,6 @@ U0 MPCastCol(C3DWorld *w) {
   F64 dist,h,y,y2,dist2,h2;
   F64 s_angle1,s_angle2;
   I64 segment=0,idx,idx2,ptr,x=0,cap,side,side2,segment2,x0,y0,old_d,idx3,xoff,yoff;
-  CBlockedView *block_view;
   I64 height_cap,adj_height,last_height,floor_y,ceily,ceil,last_ceil;
   CDC *use_dc;
   I64 *tiles;
@@ -1490,23 +1427,6 @@ ent:
         goto ceil2;
       y=GR_HEIGHT/2;
       y0=GR_HEIGHT/2-h*(height_cap-w->cam_height);
-
-      for(idx3=w->step_width;--idx3>=0;) {
-        if(0<=x+idx3<w->to_dc->width) {
-	  ptr=w->blocked_cnts[x+idx3];
-	  if(ptr<0x80) {
-	    block_view=&w->blocked_views[x+idx3][ptr];
-	    if(GR_HEIGHT>VisSkipTo(w,x+idx3,y0,dist)) {
-	      if(I16_MIN<=y0<=I16_MAX) {
-	        block_view->start=y0;
-	        block_view->end=y0+h*AbsI64(height_cap-adj_height);
-	        block_view->dist=dist;
-	        w->blocked_cnts[x+idx3]=ptr+1;
-	      }
-	    }
-	  }
-        }
-      }
       for(idx3=0;idx3<AbsI64(height_cap-adj_height);idx3++) {
 //.u8[0] is floor tile
         DrawWallSegment(w,segment,x,y0+h*idx3,w->wall_textures[w->world_mat[idx].u8[0]],h,dist,height_cap-1-idx3,idx,side);
@@ -1536,6 +1456,22 @@ ceil2:
 	      TRUE
             ));
 	}
+      } else if(ceil!=I8_MAX&&ceil<w->cam_height) {
+          use_dc=w->floor_textures[w->world_mat[idx].u8[1]];
+	  if(standing_at==idx&&use_dc) {
+	     ColorFloor(w,x,ceil+adj_height,
+                GR_HEIGHT/2-h2*(adj_height+ceil-w->cam_height),
+		0,
+		use_dc
+	        );
+	  } else if(use_dc) {
+	     ColorFloor(w,x,ceil+adj_height,
+	        GR_HEIGHT/2-h*(adj_height+ceil-w->cam_height),
+                GR_HEIGHT/2-h2*(adj_height+ceil-w->cam_height),
+		use_dc
+	        );
+          }
+
       }
       if(ceil!=I8_MAX) {
 //Find tallest adjacent ceiling
@@ -1567,22 +1503,6 @@ ceil2:
 	  }
         }
         y0=GR_HEIGHT/2-h*(ceil+w->ceilmap2[idx]-w->cam_height);
-        for(idx3=w->step_width;--idx3>=0;) {
-          if(0<=x+idx3<w->to_dc->width) {
-	    ptr=w->blocked_cnts[x+idx3];
-	    block_view=&w->blocked_views[x+idx3][ptr];
-	    if(ptr<0x80) {
-	      if(y0+h*adj_height>VisSkipTo(w,x+idx3,y0,dist)) {
-		if(I16_MIN<=y0<y0+h*adj_height<I16_MAX) {
-	          block_view->start=y0;
-	          block_view->end=y0+h*adj_height;
-	          block_view->dist=dist;
-	          w->blocked_cnts[x+idx3]=ptr+1;
-		}
-	      }
-	    }
-          }
-        }
         for(idx3=0;idx3<adj_height;idx3++) {
 //.u8[1] is ceil tile
           DrawWallSegment(w,segment,x,y0+h*idx3,w->wall_textures[w->world_mat[idx].u8[1]],h,dist,ceil+adj_height-idx3,idx,side);
@@ -1599,9 +1519,6 @@ fin:
 U0 C3DWorldCastRays(C3DWorld *w) {
   I64 idx;
   lock mp_done=0;
-  for(idx=GR_WIDTH;--idx>=0;) {
-    w->blocked_cnts[idx]=0;
-  }
   for(idx=mp_cnt-1;idx>=1;idx--) {
     JobQue(&MPCastCol,w,idx);
   }
@@ -1657,7 +1574,7 @@ Bool CanSee2DThing(C3DWorld *w,C3DThing *t) {
 	    TRUE,//far sdie
 	    TRUE
       );
-      interp=Lerp(Min((near+far)/2,dist)/dist,w->cam_height,t->z);
+      interp=Min((near+far)/2,dist)/dist*(t->z-w->cam_height)+w->cam_height;
       if(HeightImpossible(w,
 	ti[idx]%w->world_width,
 	ti[idx]/w->world_width,
@@ -1831,6 +1748,7 @@ U0 Draw2DThing(C3DWorld *w,C3DThing *thing) {
   F64 off=thing->angle-w->angle+pi,angle,diff,gap;
   F64 y0,h,width,x0,cx,cy,vis_h;
   I32 dist=Sqrt(Sqr(x)+Sqr(y));
+  if(dist<2) return;
   CDC *use_dc;
   I64 dc_w=dc->width,frame=ToI64((tS-thing->animation_start_tS)/ANIM_DELAY);
   I64 to_x,to_y;
@@ -1889,7 +1807,8 @@ draw:
 // I will use h for computing position,then vis_h for dimenisons of the drawn_sprite
 //
   wall_height_ratio=(use_dc->height/ToF64(GR_HEIGHT));
-  vis_h=Clamp(h=DIST_SCALE/(5.+ToF64(dist)),1,GR_HEIGHT*.75)*wall_height_ratio;
+  h=(DIST_SCALE/(5.+ToF64(dist)));
+  vis_h=h*wall_height_ratio;
   y0=GR_HEIGHT/2-h*((wall_height_ratio+thing->z)-w->cam_height);
 //I will now scale vis_h by 1.5 to look pretty,we will need to adjust y0 accordingly
   y0-=vis_h*1.5-vis_h;
@@ -1931,6 +1850,9 @@ draw:
       if(0<=line<use_dc->height-3) {
         dst=dc->body+ToI64(iy)*dc->width_internal+ToI64(ix);
         depth_dst=dc->depth_buf+ToI64(iy)*dc->width_internal+ToI64(ix);
+	if(dist>*depth_dst) {
+	  goto skip;
+	}
         y_line=use_dc->body+line*use_dc->width_internal;
         src_ptr=y_line+col;
         if(*src_ptr==TRANSPARENT) {
@@ -1941,11 +1863,6 @@ draw:
 	    line++;
 	  }
 	  iy=MaxI64(Lerp(ToF64(line)/use_dc->height,cy,to_y)-3,iy);
-	  goto skip;
-	}
-	if(dist>*depth_dst) {
-	  cnt=VisSkipTo(w,ix,iy,dist)-iy;
-	  iy+=cnt;
 	  goto skip;
 	}
 	for(cnt=3;--cnt>=0;) {
@@ -2354,7 +2271,6 @@ U0 DrawDoor(CDoor *d) {
   F64 dist,h,y0,dist2,top,y1,h2;
   I64 segment;
   Bool in_view=FALSE;
-  CBlockedView *block_view;
   I64 xcords[4];
   I64 tile=d->y*w->world_width+d->x;
   I64 idx,minx=GR_WIDTH,maxx=0,idx2,side,ptr;
@@ -2413,22 +2329,6 @@ U0 DrawDoor(CDoor *d) {
 //Horizon check
       if(top<w->cam_height)
         ColorFloor(w,minx,top,y0,y1,w->wall_textures[d->act_as_wall]);
-      for(idx2=w->step_width;--idx2>=0;) {
-        if(0<=minx+idx2<w->to_dc->width) {
-	  ptr=w->blocked_cnts[minx+idx2];
-	  if(ptr<0x80) {
-	    block_view=&w->blocked_views[minx+idx2][ptr];
-	    if(GR_HEIGHT>VisSkipTo(w,minx+idx2,y0,dist)) {
-	      if(I16_MIN<=y0<=I16_MAX) {
-	        block_view->start=y0;
-	        block_view->end=y0+h;
-	        block_view->dist=dist;
-	        w->blocked_cnts[minx+idx2]=ptr+1;
-	      }
-	    }
-	  }
-        }
-      }
       DrawWallSegment(w,segment,minx,y0,w->wall_textures[d->act_as_wall],h*d->percent*d->height,dist,w->heightmap[tile]-1+d->height,tile,side);
 next:;
       minx+=w->step_width;

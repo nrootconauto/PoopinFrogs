@@ -59,7 +59,7 @@ update->* |
       target _w getPlayer .
     ] .
 
-    random_generator next < ( .3 / 10 ) ifTrue: [
+    (random_generator next < ( .3 / 10 ) and: (self canSeeThing: target)) ifTrue: [
       state _ 'Throw' .
       template _ w getThingTemplate: 'CPoopMan/Throw' .
       animation_no_repeat _ 1 .

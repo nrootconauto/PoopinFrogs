@@ -55,10 +55,12 @@ class CConstructorPair {
 extern U0 ThingDel(CFrogThing *thing,Bool recurse=TRUE);
 extern U32 AsChar(CFrogThing *t);
 extern Bool ThingHasClass(CFrogThing *thing,U8 *name,I64 small_type=0);
+extern CFrogThing *ConstructThing(U8 *name,...);
 CFrogThing *FrogIncRefCnt(CFrogThing *t) {
   if(!(t&1)) t->ref_cnt++;
   return t;
 }
+
 
 #include "Universe";
 U0 AddMethod(U8 *cls,U8 *name,U8 *fptr) {
@@ -655,20 +657,6 @@ CFrogThing *ConstructThing(U8 *name,...) {
   return ret;
 }
 
-CFrogSymbol *FrogSymbol(U8 *name) {
-  CFrogSymbol *sym;
-  name=MStrPrint("SYM#%s",name);
-  if(sym=FramePtr(name,frog_mem_task)) {
-  } else {
-    sym=ConstructThing("CFrogSymbol");
-    StrCpy(sym->name,name);
-    FramePtrAdd(name,sym,frog_mem_task);
-    sym->value=FROG_SMALL_NIL;
-  }
-  Free(name);
-  return sym;
-}
-
 CFrogThing *FrogChrNew(U64 ch) {
   return (ch<<32)|FROG_SMALL_CHR;
 }
@@ -1229,6 +1217,7 @@ AddMethod("CFrogNum","ifTrue:ifFalse:",&FrogIfTrueIfFalse);
 CFrogThing *FrogThingShow(CFrogStr *self,...) {
   I64 attempt;
   I64 idx,ch;
+  static I64 err_msg=NameToUniverseNumber("error_msg");
   CFrogStr *msg;
   CI64Set *items;
   CU8Set *items_str;
@@ -1236,7 +1225,7 @@ CFrogThing *FrogThingShow(CFrogStr *self,...) {
   for(attempt=0;attempt!=2;attempt++) {
     if(ThingHasClass(self,"CFrogError",FROG_SMALL_ERROR)) {
       "Error:";
-      msg=FrogSymbol("error_msg")(CFrogSymbol*)->value;
+      msg=FrogSymbol0(err_msg)(CFrogSymbol*)->value;
       FrogThingShow(msg);
       break;
     } else if(ThingHasClass(self,"CFrogNum",FROG_SMALL_NUM)) {
@@ -1566,15 +1555,6 @@ CFrogStr *FrogClassName(CFrogClass *cls,...) {
 //This is a class method
 AddClassMethod("CFrogThing","name",&FrogClassName);
 
-
-
-CFrogThing *FrogSymbolValueGet(U8 *name) {
-  return FrogIncRefCnt(FrogSymbol(name)->value);
-}
-U0 FrogSymbolValueSet(U8 *name,CFrogThing *v) {
-  CFrogSymbol *sym=FrogSymbol(name);
-  sym->value=v;
-}
 CFrogSuper *FrogSuper(CFrogThing *from) {
   CFrogSuper *s=ConstructThing("CFrogSuper");
   s->from=FrogIncRefCnt(from);

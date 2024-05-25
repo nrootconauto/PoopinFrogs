@@ -275,7 +275,7 @@ U0 _DumpSegmentCeil(CWorld *world,CLevelSegment *seg) {
   for(y=0;y!=SEGMENT_SZ;y++) {
     for(x=0;x!=SEGMENT_SZ;x++) {
       h=seg->ceil_heights[x][y];
-      if(seg->heights[x][y]>=h) {
+      if(seg->heights[x][y]>h) {
         *ptr++=I8_MAX;
       } else
         *ptr++=seg->ceil_heights[x][y];
@@ -290,7 +290,7 @@ U0 _DumpSegmentCeil2(CWorld *world,CLevelSegment *seg) {
   for(y=0;y!=SEGMENT_SZ;y++) {
     for(x=0;x!=SEGMENT_SZ;x++) {
       ch=seg->ceil_heights[x][y];
-      if(seg->heights[x][y]>=ch) {
+      if(seg->heights[x][y]>ch) {
         *ptr++=0;
       } else
         *ptr++=seg->ceil_heights2[x][y];
@@ -553,7 +553,7 @@ paint_selected:
 	  if(x<=world_edit.ms_x<x+8+GRID_SZ)
 	    if(y<=world_edit.ms_y<y+8+GRID_SZ) {
 edit_texture:
-	      world_edit.edit_texture=idx;
+	      world_edit.edit_texture=t;
 	    }
         dc->color=LTGRAY;
         AnimDCBlot(dc,x,y,t->dc);
@@ -1118,7 +1118,7 @@ U0 LevelEditorDraw(CTask *t,CDC *dc) {
 	  if(Blink&&texture) {
 	    cheight=seg->ceil_heights[x-seg->xoff][y-seg->yoff];
 	    ch2=seg->ceil_heights2[x-seg->xoff][y-seg->yoff];
-	    if(cheight!=I8_MAX&&cheight>theight)
+	    if(cheight!=I8_MAX&&cheight>=theight)
 	      DrawTileSexy(dc,world_edit.base_x,world_edit.base_y,cheight+ch2,texture->dc,texture->wall_dc,x,y,cheight,atx==x&&aty==y);
 	  }
         } else {
@@ -1746,6 +1746,7 @@ U0 WorldEdit(U8 *blob,U8 *filename=NULL) {
   while(continue) {
     if(texture=world_edit.edit_texture) {
       world_edit.ms_right_down=FALSE;
+PrintI("t",texture);
       switch(idx=WallCeilFloor) {
         case 2:
 	  EditDC(blob,texture->ceil_blob_name,128,128);
@@ -2024,8 +2025,8 @@ FALSE /*dont add undo*/);*/ //First dummy fill with I16_MAX,then fill with real 
 		  }
 // Look For for things second
 		  for(thing=segment->things.next;thing!=&segment->things;thing=thing->next) {
-		    if(ToI64(thing->x)-16<=tx<ToI64(thing->x)+16)
-		      if(ToI64(thing->y)-32<=ty<ToI64(thing->y)+32) {
+		    if(ToI64(thing->x)-1<=tx<ToI64(thing->x)+1)
+		      if(ToI64(thing->y)-1<=ty<ToI64(thing->y)+1) {
 		        QueRem(thing);
 		        Free(thing);
 		        goto next;

@@ -806,7 +806,7 @@ prim_skip:
       break;case AST_SYMBOL:
       ast->switch_num=ast_case_num++;
       DocPrint(doc,"L%d:\n",ast->switch_num);
-      DocPrint(doc,"  %s=FrogSymbolValueGet(\"%Q\");\n",StackFrame2Var(stack_depth),ast->name);
+      DocPrint(doc,"  %s=FrogSymbol0(%d)->value;\n",StackFrame2Var(stack_depth),NameToUniverseNumber(ast->name));
       break;case AST_KEYWORD:
       cnt=StrOcc(ast->op_name,':');
       goto pass;
@@ -817,7 +817,7 @@ prim_skip:
       DocPrint(doc,"L%d:\n",ast->switch_num);
       cur=ast->args.next;
       if(cur->type==AST_SYMBOL) {
-        DocPrint(doc,"\n  FrogSymbolValueSet(\"%Q\",%s);\n",cur->name,StackFrame2Var(stack_depth));
+        DocPrint(doc,"\n  FrogSymbol0(%d)->value=%s;\n",NameToUniverseNumber(cur->name),StackFrame2Var(stack_depth));
       } else if(cur->type==AST_VAR) {      
         if(STIsSelfMember(locals,cur->name)) {
 	  mlst=MemberFind(cur->name,HashFind(FramePtr("MethodClass"),frog_mem_task->hash_table,HTT_CLASS));
