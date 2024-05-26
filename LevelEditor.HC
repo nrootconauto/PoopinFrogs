@@ -4,6 +4,7 @@ THIS IS A WIP FILE!!!
 
 #include "AnimDC.HC"
 #include "BlobFile.HC"
+#include "SmallTalk/Set.HC";
 F64 Lerp(F64 per,F64 min,F64 max) {
   F64 t;
   return Clamp(min+(max-min)*per,Min(min,max),Max(max,min));
@@ -135,6 +136,8 @@ class CWorldEditor {
   CLevelTexture *edit_texture;
   CLevelThingTemplate *edit_thing_template;
   F64 grow_force,cam_height;
+//Used when holding down a mouse button to not repeat operations
+  CI64Set *dont_modify_tiles;
   U8 *filename;
   Bool ms_left_down;
   Bool ms_right_down;
@@ -950,7 +953,7 @@ U0 DrawTileSexy(CDC *dc,I64 dispx,I64 dispy,F64 height,CDC *top,CDC *side,I64 tx
   }
   if(highlight) {
     if(Blink)
-      dc->color=(TRANSPARENT<<16)|LTCYAN|ROPF_DITHER;
+      dc->color=(TRANSPARENT<<16)|LTCYAN|ROPF_DITHER;
     else
       dc->color=(TRANSPARENT<<16)|LTRED|ROPF_DITHER;
     GrRect(dc,sx,sy,ex-sx+2,ey-sy+2);
@@ -1787,12 +1790,17 @@ U0 WorldEditUndo() {
   }
   Free(ff);
 }
-
+Bool I64SetHas(CI64Set *set,I64 s) {
+  I64 i=set->cnt;
+  while(--i>=0) if(set->body[i]==s) return TRUE;
+  return FALSE;
+}
 U0 WorldEdit(U8 *blob,U8 *filename=NULL) {
   I64 m1,m2;
   I64 tx,ty;
   I64 ch2,old;
   I64 idx;
+  I64 tile; //i32[0]==x,.i32[1]==y
   I64 last_wheel=ms.pos.z;
   CLevelSegmentEditDoor *edit_door;
   CLevelTexture *texture;
@@ -1814,6 +1822,7 @@ U0 WorldEdit(U8 *blob,U8 *filename=NULL) {
   QueInit(&world_edit.thing_templates_que);
   QueInit(&world_edit.segments);
   QueInit(&world_edit.edits);
+  world_edit.dont_modify_tiles=I64SetNew;
   SettingsPush;
   WinBorder;
   WinMax;
@@ -1888,12 +1897,16 @@ no_edit_tile:;
         world_edit.ms_left_down=TRUE;
         break;
       case MSG_MS_L_UP:
+//We use dont_modify_tiles when holding down the mouse
+	world_edit.dont_modify_tiles->cnt=0;
         world_edit.ms_left_down=FALSE;
         break;
       case MSG_MS_R_DOWN:
         world_edit.ms_right_down=TRUE;
         break;
       case MSG_MS_R_UP:
+//We use dont_modify_tiles when holding down the mouse
+	world_edit.dont_modify_tiles->cnt=0;
         world_edit.ms_right_down=FALSE;
         break;
       start:
@@ -2049,38 +2062,45 @@ FALSE /*dont add undo*/);*/ //First dummy fill with I16_MAX,then fill with real 
 	    MouseToPos(world_edit.ms_x,world_edit.ms_y,&tx,&ty);
 	    tx=FloorI64(tx,16)/16;
 	    ty=FloorI64(ty,16)/16;
-	    segment=GetSegmentForPos(tx,ty);
-	    edit_ins=NULL;
-	    if(segment) {
-	      edit_ins=CAlloc(sizeof(CLevelSegmentEditIns),world_edit.mem_task);
-	      edit_ins->type='Insert';
-	      edit_ins->xoff=tx;
-	      edit_ins->yoff=ty;
-	      edit_ins->data=segment->data[tx-segment->xoff][ty-segment->yoff];
-	      edit_ins->height=segment->heights[tx-segment->xoff][ty-segment->yoff];
-	      edit_ins->ceil=segment->ceil_heights[tx-segment->xoff][ty-segment->yoff];
-	      edit_ins->ceil2=segment->ceil_heights2[tx-segment->xoff][ty-segment->yoff];
-	    }
-	    WorldInsertTileAt(
-		  tx,
-		  ty,
-		  world_edit.wall_texture
-		  );
-	    if(edit_ins) {
-	      if(IsUndoNecescary(edit_ins))
-	        QueIns(edit_ins,world_edit.edits.last);
-	      else
-	        Free(edit_ins);
+	    tile.i32[0]=tx;
+	    tile.i32[1]=ty;
+	    if(!I64SetHas(world_edit.dont_modify_tiles,tile)) {
+	      I64SetAdd(world_edit.dont_modify_tiles,tile);
+	      segment=GetSegmentForPos(tx,ty);
+	      edit_ins=NULL;
+	      if(segment) {
+	        edit_ins=CAlloc(sizeof(CLevelSegmentEditIns),world_edit.mem_task);
+	        edit_ins->type='Insert';
+	        edit_ins->xoff=tx;
+	        edit_ins->yoff=ty;
+	        edit_ins->data=segment->data[tx-segment->xoff][ty-segment->yoff];
+	        edit_ins->height=segment->heights[tx-segment->xoff][ty-segment->yoff];
+	        edit_ins->ceil=segment->ceil_heights[tx-segment->xoff][ty-segment->yoff];
+	        edit_ins->ceil2=segment->ceil_heights2[tx-segment->xoff][ty-segment->yoff];
+	      }
+	      WorldInsertTileAt(
+		    tx,
+		    ty,
+		    world_edit.wall_texture
+		    );
+	      if(edit_ins) {
+	        if(IsUndoNecescary(edit_ins))
+		  QueIns(edit_ins,world_edit.edits.last);
+	        else
+		  Free(edit_ins);
+	      }
 	    }
 	  }
         }
-    } else if(world_edit.ms_right_down) {
+    } else if(world_edit.ms_right_down) {     
       if(world_edit.ms_y<Fs->pix_height-THING_BAR_HEIGHT-8)
         if(SIDEBAR_WIDTH<=world_edit.ms_x<Fs->pix_width-SIDEBAR_WIDTH) {
 	  MouseToPos(world_edit.ms_x,world_edit.ms_y,&tx,&ty);
 //Right click will decrease/increase ceil2 height or make/erase a ceiling
 	  tx=FloorI64(tx,16)/16;
 	  ty=FloorI64(ty,16)/16;
+	  tile.i32[0]=tx;
+	  tile.i32[1]=ty;
 	  segment=GetSegmentForPos(tx,ty);
 	  edit_ins=NULL;
 	  if(segment) {
@@ -2089,7 +2109,7 @@ FALSE /*dont add undo*/);*/ //First dummy fill with I16_MAX,then fill with real 
 	      edit_ins->xoff=tx;
 	      edit_ins->type='Insert';
 	      edit_ins->yoff=ty;
-	      edit_ins->data=segment->data[-segment->xoff][ty-segment->yoff];
+	      edit_ins->data=segment->data[tx-segment->xoff][ty-segment->yoff];
 	      edit_ins->height=segment->heights[tx-segment->xoff][ty-segment->yoff];
 	      edit_ins->ceil=segment->ceil_heights[tx-segment->xoff][ty-segment->yoff];
 	      edit_ins->ceil2=segment->ceil_heights2[tx-segment->xoff][ty-segment->yoff];
@@ -2097,18 +2117,24 @@ FALSE /*dont add undo*/);*/ //First dummy fill with I16_MAX,then fill with real 
 	    if(segment->ceil_heights[tx-segment->xoff][ty-segment->yoff]==I8_MAX) {
 //Add a new ceil
 	      if(!Bt(kbd.down_bitmap,SC_SHIFT)) {
-	        WorldInsertTileAt(
-		      tx,
-		      ty,
-		      world_edit.floor_texture,
-		      1
-		      );
+	        if(!I64SetHas(world_edit.dont_modify_tiles,tile)) {
+		  I64SetAdd(world_edit.dont_modify_tiles,tile);
+		  WorldInsertTileAt(
+		        tx,
+		        ty,
+		        world_edit.floor_texture,
+		        1
+		        );
 //Set Ceil-height2
-	        WorldInsertTileAt(
-		      tx,ty,
-		      world_edit.floor_texture,
-		      2
-		      );
+		  WorldInsertTileAt(
+		        tx,ty,
+		        world_edit.floor_texture,
+		        2
+		        );
+	        } else {
+		  Free(edit_ins);
+		  edit_ins=NULL;
+		}
 	      } else {
 	        if(segment) {
 // Look For for things second
@@ -2131,22 +2157,28 @@ FALSE /*dont add undo*/);*/ //First dummy fill with I16_MAX,then fill with real 
 	      }
 	    } else { //Remove ceiling(if pressrent)
 	      if(segment->ceil_heights[tx-segment->xoff][ty-segment->yoff]!=I8_MAX) {
-	        ch2=world_edit.ceil_height2;
-	        old=world_edit.ceil_height;
-	        world_edit.ceil_height2=0;
-	        world_edit.ceil_height=I8_MAX;
-	        WorldInsertTileAt(
-		      tx,ty,
-		      world_edit.floor_texture,
-		      1
-		      );
-	        WorldInsertTileAt(
-		      tx,ty,
-		      world_edit.floor_texture,
-		      2
-		      );
-	        world_edit.ceil_height2=ch2;
-	        world_edit.ceil_height=old;
+	        if(!I64SetHas(world_edit.dont_modify_tiles,tile)) {
+		  I64SetAdd(world_edit.dont_modify_tiles,tile);
+		  ch2=world_edit.ceil_height2;
+		  old=world_edit.ceil_height;
+		  world_edit.ceil_height2=0;
+		  world_edit.ceil_height=I8_MAX;
+		  WorldInsertTileAt(
+		        tx,ty,
+		        world_edit.floor_texture,
+		        1
+		        );
+		  WorldInsertTileAt(
+		        tx,ty,
+		        world_edit.floor_texture,
+		        2
+		        );
+		  world_edit.ceil_height2=ch2;
+		  world_edit.ceil_height=old;
+	        } else {
+		  Free(edit_ins);
+		  edit_ins=NULL;
+	        }
 	      }
 	    }
 	    if(edit_ins) {
