@@ -439,7 +439,7 @@ F64 GetPlatformHeight(C3DWorld *w,I64 ix,I64 iy) {
   }
   F64 h=AsF64(CallScriptUniverse(
 	#exe{StreamPrint("%d",NameToUniverseNumber("getPlatformHeightAtX:atY:"));},
-        FrogSymbol("world")->value,
+          FrogSymbol0(#exe{StreamPrint("%d",NameToUniverseNumber("world"));})->value,
 	  FrogNumNew(ix*GRID_SZ+GRID_SZ/2),
 	  FrogNumNew(iy*GRID_SZ+GRID_SZ/2)
   ));
@@ -1008,7 +1008,7 @@ I64 ColorFloor(C3DWorld *w,I64 view_x,F64 floor_height,I64 sy,I64 ey,CDC *textur
   sy=GR_HEIGHT-sy;
   ey=ClampI64(ey,0,w->to_dc->height-w->step_width);
   sy=ClampI64(sy,0,w->to_dc->height-w->step_width);
-  if(ceil) {dir=-1;y=ey;}
+  if(ceil) {dir=-1;y=ey;}
   else dir=1,y=sy;
   for(;TRUE;y+=w->step_width*dir) {
 ent:

@@ -968,8 +968,8 @@ U0 MouseToPos(I64 ms_x,I64 ms_y,I64 *_x,I64 *_y) {
   for(height=I8_MAX;height>=I8_MIN;height--) {
     idist=(world_edit.cam_height-height)*GRID_SZ;
     width=DIST_SCALE/ToF64(idist);
-    x=FloorI64((ms_x+width/2-GR_WIDTH/2)*16/width-dispx+GR_WIDTH/2,GRID_SZ)/GRID_SZ;
-    y=FloorI64((ms_y+width/2-GR_HEIGHT/2)*16/width-dispy+GR_HEIGHT/2,GRID_SZ)/GRID_SZ;
+    x=ToF64((ms_x+width/2-GR_WIDTH/2)*16/width-dispx+GR_WIDTH/2)/GRID_SZ;
+    y=ToF64((ms_y+width/2-GR_HEIGHT/2)*16/width-dispy+GR_HEIGHT/2)/GRID_SZ;
     if(seg=GetSegmentForPos(x,y)) {
       if(seg->heights[ToI64(x)-seg->xoff][ToI64(y)-seg->yoff]==height) {
         if(_x) *_x=x*16;
