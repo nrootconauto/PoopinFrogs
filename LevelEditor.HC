@@ -33,6 +33,19 @@ class CLevelSegmentEditFill:CQue {
   I8 ceil_heights[SEGMENT_SZ][SEGMENT_SZ];
   I8 ceil_heights2[SEGMENT_SZ][SEGMENT_SZ];
 };
+//Used for 'ThingDel'/'ThingIns'
+class CLevelSegmentEditThing:CQue {
+  I64 type;
+  F64 x,y,rot;
+  I64 thing_template_idx;
+};
+//Used for 'DoorIns'/'DoorDel'
+class CLevelSegmentEditDoor:CQue {
+  I64 type;
+  I64 x,y,act_as_tile;
+  F64 ceil_rise;
+  I64 flags;
+};
 class CLevelSegment:CQue {
   CLevelSegment *top,*bottom,*left,*right;
   I64 xoff,yoff;
@@ -1205,9 +1218,10 @@ I64 DoorFlagsForm() {
   if(df.to_ceiling)  ret|=DOORF_TO_CEILING;
   return ret;
 }
-CLevelDoor *InsertDoor(I64 tx,I64 ty,Bool ask=FALSE) {
+CLevelDoor *InsertDoor(I64 tx,I64 ty,Bool ask=FALSE,Bool undo=TRUE) {
   CLevelSegment *seg=GetSegmentForPos(tx,ty);
   CLevelDoor *d;
+  CLevelSegmentEditDoor *edit_door;
   Bool old;
   if(!seg) return;
   d=seg->doors.next;
@@ -1217,8 +1231,8 @@ CLevelDoor *InsertDoor(I64 tx,I64 ty,Bool ask=FALSE) {
         return;
       else {
         QueRem(d);
-	Free(d);
-	break;
+        Free(d);
+        break;
       }
     }
     d=d->next;
@@ -1235,6 +1249,16 @@ CLevelDoor *InsertDoor(I64 tx,I64 ty,Bool ask=FALSE) {
     world_edit.flat_mode=old;
   } else
     d->ceil_rise=1;
+  if(undo) {
+    edit_door=CAlloc(sizeof(CLevelSegmentEditDoor),world_edit.mem_task);
+    edit_door->type='DoorIns';
+    edit_door->x=d->x;
+    edit_door->y=d->y;
+    edit_door->flags=d->flags;
+    edit_door->ceil_rise=d->ceil_rise;
+    edit_door->act_as_tile=d->act_as_tile;
+    QueIns(edit_door,world_edit.edits.last);
+  }
   QueIns(d,seg->doors.last);
   return d;
 } 
@@ -1485,7 +1509,7 @@ U0 LoadWorld(U8 *blob,U8 *filename) {
   cap=w->doors.len/sizeof (CFileDoor);
   while(--cap>=0) {
     world_edit.wall_texture=doors[cap].act_as_tile;
-    door=InsertDoor(doors[cap].x,doors[cap].y);
+    door=InsertDoor(doors[cap].x,doors[cap].y,,FALSE);
     door->ceil_rise=doors[cap].ceil_rise;
     door->flags=doors[cap].flags;
   }
@@ -1656,15 +1680,71 @@ Bool IsUndoNecescary(CLevelSegmentEditIns *ins) {
 }
 U0 WorldEditUndo() {
   CLevelSegmentEditFill *ff,*ff2;
+  CLevelSegmentEditThing *thing;
   CLevelSegmentEditIns *ins,*ins2;
+  CLevelThing *new_thing;
   CLevelSegment *seg;
+  CLevelSegmentEditDoor *door;
+  CLevelDoor *new_door;
   I64 x,y,cnt;
   if(!(cnt=QueCnt(&world_edit.edits)))
     return;
   ff=world_edit.edits.last;
   ins=ff;
   QueRem(ff);
-  if(ins->type=='Insert') {
+  if(ins->type=='DoorIns') {
+    door=ins;
+    if(seg=GetSegmentForPos(door->x,door->y)) {
+      for(new_door=seg->doors.next;new_door!=&seg->doors;new_door=new_door->next) {
+	if(new_door->x==door->x&&
+	  new_door->y==door->y) {
+	  QueRem(new_door);
+	  Free(new_door);
+	  break;
+        }
+      }
+    }
+  } else if(ins->type=='DoorDel') {
+    door=ins;
+    if(seg=GetSegmentForPos(door->x,door->y)) {
+      for(new_door=seg->doors.next;new_door!=&seg->doors;new_door=new_door->next) {
+	if(new_door->x==door->x&&
+	  new_door->y==door->y) {
+	  QueRem(new_door);
+	  Free(new_door);
+	  break;
+        }
+      }
+    }
+    new_door=InsertDoor(door->x,door->y,FALSE,FALSE);
+    new_door->act_as_tile=door->act_as_tile;
+    new_door->flags=door->flags;
+    new_door->ceil_rise=door->ceil_rise;
+  } else if(ins->type=='ThingIns') {
+    thing=ins;
+    if(seg=GetSegmentForPos(Floor(thing->x),Floor(thing->y))) {
+      for(new_thing=seg->things.next;new_thing!=&seg->things;new_thing=new_thing->next) {
+	if(new_thing->x==thing->x&&
+	  new_thing->y==thing->y&&
+	  new_thing->rot==thing->rot&&
+	  new_thing->thing_template_idx==thing->thing_template_idx) {
+	  QueRem(new_thing);
+	  Free(new_thing);
+	  break;
+        }
+      }
+    }
+  } else if(ins->type=='ThingDel') {
+    thing=ins;
+    if(seg=GetSegmentForPos(Floor(thing->x),Floor(thing->y))) {
+      new_thing=CAlloc(sizeof(CLevelThing),world_edit.mem_task);
+      new_thing->x=thing->x;
+      new_thing->y=thing->y;
+      new_thing->rot=thing->rot;
+      new_thing->thing_template_idx=thing->thing_template_idx;
+      QueIns(new_thing,seg->things.last);
+    }
+  } else if(ins->type=='Insert') {
     seg=GetSegmentForPos(ins->xoff,ins->yoff);
     if(seg) {
       x=ins->xoff-seg->xoff;
@@ -1714,10 +1794,12 @@ U0 WorldEdit(U8 *blob,U8 *filename=NULL) {
   I64 ch2,old;
   I64 idx;
   I64 last_wheel=ms.pos.z;
+  CLevelSegmentEditDoor *edit_door;
   CLevelTexture *texture;
   CLevelSegment *segment;
   CLevelThingTemplate *thingt;
   CLevelThing *thing;
+  CLevelSegmentEditThing *edit_thing;
   CLevelSegmentEditIns *edit_ins;
   CLevelDoor *door;
   U8 *str;
@@ -1746,7 +1828,6 @@ U0 WorldEdit(U8 *blob,U8 *filename=NULL) {
   while(continue) {
     if(texture=world_edit.edit_texture) {
       world_edit.ms_right_down=FALSE;
-PrintI("t",texture);
       switch(idx=WallCeilFloor) {
         case 2:
 	  EditDC(blob,texture->ceil_blob_name,128,128);
@@ -1896,6 +1977,14 @@ save:
         door=segment->doors.next;
         while(door!=&segment->doors) {
 	  if(door->x==tx&&door->y==ty) {
+	    edit_door=CAlloc(sizeof(CLevelSegmentEditDoor),world_edit.mem_task);
+	    edit_door->type='DoorDel';
+	    edit_door->x=door->x;
+	    edit_door->y=door->y;
+	    edit_door->flags=door->flags;
+	    edit_door->ceil_rise=door->ceil_rise;
+	    edit_door->act_as_tile=door->act_as_tile;
+	    QueIns(edit_door,world_edit.edits.last);
 	    QueRem(door);
 	    Free(door);
 	    goto door_pass;
@@ -1903,7 +1992,7 @@ save:
 	  door=door->next;
         }
       }
-      InsertDoor(tx,ty,TRUE);
+      InsertDoor(tx,ty,TRUE,TRUE);
 door_pass:;
     } else if(Bt(kbd.down_bitmap,Char2ScanCode('f'))){
       if(Bt(kbd.down_bitmap,SC_SHIFT)) {
@@ -1946,6 +2035,13 @@ FALSE /*dont add undo*/);*/ //First dummy fill with I16_MAX,then fill with real 
 	      thing->x=ToF64(tx)/GRID_SZ;
 	      thing->y=ToF64(ty)/GRID_SZ;
 	      thing->thing_template_idx=thingt->idx;
+	      edit_thing=CAlloc(sizeof(CLevelSegmentEditThing),world_edit.mem_task);
+	      edit_thing->type='ThingIns';
+	      edit_thing->x=thing->x;
+	      edit_thing->y=thing->y;
+	      edit_thing->rot=thing->rot;
+	      edit_thing->thing_template_idx=thing->thing_template_idx;
+	      QueIns(edit_thing,world_edit.edits.last);
 	      QueIns(thing,&segment->things);
 	    }
 	  } else  {
@@ -2015,18 +2111,17 @@ FALSE /*dont add undo*/);*/ //First dummy fill with I16_MAX,then fill with real 
 		      );
 	      } else {
 	        if(segment) {
-//Look for doors first
-		  for(door=segment->doors.next;door!=&segment->doors;door=door->next) {
-		    if(door->x==tx&&door->y==ty) {
-		      QueRem(door);
-		      Free(door);
-		      goto next;
-		    }
-		  }
 // Look For for things second
 		  for(thing=segment->things.next;thing!=&segment->things;thing=thing->next) {
-		    if(ToI64(thing->x)-1<=tx<ToI64(thing->x)+1)
-		      if(ToI64(thing->y)-1<=ty<ToI64(thing->y)+1) {
+		    if(ToI64(thing->x)-1.5<=tx<ToI64(thing->x)+1.5)
+		      if(ToI64(thing->y)-1.5<=ty<ToI64(thing->y)+1.5) {
+		        edit_thing=CAlloc(sizeof(CLevelSegmentEditThing),world_edit.mem_task);
+		        edit_thing->type='ThingDel';
+		        edit_thing->x=thing->x;
+		        edit_thing->y=thing->y;
+		        edit_thing->rot=thing->rot;
+		        edit_thing->thing_template_idx=thing->thing_template_idx;
+		        QueIns(edit_thing,world_edit.edits.last);
 		        QueRem(thing);
 		        Free(thing);
 		        goto next;
