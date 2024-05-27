@@ -760,6 +760,25 @@ fin:
   w->x=old_x,w->y=old_y;
   return hit_wall;
 }
+Bool AdjustRadiusThing(C3DWorld *w,C3DThing *self,C3DThing *other,F64 angle) {
+  F64 sr=THING_RADIUS;
+  F64 or=THING_RADIUS;
+  F64 dist,push_back;
+  I64 attempt=0;
+  Bool ret=FALSE;
+again:
+  dist=Sqrt(Sqr(other->x-self->x)+Sqr(other->y-self->y));
+  if(dist<or+sr) {
+    push_back=(sr+or-dist)*.1*1.4;
+    C3DWorldMoveWithCollision(w,angle+pi,push_back,
+	&self->x,
+	&self->y,
+	TRUE, //Slide along wall
+	self->z);
+    if(++attempt<15) goto again;
+  }
+  return ret;
+}
 U0 PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm) {
   I64 wx=t->x/GRID_SZ,wy=t->y/GRID_SZ;
   if(!(0<=wx<w->world_width))
@@ -770,10 +789,12 @@ U0 PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm) {
   I64 tile=wx+wy*w->world_width;
   I64 floor=w->heightmap[tile];
   I64 ceil=w->ceilmap[tile];
-  I64 raise=w->ceilmap2[tile];
+  I64 raise=w->ceilmap2[tile],idx;
+  Bool i_am_moving=FALSE;
   CRocket *rocket=NULL;
   CFrogArray *in_radius;
   CDoor *to_open;
+  CI64Set *set;
   if(ThingHasClass(t,"CRocket"))
     rocket=t;
   CallScript("removeFromGrid:",wm,FrogIncRefCnt(t));
@@ -789,11 +810,13 @@ U0 PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm) {
     if(Abs(t->momx)<2) t->momx=0;
     if(Abs(t->momy)<2) t->momy=0;
     angle=Arg(t->momx+t->momx2,t->momy+t->momy2);
+    i_am_moving=TRUE;
     if(C3DWorldMoveWithCollision(w,angle,Sqrt(Sqr(t->momx+t->momx2)+Sqr(t->momy+t->momy2)),
 	&t->x,
 	&t->y,
 	TRUE,
 	t->z)) {
+	
 hit:
       if(rocket) {
 explode:
@@ -815,6 +838,15 @@ explode:
     if(!(0.<=t->y<w->world_height*128))
       goto explode;
     CallScript("checkExplode",rocket);
+  }
+//Only check for thing collision if we are the ones movin
+  if(i_am_moving&&!rocket) {
+    in_radius=CallScript("getObstaclesInRadiusForThing:inRadius:",wm,t,FrogNumNew(2*THING_RADIUS));
+    set=in_radius->items;
+    for(idx=0;idx!=set->cnt;idx++) {
+      if(set->body[idx]!=t)
+        AdjustRadiusThing(w,t,set->body[idx],angle);
+    }  
   }
   CallScript("updateThingPos:",wm,FrogIncRefCnt(t));
 }

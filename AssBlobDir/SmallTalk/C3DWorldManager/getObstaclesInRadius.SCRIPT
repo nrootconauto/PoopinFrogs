@@ -1,0 +1,14 @@
+getObstaclesInRadiusForThing: t=C3DThing inRadius: r=CFrogNum
+  ->CFrogArray 
+|
+  ret=CFrogArray
+|
+  ret _ #() .
+  (self getThingsInRadiusFromX: t->x fromY: t->y withRadius: r) do: [:canidate=C3DThing|
+    canidate->health > 0 ifTrue: [
+      (canidate hasClass: CPickup)ifFalse: [
+         ret add: canidate
+      ].
+    ] .
+  ] .
+  ^ ret
