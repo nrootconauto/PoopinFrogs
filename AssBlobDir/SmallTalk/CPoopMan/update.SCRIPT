@@ -37,7 +37,8 @@ update->* |
     hit_wall ifTrue: [
       (just_jumped not and: self isOnGround ) ifTrue: [
         'Try to jump over wall if low enough' .
-        ((w tileHeightAtX: (x + (128 * angle cos ))/ 128 atY: (y + (128 * angle sin))/ 128 ) - z ) <= 2.1 ifTrue: [
+        (((w tileHeightAtX: (x + (64 * angle cos ))/ 128 atY: (y + (64 * angle sin )) / 128 ) - z ) <= 2.1 and:
+          random_generator next < .5 ) ifTrue: [
           momz _ .75 .
           x _ old_x .
           y _ old_y .
@@ -46,7 +47,7 @@ update->* |
           ^ 1 
         ] ifFalse: [
           self isOnGround ifTrue: [
-            angle _ angle + (6.24 * random_generator next ) .
+            angle _ angle + (.25 * (random_generator next - .5 ) + 3.14 ) .
           ]
         ] .
       ]
@@ -57,6 +58,15 @@ update->* |
 
     (target hasClass: C3DThing) ifFalse: [
       target _w getPlayer .
+    ] .
+
+    (random_generator next < ( .2 / 10 )) ifTrue: [
+      'Cahnge direction' .
+      random_generator next > .3 ifTrue: [
+        angle _ (target->x - x  arg: target->y - y ) + ((random_generator next - .5) / 4 ) .
+      ] ifFalse: [
+        angle _ angle + ((random_generator next - .5 ) / 4 ) 
+      ].
     ] .
 
     (random_generator next < ( .3 / 10 ) and: (self canSeeThing: target)) ifTrue: [

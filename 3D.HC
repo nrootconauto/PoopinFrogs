@@ -1427,6 +1427,8 @@ ent:
         goto ceil2;
       y=GR_HEIGHT/2;
       y0=GR_HEIGHT/2-h*(height_cap-w->cam_height);
+      if(floor_y<y0)
+        goto ceil2;
       for(idx3=0;idx3<AbsI64(height_cap-adj_height);idx3++) {
 //.u8[0] is floor tile
         DrawWallSegment(w,segment,x,y0+h*idx3,w->wall_textures[w->world_mat[idx].u8[0]],h,dist,height_cap-1-idx3,idx,side);

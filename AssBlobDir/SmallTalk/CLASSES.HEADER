@@ -399,7 +399,7 @@ class CDoor:CFrogThing {
   F64 speed;
   F64 open_duration;
   I64 x,y,act_as_wall;
-  Bool activated;
+  Bool activated;
   Bool side_door,small_key,big_key,rise_to_ceiling;
 };
 
