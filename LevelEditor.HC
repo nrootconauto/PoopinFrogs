@@ -1,15 +1,14 @@
 /*
 THIS IS A WIP FILE!!!
 */
-
 #include "AnimDC.HC"
 #include "BlobFile.HC"
 #include "SmallTalk/Set.HC";
+extern U0 SexyCeiling(I64 x,I64 y);
 F64 Lerp(F64 per,F64 min,F64 max) {
   F64 t;
   return Clamp(min+(max-min)*per,Min(min,max),Max(max,min));
 }
-
 #define GRID_SZ 16
 #define DIST_SCALE (GRID_SZ*GR_WIDTH)
 
@@ -953,15 +952,19 @@ U0 DrawTileSexy(CDC *dc,I64 dispx,I64 dispy,F64 height,CDC *top,CDC *side,I64 tx
   }
   if(highlight) {
     if(Blink)
-      dc->color=(TRANSPARENT<<16)|LTCYAN|ROPF_DITHER;
+      dc->color=(TRANSPARENT<<16)|LTCYAN|ROPF_DITHER;
     else
       dc->color=(TRANSPARENT<<16)|LTRED|ROPF_DITHER;
     GrRect(dc,sx,sy,ex-sx+2,ey-sy+2);
   }
   if(side)
     for(xoff=-1;xoff<2;xoff++)
-      for(yoff=-1;yoff<2;yoff++)
-        DrawWall(dc,side,dispx,dispy,tx,ty,xoff,yoff,side,height);
+      for(yoff=-1;yoff<2;yoff++) {
+	if(ceil_height2!=INVALID_PTR)
+          DrawWall(dc,side,dispx,dispy,tx,ty,xoff,yoff,side,height,ceil_height2);
+	else
+          DrawWall(dc,side,dispx,dispy,tx,ty,xoff,yoff,side,height);
+      }
 }
 U0 DrawTileDumb(CDC *dc,I64 dispx,I64 dispy,CDC *top,I64 tx,I64 ty) {
   GrBlot(dc,tx*GRID_SZ+dispx,ty*GRID_SZ+dispy,top);
@@ -1452,6 +1455,31 @@ I64 WorldGetTileAt(I64 x,I64 y) {
   y-=seg->yoff;
   return seg->data[x][y];
 }
+I64 WorldGetCeilAt(I64 x,I64 y) {
+  CLevelSegment *seg=GetSegmentForPos(x,y);
+  if(!seg)
+    return I8_MAX;
+  x-=seg->xoff;
+  y-=seg->yoff;
+  return seg->ceil_heights[x][y];
+}
+I64 WorldGetHeightAt(I64 x,I64 y) {
+  CLevelSegment *seg=GetSegmentForPos(x,y);
+  if(!seg)
+    return I8_MAX;
+  x-=seg->xoff;
+  y-=seg->yoff;
+  return seg->heights[x][y];
+}
+I64 WorldGetCeilRiseAt(I64 x,I64 y) {
+  CLevelSegment *seg=GetSegmentForPos(x,y);
+  if(!seg)
+    return 0;
+  x-=seg->xoff;
+  y-=seg->yoff;
+  return seg->ceil_heights2[x][y];
+}
+
 U0 LoadWorld(U8 *blob,U8 *filename) {
   U8 *str;
   U8 *textures;
@@ -1981,7 +2009,12 @@ save:
     }
     world_edit.at_x=world_edit.base_x+world_edit.ms_x;
     world_edit.at_y=world_edit.base_y+world_edit.ms_y;
-    if(Bt(kbd.down_bitmap,Char2ScanCode('d'))) {
+    if(Bt(kbd.down_bitmap,Char2ScanCode('s'))) {
+      MouseToPos(world_edit.ms_x,world_edit.ms_y,&tx,&ty);
+      tx=FloorI64(tx,GRID_SZ)/16;
+      ty=FloorI64(ty,GRID_SZ)/16;
+      SexyCeiling(tx,ty);
+    } else if(Bt(kbd.down_bitmap,Char2ScanCode('d'))) {
       MouseToPos(world_edit.ms_x,world_edit.ms_y,&tx,&ty);
       tx=FloorI64(tx,GRID_SZ)/16;
       ty=FloorI64(ty,GRID_SZ)/16;
@@ -2016,21 +2049,13 @@ door_pass:;
 	    MouseToPos(world_edit.ms_x,world_edit.ms_y,&tx,&ty);
 	    tx=FloorI64(tx,GRID_SZ)/16;
 	    ty=FloorI64(ty,GRID_SZ)/16;
-
-	    /*	    FloodFillFloor(tx,
-ty,
--1,
-,
-world_edit.floor_height,
-,
-FALSE /*dont add undo*/);*/ //First dummy fill with I16_MAX,then fill with real value
 	    FloodFillFloor(tx,
 		  ty,
 		  world_edit.wall_texture,
 		  ,
 		  world_edit.floor_height,
 		  ,
-		  TRUE); //First dummy fill with I16_MAX,then fill with real value
+		  TRUE);
 	    floor_fill=FALSE;
 	  }
       }
@@ -2197,5 +2222,135 @@ next:;
   FreeEditorData;
   SettingsPop;
 }
+
+//
+// Part for making sexy ceilings
+//
+Bool IsPerimeterCeil(I64 x,I64 y) {
+  I64 xoff,yoff;
+  for(xoff=-1;xoff<2;xoff++) 
+    for(yoff=-1;yoff<2;yoff++)
+      if(xoff^^yoff)
+        if(I8_MAX==WorldGetCeilAt(x+xoff,y+yoff))
+	  return TRUE;
+  return FALSE;
+}
+U0 SexyCeiling(I64 x,I64 y) {
+  I64 old=world_edit.flat_mode;
+  world_edit.flat_mode=1;
+  I64 rise_by=PopUpRangeI64(0,10,,"Steepness of the Ceiling.\n","Pick 0 for flat ceiling\n");
+  CI64Set *ceil_tiles=I64SetNew;
+  CI64Set *working_set=I64SetNew,*working_set2=I64SetNew;
+  CI64Set *done=I64SetNew,*affected_segments=I64SetNew;
+  CLevelSegment *seg;
+  CLevelSegmentEditFill *edit_ff;
+  I64 tile,idx2,tile2;
+  I64 xoff,yoff,idx,lowest,h;
+  F64 ts=tS;
+  tile.i32[0]=x;
+  tile.i32[1]=y;
+  I64SetAdd(working_set,tile);
+  I64SetAdd(ceil_tiles,tile);
+  h=WorldGetCeilAt(x,y);
+  lowest=h+WorldGetCeilRiseAt(x,y);
+  while(working_set->cnt>0) {
+    tile=working_set->body[--working_set->cnt];
+    for(xoff=-1;xoff<2;xoff++)
+      for(yoff=-1;yoff<2;yoff++) {
+        tile2.i32[0]=tile.i32[0]+xoff;
+        tile2.i32[1]=tile.i32[1]+yoff;
+        idx=WorldGetCeilAt(tile2.i32[0],tile2.i32[1]);
+        idx2=WorldGetCeilRiseAt(tile2.i32[0],tile2.i32[1]);
+        if(idx!=I8_MAX&&
+	  idx<=h){
+	  if(!I64SetHas(ceil_tiles,tile2)) {
+	    I64SetAdd(working_set,tile2);
+	    I64SetAdd(ceil_tiles,tile2);
+	    seg=GetSegmentForPos(tile2.i32[0],tile2.i32[1]);
+	    if(!I64SetHas(affected_segments,seg))
+              I64SetAdd(affected_segments,seg);
+	    lowest=MinI64(lowest,idx+idx2);
+	  }
+        }
+      }
+  }
+//Make an undo action for the poo poo sauce
+  for(idx=0;idx!=affected_segments->cnt;idx++) {
+    seg=affected_segments->body[idx];
+    edit_ff=CAlloc(sizeof(CLevelSegmentEditFill));
+    edit_ff->tS=ts;
+    edit_ff->xoff=seg->xoff;
+    edit_ff->yoff=seg->yoff;
+    edit_ff->type='FldFill';
+    MemCpy(edit_ff->data,seg->data,2*SEGMENT_SZ*SEGMENT_SZ);
+    MemCpy(edit_ff->heights,seg->heights,SEGMENT_SZ*SEGMENT_SZ);
+    MemCpy(edit_ff->ceil_heights,seg->ceil_heights,SEGMENT_SZ*SEGMENT_SZ);
+    MemCpy(edit_ff->ceil_heights2,seg->ceil_heights2,SEGMENT_SZ*SEGMENT_SZ);
+    QueIns(edit_ff,world_edit.edits.last);
+  }
+//Start with permimeter tiles 
+  working_set->cnt=0;
+  for(idx=0;idx!=ceil_tiles->cnt;idx++) {
+    tile=ceil_tiles->body[idx];
+    x=tile.i32[0];
+    y=tile.i32[1];    
+    if(IsPerimeterCeil(x,y))  {
+      I64SetAdd(working_set,tile);
+      I64SetAdd(done,tile);
+    }
+    seg=GetSegmentForPos(x,y);
+    x-=seg->xoff;
+    y-=seg->yoff;
+    seg->ceil_heights2[x][y]=lowest-seg->ceil_heights[x][y];
+  }
+//Go away from perimeter(center?)
+  while(working_set->cnt) {
+    working_set2->cnt=0;
+    for(idx=0;idx!=working_set->cnt;idx++)
+      I64SetAdd(done,working_set->body[idx]);
+    for(idx=0;idx!=working_set->cnt;idx++) {
+      tile=working_set->body[idx];
+      lowest=I8_MAX;
+//Pick lowest+1 of done adjacent tiles
+      for(xoff=-1;xoff<2;xoff++)
+        for(yoff=-1;yoff<2;yoff++) {
+	  if(xoff^^yoff) {
+	    tile=working_set->body[idx];
+	    tile.i32[0]+=xoff;
+	    tile.i32[1]+=yoff;
+	    if(I64SetHas(done,tile)) {
+	      if(I64SetHas(ceil_tiles,tile)) {
+	        h=WorldGetCeilRiseAt(tile.i32[0],tile.i32[1])+WorldGetCeilAt(tile.i32[0],tile.i32[1]);
+	        lowest=MinI64(lowest,h);
+	      }
+	    } else if(I64SetHas(ceil_tiles,tile)&&!I64SetHas(working_set2,tile))
+	      I64SetAdd(working_set2,tile);
+	  }
+        }
+      tile=working_set->body[idx];
+      if(lowest!=I8_MAX&&!IsPerimeterCeil(tile.i32[0],tile.i32[1])) {
+        x=tile.i32[0];
+        y=tile.i32[1];
+        seg=GetSegmentForPos(x,y);
+        h=seg->ceil_heights[x-seg->xoff][y-seg->yoff];
+        if(!rise_by) {
+//Prevent "empty" ceilings
+          seg->ceil_heights2[x-seg->xoff][y-seg->yoff]=lowest+1-h;
+	} else if(lowest+rise_by>h)
+	  seg->ceil_heights2[x-seg->xoff][y-seg->yoff]=lowest+rise_by-h;
+      }
+    }
+    working_set->cnt=0;
+    for(idx=0;idx!=working_set2->cnt;idx++)
+      I64SetAdd(working_set,working_set2->body[idx]);
+  }
+
+  I64SetDel(ceil_tiles);
+  I64SetDel(working_set);
+  I64SetDel(working_set2);
+  I64SetDel(affected_segments);
+  I64SetDel(done);
+  world_edit.flat_mode=old;
+}
+
 WorldEdit("ASS");
- 

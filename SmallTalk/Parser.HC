@@ -448,6 +448,9 @@ CMethod *ParseMethod(CLexer *l,CHashClass *cls=NULL) {
   CMethod *m=CAlloc(sizeof CMethod);
   CAST *name,*head;
   CAST *ast;
+  CHashTable *old=Fs->hash_table;
+  Fs->hash_table=HashTableNew(0x100);
+  Fs->hash_table->next=old;
   CMemberLst *mlst;
   CHashClass *ocls=cls;
   I64 idx;
@@ -455,116 +458,123 @@ CMethod *ParseMethod(CLexer *l,CHashClass *cls=NULL) {
   QueInit(&m->args);
   QueInit(&m->body);
   QueInit(&m->temps);
-  while(cls) {
-    if(!StrCmp(cls->str,"CFrogThing"))
-      break;
-    for(mlst=cls->member_lst_and_root;mlst;mlst=mlst->next) {
-      if(IsSmalltalkMember(mlst->member_class))
-        AddToScope(mlst->str);
+  try {
+    while(cls) {
+      if(!StrCmp(cls->str,"CFrogThing"))
+        break;
+      for(mlst=cls->member_lst_and_root;mlst;mlst=mlst->next) {
+        if(IsSmalltalkMember(mlst->member_class))
+	  AddToScope(mlst->str);
+      }
+      cls=cls->base_class;
     }
-    cls=cls->base_class;
-  }
-  while(TRUE) {
-    if(l->tok=='|') {
-      break;
-    }
+    while(TRUE) {
+      if(l->tok=='|') {
+        break;
+      }
 check:
-    if(l->tok=='->') {
-      found_ret_class=TRUE;
-      Lex(l);
-      if(l->tok!=TOK_NAME&&l->tok!='*')
-	LexExcept(l,"Expected a return type");
-      if(l->tok==TOK_NAME)
-	StrCpy(m->return_class,l->str);
-      if(Lex(l)!='|')
-	LexExcept(l,"Expected a '|'!");
-      break;
-    }
-    if(l->tok=='->*') {
-      found_ret_class=TRUE;
-      if(Lex(l)!='|')
-	LexExcept(l,"Expected a '|'!");
-      break;
-    }
-    if(l->tok==TOK_NAME) {
-      CatPrint(m->name,"%s",l->str);
-
-      if(Lex(l)==':') {
-        CatPrint(m->name,":"); 
-        m->arity++;
-	Lex(l);
-	name=ParseVarWithType(l,TRUE);
-	if(!name) LexExcept(l,"Expected a name here");
-        AddToScope(name->name);
-        QueIns(name,m->args.last);
-      } else if(m->arity>1) {
-        LexExcept(l,"I expected a ':' asswipe.");
-      } else {// is unop
-	if(l->tok=='->'||l->tok=='->*')
-	  goto check;
-        if(l->tok!='|') 
-	  LexExcept(l,"This is an unop fucktard");
-        else
-	  break;
-      }
-    } else {
-      for(idx=0;l->tok.u8[idx];idx++) {
-        CatPrint(m->name,"%c",l->tok.u8[idx]);
-        if(!IsOperatorChr(l->tok.u8[idx])) 
-	  LexExcept(l,"Expected a operator/method name here poo poo brain.");
-      }
-      if(Lex(l)==TOK_NAME) {
-        name=CAlloc(sizeof CAST);
-        StrCpy(name->name,l->str);
-        AddToScope(name->name);
-        QueIns(name,m->args.last);
-        m->arity++;
-	if(l->tok=='->'||l->tok=='->*')
-	  goto check;
+      if(l->tok=='->') {
+        found_ret_class=TRUE;
+        Lex(l);
+        if(l->tok!=TOK_NAME&&l->tok!='*')
+	  LexExcept(l,"Expected a return type");
+        if(l->tok==TOK_NAME)
+	  StrCpy(m->return_class,l->str);
         if(Lex(l)!='|')
-	  LexExcept(l,"Expected a fuckin '|'.");
+	  LexExcept(l,"Expected a '|'!");
+        break;
+      }
+      if(l->tok=='->*') {
+        found_ret_class=TRUE;
+        if(Lex(l)!='|')
+	  LexExcept(l,"Expected a '|'!");
+        break;
+      }
+      if(l->tok==TOK_NAME) {
+        CatPrint(m->name,"%s",l->str);
+
+        if(Lex(l)==':') {
+	  CatPrint(m->name,":"); 
+	  m->arity++;
+	  Lex(l);
+	  name=ParseVarWithType(l,TRUE);
+	  if(!name) LexExcept(l,"Expected a name here");
+	  AddToScope(name->name);
+	  QueIns(name,m->args.last);
+        } else if(m->arity>1) {
+	  LexExcept(l,"I expected a ':' asswipe.");
+        } else {// is unop
+	  if(l->tok=='->'||l->tok=='->*')
+	    goto check;
+	  if(l->tok!='|') 
+	    LexExcept(l,"This is an unop fucktard");
+	  else
+	    break;
+        }
+      } else {
+        for(idx=0;l->tok.u8[idx];idx++) {
+	  CatPrint(m->name,"%c",l->tok.u8[idx]);
+	  if(!IsOperatorChr(l->tok.u8[idx])) 
+	    LexExcept(l,"Expected a operator/method name here poo poo brain.");
+        }
+        if(Lex(l)==TOK_NAME) {
+	  name=CAlloc(sizeof CAST);
+	  StrCpy(name->name,l->str);
+	  AddToScope(name->name);
+	  QueIns(name,m->args.last);
+	  m->arity++;
+	  if(l->tok=='->'||l->tok=='->*')
+	    goto check;
+	  if(Lex(l)!='|')
+	    LexExcept(l,"Expected a fuckin '|'.");
+	  break;
+        } else
+	  LexExcept(l,"I fuckin need uh argument name asshole.");
+      }
+    }
+    if(!found_ret_class) LexWarn(l,"Untyped return class!");
+    Lex(l);
+    while(TRUE) {
+      if(l->tok==TOK_NAME) {
+        name=ParseVarWithType(l,TRUE);
+        AddToScope(name->name);
+        QueIns(name,m->temps.last);
+      } else if(l->tok=='|') {
+        Lex(l);
         break;
       } else
-        LexExcept(l,"I fuckin need uh argument name asshole.");
+        LexExcept(l,"Go stupid and give me a fucking temporary name.");
     }
-  }
-  if(!found_ret_class) LexWarn(l,"Untyped return class!");
-  Lex(l);
-  while(TRUE) {
-    if(l->tok==TOK_NAME) {
-      name=ParseVarWithType(l,TRUE);
-      AddToScope(name->name);
-      QueIns(name,m->temps.last);
-    } else if(l->tok=='|') {
-      Lex(l);
-      break;
-    } else
-      LexExcept(l,"Go stupid and give me a fucking temporary name.");
-  }
 
-  while(l->tok) {
-    if(ast=ParseAst(l)) {
-      QueIns(ast,m->body.last);
-      while(l->tok=='.')
-        Lex(l);
-    } else
-      LexExcept(l,"Expected a fuckin statement.");
-  }
-  head=&m->args;
-  for(name=head->next;name!=head;name=name->next)
-    RemFromScope(name->name);
-  head=&m->temps;
-  for(name=head->next;name!=head;name=name->next)
-    RemFromScope(name->name);
+    while(l->tok) {
+      if(ast=ParseAst(l)) {
+        QueIns(ast,m->body.last);
+        while(l->tok=='.')
+	  Lex(l);
+      } else
+        LexExcept(l,"Expected a fuckin statement.");
+    }
+    head=&m->args;
+    for(name=head->next;name!=head;name=name->next)
+      RemFromScope(name->name);
+    head=&m->temps;
+    for(name=head->next;name!=head;name=name->next)
+      RemFromScope(name->name);
 
-  cls=ocls;
-  while(cls) {
-    if(!StrCmp(cls->str,"CFrogThing"))
-      break;
-    for(mlst=cls->member_lst_and_root;mlst;mlst=mlst->next)
-      if(IsSmalltalkMember(mlst->member_class))
-        RemFromScope(mlst->str);
-    cls=cls->base_class;
+    cls=ocls;
+    while(cls) {
+      if(!StrCmp(cls->str,"CFrogThing"))
+        break;
+      for(mlst=cls->member_lst_and_root;mlst;mlst=mlst->next)
+        if(IsSmalltalkMember(mlst->member_class))
+	  RemFromScope(mlst->str);
+      cls=cls->base_class;
+    }
+    HashTableDel(Fs->hash_table);
+    Fs->hash_table=old;
+  } catch  {
+    HashTableDel(Fs->hash_table);
+    Fs->hash_table=old;
   }
   return m;
 }

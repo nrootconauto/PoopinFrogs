@@ -166,6 +166,7 @@ Bool STStudioRegisterNewClasses(U8 *blob_file) {
       }
     }
   } catch {
+    Fs->catch_except=TRUE;
   }
   Fs->hash_table=new->next;
   Free(new_header);
@@ -211,7 +212,7 @@ U0 STValidateCode(U8 *blob_file="../ASS",U8 *code,U8 *path,Bool script=FALSE) {
     DocPrint(new,"\n\n$$BT+CX,\"Ok\",LE=1$$\n\n");
     Fs->catch_except=TRUE;
 
-  };
+  }
   Fs->put_doc=pd;
   PopUpMenu(new);
   DocDel(new);
