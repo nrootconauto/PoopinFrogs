@@ -721,7 +721,7 @@ Bool C3DWorldMoveZWithCollision(C3DWorld *w,F64 dist,F64 x,F64 y,F64 *_height,F6
   return hit;
 }
 //Returns true on wall hit
-Bool C3DWorldMoveWithCollision(C3DWorld *w,F64 angle,F64 dist,F64 *x,F64 *y,Bool walk_along_wall=TRUE,I64 height=0) {
+Bool C3DWorldMoveWithCollision(C3DWorld *w,F64 angle,F64 dist,F64 *x,F64 *y,Bool walk_along_wall=TRUE,F64 height=0) {
   F64 dist2=0,boundary;
   Bool hit_wall=FALSE,force;
   F64 old_x=w->x,old_y=w->y,deflect_angle;
