@@ -446,7 +446,7 @@ Bool IsAllF64(CAST *ast) {
     if(!IsAllF64(cur)) return FALSE;
     cur=cur->next;
   }
-  return TRUE;
+  return TRUE;
 }
 Bool IsF64ExprNode(CLocals *l,CAST *ast) {
   U8 *cn;

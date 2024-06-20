@@ -1,0 +1,6 @@
+do: block=CFrogBlock ->* | idx=CFrogNum sz=CFrogNum copy=CFrogArray|
+  sz _ self size .
+  copy _ self copy .
+  'Make a copy to avoid items disappearing in loop' .
+  idx _ 0 .
+  [ idx < sz ] whileTrue: [idx _ idx + 1 . block value: (copy at: idx - 1 )] .

@@ -1,0 +1,92 @@
+update ->*
+|
+  dist=CFrogNum
+  w=C3DWorld
+  r=CFrogNum
+  now=CFrogNum
+  rocket=CRocket
+|
+  w _ #world .
+  now _ CFrogTime now asSeconds.
+
+  state show .
+
+  health <= 0 ifTrue: [
+    state = 'Dead' ifTrue: [
+      ^ 0
+    ].
+    animation_start_tS _ CFrogTime now asSeconds .
+    animation_no_repeat _ 1 .
+    template _ w getThingTemplate: 'CCyberPoop/Dead'.
+    state _ 'Dead' .
+    ^ 0 
+  ] .
+
+  state = 'PrepareFire' ifTrue: [
+    now > (state_start_tS + 1.) ifTrue: [
+      state _ 'Fire' .
+      animation_no_repeat _ 0 .
+      animation_start_tS _ now .
+      template _ w getThingTemplate: 'CCyberPoop/Fire'.
+      state_start_tS _ now .
+    ] ifFalse: [
+      ^ 1
+    ].
+  ].
+
+  state = 'Fire' ifTrue: [
+    now > state_start_tS + .5 ifTrue: [
+      state_start_tS _ now .
+      angle _ (target->x - x) arg: (target->y - y) .
+      dist _ ((target->x - x) squared + (target->y - y) squared) sqrt .
+      -1 to: 2 do: [:o=CFrogNum | 
+        rocket _ CRocket new .
+        rocket->from _ self .
+        rocket->x _ x .
+        rocket->y _ y .
+        rocket->z _ z + .5 .
+        rocket->angle _ angle + (o * 3.13 / 3) .
+        rocket->momx _ 10 * rocket->angle cos .
+        rocket->momy _ 10 * rocket->angle sin .
+        rocket->momz _ (target->z - rocket->z ) / dist / 10 . 
+      ] .
+      r _ random_generator next .  
+      ((self canSeeThing: target) and: (r > .333))  ifTrue: [
+        state _ 'Fire' . 
+        ^ 1 .
+      ] ifFalse: [
+        state _ 'Chase' . 
+      ] .
+    ] ifFalse: [
+      ^ 1 .
+    ] .
+  ].
+
+  animation_no_repeat _ 0 .
+  template _ w getThingTemplate: 'CCyberPoop'.
+
+  (target hasClass: C3DThing) ifFalse: [
+    target _ w getPlayer .
+  ] .
+  (state = 'Wait' and: target->health > 0) ifTrue: [
+    (self canSeeThing: target) ifTrue: [
+      state  _ 'Chase' .
+    ] .
+  ] .
+
+  (target->health <= 0.) ifTrue: [
+    state _ 'Wait'.
+  ] .
+
+
+  r _ random_generator next .  
+  state = 'Chase' ifTrue: [
+    r < (1 / 3.4 / 10 ) ifTrue: [
+     r show .
+      state _ 'PrepareFire' .
+      template _ w getThingTemplate: 'CCyberPoop/Fire'.
+      state_start_tS _ now .
+      ^ 1 .
+    ] .
+  ] .
+  

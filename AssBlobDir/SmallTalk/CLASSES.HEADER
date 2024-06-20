@@ -179,6 +179,7 @@ class C2DPoint:CFrogThing {
 };
 class C3DThingTemplate:CFrogThing {
   I64 flags;
+  F64 radius;
   CFrogStr *name;
   CDC *front;
   CDC *side;
@@ -378,6 +379,15 @@ class CZombie:C3DThing {
   F64 next_piss_tS;
   CFrogStr *state;
  CPissStream *piss_stream;
+  I64 just_jumped;
+  C3DThing *target;
+};
+class CCyberPoop:C3DThing {
+  CFrogRandom *random_generator;
+  F64 speed;
+  F64 state_start_tS;
+  F64 state_duration;
+  CFrogStr *state;
   I64 just_jumped;
   C3DThing *target;
 };

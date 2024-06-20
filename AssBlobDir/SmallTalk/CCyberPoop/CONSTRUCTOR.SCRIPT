@@ -1,0 +1,7 @@
+init->CCyberPoop | |
+  random_generator _ CFrogRandom new .
+  template _ #world getThingTemplate: 'CCyberPoop' .
+  template->radius _ 256 .
+  health _ 300 .
+  state _ 'Wait' .
+  ^ self

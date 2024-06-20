@@ -1,2 +1,3 @@
 init | |
- ^ self
+  radius _ 128 / 3 .
+  ^ self

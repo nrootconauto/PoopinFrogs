@@ -1,0 +1,3 @@
+init | |
+ #world addThing: self .
+ ^ self

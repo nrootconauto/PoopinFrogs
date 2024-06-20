@@ -273,7 +273,7 @@ U0 DrawSidebar(CTask *t,CDC *dc,CTextureEditor *ed) {
 	    case TOOL_FILL:
 	    case TOOL_LINE:
 	    case TOOL_POLY_LINE:
-	    case TOOL_ELLIPSE:
+	    case TOOL_ELLIPSE:
 	    case TOOL_ERASE:
 	    case TOOL_CUT:
 	    case TOOL_COPY:
@@ -809,17 +809,20 @@ U0 _TextureEdit(CDC **_image,U8 *blob_file=NULL,U8 *write_to_name=NULL) {
 	  } else
 	    PopUpOk("This is the only Frame!!!");
         }
+use_last_tool:;
+        if(ed->cur_tool==ed->last_tool)
+	  ed->last_tool=TOOL_PAINT;
         ed->cur_tool=ed->last_tool;
         break;
       case TOOL_COLOR:
         ed->color=PopUpColor("Pick a Color\n");
 //Dumb hack,prevent mouse from "clicking" against after popup window
 	ed->ms_left_down=FALSE;
-        ed->cur_tool=ed->last_tool;
+	goto use_last_tool;
         break;
       case TOOL_THICK:
         ed->thick=PopUpRangeI64(1,16,,"Pick a Thickness\n");
-        ed->cur_tool=ed->last_tool;
+	goto use_last_tool;
         break;
       case TOOL_PICK_FRAME:
         DCFill(ed->frames+ed->cur_frame,TRANSPARENT);
@@ -839,11 +842,10 @@ U0 _TextureEdit(CDC **_image,U8 *blob_file=NULL,U8 *write_to_name=NULL) {
         }
         DCFill(ed->screen,TRANSPARENT);        
         GrBlot(ed->screen,0,0,ed->frames+ed->cur_frame);
-        ed->cur_tool=ed->last_tool;
-        break;
+	goto use_last_tool;
       case TOOL_UNDO:
         TextureEditorUndo(ed);
-        ed->cur_tool=ed->last_tool;
+        break;
         break;
       case TOOL_SET_BOUNDS:
         if(!ed->ms_left_down&&ed->setting_bounds) {

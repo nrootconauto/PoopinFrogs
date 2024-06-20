@@ -1507,7 +1507,7 @@ U0 LoadWorld(U8 *blob,U8 *filename) {
   CWorld *w=NULL;
   Bool old_flat=world_edit.flat_mode;
   world_edit.flat_mode=TRUE;
-  w=BlobFileGetLump(blob,filename,,&type);
+  w=BlobFileGetLump(blob,filename,,&type);
   if(!w||type!='LEVEL') {
     PopUpOk(str=MStrPrint("Can't open world %s!!!",filename));
     Free(str);
