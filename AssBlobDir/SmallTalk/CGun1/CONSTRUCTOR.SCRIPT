@@ -7,12 +7,17 @@ init | |
   xoff _ 0 .
   yoff _ 0 .
   timeout _ 0 .
+'ad inv-2' show .
   inventory_item _ CUIGridItem new .
+'ad inv-2.5' show .
   inventory_item setGraphics: 'GR/GUN1/IDLE' .
   inventory_item setCount: ammo .
   inventory_item setItem: self .
+'ad inv-1' show .
   inventory_item onLeftUp: [
     #hand_item _ self .
   ].
+'ad inv' show .
   #world getPlayer addInventoryItem: inventory_item.
+'ad inv2' show .
   ^ self

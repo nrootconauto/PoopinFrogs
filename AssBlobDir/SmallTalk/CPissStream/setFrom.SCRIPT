@@ -1,0 +1,6 @@
+setFrom: t=C3DThing |
+|
+  links do:[:p=CPissLink|
+    p->from=t 
+  ] .
+  from _ t .

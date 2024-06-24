@@ -8,6 +8,7 @@ init ->CPlayer | |
   piss_stream _ CPissStream new .
   piss_stream ->from _ self .
   #hand_item _ CGun1 new .
+
   CFrogDick new .
   CKnife new .
   CTalker  new .

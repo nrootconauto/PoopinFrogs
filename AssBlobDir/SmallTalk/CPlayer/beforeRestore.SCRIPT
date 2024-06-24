@@ -1,0 +1,4 @@
+beforeRestore ->* | |
+  items _ #() .
+  shell_casings _ #() .
+  self makeUI .

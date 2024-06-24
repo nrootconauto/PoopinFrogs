@@ -5,6 +5,7 @@ class CUniverseInitPair {
   U8 (*destroy)(U8*);
 };
 CTask *universe_task=Fs;
+CI64Set *universe_names=I64SetNew; //U8*
 CI64Set *universe_values=I64SetNew; //I64
 CI64Set *universe_init_pairs=I64SetNew; //I64
 CI64Set *universe_methods=I64SetNew; //CI64Set(set of method indexes)
@@ -39,6 +40,7 @@ I64 NameToUniverseNumber(U8 *name) {
   }
   r=universe_cnt++;
   FramePtrAdd(buf,r);
+  I64SetInsAt(universe_names,r,StrNew(name));
   I64SetInsAt(universe_values,r,NULL);
   return r;
 }
@@ -160,13 +162,15 @@ U0 UniverseDestroyThing(CFrogThing *t) {
   else Free(t);
 }
 CFrogSymbol *FrogSymbol0(I64 idx) {
-  CFrogThing *t=I64SetGetAt(universe_symbols,idx);
+  CFrogSymbol *t=I64SetGetAt(universe_symbols,idx);
   if(!t) {
     t=ConstructThing("CFrogSymbol");
+    StrCpy(t->name,I64SetGetAt(universe_names,idx));
     I64SetInsAt(universe_symbols,idx,t);
   }
   return t;
 }
 CFrogSymbol *FrogSymbol(U8 *s) {
-  return FrogSymbol0(NameToUniverseNumber(s));
+  CFrogSymbol *fs=FrogSymbol0(NameToUniverseNumber(s));
+  return fs;
 }

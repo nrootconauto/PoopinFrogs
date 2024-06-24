@@ -1,0 +1,3 @@
+afterRestore->* ||
+  piss_stream setFrom: self .
+  template _ #world getThingTemplate: template_name.

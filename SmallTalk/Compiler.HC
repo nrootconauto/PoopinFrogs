@@ -63,7 +63,7 @@ U0 LocalsDel(CLocals *l) {
 }
 
 class CLocalsGeneric0:CFrogFrame {
-  U64 _type;
+  U64 _type,raw_mask;//raw_mask means bit is set if is a raw(F64) type in body[bit]
   CLocalsGeneric0 *_next;
   CLocalsGeneric0 *_parent;
   U8 *_return_flag;
@@ -301,14 +301,6 @@ Bool STIsSelfMember(CLocals *who,U8 *name) {
   }
   return FALSE;
 }
-//s is a CFrogThing **
-CFrogThing **BungisReduce(CFrogThing *self,U64 *s) {
-  if(*s&0xffFF==FROG_SMALL_MEMBER_PTR) {
-    self=FrogUnSuper(self);
-    return self(U8*)+*s>>32;
-  }
-  return s;
-}
 Bool STGetLocal(CDoc *doc,CLocals *who,U8 *name) {
   I64 depth=0;
   CHashGeneric *gen;
@@ -361,9 +353,9 @@ U8 *CompileThunk(CAST *block,CLocals *parent=NULL) {
   head=&block->args;
   idx=0;
   for(var=head->next;var!=head;var=var->next) {
-    DocPrint(doc,"  tmp=BungisReduce(self,&");
+    DocPrint(doc,"  tmp=&");
     STGetLocal(doc,locals,var->name);
-    DocPrint(doc,");\n");
+    DocPrint(doc,";\n");
     DocPrint(doc,"  *tmp=argv[%d];\n",idx);
     idx++;
   }
@@ -446,7 +438,7 @@ Bool IsAllF64(CAST *ast) {
     if(!IsAllF64(cur)) return FALSE;
     cur=cur->next;
   }
-  return TRUE;
+  return TRUE;
 }
 Bool IsF64ExprNode(CLocals *l,CAST *ast) {
   U8 *cn;
@@ -455,8 +447,9 @@ Bool IsF64ExprNode(CLocals *l,CAST *ast) {
     case AST_NUM:
       return ast->is_f64=TRUE;
    case AST_VAR:
-      if(cn=VarClassName(l,ast->name))
-        return ast->is_f64=!StrCmp(cn,"CFrogNum");
+      if(cn=VarClassName(l,ast->name)) {
+	if(!StrCmp(cn,"CFrogNum")) return ast->is_f64=TRUE;
+      }
       return FALSE;
    case AST_UNOP:
      a=ast->args.next;
@@ -646,7 +639,7 @@ pass:
         ReplaceElem(doc,ent2,"%d",ast_case_num);
         break;
       }
-      //Primtive method time
+//Primtive method time
       if(!IsAllF64(ast)) { //These(is_f64) are computed beforehand
         cur=ast->args.next;
 //Compile non-numbers first
@@ -774,6 +767,9 @@ force_f64:;
         }
         if(!StrCmp(ast->op_name,"and:")) {
 	  NumPrim2(doc,locals,ast,stack_depth,"&&","and:");
+if(FramePtr("MethodClass"))
+	if(!StrCmp(FramePtr("MethodClass"),"CPoopMan"))
+	DocInsDoc(DocPut,doc);
 	  goto prim_skip;
         }
         if(!StrCmp(ast->op_name,"max:")) {
@@ -821,22 +817,22 @@ prim_skip:
       } else if(cur->type==AST_VAR) {      
         if(STIsSelfMember(locals,cur->name)) {
 	  mlst=MemberFind(cur->name,HashFind(FramePtr("MethodClass"),frog_mem_task->hash_table,HTT_CLASS));
-	  DocPrint(doc,"  tmp=ToI64(FrogUnSuper(self))+%d;\n",mlst->offset);
+	  DocPrint(doc,"  tmp=ToI64(self)+%d;\n",mlst->offset);
 	  if(STIsRawMember(locals,cur->name))
 	    goto assign_raw;
 	  goto assign_st;
         } else if(!STIsRawMember(locals,cur->name)) {
-	  DocPrint(doc,"  tmp=BungisReduce(self,&");
+	  DocPrint(doc,"  tmp=&");
 	  STGetLocal(doc,locals,cur->name);
-	  DocPrint(doc,");\n");
-assign_st:
+	  DocPrint(doc,";\n");
+assign_st :
 	  DocPrint(doc,"\n*tmp=%s;\n",StackFrame2Var(stack_depth));
         } else {
-	  DocPrint(doc,"  tmp=BungisReduce(self,&");
+	  DocPrint(doc,"  tmp=&");
 	  STGetLocal(doc,locals,cur->name);
-	  DocPrint(doc,");\n");
+	  DocPrint(doc,";\n");
 assign_raw:
-	  raw_class_name=RawAccessType(FramePtr("MethodClass"),cur->name);
+          raw_class_name=RawAccessType(FramePtr("MethodClass"),cur->name);
 	  DocPrint(doc,"tmp(%s*)[0]=AsF64(%s);\n",raw_class_name,StackFrame2Var(stack_depth));
         }
       } else if(cur->type==AST_MEMBER) {
@@ -846,19 +842,24 @@ assign_raw:
         ast->switch_num=ast_case_num++;
         DocPrint(doc,"L%d:\n",ast->switch_num);
         cur=ast->args.next; //AST_ASSIGN
+        cur2=cur;
         cur=cur->args.next; //AST_MEMBER
         DocPrint(doc,"FrogThingLock(%s);\n",StackFrame2Var(stack_depth));
-        if(HashFind(cur->var_class_name,Fs->hash_table,HTT_CLASS)) { 
-	  mlst=MemberFind(ast->name,HashFind(cur->var_class_name,Fs->hash_table,HTT_CLASS));        
+        if(0&&HashFind(cur->var_class_name,Fs->hash_table,HTT_CLASS)) { 
+	  mlst=MemberFind(cur2->name,HashFind(cur->var_class_name,Fs->hash_table,HTT_CLASS));
 	  if(mlst) {
-	    if(raw_class_name=RawAccessType(cur->var_class_name,ast->name)) {
-	      DocPrint(doc,"(ToI64(FrogUnSuper(%s))+%d)(%s*)[0]=%s;",StackFrame2Var(stack_depth),mlst->offset,raw_class_name,StackFrame2Var(stack_depth+1));
+	    if(mlst->member_class->ptr_stars_cnt==0) {
+	      raw_class_name=mlst->member_class->str;
+	      DocPrint(doc,"(ToI64(%s)+%d)(%s*)[0]=%s;",StackFrame2Var(stack_depth),mlst->offset,raw_class_name,StackFrame2Var(stack_depth+1));
 	      StrCpy(ast->var_class_name,"CFrogNum");
-	    } else {
-	      DocPrint(doc,"(ToI64(FrogUnSuper(%s))+%d)(CFrogThing*)[0]=%s;",StackFrame2Var(stack_depth),mlst->offset,StackFrame2Var(stack_depth+1));
+	    } else if(mlst->member_class->ptr_stars_cnt==1) {
+	      DocPrint(doc,"(ToI64(%s)+%d)(CFrogThing**)[0]=%s;",StackFrame2Var(stack_depth),mlst->offset,StackFrame2Var(stack_depth+1));
 	      StrCpy(ast->var_class_name,mlst->member_class[-1].str);
-	    }
-	  } else goto write_generic_member;
+	    } else
+	     throw('Fuck');
+	  } else {
+	    throw('Member'); 
+	  }
         } else {
 write_generic_member:
 //Cur has the member name
@@ -886,40 +887,39 @@ write_generic_member:
         if(idx) StrCpy(ast->var_class_name,idx);
         if(STIsSelfMember(locals,ast->name)) {
 	  mlst=MemberFind(ast->name,HashFind(FramePtr("MethodClass"),frog_mem_task->hash_table,HTT_CLASS));
-	  if(STIsRawMember(locals,ast->name)) {
-	    raw_class_name=RawAccessType(FramePtr("MethodClass"),ast->name);
+	  raw_class_name=RawAccessType(FramePtr("MethodClass"),ast->name);
 //ToF64 turns an I64(forced) into an F64
+	  if(STIsRawMember(locals,ast->name)) {
 	    if(ast->is_f64&&!StrCmp(raw_class_name,"F64"))
 	      conv_name="";
-	    DocPrint(doc,"  %s((ToI64(FrogUnSuper(self))+%d)(%s*)[0])",conv_name,mlst->offset,raw_class_name);
+	    DocPrint(doc,"  %s((ToI64(self)+%d)(%s*)[0])",conv_name,mlst->offset,raw_class_name);
 	  } else {
 	    if(ast->is_f64)
 	      DocPrint(doc,"AsF64(");
-	    DocPrint(doc,"  FrogIncRefCnt((ToI64(FrogUnSuper(self))+%d)(CFrogThing**)[0])",mlst->offset);
+	    DocPrint(doc,"  ((ToI64(self)+%d)(CFrogThing**)[0])",mlst->offset);
 	    if(ast->is_f64)
 	      DocPrint(doc,")");
 	  }
         } else if(!STIsRawMember(locals,ast->name)) {
 	  if(ast->is_f64)
 	    DocPrint(doc,"AsF64(");
-	  DocPrint(doc,"FrogIncRefCnt(*BungisReduce(self,&");
+	  DocPrint(doc,"");
 	  STGetLocal(doc,locals,ast->name);
-	  DocPrint(doc,"))\n");
 	  if(ast->is_f64)
 	    DocPrint(doc,")");
         } else {
-	  raw_class_name=RawAccessType(FramePtr("MethodClass"),ast->name);
+          raw_class_name=RawAccessType(FramePtr("MethodClass"),ast->name);
 //ToF64 turns an I64(forced) into an F64
 	  if(ast->is_f64&&!StrCmp(raw_class_name,"F64"))
 	    conv_name="";
-	  DocPrint(doc,"%s(BungisReduce(self,&",conv_name);
+	  DocPrint(doc,"%s((&",conv_name);
 	  STGetLocal(doc,locals,ast->name);
 	  DocPrint(doc,")(%s*)[0])",raw_class_name);
         }
       } else if(HashFind(ast->name,Fs->hash_table,HTT_CLASS)) {
-	DocPrint(doc,"FrogClassNew(%d);",UniverseAddClass(ast->name));
+        DocPrint(doc,"FrogClassNew(%d);",UniverseAddClass(ast->name));
       } else
-	DocPrint(doc,"FROG_SMALL_NIL;");
+        DocPrint(doc,"FROG_SMALL_NIL;");
       if(!ast->is_f64) DocPrint(doc,";");
       else return;
       break;case AST_ARRAY:
@@ -961,10 +961,6 @@ write_generic_member:
       ast->switch_num=ast_case_num++;
       DocPrint(doc,"L%d:\n",ast->switch_num);
       DocPrint(doc,"  %s=FrogIncRefCnt(%s)\n;",StackFrame2Var(stack_depth),StackFrame2Var(FramePtr("?CascadeDepth"))); 
-      break;case AST_SUPER:
-      ast->switch_num=ast_case_num++;
-      DocPrint(doc,"L%d:\n",ast->switch_num);
-      DocPrint(doc,"  %s=FrogSuper(self);\n",StackFrame2Var(stack_depth),stack_depth);
       break;case AST_SELF:
       ast->switch_num=ast_case_num++;
       DocPrint(doc,"L%d:\n",ast->switch_num);
@@ -987,15 +983,19 @@ write_generic_member:
         mlst=MemberFind(ast->name,HashFind(cur->var_class_name,Fs->hash_table,HTT_CLASS));
         if(mlst) {
 	  DocPrint(doc,"if(ThingHasClass(%s,\"%Q\"))",StackFrame2Var(stack_depth),cur->var_class_name);
-	  if(raw_class_name=RawAccessType(cur->var_class_name,ast->name)) {
-            DocPrint(doc,"  %s=FrogNumNew((ToI64(FrogUnSuper(%s))+%d)(%s*)[0]);",StackFrame2Var(stack_depth),StackFrame2Var(stack_depth),mlst->offset,raw_class_name);
+	  if(mlst->member_class->ptr_stars_cnt==0) {
+	    raw_class_name=mlst->member_class->str;
+	    DocPrint(doc,"  %s=FrogNumNew((ToI64(%s)+%d)(%s*)[0]);",StackFrame2Var(stack_depth),StackFrame2Var(stack_depth),mlst->offset,raw_class_name);
 	    StrCpy(ast->var_class_name,"CFrogNum");
-	  } else {
-	    DocPrint(doc,"  %s=FrogIncRefCnt((ToI64(FrogUnSuper(%s))+%d)(CFrogThing**)[0]);",StackFrame2Var(stack_depth),StackFrame2Var(stack_depth),mlst->offset);
-	    StrCpy(ast->var_class_name,mlst->member_class[-1].str);
+	  } else if(mlst->member_class->ptr_stars_cnt==1) {
+	    raw_class_name=mlst->member_class[-1].str;
+	    DocPrint(doc,"  %s=FrogIncRefCnt((ToI64(%s)+%d)(CFrogThing**)[0]);",StackFrame2Var(stack_depth),StackFrame2Var(stack_depth),mlst->offset);
+	    StrCpy(ast->var_class_name,raw_class_name);
 	  }
 	  DocPrint(doc,"else %s=FROG_SMALL_NIL;",StackFrame2Var(stack_depth));
-        } else goto generic_member;
+        } else {
+	  throw('Compiler');
+ 	}
       } else {
 generic_member:
         DocPrint(doc,"%s=GetClassMemberVal(%s,\"%s\");\n",StackFrame2Var(stack_depth),StackFrame2Var(stack_depth),ast->name);
@@ -1052,9 +1052,9 @@ U0 CompileToHolyC(U8 *src,U8 *class_name,U8 *src_path=NULL,Bool class_method=FAL
   idx=0;
 //DocPrint(doc,"DbgPrint(\"%s.%Q\n\");",class_name,m->name);
   for(var=head->next;var!=head;var=var->next) {
-    DocPrint(doc,"  tmp=BungisReduce(self,&");
+    DocPrint(doc,"  tmp=&");
     STGetLocal(doc,locals,var->name);
-    DocPrint(doc,");\n");
+    DocPrint(doc,";\n");
     DocPrint(doc,"  *tmp=argv[%d];\n",idx);
     idx++;
   }
@@ -1155,7 +1155,7 @@ skip:;
 U0 STRunStmt(U8 *str) {
   STRepl(str,FALSE);
 }
-#include "Studio.HC";;
+#include "Studio.HC";
 STRunStmt(
 "  #Y _ [:f=CFrogBlock | [:x=CFrogBlock | x value: x] value: [:g=CFrogBlock| f value: [:x| (g value: g) value: x] ] ]."
 "  #fib _ #Y value: [:f| [:i=CFrogNum | i <= 1 ifTrue: [i] ifFalse: [(f value: i - 1) + (f value: i - 2)] ] ]."

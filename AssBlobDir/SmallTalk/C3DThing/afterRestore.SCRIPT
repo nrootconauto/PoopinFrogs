@@ -1,0 +1,3 @@
+afterRestore -> * ||
+  template _ #world getThingTemplate: template_name . 
+  template show .

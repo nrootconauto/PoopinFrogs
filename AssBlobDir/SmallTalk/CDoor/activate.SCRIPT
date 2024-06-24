@@ -9,7 +9,7 @@ activate->CFrogNum |
     activated_at _ CFrogTime now asSeconds .
     world->doors do:[:d=CDoor|
       ((d->x - x) abs < 1.1 or: (d->y - y) abs < 1.1 ) ifTrue: [
-        d->ctivated ifFalse: [
+        d->activated ifFalse: [
           d activate
         ] .
       ] .

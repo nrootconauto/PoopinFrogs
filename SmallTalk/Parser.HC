@@ -14,7 +14,6 @@
 #define AST_CASCADE_HEAD 13 //str points to cascade head
 #define AST_RETURN 14
 #define AST_SELF 15
-#define AST_SUPER 16
 #define AST_MEMBER 17
 
 class CAST:CQue {
@@ -45,8 +44,8 @@ extern U0 DumpAst(CAST *s);
 extern CAST *ParseAst(CLexer *l);
 extern CAST *ParseCascade(CLexer *l);
 extern Bool IsSmalltalkMember(CHashClass *cls);
-U0 AddToScope(U8 *name) {
-  FramePtrAdd(name,1);
+U0 AddToScope(U8 *name,U8 *typename) {
+  FramePtrAdd(name,typename);
 }
 U0 RemFromScope(U8 *name) {
   FramePtrDel(name);
@@ -61,9 +60,9 @@ CAST *ParseVarWithType(CLexer *l,Bool warn=FALSE) {
     switch(l->tok) {
       case '=':
 	Lex(l);
-	if(l->tok==TOK_NAME)
+	if(l->tok==TOK_NAME) {
  	  StrCpy(ret->var_class_name,l->str);
-	else
+	} else
 	  LexExcept(l,"Expected a type name");
 	Lex(l);
 	break;
@@ -134,7 +133,7 @@ CAST *ParseLiteral(CLexer *l) {
 	  item=ParseVarWithType(l,TRUE);
 	  if(!item)
 	    LexExcept(l,"Put away you 50 inch donkey kong shlong and give me and argument.");
-	  AddToScope(item->name);
+	  AddToScope(item->name,item->var_class_name);
 	  QueInit(&item->args);
 	  QueIns(item,ret->args.last);
         } else
@@ -166,15 +165,16 @@ CAST *ParseLiteral(CLexer *l) {
     if(!StrCmp(l->str,"self")) {
       item->type=AST_SELF;
       goto np;
-    } else if(!StrCmp(l->str,"super")) {
+    }/* else if(!StrCmp(l->str,"super")) {
       item->type=AST_SUPER;
       goto np;
-    }
+    }*/
     item->type=AST_VAR;
     StrCpy(item->name,l->str);
     if(!FramePtr(item->name)&&!HashFind(item->name,Fs->hash_table,HTT_CLASS)) {
       LexExcept(l,"Use of undefined var '%s'\n",item->name);
-    }
+    } else if(FramePtr(item->name))
+      StrCpy(item->var_class_name,FramePtr(item->name));
 np:
     QueInit(&item->args);
     QueInit(item);
@@ -191,8 +191,13 @@ again:
         if(MemberFind(l->str,cls)) {
 	  cls=MemberFind(l->str,cls)->member_class;
 	  if(IsSmalltalkMember(cls)) {
-	    StrCpy(ret->var_class_name,cls[-1].str);
+	    if(cls->ptr_stars_cnt==1)
+	      StrCpy(ret->var_class_name,cls[-1].str);
+	    else
+	      StrCpy(ret->var_class_name,cls->str);
 	  }
+        } else {
+	  LexExcept(l,"Expected a fuckin valid member(got %s,have class %s)\n",l->str,cls->str);
         }
       }
       Lex(l);
@@ -385,8 +390,11 @@ CAST *ParseAst(CLexer *l) {
 
     if(symbol)
       var->type=AST_SYMBOL;
-    else
+    else {
       var->type=AST_VAR;
+      if(FramePtr(var->name))
+	StrCpy(var->var_class_name,FramePtr(var->name));
+    }
     if(l->tok=='->') {
       tmp=CAlloc(sizeof CAST);
       tmp->type=AST_MEMBER;
@@ -398,8 +406,13 @@ CAST *ParseAst(CLexer *l) {
         if(MemberFind(l->str,cls)) {
 	  cls=MemberFind(l->str,cls)->member_class;
 	  if(IsSmalltalkMember(cls)) {
-	    StrCpy(tmp->var_class_name,cls[-1].str);
+	    if(cls->ptr_stars_cnt==1)
+	      StrCpy(tmp->var_class_name,cls[-1].str);
+	    else
+	      StrCpy(tmp->var_class_name,"CFrogNum");
 	  }
+        } else {
+	  LexExcept(l,"Expected a fuckin valid member(got %s,have class %s)\n",l->str,cls->str);
         }
       }
       Lex(l);
@@ -463,8 +476,12 @@ CMethod *ParseMethod(CLexer *l,CHashClass *cls=NULL) {
       if(!StrCmp(cls->str,"CFrogThing"))
         break;
       for(mlst=cls->member_lst_and_root;mlst;mlst=mlst->next) {
-        if(IsSmalltalkMember(mlst->member_class))
-	  AddToScope(mlst->str);
+        if(IsSmalltalkMember(mlst->member_class)) {
+	  if(mlst->member_class->ptr_stars_cnt==1)
+	    AddToScope(mlst->str,mlst->member_class[-1].str);
+	  else
+	    AddToScope(mlst->str,"CFrogNum");
+	}
       }
       cls=cls->base_class;
     }
@@ -499,7 +516,7 @@ check:
 	  Lex(l);
 	  name=ParseVarWithType(l,TRUE);
 	  if(!name) LexExcept(l,"Expected a name here");
-	  AddToScope(name->name);
+	  AddToScope(name->name,name->var_class_name);
 	  QueIns(name,m->args.last);
         } else if(m->arity>1) {
 	  LexExcept(l,"I expected a ':' asswipe.");
@@ -520,7 +537,7 @@ check:
         if(Lex(l)==TOK_NAME) {
 	  name=CAlloc(sizeof CAST);
 	  StrCpy(name->name,l->str);
-	  AddToScope(name->name);
+	  AddToScope(name->name,"*");
 	  QueIns(name,m->args.last);
 	  m->arity++;
 	  if(l->tok=='->'||l->tok=='->*')
@@ -537,7 +554,7 @@ check:
     while(TRUE) {
       if(l->tok==TOK_NAME) {
         name=ParseVarWithType(l,TRUE);
-        AddToScope(name->name);
+        AddToScope(name->name,name->var_class_name);
         QueIns(name,m->temps.last);
       } else if(l->tok=='|') {
         Lex(l);
@@ -626,9 +643,6 @@ U0 DumpAst(CAST *s) {
       break;
     case AST_SELF:
       "SELF\n";
-      break;
-    case AST_SUPER:
-      "SUPER\n";
       break;
     case AST_STR:
       "STR:\"%Q\"\n",s->str;

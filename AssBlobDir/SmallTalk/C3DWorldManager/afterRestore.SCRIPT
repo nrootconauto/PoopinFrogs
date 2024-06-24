@@ -1,0 +1,29 @@
+afterRestore->* |
+  template=C3DThingTemplate
+  gx=CFrogNum
+  gy=CFrogNum
+  col=CFrogArray
+|
+  'Re-initialize the grid'. 
+  gx _ (self width + 15 ) / 16 .
+  gy _ (self height + 15 ) / 16 .
+  grid _ # () .
+
+  0 to: gx do: [
+    col _ # () .
+    0 to: gy do: [
+      col add: #() 
+    ] .
+    grid add: col .
+  ] .
+
+  wall_stains _ #() .
+  floor_stains _ #() .
+
+  things do: [:t=C3DThing|
+    self updateThingPos: t .
+  ] .
+
+  doors do:[:d=CDoor|
+    self addDoor: d
+  ] .

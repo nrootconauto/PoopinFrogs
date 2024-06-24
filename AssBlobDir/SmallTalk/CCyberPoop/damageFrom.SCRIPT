@@ -1,0 +1,23 @@
+damage: amt=CFrogNum from: t=C3DThing ->* | |
+  'Return if damage came from self(rocket exploded on self)'.
+   t = self ifTrue: [
+    ^ 0
+   ] .
+
+  'blood' .
+  1 to: amt / 6 + 5 do:[ 
+    #world newParticleAtX: x atY: y atZ: z + .5 withSpread: 64 withColor: #color_BROWN 
+  ] .
+ 
+
+  'Attack '.
+  target _ t .
+  'Pain Chance(interupt attack).'
+  (random_generator next < .33 ) ifTrue: [
+    state = 'Chase' .
+  ] .
+
+  self damage: amt . 
+
+  'Trigger state change' .
+  self update .

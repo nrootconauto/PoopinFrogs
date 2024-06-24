@@ -34,13 +34,6 @@ I64 class CFrogSmallChr {
   I16 pad;
   U32 ch;
 };
-//
-// $BK,1$IMPORTANT,this is for th "super" keyword$BK,0$
-//
-class CFrogSuper:CFrogThing {
-  U8 *destroy dft "FrogSuperDel";
-  CFrogThing *from;
-};
 CTask *frog_mem_task=Fs;
 CQue allocs_head;
 QueInit(&allocs_head);
@@ -189,7 +182,7 @@ U0 FrogThingUnlock(CFrogThing *f) {
   }
 }
 class CLocalsGeneric:CFrogFrame {
-  U64 type;
+  U64 type,raw_mask;//raw_mask means bit is set if is a raw(F64) type in body[x]
   CLocalsGeneric *next;
   CLocalsGeneric *parent;
   U8 *return_flag;
@@ -221,15 +214,6 @@ Bool IsSmalltalkMember2(CHashClass *cls) {
 
 
 
-//Reduces the CFrogSuper class to the actual value
-U8 *FrogUnSuper(CFrogSuper *s) {
-  if(!s) return FROG_SMALL_NIL;
-  if(s&1) return s;
-  if(!StrCmp("CFrogSuper",s->class_name)) {
-    return s->from;
-  }
-  return s;
-}
 U8 *FrogThingClassName(CFrogThing *thing) {
 //Check for special "small" type
   U8 *name;
@@ -249,15 +233,6 @@ U8 *FrogThingClassName(CFrogThing *thing) {
       return "CFrogThing";
     }
     name=thing->class_name;
-    if(!StrCmp(name,"CFrogSuper")) {
-      name=FrogThingClassName(thing(CFrogSuper*)->from);
-      cls=HashFind(name,frog_mem_task->hash_table,HTT_CLASS);
-      if(cls) {
-        if(cls=cls->base_class) {
-	  return cls->str;
-        }
-      }
-    }
   }
   return name;
 }
@@ -300,7 +275,6 @@ I64 GetClassMeta(U8 *class_name,U8 *member,U8 *meta_name) {
   return NULL;
 }
 I64 GetClassMemberValI64(CFrogThing *t,U8 *member) {
-  t=FrogUnSuper(t);
   if(t&1) return 0; //Special "small type"
   CHashClass *cls=HashFind(t->class_name,frog_mem_task->hash_table,HTT_CLASS);
   CMemberLst *mlst;
@@ -332,7 +306,6 @@ I64 GetClassMemberValI64(CFrogThing *t,U8 *member) {
 }
 
 U0 SetClassMemberValI64(CFrogThing *t,U8 *member,I64 val) {
-  t=FrogUnSuper(t);
   if(t&1) return 0; //Special "small type"
   CHashClass *cls=HashFind(FrogThingClassName(t),frog_mem_task->hash_table,HTT_CLASS);
   CMemberLst *mlst;
@@ -373,7 +346,6 @@ U0 SetClassMemberValI64(CFrogThing *t,U8 *member,I64 val) {
 }
 
 U0 SetClassMemberVal(CFrogThing *t,U8 *member,I64 val) {
-  t=FrogUnSuper(t);
   if(t&1) return; //Special "small type"
   CHashClass *cls=HashFind(FrogThingClassName(t),frog_mem_task->hash_table,HTT_CLASS);
   CMemberLst *mlst;
@@ -417,6 +389,7 @@ U0 SetClassMemberVal(CFrogThing *t,U8 *member,I64 val) {
          (t(U8*)+mlst->offset)(I64*)[0]=v2;
 	 break;
        case RT_F64:
+PrintF(FrogThingClassName(t),v2);
          (t(U8*)+mlst->offset)(F64*)[0]=v2;
 	 break;
      }
@@ -425,7 +398,6 @@ U0 SetClassMemberVal(CFrogThing *t,U8 *member,I64 val) {
 }
 
 CFrogThing *GetClassMemberVal(CFrogThing *t,U8 *member) {
-  t=FrogUnSuper(t);
   if(t&1) return FROG_SMALL_NIL; //Special "small type"
   CHashClass *cls=HashFind(FrogThingClassName(t),frog_mem_task->hash_table,HTT_CLASS);
   CMemberLst *mlst;
@@ -475,7 +447,6 @@ CFrogThing *GetClassMemberVal(CFrogThing *t,U8 *member) {
 }
 
 U0 SetClassMemberValF64(CFrogThing *t,U8 *member,F64 val) {
-  t=FrogUnSuper(t);
   if(t&1) return 0; //Special "small type"
   CHashClass *cls=HashFind(t->class_name,frog_mem_task->hash_table,HTT_CLASS);
   CMemberLst *mlst;
@@ -517,7 +488,6 @@ U0 SetClassMemberValF64(CFrogThing *t,U8 *member,F64 val) {
 
 
 F64 GetClassMemberValF64(CFrogThing *t,U8 *member) {
-  t=FrogUnSuper(t);
   if(t&1) return 0; //Special "small type"
   CHashClass *cls=HashFind(t->class_name,frog_mem_task->hash_table,HTT_CLASS);
   CMemberLst *mlst;
@@ -571,11 +541,6 @@ CFrogThing *_ConstructThing(U8 *class_name,I64 argc,I64 *argv) {
 	(t(U8*)+mlst->offset)(I64*)[0]=FROG_SMALL_NIL;
       }
     }
-//CFrogSuper is a special value
-//Routines that call CFrogSuper reduce down to CFrogSuper->self,so skip this as ->self isnt assigned yet
-  if(!StrCmp(t->class_name,"CFrogSuper")) {
-   goto fin;
-  }
   cls=ocls;
   for(idx=0;idx<argc;idx+=2) {
     mlst=MemberFind(argv[idx],cls);
@@ -794,7 +759,6 @@ CFrogThing *STSetVar(U8 *self,U8 *name,CFrogThing *val) {
   CHashClass *cls;
   CFrogThing **member;
   if(!var) throw('UndefVar');
-  self=FrogUnSuper(self);
   throw('UndefVar');
 }
 
@@ -850,7 +814,7 @@ CFrogThing *FrogArrayAt(CFrogArray *self,I64 n) {
   return FROG_SMALL_NIL;
 }
 
-CFrogThing *FrogStrAt(CFrogStr *self,I64 n) {
+ CFrogThing *FrogStrAt(CFrogStr *self,I64 n) {
   if(0<=n<self->items->cnt) {
    return FrogChrNew(self->items->body[n]);
   }
@@ -936,7 +900,6 @@ U0 ConstructBuiltin(U8 *code,U8 *type,U8 *name,...) {
   StrPrint(uniq,"%s@Prim%d",type,cnt++);
   StreamPrint("CFrogThing *%s(%s *self,...) {\n",uniq,type);
   StreamPrint("CFrogThing *ret=NULL;\n");
-  StreamPrint("self=FrogUnSuper(self);");
   StreamPrint("I64 failed=FALSE;\n");
   for(idx=0;idx<argc;idx+=2) {
     StreamPrint("%s* %s=argv[%d];\n",argv[idx],argv[idx+1],idx/2);
@@ -1163,8 +1126,6 @@ CFrogThing *FrogIfTrue(CFrogNum *self,...) {
   if(!ThingHasClass(self,"CFrogNum",FROG_SMALL_NUM)||!ThingHasClass(cond,"CFrogBlock")) {
     return FROG_SMALL_NIL;
   }
-  self=FrogUnSuper(self);
-  cond=FrogUnSuper(cond);
   if(ThingIsError(self)) {
     ret=FROG_SMALL_ERROR;
   } else if(AsF64(self)!=0.) {
@@ -1181,8 +1142,6 @@ CFrogThing *FrogIfFalse(CFrogNum *self,...) {
   if(!ThingHasClass(self,"CFrogNum",FROG_SMALL_NUM)||!ThingHasClass(cond,"CFrogBlock")) {
     return FROG_SMALL_NIL;
   }
-  self=FrogUnSuper(self);
-  cond=FrogUnSuper(cond);
   if(ThingIsError(self)) {
     ret=FROG_SMALL_ERROR;
   } else if(AsF64(self)==0.) {
@@ -1197,9 +1156,6 @@ CFrogThing *FrogIfTrueIfFalse(CFrogNum *self,...) {
   CFrogBlock *cond=argv[0];
   CFrogBlock *cond2=argv[1];
   CFrogThing *ret;
-  self=FrogUnSuper(self);
-  cond=FrogUnSuper(cond);
-  cond2=FrogUnSuper(cond2);
   if(!ThingHasClass(self,"CFrogNum",FROG_SMALL_NUM)||!ThingHasClass(cond,"CFrogBlock")
         ||!ThingHasClass(cond2,"CFrogBlock")) {
     return FROG_SMALL_NIL;
@@ -1221,7 +1177,6 @@ CFrogThing *FrogThingShow(CFrogStr *self,...) {
   CFrogStr *msg;
   CI64Set *items;
   CU8Set *items_str;
-  self=FrogUnSuper(self);
   for(attempt=0;attempt!=2;attempt++) {
     if(ThingHasClass(self,"CFrogError",FROG_SMALL_ERROR)) {
       "Error:";
@@ -1262,8 +1217,6 @@ CFrogThing *FrogNumTimesRepeat(CFrogNum *self,...) {
   if(!ThingHasClass(self,"CFrogNum")||!ThingHasClass(block,"CFrogBlock")) {
     return FROG_SMALL_NIL;
   }
-  self=FrogUnSuper(self);
-  block=FrogUnSuper(block);
   cnt=AsF64(self);
   while(--cnt>=0) {
     ret=FrogBlockValue(block);
@@ -1284,8 +1237,6 @@ CFrogThing *FrogWhileTrue(CFrogBlock *self,...) {
   if(!ThingHasClass(self,"CFrogBlock")||!ThingHasClass(pass,"CFrogBlock")) {
     return FROG_SMALL_NIL;
   }
-  self=FrogUnSuper(self);
-  cond=FrogUnSuper(cond);
   Bool *return_flag=self->frame(CLocalsGeneric *)->return_flag;
   while(TRUE) {
      cond=FrogBlockValue(self);
@@ -1324,8 +1275,6 @@ CFrogThing *FrogWhileFalse(CFrogBlock *self,...) {
   if(!ThingHasClass(self,"CFrogBlock")||!ThingHasClass(pass,"CFrogBlock")) {
     return FROG_SMALL_NIL;
   }
-  self=FrogUnSuper(self);
-  cond=FrogUnSuper(cond);
   Bool *return_flag=self->frame(CLocalsGeneric *)->return_flag;
   while(TRUE) {
     cond=FrogBlockValue(self);
@@ -1555,14 +1504,6 @@ CFrogStr *FrogClassName(CFrogClass *cls,...) {
 //This is a class method
 AddClassMethod("CFrogThing","name",&FrogClassName);
 
-CFrogSuper *FrogSuper(CFrogThing *from) {
-  CFrogSuper *s=ConstructThing("CFrogSuper");
-  s->from=FrogIncRefCnt(from);
-  return s;
-}
-U0 FrogSuperDel(CFrogSuper *s) {
-  Free(s);
-}
 U8 *AsString(CFrogThing *t) {
   I64 idx;
   U8 *ret=NULL;

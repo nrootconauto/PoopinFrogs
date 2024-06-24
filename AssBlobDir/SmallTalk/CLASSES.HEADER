@@ -1,10 +1,16 @@
 class CFrogThing:CQue {
-#define SRV_THINGF_TO_DELETE 1
-  I32 thing_flags,pad;
+#define THINGF_TO_DELETE 1
+#define THINGF_FRAME_TYPE 2
+#define THINGF_GC_LOCK 4
+#define THINGF_CALL_LOCK 8
+#define THINGf_TO_DELETE 0
+#define THINGf_GC_LOCK 2
+#define THINGf_CALL_LOCK 3
+  I32 thing_flags,shadow_ref_cnt;
   I32 id,ref_cnt;
-  U8 class_name[32];
   CCPU *owner_cpu;
   I64 lock_cnt;
+  U8 class_name[32];
 };
 class CFrogNum:CFrogThing {
   F64 num;
@@ -35,7 +41,7 @@ class CFrogArray:CFrogThing {
 
 class CFrogDictionary:CFrogThing {
   CFrogThing *buckets;
-  CFrogNum *size;
+  I64 size;
 };
 class CFrogStr:CFrogThing {
   CU8Set *items;
@@ -45,9 +51,6 @@ class CFrogStr:CFrogThing {
 class CFrogSymbol:CFrogThing {
   U8 name[STR_LEN];
   CFrogThing *value;
-//CU8Set and CI64Set are internally the same.
-  U8 *constructor dft "FrogArrayInit";
-  U8 *destroy dft "FrogArrayDel";
 };
 class CFrogError:CFrogThing {
 };
@@ -187,26 +190,28 @@ class C3DThingTemplate:CFrogThing {
   U8 *destroy dft "C3DThingTemplateDel";
 };
 class C3DThing:CFrogThing {
-  C3DThingTemplate *template;
+  C3DThingTemplate *template no_serialize;
   F64 x,y,z,angle,health;
   F64 momx,momy,momz,animation_start_tS;
   F64 momx2,momy2;
   CFrogStr *name; //Like Jimmy Crooks
   Bool no_draw,animation_no_repeat,pad[6];
+//Private
+  CFrogStr *template_name;
 };
 class C3DWorldManager:CFrogThing {
   U8 *world_handle;
-  CFrogArray *things;
+  CFrogArray *things recur_serialize;
 //See CWallStain mofo
-  CFrogArray *wall_stains;
-  CFrogArray *floor_stains;
-  CFrogDictionary *thing_templates;
-  CFrogDictionary *tile_templates;
+  CFrogArray *wall_stains no_serialize;
+  CFrogArray *floor_stains no_serialize;
+  CFrogDictionary *thing_templates no_serialize;
+  CFrogDictionary *tile_templates no_serialize;
   F64 gravity,last_update;
   I64 screen_x,screen_y;
 //A grid of things having the things(128*128 size)
-  CFrogArray *grid;
-  CFrogArray *doors;
+  CFrogArray *grid no_serialize;
+  CFrogArray *doors recur_serialize;
 };
 
 class CHandItem:CFrogThing {
@@ -218,8 +223,12 @@ class CHandItem:CFrogThing {
   F64 timeout;
   F64 anim_start_tS;
   I64 anim_no_repeat;
-  CUIGridItem *inventory_item;
+  CUIGridItem *inventory_item no_serialize;
   CFrogBlock *on_click;
+//Private
+  CFrogStr *gr_name;
+  I64 grid_x,grid_y;
+  I64 in_quick_inventory;
 };
 
 class CFloorStain:CFrogThing {
@@ -227,7 +236,7 @@ class CFloorStain:CFrogThing {
   F64 x,y;
   F64 center_x,center_y;
   I64 is_ceil;
-  CDC*dc;
+  CDC *dc;
   U8 *destroy dft "FloorStainDel";
 };
 class CCeilStain:CFloorStain {
@@ -281,7 +290,7 @@ class CEliza:CFrogThing {
 //
 
 //This [redacted for GH] is for picking up items in the world
-class CPickup:C3DThing {
+class CPickup:C3DThing {
   CFrogClass *item_class;
   I64 count;
 };
@@ -295,15 +304,15 @@ class CBigKey:CHandItem {};
 class CBigKeyPickup:CPickup{};
 
 class CPissLink:CFrogThing {
-  C3DThing *from;
+  C3DThing *from no_serialize;
   F64 oldx,oldy,oldz;
   F64 x,y,z;
   F64 momx,momy,momz;
 };
 class CPissStream:CFrogThing {
-  C3DThing *from;
+  C3DThing *from no_serialize;
 //CPissLink
-  CFrogArray *links;
+  CFrogArray *links recur_serialize;
 };
 
 class CGun1Pickup:CPickup {
@@ -312,7 +321,7 @@ class CShootgunPickup:CPickup {
 };
 
 class CFrogTongue:CFrogThing {
-  C3DThing *from;
+  C3DThing *from no_serialize;
   F64 start_tS;
   F64 x,y,z;
   F64 target_x,target_y,target_z;
@@ -327,72 +336,73 @@ class CTalker:CHandItem {
   C3DThing *talking_to;
 };
 class CFrogNPC:C3DThing {
-  CFrogRandom *random_generator;
+  CFrogRandom *random_generator no_serialize;
   F64 speed;
   CFrogTongue *tongue;
 //Who are we chasing/attacking
-  C3DThing *target;
+  C3DThing *target  no_serialize; //TODO
 //The state varaible does things like move the frog around
 // or run around if low health. It will attack if provoked
   F64 state_start_tS;
   F64 state_duration;
   I64 just_jumped;
   CFrogStr *state;
-  CEliza *chat_bot;
+//  CEliza *chat_bot;
 };
 class CPooka:C3DThing {
 };
 class CPlayer:C3DThing {
-  CFrogArray *items;
-  CFrogArray *shell_casings;
-  CUIMeter *health_meter;
-  CUIMeter *ammo_meter;
-  CUIGrid *quick_inventory,*main_inventory;
-  CUIButton *open_inventory_button;
-  CUIChatLog *chat_log;
-  CUITextBar *chat_log_input;
-  CUIElem *message;
+  CFrogArray *items recur_serialize;
+  CFrogArray *shell_casings no_serialize;
+  CUIMeter *health_meter no_serialize;
+  CUIMeter *ammo_meter no_serialize;
+  CUIGrid *quick_inventory no_serialize;
+  CUIGrid *main_inventory no_serialize;
+  CUIButton *open_inventory_button no_serialize;
+  CUIChatLog *chat_log no_serialize;
+  CUITextBar *chat_log_input no_serialize;
+  CUILabel *message no_serialize;
   F64 message_start_tS;
   I64 main_inventory_active;
   I64 chatting_active;
-  CPissStream *piss_stream;
+  CPissStream *piss_stream recur_serialize;
   F64 last_x,last_y;
 //How many bloody footprints will be made
   F64 bloody_foot_count;
 }; 
 class CPoopMan:C3DThing {
   CFrogRandom *random_generator;
-  CEliza *chat_bot;
+//  CEliza *chat_bot;
   CFrogStr *state;
   F64 state_start_tS,speed;
   F64 state_duration;
   I64 just_jumped;
   I64 threw;
-  C3DThing *target;  
+  C3DThing *target no_serialize;
 };
 class CZombie:C3DThing {
   CFrogRandom *random_generator;
   F64 speed;
-  CEliza *chat_bot;
+//  CEliza *chat_bot;
   F64 state_start_tS;
   F64 state_duration;
   F64 next_piss_tS;
   CFrogStr *state;
- CPissStream *piss_stream;
+ CPissStream *piss_stream recur_serialize;
   I64 just_jumped;
-  C3DThing *target;
+  C3DThing *target no_serialize;
 };
 class CCyberPoop:C3DThing {
   CFrogRandom *random_generator;
   F64 speed;
   F64 state_start_tS;
   F64 state_duration;
-  CFrogStr *state;
+  CFrogStr *state;
   I64 just_jumped;
-  C3DThing *target;
+  C3DThing *target no_serialize;
 };
 class CRocket:C3DThing {
-  C3DThing *from;
+  C3DThing *from  no_serialize;
 };
 class CPoopRocket:CRocket {
 };

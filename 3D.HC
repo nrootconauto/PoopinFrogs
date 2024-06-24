@@ -142,6 +142,7 @@ class C3DWorld {
    CQue particles;
    I64 particle_cnt;
 };
+C3DWorld *w;
 extern U0 Draw2DThing(C3DWorld *w,C3DThing *thing);
 #define MAX_PARTICLES 64
 U0 NewParticle(C3DWorld *w,I64 color,I64 sz,F64 x,F64 y,F64 z,F64 mx,F64 my,F64 mz) {
@@ -167,9 +168,9 @@ U0 NewParticle(C3DWorld *w,I64 color,I64 sz,F64 x,F64 y,F64 z,F64 mx,F64 my,F64 
 #define THINGF_FACE_FORWARD 1
 //These are defined in the blob header.
 U0 C3DThingTemplateDel(C3DThingTemplate *t) {
-  DCDel(t->front);
-  DCDel(t->side);
-  DCDel(t->back);
+  if(t->front) DCDel(t->front);
+  if(t->side) DCDel(t->side);
+  if(t->back) DCDel(t->back);
   Free(t);
 }
 U0 C3DWorldSetFov(C3DWorld *w,F64 fov=pi/4) {
@@ -198,6 +199,7 @@ C3DWorld *LoadWorldFromFile(U8 *blob_file="ASS",U8 *filename,F64 fov=pi/4) {
   ret->heightmap=MAlloc(world->h*world->w);
   ret->ceilmap=MAlloc(world->h*world->w);
   ret->ceilmap2=MAlloc(world->h*world->w);
+  w=ret;
   xoff=GRID_SZ*world->startx;
   yoff=GRID_SZ*world->starty;
   QueInit(&ret->_2d_thing_templates);
@@ -275,7 +277,8 @@ C3DWorld *LoadWorldFromFile(U8 *blob_file="ASS",U8 *filename,F64 fov=pi/4) {
 	  thing->y=fptr(CFileThing*)->y*GRID_SZ-yoff;
 	  thing->angle=fptr(CFileThing*)->rot;
 	  CallScript("init",thing);
-	  I64SetAdd(ret->_2d_things,thing);
+//Things add themselves to the world
+//	  I64SetAdd(ret->_2d_things,thing);
         }
       }
       Free(tmp);
@@ -802,7 +805,7 @@ U0 PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm) {
     t->momz=0;
   } else if(!rocket)
       t->momz-=wm->gravity;
-  if(t->momy+t->momy2||t->momx+t ->momx2) {
+  if(t->momy+t->momy2||t->momx+t->momx2) {
     if(!rocket) {
       t->momx*=29/30.;
       t->momy*=29/30.;
@@ -1124,6 +1127,7 @@ ent:
         }
       }
     }
+fin:
   return GR_HEIGHT-sy;
 }
 F64 FUMod(F64 v,F64 to) {
@@ -1829,11 +1833,12 @@ draw:
   else
     use_dc+=frame%AnimDCCnt(use_dc);
   angle=Arg(x,y);
+//ACos(.5) is about 60 degrees
+  if(Cos(angle-w->angle)<.5)
+    goto fin;
 //https://permadi.com/1996/05/ray-casting-tutorial-8/
-  if(angle<w->angle)
-    dist*=Cos(w->angle-angle);
-  else
-    dist*=Cos(angle-w->angle);
+  dist*=Cos(angle-w->angle);
+  if(dist<2.) goto fin;
 //Draw Starting from bottom of wall
 //
 // The differnece between h an vis_h s vis_h is clamped to avoid massive sprites when up close
@@ -1850,17 +1855,8 @@ draw:
   width=ToF64(vis_h)/use_dc->height*use_dc->width;
   angle=NormalizeAngle(angle);
   w->angle=NormalizeAngle(w->angle);
-//Check direction
-  if(Sin(angle-w->angle)>0.) {
-    angle=AngleBetween(angle,w->angle);
 //Eeriler i scaled by 1.5,so do opositie
-    x0=GR_WIDTH/2+angle/((w->fov/GR_WIDTH))-width/1.5/2;
-  } else {
-    angle=AngleBetween(angle,w->angle);
-//Eeriler i scaled by 1.5,so do opositie
-    x0=GR_WIDTH/2-angle/((w->fov/GR_WIDTH))-width/1.5/2;
-  }
-
+  x0=GR_WIDTH/2+Wrap(angle-w->angle)/((w->fov/GR_WIDTH))-width/1.5/2;
 //clamp'ed x
   cx=ClampI64(x0,0,GR_WIDTH);
 //ditto
@@ -1922,7 +1918,6 @@ fin:
    DrawPissStream(w,thing(CZombie*)->piss_stream);
   }
 }
-C3DWorld *w;
 U0 WallStainDel(CWallStain *s) {
   if(s->dc) AnimDCDel(s->dc);
   Free(s);
@@ -2071,17 +2066,16 @@ CFrogThing *C3DThingMoveAtAngle(C3DThing *self,...) {
 AddMethod("C3DThing","move:atAngle:",&C3DThingMoveAtAngle);
 
 CFrogThing *WorldManagerWidth(C3DWorldManager *self,...) {
-  return FrogNumNew(self->world_handle(C3DWorld*)->world_width);
+  return FrogNumNew(w->world_width);
 }
 CFrogThing *WorldManagerHeight(C3DWorldManager *self,...) {
-  return FrogNumNew(self->world_handle(C3DWorld*)->world_height);
+  return FrogNumNew(w->world_height);
 }
 AddMethod("C3DWorldManager","width",&WorldManagerWidth);
 AddMethod("C3DWorldManager","height",&WorldManagerHeight);
 CFrogThing *WorldManagerTileHeightAtXAtY(C3DWorldManager *self,...) {
   I64 x=AsF64(argv[0]);
   I64 y=AsF64(argv[1]);
-  C3DWorld *w=self->world_handle;
   if(0<=x<w->world_width)
     if(0<=y<w->world_height) {
       return FrogNumNew(w->heightmap[x+y*w->world_width]);
@@ -2092,7 +2086,6 @@ AddMethod("C3DWorldManager","tileHeightAtX:atY:",&WorldManagerTileHeightAtXAtY);
 CFrogThing *WorldManagerCeilHeightAtXAtY(C3DWorldManager *self,...) {
   I64 x=AsF64(argv[0]);
   I64 y=AsF64(argv[1]);
-  C3DWorld *w=self->world_handle;
   if(0<=x<w->world_width)
     if(0<=y<w->world_height) {
       return FrogNumNew(w->ceilmap[x+y*w->world_width]);
@@ -2103,7 +2096,6 @@ AddMethod("C3DWorldManager","ceilHeightAtX:atY:",&WorldManagerCeilHeightAtXAtY);
 CFrogThing *WorldManagerCeilRiseAtXAtY(C3DWorldManager *self,...) {
   I64 x=AsF64(argv[0]);
   I64 y=AsF64(argv[1]);
-  C3DWorld *w=self->world_handle;
   if(0<=x<w->world_width)
     if(0<=y<w->world_height) {
       return FrogNumNew(w->ceilmap2[x+y*w->world_width]);
@@ -2114,7 +2106,6 @@ AddMethod("C3DWorldManager","ceilRiseAtX:atY:",&WorldManagerCeilRiseAtXAtY);
 CFrogThing *WorldManagerTileHeightAt(C3DWorldManager *self,...) {
   C2DPoint *p=argv[0];
   CFrogThing *ret=FrogNumNew(I16_MAX);
-  C3DWorld *w=self->world_handle;
   if(0<=p->x<w->world_width)
     if(0<=p->y<w->world_height) {
       ret=FrogNumNew(w->heightmap[p->x+p->y*w->world_width]);
@@ -2202,7 +2193,7 @@ CFrogThing *WorldManagerRayTile(C3DWorldManager *self,...) {
 	    Floor(h),
 	    ,
 	    FALSE,
-	    TRUE //Allow ceilings
+	    TRUE //Allow ceilings
 	    );
   w->x=oldx;
   w->y=oldy;
@@ -2237,6 +2228,7 @@ CFrogThing *HandItemSetGr(CHandItem *self,...) {
     self->gr=AnimDCLoad(grl);
     Free(grl);
   }
+  self->gr_name=FrogStrNew(name);
   Free(name);
   return FROG_SMALL_NIL;
 }
@@ -2262,7 +2254,7 @@ CFrogThing *ThingCanSeeThing(C3DThing *self,...) {
 AddMethod("C3DThing","canSeeThing:",&ThingCanSeeThing);
 
 
-CFrogThing *ScreenCoordToDist(C3DWorldManager *self,...) {
+CFrogThing *ScreenCoordToDist(C3DWorldManager *self,...) {
   return FrogNumNew(ScreenCordsToDist(w,self->screen_x,self->screen_y));
 }
 AddMethod("C3DWorldManager","screenCoordToDist",&ScreenCoordToDist);
@@ -2298,7 +2290,7 @@ AddMethod("C3DWorldManager","screenCoordIsOnFloor",&ScreenCoordOnFloor);
 #ifdef TEST_3D
   DocClear;
 #include "UI.HC"
-w=LoadWorldFromFile(,"Untitled.WORLD");
+LoadWorldFromFile(,"Untitled.WORLD");
 I64 mp_thing_done=0;
 U0 DrawDoor(CDoor *d) {
   CD3 points[4];
@@ -2463,18 +2455,31 @@ U0 DrawIt(CTask *t,CDC *dc) {
   w->to_dc->flags|=DCF_NO_TRANSPARENTS;
   GrBlot(dc,0,0,w->to_dc);
 }
-U0 WalkAround() {
+U0 WalkAround(U8 *save_string=NULL) {
   I64 c,ch=0,sc=0,m1,m2,msg,jump=FALSE;
   I64 msx=GR_WIDTH/2,msy=GR_HEIGHT/2;
   F64 mouse_angle;
   F64 x=9*GRID_SZ,y=5*GRID_SZ;
   Bool up=FALSE,down=FALSE,right=FALSE,left=FALSE,cont=TRUE;
   CFrogSymbol *man=FrogSymbol("world");
+  CShellCasing *shellc;
+  C3DWorldManager *wm=man->value,*load_game;
+  I64 every=0;
+  if(save_string) {
+     load_game=CallScript("restoreThing",FrogStrNew(save_string));
+     if(ThingHasClass(load_game,"C3DWorldManager")) {
+       man->value=load_game;
+///Insherit old dictionaries
+       load_game->thing_templates=wm->thing_templates;
+       load_game->tile_templates=wm->tile_templates;
+       wm=load_game;
+       w->_2d_things=wm->things->items;
+       w->_wall_stains=wm->wall_stains->items;
+       w->_floor_stains=wm->floor_stains->items;
+     }
+  }
   CPlayer *player=CallScript("getPlayer",man->value);
   CUIElem *ui_root=FrogSymbol("ui_root")->value;
-  CShellCasing *shellc;
-  C3DWorldManager *wm=man->value;
-  I64 every=0;
   WinMax;
   WinBorder;
   AutoComplete;
@@ -2532,6 +2537,7 @@ U0 WalkAround() {
 		  //No jumping out of try block
 		  //goto en;
 		  cont=FALSE;
+		  break;
 		}
 		case ' ': jump=TRUE; break;
 	        case 'W': up=TRUE; break;
@@ -2618,14 +2624,18 @@ next:;
     } catch {PutExcept(TRUE);}
 en:
   WaitForJobsFinish;
+  CallScript("saveThing",wm);
   FlushMsgs;
   Fs->draw_it=NULL;
   Refresh;
-  /*FrogNullifySymbols;
+/*  FrogNullifySymbols;
   FrogGarbageCollect;
   HeapWho(Fs);*/
 }
-WalkAround;
+if(FileFind("/STDebug.DD"))
+  WalkAround(FileRead("/STDebug.DD"));
+else
+  WalkAround;
 #endif
 #endif        i               8      8   ßÿÿÿ   Ýÿÿÿ      	'   öÿÿÿ?   áÿÿÿ
 

@@ -1,0 +1,27 @@
+beforeSave->* |
+  p=CPlayer
+  who=CUIGrid
+  col=CFrogArray
+|
+  p _ #world getPlayer .
+  who _ p->quick_inventory.
+'who 'show .
+  (who->sub_elems includes: inventory_item) ifTrue: [
+    in_quick_inventory _ 1 .
+  ] ifFalse: [
+    who _ p->main_inventory .
+'who2 ' show .
+    in_quick_inventory _ 0 .
+  ] .
+
+  0 to: who->mat size do: [:x=CFrogNum|
+    col _ who->mat at: x .
+    0 to: col size do: [:y=CFrogNum|
+      (col at: y ) = inventory_item ifTrue: [
+        grid_x _ x .
+        grid_y _ y .
+        ^ 1 .
+      ]
+    ] .
+  ] .
+  ^ 0

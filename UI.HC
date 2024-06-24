@@ -584,17 +584,18 @@ CFrogThing *UIGridItemSetGr(CUIGridItem *self,...) {
   CDC *raw;
   l=BlobFileGetLump("ASS",name);
   if(self->graphics) AnimDCDel(self->graphics);
-  raw=AnimDCLoad(l);
-  self->graphics=ScaleDC(raw,24,24,frog_mem_task);
+  if(l) {
+    raw=AnimDCLoad(l);
+    self->graphics=ScaleDC(raw,24,24,frog_mem_task);
+    AnimDCDel(raw);
+  }
   Free(l);
   Free(name);
-  AnimDCDel(raw);
-  ThingDel(who);
   return FROG_SMALL_NIL;
 }
 AddMethod("CUIGridItem","setGraphics:",&UIGridItemSetGr);
 U0 UIGridItemDel(CUIGridItem *i) {
-  AnimDCDel(i->graphics);
+  if(i->graphics) AnimDCDel(i->graphics);
   Free(i);
 }
 U0 UIGridItemDraw(CDC *dc,I64 x,I64 y,CUIGridItem *self) {

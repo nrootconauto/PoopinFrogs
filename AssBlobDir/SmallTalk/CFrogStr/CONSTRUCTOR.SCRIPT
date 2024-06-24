@@ -1,2 +1,2 @@
 new ->CFrogStr | |
- ^ super new
+ ^ self basicNew

@@ -5,11 +5,13 @@ update ->*
   r=CFrogNum
   now=CFrogNum
   rocket=CRocket
+  hit_wall=CFrogNum
 |
+'Ask nroot to get off his ass and do this autoamticaly'. 
+  momx2 _ 0 .
+  momy2 _ 0 .
   w _ #world .
   now _ CFrogTime now asSeconds.
-
-  state show .
 
   health <= 0 ifTrue: [
     state = 'Dead' ifTrue: [
@@ -23,6 +25,7 @@ update ->*
   ] .
 
   state = 'PrepareFire' ifTrue: [
+    angle _ (target->x - x) arg: (target->y - y) .
     now > (state_start_tS + 1.) ifTrue: [
       state _ 'Fire' .
       animation_no_repeat _ 0 .
@@ -35,10 +38,10 @@ update ->*
   ].
 
   state = 'Fire' ifTrue: [
-    now > state_start_tS + .5 ifTrue: [
+    now > (state_start_tS + .333) ifTrue: [
       state_start_tS _ now .
       angle _ (target->x - x) arg: (target->y - y) .
-      dist _ ((target->x - x) squared + (target->y - y) squared) sqrt .
+      dist _ ((target->x - x) squared + (target->y - y) squared ) sqrt .
       -1 to: 2 do: [:o=CFrogNum | 
         rocket _ CRocket new .
         rocket->from _ self .
@@ -71,6 +74,7 @@ update ->*
   (state = 'Wait' and: target->health > 0) ifTrue: [
     (self canSeeThing: target) ifTrue: [
       state  _ 'Chase' .
+      angle _ target->x - x arg: target->y - y .
     ] .
   ] .
 
@@ -78,15 +82,41 @@ update ->*
     state _ 'Wait'.
   ] .
 
-
-  r _ random_generator next .  
   state = 'Chase' ifTrue: [
-    r < (1 / 3.4 / 10 ) ifTrue: [
-     r show .
+   
+  ] .
+
+  state = 'Chase' ifTrue: [
+    r _ random_generator next .  
+    r < (1 / 10 ) ifTrue: [
       state _ 'PrepareFire' .
+      angle _ (target->x - x) arg: (target->y - y) .
       template _ w getThingTemplate: 'CCyberPoop/Fire'.
       state_start_tS _ now .
       ^ 1 .
     ] .
-  ] .
   
+    hit_wall _ self move: 10 atAngle: angle .
+    hit_wall ifTrue: [
+      self isOnGround  ifTrue: [
+        'Try to jump over wall if low enough' .
+        ((w tileHeightAtX: (x + (128 * angle cos ))/ 128 atY: (y + (128 * angle sin))/ 128 ) - z ) <= 2.1 ifTrue: [
+          momz _ .65 .
+          ^ 1 
+        ] .
+      ] .
+      self isOnGround ifTrue: [
+        angle _ angle + (3.14 * random_generator next ) .
+      ]
+    ] ifFalse: [
+      r _ random_generator next .
+      (r < 1 / 10) ifTrue: [
+        angle _ angle + ((random_generator next - .5 ) * 3.14 / 2) .
+      ] ifFalse: [
+        (r < .3 ) ifTrue: [
+          angle _ target->x - x arg: target->y - y .
+        ] .
+      ] .
+    ] .
+  
+  ] .

@@ -1,2 +1,2 @@
 new -> CFrogArray | |
- ^ super new
+ ^ self basicNew

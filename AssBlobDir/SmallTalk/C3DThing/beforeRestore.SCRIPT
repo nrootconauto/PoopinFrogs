@@ -1,0 +1,3 @@
+beforeSave->* ||
+  template_name _ template ->name .
+  template_name show .

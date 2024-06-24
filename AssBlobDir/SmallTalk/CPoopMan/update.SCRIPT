@@ -82,7 +82,13 @@ update->* |
   ] .
 
   state = 'Throw' ifTrue: [
+'threw' show .
+threw not show .
+((tS - state_start_tS) > (6 / 4))show .
+'f' show .
+((tS - state_start_tS) > (6 / 4) and: threw not ) show .
     ((tS - state_start_tS) > (6 / 4) and: threw not )ifTrue: [
+'shit' show .
       threw _ 1 .
       rocket _ CPoopRocket new .
       rocket->from _ self . 
@@ -96,7 +102,7 @@ update->* |
       dist _ ((target->x - rocket->x) squared +(target->y - rocket->y)) sqrt .
       '64 is the throw force' .
       rocket->momz _ (target->z +.5 - rocket->z + ((random_generator next - .5 ) / 2 ) ) / dist * 64 .
-    ].
+    ] .
     (tS - state_start_tS) > state_duration ifTrue: [
       state _ 'Normal' .
     ] .    

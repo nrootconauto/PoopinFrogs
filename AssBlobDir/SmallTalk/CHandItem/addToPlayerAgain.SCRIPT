@@ -1,0 +1,33 @@
+addToPlayerAgain:p=CPlayer ->* |
+  who=CUIGrid
+|
+  in_quick_inventory ifTrue: [
+    who _ p->quick_inventory
+  ] ifFalse: [
+    who _ p->main_inventory
+  ] .
+
+  inventory_item _ CUIGridItem new .
+  inventory_item setGraphics: gr_name .
+  inventory_item setCount: ammo .
+  inventory_item setItem: self .
+  inventory_item onLeftUp: [
+    #hand_item _ self .
+  ].
+
+  p->items add: self .
+
+
+  'poo poo' show .
+  grid_x show .
+  grid_y show .
+  who show .
+
+  who addItem: inventory_item atX: grid_x atY: grid_y .
+
+  who->sub_elems size show .
+
+  'poo poo2' show.
+  gr_name show .
+
+  self setGraphics: gr_name .
