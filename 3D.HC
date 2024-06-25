@@ -2254,7 +2254,7 @@ CFrogThing *ThingCanSeeThing(C3DThing *self,...) {
 AddMethod("C3DThing","canSeeThing:",&ThingCanSeeThing);
 
 
-CFrogThing *ScreenCoordToDist(C3DWorldManager *self,...) {
+CFrogThing *ScreenCoordToDist(C3DWorldManager *self,...) {
   return FrogNumNew(ScreenCordsToDist(w,self->screen_x,self->screen_y));
 }
 AddMethod("C3DWorldManager","screenCoordToDist",&ScreenCoordToDist);

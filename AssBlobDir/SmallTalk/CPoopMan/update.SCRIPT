@@ -33,41 +33,8 @@ update->* |
     old_x _ x .
     old_y _ y .
     old_z _ z .
-    hit_wall _ self move: speed atAngle: angle .
-    hit_wall ifTrue: [
-      (just_jumped not and: self isOnGround ) ifTrue: [
-        'Try to jump over wall if low enough' .
-        (((w tileHeightAtX: (x + (64 * angle cos ))/ 128 atY: (y + (64 * angle sin )) / 128 ) - z ) <= 2.1 and:
-          random_generator next < .5 ) ifTrue: [
-          momz _ .75 .
-          x _ old_x .
-          y _ old_y .
-          z _ old_z .
-          just_jumped _ 1 .
-          ^ 1 
-        ] ifFalse: [
-          self isOnGround ifTrue: [
-            angle _ angle + (.25 * (random_generator next - .5 ) + 3.14 ) .
-          ]
-        ] .
-      ]
-    ] .
-    self isOnGround ifTrue: [
-      just_jumped _ 0 .
-    ].
 
-    (target hasClass: C3DThing) ifFalse: [
-      target _w getPlayer .
-    ] .
-
-    (random_generator next < ( .2 / 10 )) ifTrue: [
-      'Cahnge direction' .
-      random_generator next > .3 ifTrue: [
-        angle _ (target->x - x  arg: target->y - y ) + ((random_generator next - .5) / 4 ) .
-      ] ifFalse: [
-        angle _ angle + ((random_generator next - .5 ) / 4 ) 
-      ].
-    ] .
+    self wander: speed withJumpVelocity: .75 withTarget: target .
 
     (random_generator next < ( .3 / 10 ) and: (self canSeeThing: target)) ifTrue: [
       state _ 'Throw' .
@@ -82,13 +49,7 @@ update->* |
   ] .
 
   state = 'Throw' ifTrue: [
-'threw' show .
-threw not show .
-((tS - state_start_tS) > (6 / 4))show .
-'f' show .
-((tS - state_start_tS) > (6 / 4) and: threw not ) show .
     ((tS - state_start_tS) > (6 / 4) and: threw not )ifTrue: [
-'shit' show .
       threw _ 1 .
       rocket _ CPoopRocket new .
       rocket->from _ self . 

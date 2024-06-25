@@ -595,7 +595,7 @@ CFrogThing *UIGridItemSetGr(CUIGridItem *self,...) {
 }
 AddMethod("CUIGridItem","setGraphics:",&UIGridItemSetGr);
 U0 UIGridItemDel(CUIGridItem *i) {
-  if(i->graphics) AnimDCDel(i->graphics);
+  if(i->graphics) AnimDCDel(i->graphics);
   Free(i);
 }
 U0 UIGridItemDraw(CDC *dc,I64 x,I64 y,CUIGridItem *self) {

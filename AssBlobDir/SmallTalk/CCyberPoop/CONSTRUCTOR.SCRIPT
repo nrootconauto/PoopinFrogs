@@ -1,4 +1,5 @@
 init->CCyberPoop | |
+  #world addThing: self .
   random_generator _ CFrogRandom new .
   template _ #world getThingTemplate: 'CCyberPoop' .
   template->radius _ 256 .

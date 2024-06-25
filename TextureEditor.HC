@@ -273,7 +273,7 @@ U0 DrawSidebar(CTask *t,CDC *dc,CTextureEditor *ed) {
 	    case TOOL_FILL:
 	    case TOOL_LINE:
 	    case TOOL_POLY_LINE:
-	    case TOOL_ELLIPSE:
+	    case TOOL_ELLIPSE:
 	    case TOOL_ERASE:
 	    case TOOL_CUT:
 	    case TOOL_COPY:

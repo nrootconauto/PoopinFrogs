@@ -73,23 +73,8 @@ update ->* |
   old_x _ x .
   old_y _ y .
   old_z _ z .
-  hit_wall _ self move: speed atAngle: angle .
-  hit_wall ifTrue: [
-    (just_jumped not and: self isOnGround ) ifTrue: [
-      'Try to jump over wall if low enough' .
-      ((#world tileHeightAtX: (x + (128 * angle cos ))/ 128 atY: (y + (128 * angle sin))/ 128 ) - z ) <= 2.1 ifTrue: [
-        momz _ .65 .
-        x _ old_x .
-        y _ old_y .
-        z _ old_z .
-        just_jumped _ 1 .
-        ^ 1 
-      ] .
-    ] .
-    self isOnGround ifTrue: [
-      angle _ angle + (3.14 * random_generator next ) .
-    ]
-  ] .
+
+  self wander: speed withJumpVelocity: #world gravity * 3 withTarget: target .
 
   'Jump Randomly' .
 

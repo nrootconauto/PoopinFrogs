@@ -94,32 +94,12 @@ update -> * |
 
   template _ #world getThingTemplate: 'CZombie' .
   animation_no_repeat _ 0 .
-  'Try to move towards target or randomly change direction' .
-  random_generator next < .3 / 10  ifTrue: [
-    ((target hasClass: C3DThing) and: random_generator next > .5 ) ifTrue: [
-      angle _ target->x - x arg: target->y - y .
-    ] ifFalse: [
-      angle _ angle + ( 1.5 * (random_generator next - .5))
-    ] .
-  ] . 
-  hit_wall _ self move: speed atAngle: angle .
-  hit_wall ifTrue: [
 
-    (just_jumped not and: self isOnGround ) ifTrue: [
-      'Try to jump over wall if low enough' .
-      ((#world tileHeightAtX: (x + (128 * angle cos ))/ 128 atY: (y + (128 * angle sin))/ 128 ) - z ) <= 2.1 ifTrue: [
-        momz _ .65 .
-        just_jumped _ 1 .
-        ^ 1 
-      ] .
-    ] .
-    self isOnGround ifTrue: [
-      angle _ angle + (3.14 * random_generator next ) .
-    ]
-  ] .
+  self wander: speed withJumpVelocity: .65 withTarget: target .
+
   'Jump Randomly' .
 
-  z = (#world tileHeightAtX: x / 128 atY: y / 128 ) ifTrue: [
+  self isOnGround ifTrue: [
      random_generator next < (.9 / 10) ifTrue: [
        momz _ #world gravity * 3 .
      ]
