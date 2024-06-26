@@ -4,6 +4,7 @@
 #include "../BlobFile.HC";
 #exe {Cd(__DIR__);};
 #define STS_ADD_CLASS -100
+#define STS_METHOD_HELP -101
 #define ST_ROOT	"SmallTalk/" //Must be same length
 #define ST_CLASS_ROOT	"STClsRoot/"
 #define ST_SCRIPT_ROOT	"STScripts/"
@@ -29,10 +30,9 @@ U0 SanitizeStr(U8 *tmp) {
   }
   *tmp2=0;
 }
-
-U0 STSyntaxHighlight(CDoc *out,U8 noreg *txt) {
-  DocClear(out);
-  I64 noreg lpos=0;
+U0 STSyntaxHighlight(CDoc *out,U8 noreg *txt,Bool clear=TRUE) {
+  if(clear) DocClear(out);
+  I64 noreg lpos=0,off;
   I64 nest_depth=0;
   SanitizeStr(txt);
 //Newline in case our lexer eats the 0
@@ -41,7 +41,6 @@ U0 STSyntaxHighlight(CDoc *out,U8 noreg *txt) {
   l->flags=LEXF_SILENT;
   try {
 again:
-    lpos=l->pos;
     switch(Lex(l)) {
       case 0 :
         DocPrint(out,"$$FD$$");
@@ -87,7 +86,10 @@ again:
         DocPrint(out,"$$FD$$");
 	break;
       end:
-        while(lpos!=l->pos) {
+	off=0;
+	if(l->flags&(1<<LEXf_USE_LAST_CHAR))
+	  off=-1;
+        while(lpos<l->pos+off) {
           if(txt[lpos]=='\d')
 	    DocPrint(out,"$$$$",txt[lpos++]);
           else 
@@ -100,6 +102,7 @@ again:
     DocPrint(out,"$$FD$$%s",txt+lpos);
     Fs->catch_except=TRUE;
   }
+  LexerDel(l);
   Free(txt);
 }
 Bool SynView(CDoc *doc) {
@@ -180,7 +183,7 @@ U0 STValidateCode(U8 *blob_file="../ASS",U8 *code,U8 *path,Bool script=FALSE) {
   CDoc *pd=Fs->put_doc,*new=DocNew;
   CMethod *m;
   CAST *ast;
-//
+  //
   //Dumy hash table for tmeporary headers
   //
   CHashTable *dummy=HashTableNew(0x100);
@@ -222,6 +225,171 @@ U0 STValidateCode(U8 *blob_file="../ASS",U8 *code,U8 *path,Bool script=FALSE) {
 //
   HashTableDel(dummy);
 }
+U0 STHelpIdx(CDoc *help_doc,U8 *blob_file="../ASS",U8 *method_wildcard="*",Bool include_src=TRUE) {
+  blob_file=ExtDft(blob_file,"BLOB");
+  if(!FileFind(blob_file)) {
+    PopUpOk("Cant Find Blob file!!!");
+    Free(blob_file);
+    return;
+  }
+again:;
+  CI64Set *matches=I64SetNew;
+  STStudioRegisterNewClasses(blob_file);
+  CHashTable *new=HashTableNew(0x100);
+  new->next=Fs->hash_table;
+  U8 *new_header=BlobFileGetLump(blob_file,ST_ROOT"CLASSES");
+  ExePutS(new_header);
+  Free(new_header);
+  CDocEntry *doc_e;
+  Bool repeat=TRUE;
+  I64 idx,idx2;
+  CLexer *l;
+  I64 class_method;
+  U8 cls_name[STR_LEN],*cls_name_ptr=cls_name;
+  U8 *prefix,*en,*tmp,*method_name,*blob;
+  CBlobFileHeader *lumps=FileRead(blob_file);
+  CLumpHeader *hdr;
+  CMethod *m;
+  DocPrint(help_doc,"$$PURPLE$$$$TX+CX,\"Help Index\"$$$$FD$$\n"); 
+  DocMax(help_doc);
+//  Silent(TRUE);
+  for(idx2=0;idx2!=2;idx2++) {
+    if(idx2)
+      DocBottom(help_doc);
+//Phase 1,Methods
+    for(idx=0;idx!=lumps->lump_cnt;idx++) {
+      hdr=&lumps->lump_table[idx];
+      if(!StrNCmp(hdr->name,ST_ROOT,StrLen(ST_ROOT))&&
+	    StrCmp(hdr->name,ST_ROOT"CLASSES") //Make sure not CLASSES lump
+	    &&StrOcc(hdr->name,'/')==2) { //1 '/' for root,1 '/' for class/method
+        prefix=LumpNameToPath(hdr->name);
+        if(!idx2) { 
+	  tmp=MStrPrint("Instance Methods/%s",prefix);
+	  if(en=StrLastOcc(hdr->name,"/")) {
+	    method_name=StrNew(en+1);
+	    try {
+	      blob=BlobFileGetLump(blob_file,hdr->name);
+	      l=LexerNew(blob);
+	      Lex(l);
+	      StrScan(hdr->name,ST_ROOT"%s/",&cls_name_ptr);
+	      m=ParseMethod(l,HashFind(cls_name,Fs->hash_table,HTT_CLASS));
+	      Free(method_name);
+	      method_name=StrNew(m->name);
+	      MethodDel(m);
+	    } catch {
+	      Fs->catch_except=TRUE;
+	    }
+"%s,%s\n",cls_name,method_name;
+	    if(WildMatch(method_name,method_wildcard)) {
+	      I64SetAdd(matches,hdr);
+	      DocTreeAppend(help_doc,tmp,FALSE,"$$LK,\"%Q\",A=\"FA:/SmallTalkHelp.DD,%Q\"$$\n",method_name,hdr->name);
+            }
+	  }
+        } else if(I64SetHas(matches,hdr)) {
+	  if(en=StrLastOcc(hdr->name,"/")) {
+	    DocPrint(help_doc,"$$AN+CX,\"%Q\",A=\"%Q\"$$\n",en+1,hdr->name);
+	    DocPrint(help_doc,"$$ID,2$$\n");
+	    tmp=BlobFileGetLump(blob_file,hdr->name);
+	    STSyntaxHighlight(help_doc,tmp,FALSE);
+	    DocPrint(help_doc,"$$ID,-2$$\n");
+	  }
+        } else {
+	  tmp=NULL;
+        }
+        Free(prefix);
+        Free(tmp);
+      }
+    }
+//Phase 2,Class Methods(start with .)
+    for(idx=0;idx!=lumps->lump_cnt;idx++) {
+      hdr=&lumps->lump_table[idx];
+      if(!StrNCmp(hdr->name,ST_CLASS_ROOT,StrLen(ST_CLASS_ROOT))&&
+	    StrCmp(hdr->name,ST_CLASS_ROOT) //Make sure not CLASSES lump
+	    &&StrOcc(hdr->name,'/')==2) { //1 '/' for root,1 '/' for class/method
+        prefix=LumpNameToPath(hdr->name);
+        if(!idx2) {
+	  tmp=MStrPrint("Class Methods/%s",prefix);
+	  if(en=StrLastOcc(hdr->name,"/")) {
+	    method_name=StrNew(en+1);
+	    try {
+	      blob=BlobFileGetLump(blob_file,hdr->name);
+	      l=LexerNew(blob);
+	      Lex(l);
+	      StrScan(hdr->name,ST_ROOT"%s/",&cls_name_ptr);
+	      m=ParseMethod(l,HashFind(cls_name,Fs->hash_table,HTT_CLASS));
+	      Free(method_name);
+	      method_name=StrNew(m->name);
+	      MethodDel(m);
+	    } catch
+	      Fs->catch_except=TRUE;
+	    if(WildMatch(method_name,method_wildcard)) {
+	      I64SetAdd(matches,hdr);
+ 	      DocTreeAppend(help_doc,tmp,FALSE,"$$LK,\"%Q\",A=\"FA:/SmallTalkHelp.DD,%Q\"$$\n",method_name,hdr->name);
+	    }
+	    Free(method_name);
+	  }
+        } else if(I64SetHas(matches,hdr)) {
+	  if(en=StrLastOcc(hdr->name,"/")) {
+	    DocPrint(help_doc,"$$AN+CX,\"%Q\",A=\"%Q\"$$\n",en+1,hdr->name);
+	    DocPrint(help_doc,"$$ID,2$$\n");
+	    tmp=BlobFileGetLump(blob_file,hdr->name);
+	    STSyntaxHighlight(help_doc,tmp,FALSE);
+	    DocPrint(help_doc,"$$ID,-2$$\n");
+	  }
+        } else {
+	  tmp=NULL;
+        }
+        Free(prefix);
+        Free(tmp);
+      }
+    }
+//Phase 3,Load scripts
+    for(idx=0;idx!=lumps->lump_cnt;idx++) {
+      hdr=&lumps->lump_table[idx];
+      if(!StrNCmp(hdr->name,ST_SCRIPT_ROOT,StrLen(ST_SCRIPT_ROOT))) {
+        if(!idx2) {
+	  if(en=StrLastOcc(hdr->name,"/")) {
+	    DocTreeAppend(help_doc,"Scripts",FALSE,"$$LK,\"%Q\",A=\"FA:/SmallTalkHelp.DD,%Q\"$$\n",en+1,hdr->name);
+	  }
+        } else {
+	  if(en=StrLastOcc(hdr->name,"/")) {
+	    DocPrint(help_doc,"$$AN+CX,\"%Q\",A=\"%Q\"$$\n",en+1,hdr->name);
+	    DocPrint(help_doc,"$$ID,2$$\n");
+	    tmp=BlobFileGetLump(blob_file,hdr->name);
+	    STSyntaxHighlight(help_doc,tmp,FALSE);
+	    Free(tmp);
+	    DocPrint(help_doc,"$$ID,-2$$\n");
+	  }
+        }
+      }
+    }
+  }
+  Silent(FALSE);
+  U8 *filename,*needle;
+  I64 num;
+  DocCollapse(FALSE,help_doc);
+  DocRecalc(help_doc);
+  for(doc_e=help_doc->head.next;doc_e!=&help_doc->head;doc_e=doc_e->next) {
+    if(doc_e->type_u8==DOCT_LINK&&doc_e->de_flags&DOCEF_AUX_STR) {
+      if(LK_FILE_ANCHOR==EdLinkCvt(tmp=StrNew(doc_e->aux_str),&filename,&needle,&num)) {
+        if(DocAnchorFind(help_doc,needle)) {
+	  idx=help_doc->cur_entry->y;
+	  help_doc->cur_entry=doc_e;
+	  DocPrint(help_doc,"$$LK\"%Q\",A=\"FL:/SmallTalkHelp.DD,%d\"$$",doc_e->tag,idx);
+	  DocEntryDel(help_doc,doc_e);
+          DocRecalc(help_doc);
+        }
+      }
+      Free(tmp);
+      Free(filename);
+      Free(needle);
+    }
+  }
+  I64SetDel(matches);
+  Fs->hash_table=new->next;
+  HashTableDel(new);
+}
+
 U0 STStudio(U8 *blob_file="../ASS") {
   blob_file=ExtDft(blob_file,"BLOB");
   if(!FileFind(blob_file)) {
@@ -240,6 +408,7 @@ again:;
   CLumpHeader *hdr;
   DocPrint(main_menu,"$$PURPLE$$$$TX+CX,\"SmallTalk Studio\"$$$$FD$$\n");
   DocPrint(main_menu,"\n\n$$BT+CX,\"Add Class\",LE=STS_ADD_CLASS$$\n\n");
+  DocPrint(main_menu,"\n\n$$BT+CX,\"Method Name Search\",LE=STS_METHOD_HELP$$\n\n");
   DocPrint(main_menu,"$$RED$$$$TX+CX,\"Edit A Method\"$$$$FD$$\n");
  
 //Phase 1,New method button
@@ -335,6 +504,19 @@ again:;
       BlobFileAddLump(blob_file,ST_ROOT"CLASSES",en,StrLen(en),'HEADER');
       Free(en);
     }
+    DocDel(edit);
+    break;
+    case STS_METHOD_HELP:
+    edit=DocNew("/SmallTalkHelp.DD");
+    tmp=PopUpGetStr("Enter Method Name Fragment:\n");
+    if(StrLen(tmp)) {
+      en=MStrPrint("*%s*",tmp);
+    } else
+      en=StrNew("*");
+    STHelpIdx(edit,blob_file,en);
+    DocWrite(edit);
+    PopUpMenu(edit);
+    Free(tmp),Free(en);
     DocDel(edit);
     break;
     default:
@@ -479,6 +661,11 @@ U0 LoadMethodsFromBlob(U8 *blob_file="../ASS") {
 STStudio;
 LoadMethodsFromBlob;
 //STRepl;
+CDoc *d=DocNew("/WWW/SmallTalkHelp.DD");
+STHelpIdx(d);
+DocWrite(d);
+DocDel(d);
+
 #else
 LoadMethodsFromBlob;
 #endif

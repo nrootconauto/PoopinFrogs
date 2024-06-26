@@ -88,10 +88,6 @@ update ->*
   ] .
 
   state = 'Chase' ifTrue: [
-   
-  ] .
-
-  state = 'Chase' ifTrue: [
     r _ random_generator next .  
     r < (1 / 10 ) ifTrue: [
       state _ 'PrepareFire' .
@@ -101,27 +97,5 @@ update ->*
       ^ 1 .
     ] .
   
-    hit_wall _ self move: 10 atAngle: angle .
-    hit_wall ifTrue: [
-      self isOnGround  ifTrue: [
-        'Try to jump over wall if low enough' .
-        ((w tileHeightAtX: (x + (128 * angle cos ))/ 128 atY: (y + (128 * angle sin))/ 128 ) - z ) <= 2.1 ifTrue: [
-          momz _ .65 .
-          ^ 1 
-        ] .
-      ] .
-      self isOnGround ifTrue: [
-        angle _ angle + (3.14 * random_generator next ) .
-      ]
-    ] ifFalse: [
-      r _ random_generator next .
-      (r < 1 / 10) ifTrue: [
-        angle _ angle + ((random_generator next - .5 ) * 3.14 / 2) .
-      ] ifFalse: [
-        (r < .3 ) ifTrue: [
-          angle _ target->x - x arg: target->y - y .
-        ] .
-      ] .
-    ] .
-  
+    self wander: 10 withJumpVelocity: .65 withTarget: target .
   ] .

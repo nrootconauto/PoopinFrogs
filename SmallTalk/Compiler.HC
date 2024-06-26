@@ -1,4 +1,4 @@
-#ifndef ST_COMPILER_HH
+# ifndef ST_COMPILER_HH
 #define ST_COMPILER_HH 1
 #include "RunTime.HC";
 CFrogThing *Useless(CFrogThing *, ...) {
@@ -767,9 +767,6 @@ force_f64:;
         }
         if(!StrCmp(ast->op_name,"and:")) {
 	  NumPrim2(doc,locals,ast,stack_depth,"&&","and:");
-if(FramePtr("MethodClass"))
-	if(!StrCmp(FramePtr("MethodClass"),"CPoopMan"))
-	DocInsDoc(DocPut,doc);
 	  goto prim_skip;
         }
         if(!StrCmp(ast->op_name,"max:")) {

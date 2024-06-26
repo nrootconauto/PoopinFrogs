@@ -38,6 +38,17 @@ U0 I64SetRem(CI64Set *s,I64 v) {
   s->cnt-=del;
 }
 
+
+Bool I64SetHas(CI64Set *s,I64 v) {
+  I64 idx;
+  for(idx=0;idx!=s->cnt;idx++) {
+    if(s->body[idx]==v)
+      return TRUE;
+  }
+  return FALSE;
+}
+
+
 class CU8Set {
   I64 cnt,cap;
   CTask *mem_task;

@@ -199,7 +199,7 @@ class C3DThing:CFrogThing {
 //Private
   CFrogStr *template_name;
 };
-class C3DWorldManager:CFrogThing {
+class C3DWorldManager:CFrogThing {
   U8 *world_handle;
   CFrogArray *things recur_serialize;
 //See CWallStain mofo
@@ -290,7 +290,7 @@ class CEliza:CFrogThing {
 //
 
 //This [redacted for GH] is for picking up items in the world
-class CPickup:C3DThing {
+class CPickup:C3DThing {
   CFrogClass *item_class;
   I64 count;
 };
