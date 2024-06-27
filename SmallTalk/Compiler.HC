@@ -1,6 +1,7 @@
 # ifndef ST_COMPILER_HH
 #define ST_COMPILER_HH 1
 #include "RunTime.HC";
+#define DEBUG 1
 CFrogThing *Useless(CFrogThing *, ...) {
   return FROG_SMALL_NIL;
 }
@@ -55,6 +56,7 @@ class CLocals {
 //HTT_FRAME_PTR with offset
   CLocals *next;
   CHashTable *vars;
+  I64 raw_mask;
   U8 name[STR_LEN];
 };
 U0 LocalsDel(CLocals *l) {
@@ -63,7 +65,7 @@ U0 LocalsDel(CLocals *l) {
 }
 
 class CLocalsGeneric0:CFrogFrame {
-  U64 _type,raw_mask;//raw_mask means bit is set if is a raw(F64) type in body[bit]
+  U64 _type,_raw_mask;//raw_mask means bit is set if is a raw(F64) type in body[bit]
   CLocalsGeneric0 *_next;
   CLocalsGeneric0 *_parent;
   U8 *_return_flag;
@@ -143,7 +145,10 @@ class CHashGeneric3:CHashGeneric {
 };
 U8 *VarClassName(CLocals *l,U8 *var) {
   if(!l) return FALSE;
-  CHashGeneric3 *g=HashFind(var,l->vars,HTT_FRAME_PTR);
+  CHashGeneric3 *g;
+  while(l&&!(g=HashSingleTableFind(var,l->vars,HTT_FRAME_PTR))) {
+    l=l->next;
+  }
   if(g)
     if(g->user_data3) {
       return g->user_data3;
@@ -205,7 +210,8 @@ CLocals *GenerateLocalsFromMethod(CMethod *method,U8 *for_class) {
   StrPrint(ret->name,"CMethodLocals@%d",cnt++);
   ret->vars=HashTableNew(0x10);
   CAST *name,*head;
-  I64 idx,off=0;
+  U8 *var_class_name;
+  I64 idx,off=0,mask;
   DocPrint(dummy,"class %s:CLocalsGeneric0 {\n",ret->name);
 //Account for class members first,THEN account for method locals
   while(cls) {
@@ -217,12 +223,12 @@ CLocals *GenerateLocalsFromMethod(CMethod *method,U8 *for_class) {
         gen->type=HTT_FRAME_PTR;
         gen->user_data0=-1; //Not defined(class members are referenced from self)
 //If we are a "raw type"(I64/F64 etc),set user_data1 to mark it as such.
-//This seperates it from "normal" vars
-        if(RawAccessType(for_class,mlst->str)) {
+        //This seperates it from "normal" vars
+        if(var_class_name=RawAccessType(for_class,mlst->str)) {
 	  gen->user_data1=TRUE;
-          gen->user_data3="CFrogNum";
-	}
-	gen->user_data2=TRUE; //Is a SELF member
+	  gen->user_data3=var_class_name;
+        }
+        gen->user_data2=TRUE; //Is a SELF member
         gen->str=StrNew(mlst->str);
         HashAdd(gen,ret->vars);
       }
@@ -238,13 +244,21 @@ CLocals *GenerateLocalsFromMethod(CMethod *method,U8 *for_class) {
     for(name=head->next;name!=head;name=name->next) {
       gen=CAlloc(sizeof CHashGeneric3);
       gen->type=HTT_FRAME_PTR;
+      if(!StrCmp(name->var_class_name,"CFrogNum")) {
+        gen->user_data1=TRUE;
+        Bts(&mask,off);
+        DocPrint(dummy,"  CFrogThing *%s;\n",gen->str); //Treat like a pointer
+        gen->user_data3="F64";
+      } else {
+        DocPrint(dummy,"  CFrogThing *%s;\n",gen->str);
+        gen->user_data3=name->var_class_name;
+      }
       gen->user_data0=off++;
       gen->str=StrNew(name->name);
       HashAdd(gen,ret->vars);
-      DocPrint(dummy,"  CFrogThing *%s;\n",gen->str);
-      gen->user_data3=name->var_class_name;
     }
   }
+  ret->raw_mask=mask;
   DocPrint(dummy,"};\n");
   ExeDoc(dummy);
   DocDel(dummy);
@@ -253,24 +267,33 @@ CLocals *GenerateLocalsFromMethod(CMethod *method,U8 *for_class) {
 CLocals *GenerateLocalsFromThunk(CAST *thunk) {
   CLocals *ret=CAlloc(sizeof CLocals);
   static I64 cnt=0;
+  U8 *tmp;
   CDoc *dummy=DocNew;
   CHashGeneric3 *gen;
   StrPrint(ret->name,"CThunkLocals@%d",cnt++);
   ret->vars=HashTableNew(0x10);
   CAST *name,*head;
-  I64 off=0;
+  I64 off=0,mask=0;
   DocPrint(dummy,"class %s:CLocalsGeneric0 {\n",ret->name);
   head=&thunk->args;
   for(name=head->next;name!=head;name=name->next) {
     gen=CAlloc(sizeof CHashGeneric3);
+    if(!StrCmp(name->var_class_name,"CFrogNum")) {
+      gen->user_data1=TRUE;
+      Bts(&mask,off);
+      DocPrint(dummy,"  CFrogThing *%s;\n",gen->str);
+       gen->user_data3="F64";
+    } else {
+      DocPrint(dummy,"  CFrogThing *%s;\n",gen->str);
+      gen->user_data3=name->var_class_name;
+    }
     gen->type=HTT_FRAME_PTR;
     gen->user_data0=off++;
-    gen->user_data3=name->var_class_name;
     gen->str=StrNew(name->name);
     HashAdd(gen,ret->vars);
-    DocPrint(dummy,"  CFrogThing *%s;\n",gen->str);
   }
   DocPrint(dummy,"};\n");
+  ret->raw_mask=mask;
   ExeDoc(dummy);
   DocDel(dummy);
   return ret;
@@ -334,9 +357,24 @@ U0 ReplaceElem(CDoc *doc,CDocEntry *ent,U8 *with,...) {
 
 U8 *CompileThunk(CAST *block,CLocals *parent=NULL) {
   static I64 thunk_cnt=0;
-  U8 *ret;
+  U8 *ret,*tmp;
   I64 idx,thunk_idx=thunk_cnt++;
+#ifdef DEBUG
+  tmp=MStrPrint("/STDebugDir/Thunks@%s",FramePtr("MethodClass"));
+  if(!FileFind(tmp)) DirMk(tmp);
+  Free(tmp);
+  tmp=MStrPrint("/STDebugDir/Thunks@%s/t%d.HC",FramePtr("MethodClass"),thunk_cnt);
+  CDoc *doc=DocNew(tmp),*old_put=Fs->put_doc;
+  DocPrint(doc,"#if 0\n");
+  DocPrint(doc,"/*This is a generated file,DON'T FUCKIN EDIT*/\n");
+  Fs->put_doc=doc;
+  DumpAst(block);
+  Fs->put_doc=old_put;
+  Free(tmp);
+  DocPrint(doc,"\n#endif\n");
+#else
   CDoc *doc=DocNew;
+#endif
   CDocEntry *replace;
   CLocals *locals=GenerateLocalsFromThunk(block);
   locals->next=parent;
@@ -349,6 +387,7 @@ U8 *CompileThunk(CAST *block,CLocals *parent=NULL) {
   DocPrint(doc,"  Bool *return_flag=STNewBlockFrame(\"%Q\",parent_frame)->return_flag;\n",locals->name,block);
   DocPrint(doc,"  if(!return_flag) return_flag=&false;\n");
   DocPrint(doc,"  parent_frame=Fs->user_data;\n");
+  DocPrint(doc,"  parent_frame->_raw_mask=%d;\n",locals->raw_mask);
   DocPrint(doc,"  I64 unwind=0;I64 next_case=%d;\n",ast_case_num);
   head=&block->args;
   idx=0;
@@ -356,7 +395,10 @@ U8 *CompileThunk(CAST *block,CLocals *parent=NULL) {
     DocPrint(doc,"  tmp=&");
     STGetLocal(doc,locals,var->name);
     DocPrint(doc,";\n");
-    DocPrint(doc,"  *tmp=argv[%d];\n",idx);
+    if(STIsRawMember(locals,var->name)){
+      DocPrint(doc,"  tmp(F64*)[0]=AsF64(argv[%d]);\n",idx);
+    } else
+      DocPrint(doc,"  *tmp=argv[%d];\n",idx);
     idx++;
   }
 
@@ -379,6 +421,9 @@ U8 *CompileThunk(CAST *block,CLocals *parent=NULL) {
   ret=DocSave(doc);//Saves to string
   ExePutS(ret);
   Free(ret);
+#ifdef DEBUG
+  DocWrite(doc);
+#endif
   DocDel(doc);
   FramePtrDel("ST@@stk_depth");
   return MStrPrint("Thunk@@%d",thunk_idx);
@@ -829,7 +874,7 @@ assign_st :
 	  STGetLocal(doc,locals,cur->name);
 	  DocPrint(doc,";\n");
 assign_raw:
-          raw_class_name=RawAccessType(FramePtr("MethodClass"),cur->name);
+          raw_class_name=VarClassName(locals,cur->name);
 	  DocPrint(doc,"tmp(%s*)[0]=AsF64(%s);\n",raw_class_name,StackFrame2Var(stack_depth));
         }
       } else if(cur->type==AST_MEMBER) {
@@ -884,7 +929,7 @@ write_generic_member:
         if(idx) StrCpy(ast->var_class_name,idx);
         if(STIsSelfMember(locals,ast->name)) {
 	  mlst=MemberFind(ast->name,HashFind(FramePtr("MethodClass"),frog_mem_task->hash_table,HTT_CLASS));
-	  raw_class_name=RawAccessType(FramePtr("MethodClass"),ast->name);
+          raw_class_name=VarClassName(locals,ast->name);
 //ToF64 turns an I64(forced) into an F64
 	  if(STIsRawMember(locals,ast->name)) {
 	    if(ast->is_f64&&!StrCmp(raw_class_name,"F64"))
@@ -900,12 +945,11 @@ write_generic_member:
         } else if(!STIsRawMember(locals,ast->name)) {
 	  if(ast->is_f64)
 	    DocPrint(doc,"AsF64(");
-	  DocPrint(doc,"");
 	  STGetLocal(doc,locals,ast->name);
 	  if(ast->is_f64)
 	    DocPrint(doc,")");
         } else {
-          raw_class_name=RawAccessType(FramePtr("MethodClass"),ast->name);
+          raw_class_name=VarClassName(locals,ast->name);
 //ToF64 turns an I64(forced) into an F64
 	  if(ast->is_f64&&!StrCmp(raw_class_name,"F64"))
 	    conv_name="";
@@ -1018,15 +1062,31 @@ U0 CompileToHolyC(U8 *src,U8 *class_name,U8 *src_path=NULL,Bool class_method=FAL
   FramePtrAdd("MethodClass",class_name);
   try {
   Bool old=Option(OPTf_WARN_UNUSED_VAR,FALSE);
-  CDoc *doc=DocNew("/st.HC");
+  U8 *ret,*fun_name,*tmp;
   static I64 fun_num=0;
-  U8 *ret,*fun_name;
   CDocEntry *replace;
   I64 idx;
   CAST *var,*head;
   CLexer *lex=LexerNew(src,src_path);
   Lex(lex);
   CMethod *m=ParseMethod(lex,HashFind(class_name,frog_mem_task->hash_table,HTT_CLASS));
+#ifdef DEBUG
+  tmp=MStrPrint("/STDebugDir/%s",class_name);
+  if(!FileFind(tmp)) DirMk(tmp);
+  Free(tmp);
+  tmp=MStrPrint("/STDebugDir/%s/%s.HC",class_name,m->name);
+  while(StrOcc(tmp,':'))
+    *StrFirstOcc(tmp,":")='.';
+  CDoc *doc=DocNew(tmp);
+  DocPrint(doc,"#if 0\n");
+  DocPrint(doc,"/*For file \"%Q\" */\n",src_path);
+  DocPrint(doc,"/*For method \"%Q\" */\n",m->name);
+  DocPrint(doc,"/*This is a generated file,DON'T FUCKIN EDIT*/\n");
+  DocPrint(doc,"#endif\n");
+  Free(tmp);
+#else
+  CDoc *doc=DocNew;
+#endif
   LexerDel(lex);
   FramePtrAdd("ST@@stk_depth",0);
   if(register_method) {
@@ -1044,6 +1104,7 @@ U0 CompileToHolyC(U8 *src,U8 *class_name,U8 *src_path=NULL,Bool class_method=FAL
   DocPrint(doc,"CFrogThing *stk0,*stk1,*stk2,*stk3,*stk4,*stk5;\n");
   DocPrint(doc,"  Bool *return_flag=STAddMethodFrame(%d,\"%Q\",\"%Q\")->return_flag;\n",m,locals->name,class_name);
   DocPrint(doc,"  CLocalsGeneric0 *parent_frame=Fs->user_data;\n");
+  DocPrint(doc,"  parent_frame->_raw_mask=%d;\n",locals->raw_mask);
   DocPrint(doc,"  I64 unwind=0,next_case=%d;\n",ast_case_num);
   head=&m->args;
   idx=0;
@@ -1052,7 +1113,10 @@ U0 CompileToHolyC(U8 *src,U8 *class_name,U8 *src_path=NULL,Bool class_method=FAL
     DocPrint(doc,"  tmp=&");
     STGetLocal(doc,locals,var->name);
     DocPrint(doc,";\n");
-    DocPrint(doc,"  *tmp=argv[%d];\n",idx);
+    if(STIsRawMember(locals,var->name)){
+      DocPrint(doc,"  tmp(F64*)[0]=AsF64(argv[%d]);\n",idx);
+    } else
+      DocPrint(doc,"  *tmp=argv[%d];\n",idx);
     idx++;
   }
   DocPrint(doc,"FrogThingLock(self);\n");
@@ -1081,6 +1145,9 @@ U0 CompileToHolyC(U8 *src,U8 *class_name,U8 *src_path=NULL,Bool class_method=FAL
     DocPrint(doc,"AddClassMethod(\"%Q\",\"%Q\",&%s);;",class_name,m->name,fun_name);
   }
   ReplaceElem(doc,replace,"%d",MaxI64(FramePtr("ST@@stk_depth")-6,0));
+  #ifdef DEBUG
+  DocWrite(doc);
+  #endif
   ExeDoc(doc);
   DocDel(doc);
   Free(fun_name);
@@ -1089,9 +1156,10 @@ U0 CompileToHolyC(U8 *src,U8 *class_name,U8 *src_path=NULL,Bool class_method=FAL
 //DONE WITH IT
 fin:
   FramePtrDel("ST@@stk_depth");
-  MethodDel(m);
   FramePtrDel("MethodClass");
+  MethodDel(m);
   } catch {
+    FramePtrDel("MethodClass");
   }
 }
 

@@ -939,6 +939,30 @@ CFrogThing *FrogChrUppercase(CFrogChr *self,...) {
   return FrogChrNew(ToUpper(AsChar(self)));
 }
 
+CFrogNum *FrogStrEqual(CFrogStr *self,...) {
+  CFrogStr *other=argv[0];
+  if(!ThingHasClass(other,"CFrogStr")) return FrogNumNew(0);
+  if(self->items->cnt!=other->items->cnt) return FrogNumNew(0);
+  if(!StrCmp(self->items->body,other->items->body)) return FrogNumNew(1);
+  return FrogNumNew(0);
+}
+CFrogNum *FrogStrNotEqual(CFrogStr *self,...) {
+  CFrogStr *other=argv[0];
+  if(!ThingHasClass(other,"CFrogStr")) return FrogNumNew(1);
+  if(self->items->cnt!=other->items->cnt) return FrogNumNew(1);
+  if(!StrCmp(self->items->body,other->items->body)) return FrogNumNew(0);
+  return FrogNumNew(1);
+}
+
+CFrogStr *FrogStrCopy(CFrogStr *self,...) {
+  CFrogStr *s=ConstructThing("CFrogStr");
+  Free(s->items->body);
+  s->items->body=MAllocIdent(self->items->body,s->items->mem_task);
+  s->items->cnt=self->items->cnt;
+  return s;
+}
+
+
 CFrogStr *FrogStrCopy(CFrogStr *self,...) {
   CFrogStr *s=ConstructThing("CFrogStr");
   Free(s->items->body);
@@ -1013,6 +1037,8 @@ CFrogThing *FrogThingCopy(CFrogThing *t) {
   ConstructBuiltin("FrogStrRemAt(self,AsF64(thing))","CFrogStr","removeAt:","CFrogNum","thing");
   ConstructBuiltin("FrogNumNew(self->items->cnt)","CFrogStr","size");
   ConstructBuiltin("FrogStrCopy(self)","CFrogStr","copy");
+  ConstructBuiltin("FrogStrNotEqual(self,other)","CFrogStr","~=","CFrogStr","other");
+  ConstructBuiltin("FrogStrEqual(self,other)","CFrogStr","=","CFrogStr","other");
 }
 #exe {
 //Arithmetic
@@ -1332,7 +1358,8 @@ U0 ThingDel(CFrogThing *thing,Bool recurse=TRUE) {
       if(recurse) {
         idx=g->item_cnt;
         while(--idx>=0) {
-	  ThingDel(g->body[idx]);
+	  if(!(g->raw_mask&(1<<idx)))
+	    ThingDel(g->body[idx]);
         }
         if(g->type=='Block') {
 	  parent=g->parent;
@@ -1372,7 +1399,8 @@ U0 FrogGarbageCollectThing(CFrogThing *root,Bool debug=FALSE) {
     g=root;
     idx=g->item_cnt;
     while(--idx>=0) {
-      FrogGarbageCollectThing(g->body[idx],debug); 
+      if(!(g->raw_mask&(1<<idx)))
+        FrogGarbageCollectThing(g->body[idx],debug); 
     }
     if(g->type=='Block')
       FrogGarbageCollectThing(g->parent,debug);

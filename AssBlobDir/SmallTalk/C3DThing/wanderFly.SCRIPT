@@ -1,0 +1,6 @@
+wanderFly: speed=CFrogNum withTarget: target=C3DThing ->* |
+  w=C3DWorldManager
+  f=CFrogNum
+|
+  ^ 1 .
+  

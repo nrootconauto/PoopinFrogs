@@ -252,7 +252,7 @@ again:;
   CMethod *m;
   DocPrint(help_doc,"$$PURPLE$$$$TX+CX,\"Help Index\"$$$$FD$$\n"); 
   DocMax(help_doc);
-//  Silent(TRUE);
+  Silent(TRUE);
   for(idx2=0;idx2!=2;idx2++) {
     if(idx2)
       DocBottom(help_doc);
@@ -279,7 +279,6 @@ again:;
 	    } catch {
 	      Fs->catch_except=TRUE;
 	    }
-"%s,%s\n",cls_name,method_name;
 	    if(WildMatch(method_name,method_wildcard)) {
 	      I64SetAdd(matches,hdr);
 	      DocTreeAppend(help_doc,tmp,FALSE,"$$LK,\"%Q\",A=\"FA:/SmallTalkHelp.DD,%Q\"$$\n",method_name,hdr->name);
@@ -665,7 +664,6 @@ CDoc *d=DocNew("/WWW/SmallTalkHelp.DD");
 STHelpIdx(d);
 DocWrite(d);
 DocDel(d);
-
 #else
 LoadMethodsFromBlob;
 #endif

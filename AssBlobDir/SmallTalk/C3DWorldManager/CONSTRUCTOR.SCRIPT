@@ -11,10 +11,9 @@ init | gx=CFrogNum gy=CFrogNum col=CFrogArray |
   gx _ (self width + 15 ) / 16 .
   gy _ (self height + 15 ) / 16 .
 
-
-  0 to: gx do: [
+  0 to: gx do: [:a=CFrogNum|
     col _ # () .
-    0 to: gy do: [
+    0 to: gy do: [:b=CFrogNum|
       col add: #() 
     ].
     grid add: col .

@@ -44,7 +44,6 @@ again:
       str=SkipWhitespace(str);
       while(*str&&*str!='}') {
         tmp=LoadThing0(&str,member);
-PrintI(member,tmp);
         if(ret&&tmp) SetClassMemberVal(ret,member,tmp);
         str=SkipWhitespace(str);
       }

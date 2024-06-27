@@ -709,7 +709,7 @@ Bool C3DWorldMoveZWithCollision(C3DWorld *w,F64 dist,F64 x,F64 y,F64 *_height,F6
       h=GetPlatformHeight(w,x/GRID_SZ,y/GRID_SZ);
       ch=w->ceilmap[tile];
       cr=w->ceilmap2[tile];
-      if(ch+cr<=z) {
+     if(ch+cr<=z) {
         o=z;
         z=Max(z,ch+cr);
         hit|=o!=z;

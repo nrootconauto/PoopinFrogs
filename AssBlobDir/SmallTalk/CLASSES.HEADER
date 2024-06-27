@@ -199,7 +199,7 @@ class C3DThing:CFrogThing {
 //Private
   CFrogStr *template_name;
 };
-class C3DWorldManager:CFrogThing {
+class C3DWorldManager:CFrogThing {
   U8 *world_handle;
   CFrogArray *things recur_serialize;
 //See CWallStain mofo
@@ -390,6 +390,14 @@ class CZombie:C3DThing {
   CFrogStr *state;
  CPissStream *piss_stream recur_serialize;
   I64 just_jumped;
+  C3DThing *target no_serialize;
+};
+class CAssBird:C3DThing {
+  CFrogRandom *random_generator;
+  F64 speed;
+  F64 state_start_tS;
+  F64 state_duration;
+  CFrogStr *state;
   C3DThing *target no_serialize;
 };
 class CCyberPoop:C3DThing {

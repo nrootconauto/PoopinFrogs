@@ -22,8 +22,6 @@ addToPlayer: player=CPlayer ->CFrogNum | item* have=CFrogArray new_cnt=CFrogNum 
     ]
   ] .
   count ifTrue: [
-'Picup' show .
-item_class show .
     item _ item_class new .
     item setAmmo: count .
     'Animate(update icon)'. 

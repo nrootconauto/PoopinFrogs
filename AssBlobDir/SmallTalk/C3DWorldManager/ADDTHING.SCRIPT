@@ -68,12 +68,7 @@ addThing: thing* ->* |
   ) .
   last _ names at: (thing ->y * 567.89  rem: names size ) .
   thing setName: first , ' ' , last .
-  thing getName show .
   (things includes: thing) not ifTrue: [
     things add: thing .
   ] .
-'p1' show .
-  things size show .
   self updateThingPos: thing .
-'p2' show .
-  things size show .

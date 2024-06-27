@@ -14,13 +14,7 @@ now=CFrogNum
       ((grid at: (p ->x / 128 / 16) ) at: p ->y / 128 / 16) do: [:pu* |
         (pu hasClass: CPickup ) ifTrue: [
             'canSeeThing doesnt acount for angles tahnkfully' .
-            'Picjup ' show.
-             pu show .
-             pu->x show .
-             pu->y show .
-            p->x show .
-            p->y show .
-            ((pu hitsThing: p ) and: (pu canSeeThing: p)) ifTrue: ['pi' show .  pu addToPlayer: p ]
+            ((pu hitsThing: p ) and: (pu canSeeThing: p)) ifTrue: [ pu addToPlayer: p ]
         ].
       ]
     ] .

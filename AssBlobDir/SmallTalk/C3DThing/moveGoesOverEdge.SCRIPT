@@ -11,13 +11,7 @@ moveGoesOverEdge: dist=CFrogNum atAngle: a=CFrogNum ->CFrogNum
   xx _ x + (dist * a cos) .
   yy _ y + (dist * a sin) .
 
-  (xx  - x ) show .
-  (yy  - y ) show .
-
   hole_depth _ #world getPlatformHeightAtX: xx atY: yy .
-'deprrss?' show.
-  zz show .
-  hole_depth show .
   (zz - hole_depth) > 1.5 ifTrue: [
     ^ 1 .
   ]. 

@@ -1,3 +1,2 @@
 getName ->CFrogStr ||
-  name show .
   ^ name
