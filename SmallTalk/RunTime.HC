@@ -389,7 +389,6 @@ U0 SetClassMemberVal(CFrogThing *t,U8 *member,I64 val) {
          (t(U8*)+mlst->offset)(I64*)[0]=v2;
 	 break;
        case RT_F64:
-PrintF(FrogThingClassName(t),v2);
          (t(U8*)+mlst->offset)(F64*)[0]=v2;
 	 break;
      }
@@ -1347,7 +1346,7 @@ U0 ThingDel(CFrogThing *thing,Bool recurse=TRUE) {
   if(!thing||thing&1) return; //bit 0 is set for special "SMALL" type
   FrogThingLock(thing);
   if(--thing->ref_cnt<=0) {
-  if(thing->ref_cnt<0) {PrintI(thing->class_name,thing);throw('asdas'); }
+  if(thing->ref_cnt<0) {throw('asdas'); }
     if(thing->thing_flags&THINGF_FRAME_TYPE) {
       g=thing;
       if(g->type=='Repl') {

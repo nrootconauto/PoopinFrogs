@@ -78,7 +78,6 @@ nil:
   } else if(ThingHasClass(have,"CFrogChr")) {
     DocPrint(doc,"-%s.CFrogChr:{%d}\n",str,have(CFrogChr*)->ch);
   } else if(ThingHasClass(have,"CFrogClass")) {
-DbgPrint("S:%s\n",have(CFrogClass*)->name);
     DocPrint(doc,"-%s.CFrogClass:{%s}\n",str,have(CFrogClass*)->name);
   } else if(ThingHasClass(have,"CFrogBlock")) {
     goto nil;
