@@ -465,7 +465,7 @@ Bool HeightImpossible(C3DWorld *w,I64 ix,I64 iy,F64 above,Bool allow_ceil,F64 ta
 	return TRUE;
       c=w->ceilmap[idx];
       if(c!=I8_MAX)
-        if(c<above+tallness<=c+w->ceilmap2[idx]) {
+        if(c<above<c+w->ceilmap2[idx]) {
 	  return TRUE;
       }
     }
@@ -709,7 +709,7 @@ Bool C3DWorldMoveZWithCollision(C3DWorld *w,F64 dist,F64 x,F64 y,F64 *_height,F6
       h=GetPlatformHeight(w,x/GRID_SZ,y/GRID_SZ);
       ch=w->ceilmap[tile];
       cr=w->ceilmap2[tile];
-     if(ch+cr<=z) {
+     if(ch<=z) {
         o=z;
         z=Max(z,ch+cr);
         hit|=o!=z;
@@ -1496,7 +1496,7 @@ ceil2:
 	}
       } else if(ceil!=I8_MAX&&ceil<w->cam_height) {
           use_dc=w->floor_textures[w->world_mat[idx].u8[1]];
-	  if(standing_at==idx&&use_dc) {
+	  if(standing_at==idx&&use_dc&&0) {
 	     ColorFloor(w,x,ceil+adj_height,
                 GR_HEIGHT/2-h2*(adj_height+ceil-w->cam_height),
 		0,
@@ -1543,7 +1543,8 @@ ceil2:
         y0=GR_HEIGHT/2-h*(ceil+w->ceilmap2[idx]-w->cam_height);
         for(idx3=0;idx3<adj_height;idx3++) {
 //.u8[1] is ceil tile
-          DrawWallSegment(w,segment,x,y0+h*idx3,w->wall_textures[w->world_mat[idx].u8[1]],h,dist,ceil+adj_height-idx3,idx,side);
+          if(-GR_HEIGHT*2<=y0+h*idx3<=GR_HEIGHT*2)
+            DrawWallSegment(w,segment,x,y0+h*idx3,w->wall_textures[w->world_mat[idx].u8[1]],h,dist,ceil+adj_height-idx3,idx,side);
         }
         last_ceil=ceil;
       }

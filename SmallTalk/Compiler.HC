@@ -1,6 +1,6 @@
 # ifndef ST_COMPILER_HH
 #define ST_COMPILER_HH 1
-#include "RunTime.HC";
+#include "RunTime.HC";
 #define DEBUG 1
 CFrogThing *Useless(CFrogThing *, ...) {
   return FROG_SMALL_NIL;
