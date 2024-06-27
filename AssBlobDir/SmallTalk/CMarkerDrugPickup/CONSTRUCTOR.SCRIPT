@@ -1,0 +1,6 @@
+init | |
+  count _ 15  .
+  #world addThing: self .
+  item_class _ CMarkerDrugItem .
+  template _ #world getThingTemplate: 'CMarkerDrugPickup' .
+  ^ self

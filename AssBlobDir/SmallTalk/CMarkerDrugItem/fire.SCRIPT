@@ -1,0 +1,49 @@
+fire ->* |
+  player=CPlayer
+  case=CShellCasing
+  cur_ts=CFrogNum
+  rand=CFrogRandom
+  heal=CFrogBlock
+|
+  rand _ CFrogRandom new .
+
+  player _ #world getPlayer .
+
+  ammo ifTrue: [
+    cur_ts _ CFrogTime now asSeconds .
+    last_fire _ cur_ts .
+    (timeout < cur_ts and: state = 'Idle') ifTrue: [
+      state _ 'Prepare' .
+      anim_start_tS _ cur_ts .
+
+      timeout _ cur_ts + .45 .
+      self setGraphics: 'GR/MarkerDrug/PreparePuff' .
+      anim_no_repeat _ 1 .
+      inventory_item setCount: ammo .
+      ^ 0 .
+    ] .
+  
+    heal _ [
+      player->health _ player->health + ((rand next * 5) + 5 ) .
+      ammo _ ammo - 1 max: 0 .
+      self setGraphics: 'GR/MarkerDrug/Puff' .
+      anim_no_repeat _ 0 .
+      timeout _ cur_ts + .25 .
+
+      case _ CShellCasing new .
+      case setGraphics: 'GR/MarkerDrug/Smoke' .
+      case ejectAtX: x atY: y .
+      player addShellCasing: case .
+
+      ^ 1 .
+    ] .
+
+    (timeout < cur_ts and: state = 'Prepare') ifTrue: [
+      state _ 'Puff' .
+      heal value .
+    ].
+    
+    (timeout < cur_ts and: state = 'Puff') ifTrue: [
+      heal value .
+    ] .
+  ]

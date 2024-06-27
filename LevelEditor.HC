@@ -391,7 +391,7 @@ U0 LevelEditorExport(U8 *blob,U8 *filename) {
         cur=cur->next) {
     for(thing=cur->things.next;thing!=&cur->things;thing=thing->next) {
       fptr(U16*)[0]=thing->thing_template_idx;
-      fptr+=2;
+      fptr+=2;
       fptr(F64*)[0]=thing->x;
       fptr(F64*)[1]=thing->y;
       fptr(F64*)[2]=thing->rot;

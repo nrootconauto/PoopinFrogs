@@ -12,4 +12,5 @@ init ->CPlayer | |
   CFrogDick new .
   CKnife new .
   CTalker  new .
+  CMarkerDrugItem new .
   ^ self

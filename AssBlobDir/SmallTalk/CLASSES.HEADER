@@ -216,9 +216,9 @@ class C3DWorldManager:CFrogThing {
 
 class CHandItem:CFrogThing {
   CDC *gr;
-  U8 *destroy dft "HandItemDel";
-  I64  x,y;
-  I64  xoff,yoff;
+  U8  *destroy dft "HandItemDel";
+  I64 x,y;
+  I64 xoff,yoff;
   I64 ammo,max_ammo;
   F64 timeout;
   F64 anim_start_tS;
@@ -230,6 +230,7 @@ class CHandItem:CFrogThing {
   I64 grid_x,grid_y;
   I64 in_quick_inventory;
 };
+
 
 class CFloorStain:CFrogThing {
   I64 tile_x,tile_y;
@@ -426,10 +427,17 @@ class CDoor:CFrogThing {
   F64 activated_at;
   F64 speed;
   F64 open_duration;
-  I64 x,y,act_as_wall;
+  I64 x,y,act_as_wall;
   Bool activated;
   Bool side_door,small_key,big_key,rise_to_ceiling;
 };
 
 class CKnife:CHandItem {
+};
+
+class CMarkerDrugItem:CHandItem {
+  CFrogStr *state;
+  F64 last_fire;
+};
+class CMarkerDrugPickup:CPickup {
 };
