@@ -117,6 +117,10 @@ class C3DParticle:CQue {
   I32 color,size;
 };
 
+I64 class CWallCommand {
+  I16 start,end,dist,pad;
+};
+
 #define GRID_SZ 128
 #define THING_RADIUS (GRID_SZ/3)
 #define DIST_SCALE (GR_HEIGHT*GRID_SZ)
@@ -136,6 +140,8 @@ class C3DWorld {
    CI64Set *_2d_things;
    CI64Set *_wall_stains;
    CI64Set *_floor_stains;
+   CWallCommand wall_commands[GR_WIDTH][0x80];
+   I64 wall_command_cnts[GR_WIDTH];
    CTask *mem_task;
    F64 cam_height;
 //Private
@@ -143,6 +149,31 @@ class C3DWorld {
    I64 particle_cnt;
 };
 C3DWorld *w;
+Bool DrawIsBlocked(C3DWorld *w,I64 x,I64 y0,I64 y1,I16 dist) {
+  I64 c=w->wall_command_cnts[x];
+  CWallCommand *cmds=&w->wall_commands[x];
+  while(--c>=0) {
+    if(cmds[c].dist<dist) {
+      if(cmds[c].start<=y0&&y1<=cmds[c].end)
+	return TRUE;
+    }
+  }
+  return FALSE;
+}
+U0 AddWallCommand(C3DWorld *w,I64 x,I64 y0,I64 y1,I16 dist) {
+  I64 c=w->wall_command_cnts[x];
+  CWallCommand cmd;
+  if(c>=0x80) return;
+  if(I16_MIN<=dist<=I16_MAX)
+  if(I16_MIN<=y0<=I16_MAX)
+  if(I16_MIN<=y1<=I16_MAX) {
+    cmd.dist=dist;
+    cmd.start=y0;
+    cmd.end=y1;
+    ++w->wall_command_cnts[x];
+    w->wall_commands[x][c]=cmd;
+  }
+}
 extern U0 Draw2DThing(C3DWorld *w,C3DThing *thing);
 #define MAX_PARTICLES 64
 U0 NewParticle(C3DWorld *w,I64 color,I64 sz,F64 x,F64 y,F64 z,F64 mx,F64 my,F64 mz) {
@@ -904,7 +935,7 @@ skip:;
 en:;
   return NULL;
 }
-U0 DrawWallSegment(C3DWorld *w,I64 segment,I64 x,I64 start_y,CDC *texture,I64 height,I64 dist,F64 z,I64 tile_idx,I64 side) {
+U0 DrawWallSegment(C3DWorld *w,I64 segment,I64 x,I64 start_y,CDC *texture,I64 height,F64 dist,F64 z,I64 tile_idx,I64 side) {
   I64 offx,offy,stain_color;
   CDC *stain=WallStain(w,tile_idx,z,side,&offx,&offy);
   if(!texture||!height) return;
@@ -917,20 +948,23 @@ U0 DrawWallSegment(C3DWorld *w,I64 segment,I64 x,I64 start_y,CDC *texture,I64 he
   else
     depth_dst=NULL;
   xp=Lerp(segment/ToF64(GRID_SZ),0,texture->width-1);
+i=0;
 ent:
-  for(i=0;i<=height;i+=w->step_width) {
+  for(;i<=height;i+=w->step_width) {
     if(i+start_y<0) {
       i=-start_y;
       dst=w->to_dc->body+(start_y+i)*width+x;
       if(w->to_dc->depth_buf)
 	depth_dst=w->to_dc->depth_buf+(start_y+i)*width+x;
+      goto ent;
     }
     if(0<=i+start_y<GR_HEIGHT-w->step_width) {
-      segment_y=height/(DIST_SCALE/ToF64(dist+1))*(i/ToF64(height))*texture->height;
+      segment_y=height/(DIST_SCALE/(dist+1))*(i/ToF64(height))*texture->height;
+      segment_y=AbsI64(segment_y);
       tmp=gr.to_8_colors[GrPeek0(
 	    texture+anim_frame,
 	    xp,
-	    segment_y%texture->height)];
+	    segment_y%(texture->height))];
       if(stain) {
 	if(0<=(stain_color=GrPeek(stain,xp-offx,segment_y-offy))) {
 	  if(stain_color!=TRANSPARENT)
@@ -939,7 +973,7 @@ ent:
       }
       idist=dist;
       if(w->step_width==2) {
-        if(depth_dst[0]>=dist) {
+        if(depth_dst[0]>=idist) {
           dst(U16*)[0]=tmp;
           dst+=width;
           dst(U16*)[0]=tmp;
@@ -957,7 +991,7 @@ ent:
 	  dst+=width*2;
         }
       } else if(w->step_width==4) {
-        if(depth_dst[0]>=dist) {
+        if(depth_dst[0]>=idist) {
           dst(U32*)[0]=tmp;
           dst+=width;
           dst(U32*)[0]=tmp;
@@ -1027,10 +1061,23 @@ CDC *FloorStain(C3DWorld *w,I64 tx,I64 ty,I64 *xoff,I64 *yoff,Bool ceil) {
 
 I64 ColorFloor(C3DWorld *w,I64 view_x,F64 floor_height,I64 sy,I64 ey,CDC *texture,Bool ceil=FALSE) {
   if(!texture) return ey;
+  ey=GR_HEIGHT-ey;
+  sy=GR_HEIGHT-sy;
+  F64 dist,dist2;
+  if(ey-GR_HEIGHT/2==0)
+    dist=I16_MAX;
+  else
+    dist=DIST_SCALE/((GR_HEIGHT/2-ey)/(w->cam_height-floor_height));
+  if(sy-GR_HEIGHT/2==0)
+    dist2=I16_MAX;
+  else
+    dist2=DIST_SCALE/((GR_HEIGHT/2-sy)/(w->cam_height-floor_height));
+  if(DrawIsBlocked(w,view_x,GR_HEIGHT-MaxI64(sy,ey),GR_HEIGHT-MinI64(sy,ey),Min(dist,dist2))) {
+    return GR_HEIGHT-ey;
+  }
   CDC *dc=w->to_dc,*stain=NULL;
   F64 angley=0;
   F64 step;
-  F64 dist,dist2;
   I64 y,fx,fy,anim_frame=ToI64(tS/ANIM_DELAY)%AnimDCCnt(texture),idx,which,tx,ty,y2;
   I64 old_tx=-1,old_ty=-1;
   U64 colors,width=dc->width_internal,cnt;
@@ -1039,8 +1086,6 @@ I64 ColorFloor(C3DWorld *w,I64 view_x,F64 floor_height,I64 sy,I64 ey,CDC *textur
   U64 idist;
   I64 poopx,poopy,dir;
   I64 idist32;
-  ey=GR_HEIGHT-ey;
-  sy=GR_HEIGHT-sy;
   ey=ClampI64(ey,0,w->to_dc->height-w->step_width);
   sy=ClampI64(sy,0,w->to_dc->height-w->step_width);
   if(ceil) {dir=-1;y=ey;}
@@ -1302,9 +1347,9 @@ F64 ScreenCordsToDist(C3DWorld *w,I64 x,I64 y,F64 max=GRID_SZ*128,F64 *height=NU
       adj_height=MinI64(adj_height,w->heightmap[tile2]);
     }
     hm=GetPlatformHeight(w,tile%w->world_width,tile/w->world_width);
-    h=DIST_SCALE/(dist*cos2_lookup_table[x]);
+    h=DIST_SCALE/(1.+dist*cos2_lookup_table[x]);
     y0=GR_HEIGHT/2-h*(hm-w->cam_height);
-    h2=DIST_SCALE/(dist2*cos2_lookup_table[x]);
+    h2=DIST_SCALE/(1.+dist2*cos2_lookup_table[x]);
     y1=GR_HEIGHT/2-h2*(hm-w->cam_height);    
     if(have<dist2) {
       if(y1-2<=y<=y0+2) {
@@ -1348,7 +1393,6 @@ F64 ScreenCordsToDist(C3DWorld *w,I64 x,I64 y,F64 max=GRID_SZ*128,F64 *height=NU
   Free(tiles);
   return d;
 }
-
 U0 MPCastCol(C3DWorld *w) {
   F64 angle=w->angle-w->fov/2;
   I64 wall_segment_start,wall_segment_end;
@@ -1402,7 +1446,7 @@ ent:
 	);
 //https://permadi.com/1996/05/ray-casting-tutorial-8/
       dist*=cos2_lookup_table[x];
-      h=DIST_SCALE/dist;
+      h=DIST_SCALE/(dist+1.);
       dist2*=cos2_lookup_table[x];
       h2=DIST_SCALE/(dist2+1);
 //Dont straight lines on blocks with same height(hidden)
@@ -1465,9 +1509,15 @@ ent:
       y0=GR_HEIGHT/2-h*(height_cap-w->cam_height);
       if(floor_y<y0)
         goto ceil2;
-      for(idx3=0;idx3<AbsI64(height_cap-adj_height);idx3++) {
+      if(!DrawIsBlocked(w,x,y0,y0+AbsI64(height_cap-adj_height)*h,dist)) {
+        for(idx3=0;idx3<AbsI64(height_cap-adj_height);idx3++) {
 //.u8[0] is floor tile
-        DrawWallSegment(w,segment,x,y0+h*idx3,w->wall_textures[w->world_mat[idx].u8[0]],h,dist,height_cap-1-idx3,idx,side);
+//Check if screen range overlaps
+//https://stackoverflow.com/questions/3269434/whats-the-most-efficient-way-to-test-if-two-ranges-overlap
+          if(Max(0,y0+h*idx3)<=Min(y0+h*idx3+h,GR_HEIGHT))
+            DrawWallSegment(w,segment,x,y0+h*idx3,w->wall_textures[w->world_mat[idx].u8[0]],h,dist,height_cap-1-idx3,idx,side,);
+        }
+        AddWallCommand(w,x,y0,I16_MAX,dist);
       }
 ceil2:      
       if(dist2<2.||dist<2.)
@@ -1541,11 +1591,17 @@ ceil2:
 	  }
         }
         y0=GR_HEIGHT/2-h*(ceil+w->ceilmap2[idx]-w->cam_height);
-        for(idx3=0;idx3<adj_height;idx3++) {
+	if(!DrawIsBlocked(w,x,y0,y0+adj_height*h,dist)) {
+          for(idx3=0;idx3<adj_height;idx3++) {
 //.u8[1] is ceil tile
-          if(-GR_HEIGHT*2<=y0+h*idx3<=GR_HEIGHT*2)
+
+//Check if screen range overlaps
+//https://stackoverflow.com/questions/3269434/whats-the-most-efficient-way-to-test-if-two-ranges-overlap
+          if(Max(0,y0+h*idx3)<=Min(y0+h*idx3+h,GR_HEIGHT))
             DrawWallSegment(w,segment,x,y0+h*idx3,w->wall_textures[w->world_mat[idx].u8[1]],h,dist,ceil+adj_height-idx3,idx,side);
-        }
+          }
+          AddWallCommand(w,x,y0,y0+adj_height*h,dist);
+	}
         last_ceil=ceil;
       }
       goto ent;
@@ -1558,6 +1614,7 @@ fin:
 U0 C3DWorldCastRays(C3DWorld *w) {
   I64 idx;
   lock mp_done=0;
+  MemSetI64(w->wall_command_cnts,0,GR_WIDTH);
   for(idx=mp_cnt-1;idx>=1;idx--) {
     JobQue(&MPCastCol,w,idx);
   }
@@ -2349,9 +2406,9 @@ U0 DrawDoor(CDoor *d) {
       else
         top=d->height*.03+w->heightmap[tile];
       dist*=cos2_lookup_table[minx];
-      h=DIST_SCALE/dist;
+      h=DIST_SCALE/(1+dist);
       y0=GR_HEIGHT/2-h*(top-w->cam_height);
-      h2=DIST_SCALE/dist2;
+      h2=DIST_SCALE/(1+dist2);
       y1=GR_HEIGHT/2-h2*(top-w->cam_height);
 //Horizon check
       if(top<w->cam_height)
@@ -2633,9 +2690,10 @@ en:
   FrogGarbageCollect;
   HeapWho(Fs);*/
 }
-if(FileFind("/STDebug.DD"))
+if(FileFind("/STDebug.DD")) {
+  Del("/STDebugg.DD");
   WalkAround(FileRead("/STDebug.DD"));
-else
+} else
   WalkAround;
 #endif
 #endif        i               8      8   ßÿÿÿ   Ýÿÿÿ      	'   öÿÿÿ?   áÿÿÿ
