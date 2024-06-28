@@ -1543,7 +1543,7 @@ ceil2:
         y0=GR_HEIGHT/2-h*(ceil+w->ceilmap2[idx]-w->cam_height);
         for(idx3=0;idx3<adj_height;idx3++) {
 //.u8[1] is ceil tile
-          if(-GR_HEIGHT*2<=y0+h*idx3<=GR_HEIGHT*2)
+          if(-GR_HEIGHT*2<=y0+h*idx3<=GR_HEIGHT*2)
             DrawWallSegment(w,segment,x,y0+h*idx3,w->wall_textures[w->world_mat[idx].u8[1]],h,dist,ceil+adj_height-idx3,idx,side);
         }
         last_ceil=ceil;

@@ -391,7 +391,7 @@ U0 LevelEditorExport(U8 *blob,U8 *filename) {
         cur=cur->next) {
     for(thing=cur->things.next;thing!=&cur->things;thing=thing->next) {
       fptr(U16*)[0]=thing->thing_template_idx;
-      fptr+=2;
+      fptr+=2;
       fptr(F64*)[0]=thing->x;
       fptr(F64*)[1]=thing->y;
       fptr(F64*)[2]=thing->rot;
@@ -1198,13 +1198,14 @@ world_edit.flat_mode=TRUE;
 PopUpPrint(
 "Cd(\"%Q\");\n"
 "#include \"TextureEditor.HC\";\n"
-"StrCpy(%d,TextureEdit(\"%Q\",,%d,%d));\n",
+"U8 *lump_name=TextureEdit(\"%Q\",,%d,%d);\n"
+"if(lump_name) StrCpy(%d,lump_name);\n"
+"else StrCpy(%d,"");\n",
 __DIR__,
-name,blob,dft_w,dft_h
+blob,dft_w,dft_h,name,name
 );
 world_edit.flat_mode=old_flat;
-//TODO ensure lump exists
-return TRUE;
+return ToBool(StrLen(name));
 }
 
 class CDoorFlags {
@@ -1309,31 +1310,34 @@ enter:;
       break;
     case 2:
 //Front
-      EditDC(blob,template->blob_front_name,150,275);
-      AnimDCDel(template->front_orig_dc);
-      template->front_orig_dc=LoadGr(blob,template->blob_front_name);
-      AnimDCDel(template->front_dc);
-      template->front_dc=ScaleDC(template->front_orig_dc,
-	    THING_WIDTH_SCALED,
-	    THING_HEIGHT_SCALED,world_edit.mem_task);
+      if(EditDC(blob,template->blob_front_name,150,275)) {
+        AnimDCDel(template->front_orig_dc);
+        template->front_orig_dc=LoadGr(blob,template->blob_front_name);
+        AnimDCDel(template->front_dc);
+        template->front_dc=ScaleDC(template->front_orig_dc,
+	      THING_WIDTH_SCALED,
+	      THING_HEIGHT_SCALED,world_edit.mem_task);
+      }
       break;
     case 3:
 //Back
-      EditDC(blob,template->blob_back_name,150,275);
-      AnimDCDel(template->back_orig_dc);
-      template->back_orig_dc=LoadGr(blob,template->blob_back_name);
-      template->back_dc=ScaleDC(template->back_orig_dc,
-	    THING_WIDTH_SCALED,
-	    THING_HEIGHT_SCALED,world_edit.mem_task);
+      if(EditDC(blob,template->blob_back_name,150,275)) {
+        AnimDCDel(template->back_orig_dc);
+        template->back_orig_dc=LoadGr(blob,template->blob_back_name);
+        template->back_dc=ScaleDC(template->back_orig_dc,
+	      THING_WIDTH_SCALED,
+	      THING_HEIGHT_SCALED,world_edit.mem_task);
+      }
       break;
     case 4:
 //Side
-      EditDC(blob,template->blob_side_name,150,275);
-      AnimDCDel(template->side_orig_dc);
-      template->side_orig_dc=LoadGr(blob,template->blob_side_name);
-      template->side_dc=ScaleDC(template->side_orig_dc,
-	    THING_WIDTH_SCALED,
-	    THING_HEIGHT_SCALED,world_edit.mem_task);
+      if(EditDC(blob,template->blob_side_name,150,275)) {
+        AnimDCDel(template->side_orig_dc);
+        template->side_orig_dc=LoadGr(blob,template->blob_side_name);
+        template->side_dc=ScaleDC(template->side_orig_dc,
+	      THING_WIDTH_SCALED,
+	      THING_HEIGHT_SCALED,world_edit.mem_task);
+      }
       break;
     case 5:
 //Use front for all sides

@@ -479,6 +479,7 @@ U0 _TextureEdit(CDC **_image,U8 *blob_file=NULL,U8 *write_to_name=NULL) {
   MenuPush(
         "File {"
         "  SaveAs(,CH_CTRLA);"
+        "  Open(,CH_CTRLO);"
         "  Undo(,CH_CTRLZ);"
         "  Exit(,CH_ESC);"
         "  Abort(,CH_SHIFT_ESC);"
@@ -584,7 +585,19 @@ U0 _TextureEdit(CDC **_image,U8 *blob_file=NULL,U8 *write_to_name=NULL) {
         }
         break;
       case MSG_KEY_DOWN:
-        if(m1==CH_CTRLA) {
+        if(m1==CH_CTRLO) {
+	  if(blob_file) {
+            if(trace=BlobFileSelect(blob_file)) {
+	      StrCpy(write_to_name,trace);
+	      AnimDCDel(ed->frames);
+	      ed->frames=AnimDCLoad(BlobFileGetLump(blob_file,trace),,ed->screen->mem_task);
+	      Free(trace);
+	      ed->cur_frame=0;
+	      ed->frame_cnt=AnimDCCnt(ed->frames);
+	      ed->screen=DCCopy(ed->frames,ed->screen->mem_task);
+	    }
+	  }
+        } else if(m1==CH_CTRLA) {
 	  if(blob_file) {
             if(trace=BlobFileSelect(blob_file)) {
 	      StrCpy(write_to_name,trace);
@@ -885,7 +898,7 @@ next:
   DCDel(ed->screen);
 }$WW,1$
 U8 *TextureEdit(U8 *blob_file,U8 *dft=NULL,I64 dft_w=150,I64 dft_h=275) {
-  U8 *lump_name,*data;
+  U8 *lump_name=NULL,*data=NULL;
   U8 write_to[STR_LEN];
   U64 type;
   I64 len;
@@ -894,6 +907,7 @@ U8 *TextureEdit(U8 *blob_file,U8 *dft=NULL,I64 dft_w=150,I64 dft_h=275) {
     lump_name=StrNew(dft);
   } else
     lump_name=BlobFileSelect(blob_file);
+  if(!lump_name) goto fin;
   data=BlobFileGetLump(blob_file,lump_name,,&type);
   if(!data) {
 new:

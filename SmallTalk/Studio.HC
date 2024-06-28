@@ -30,7 +30,7 @@ U0 SanitizeStr(U8 *tmp) {
   }
   *tmp2=0;
 }
-U0 STSyntaxHighlight(CDoc *out,U8 noreg *txt,Bool clear=TRUE) {
+U0 STSyntaxHighlight(CDoc *out,U8 noreg *txt,Bool clear=TRUE) {
   if(clear) DocClear(out);
   I64 noreg lpos=0,off;
   I64 nest_depth=0;
