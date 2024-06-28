@@ -1428,7 +1428,7 @@ U0 MPCastCol(C3DWorld *w) {
     ceily=0;
     last_height=I64_MIN;
     last_ceil=I64_MAX;
-    tiles=GetTilesInPath(w,angle,64*GRID_SZ);
+    tiles=GetTilesInPath(w,angle,48*GRID_SZ);
     if(tiles[0]==-1)
       goto fin;
 ent:
