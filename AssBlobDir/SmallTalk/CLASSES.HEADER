@@ -198,6 +198,7 @@ class C3DThing:CFrogThing {
   Bool no_draw,animation_no_repeat,pad[6];
 //Private
   CFrogStr *template_name;
+  Bool no_fall_off_edge;
 };
 class C3DWorldManager:CFrogThing {
   U8 *world_handle;
@@ -411,7 +412,7 @@ class CCyberPoop:C3DThing {
   C3DThing *target no_serialize 1;
 };
 class CRocket:C3DThing {
-  C3DThing *from  no_serialize 1;
+  C3DThing *from  no_serialize 1;
 };
 class CPoopRocket:CRocket {
 };

@@ -1,5 +1,6 @@
 update->* |
   w=C3DWorldManager
+  p=CPlayer
   old_x=CFrogNum 
   old_y=CFrogNum 
   old_z=CFrogNum 
@@ -34,17 +35,33 @@ update->* |
     old_y _ y .
     old_z _ z .
 
-    self wander: speed withJumpVelocity: .75 withTarget: target .
+    (target hasClass: C3DThing) ifTrue: [
+      (target->health <= 0) ifTrue: [
+        p _ w getPlayer .
+        (self canSeeThing: p) ifTrue: [
+          target _ p.
+        ]
+      ] .
+    ] ifFalse: [
+      p _ w getPlayer .
+      (self canSeeThing: p) ifTrue: [
+        target _ p.
+      ]
+    ] .
 
-    (random_generator next < ( .3 / 10 ) and: (self canSeeThing: target)) ifTrue: [
-      state _ 'Throw' .
-      template _ w getThingTemplate: 'CPoopMan/Throw' .
-      animation_no_repeat _ 1 .
-      animation_start_tS _ tS.
-      state_start_tS _  tS.
-      state_duration _ 8 / 4 .
-      angle _ (target->x - x) arg: (target->y - y) .
-      threw _ 0 .
+'Only walk around if target is defined'.
+    (target hasClass:C3DThing) ifTrue: [
+      self wander: speed withJumpVelocity: .75 withTarget: target .
+      (random_generator next < ( .3 / 10 ) and: (self canSeeThing: target)) ifTrue: [
+        state _ 'Throw' .
+        template _ w getThingTemplate: 'CPoopMan/Throw' .
+        animation_no_repeat _ 1 .
+        animation_start_tS _ tS.
+        state_start_tS _  tS.
+        state_duration _ 8 / 4 .
+        angle _ (target->x - x) arg: (target->y - y) .
+        threw _ 0 .
+      ] .
     ] .
   ] .
 

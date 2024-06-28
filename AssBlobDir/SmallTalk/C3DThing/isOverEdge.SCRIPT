@@ -1,0 +1,10 @@
+isOverEdge ->CFrogNum
+|
+  hole_depth=CFrogNum
+|
+
+  hole_depth _ #world getPlatformHeightAtX: x atY: y .
+  (z - hole_depth) > 1.5 ifTrue: [
+    ^ 1 .
+  ]. 
+  ^ 0 

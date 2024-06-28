@@ -819,12 +819,12 @@ U0 PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm) {
     return;
   if(!(0<=wy<w->world_height))
     return;
-  F64 angle;
+  F64 angle,dist,ox,oy;
   I64 tile=wx+wy*w->world_width;
   I64 floor=w->heightmap[tile];
   I64 ceil=w->ceilmap[tile];
   I64 raise=w->ceilmap2[tile],idx;
-  Bool i_am_moving=FALSE;
+  Bool i_am_moving=FALSE,on_ground;
   CRocket *rocket=NULL;
   CFrogArray *in_radius;
   CDoor *to_open;
@@ -836,6 +836,8 @@ U0 PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm) {
     t->momz=0;
   } else if(!rocket)
       t->momz-=wm->gravity;
+  ox=t->x;
+  oy=t->y;
   if(t->momy+t->momy2||t->momx+t->momx2) {
     if(!rocket) {
       t->momx*=29/30.;
@@ -845,7 +847,9 @@ U0 PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm) {
     if(Abs(t->momy)<2) t->momy=0;
     angle=Arg(t->momx+t->momx2,t->momy+t->momy2);
     i_am_moving=TRUE;
-    if(C3DWorldMoveWithCollision(w,angle,Sqrt(Sqr(t->momx+t->momx2)+Sqr(t->momy+t->momy2)),
+    dist=Sqrt(Sqr(t->momx+t->momx2)+Sqr(t->momy+t->momy2));
+    on_ground=AsF64(CallScript("isOnGround",t));
+    if(C3DWorldMoveWithCollision(w,angle,dist,
 	&t->x,
 	&t->y,
 	TRUE,
@@ -863,7 +867,14 @@ explode:
            CallScript("activateBy:",to_open,t);
         }
       }
-    } 
+    }
+    if(t->no_fall_off_edge&&on_ground) {
+      if(AsF64(CallScript("isOverEdge",t))) {
+	t->x=ox;
+	t->y=oy;
+	CallScript("update",t); //New Chase Dir
+      }
+    }
   } else if(RadiusHitsWall(w,angle,&t->x,&t->y,t->z,THING_RADIUS,TRUE,,RADF_CEIL|RADF_FLOOR|RADF_DOOR))
     goto hit;
   if(rocket) {
@@ -1670,7 +1681,8 @@ Bool CanSee2DThing(C3DWorld *w,C3DThing *t) {
 	    TRUE,//far sdie
 	    TRUE
       );
-      interp=Min((near+far)/2,dist)/dist*(t->z-w->cam_height)+w->cam_height;
+//TODO replace "+1" with thing height
+      interp=Min((near+far)/2,dist)/dist*(t->z+1.-w->cam_height)+w->cam_height;
       if(HeightImpossible(w,
 	ti[idx]%w->world_width,
 	ti[idx]/w->world_width,
@@ -2302,7 +2314,8 @@ CFrogThing *ThingCanSeeThing(C3DThing *self,...) {
   if(other==FROG_SMALL_NIL) return FROG_SMALL_NIL;
   w->x=self->x;
   w->y=self->y;
-  w->cam_height=self->z;
+//TODO replace "+1"  with thing height
+  w->cam_height=self->z+1.;
   ret=FrogNumNew(CanSee2DThing(w,other));
   w->x=old_x;
   w->y=old_y;
@@ -2514,6 +2527,7 @@ U0 DrawIt(CTask *t,CDC *dc) {
   GrBlot(dc,0,0,w->to_dc);
 }
 U0 WalkAround(U8 *save_string=NULL) {
+  Del("/STDebug.DD");
   I64 c,ch=0,sc=0,m1,m2,msg,jump=FALSE;
   I64 msx=GR_WIDTH/2,msy=GR_HEIGHT/2;
   F64 mouse_angle;
@@ -2691,7 +2705,6 @@ en:
   HeapWho(Fs);*/
 }
 if(FileFind("/STDebug.DD")) {
-  Del("/STDebugg.DD");
   WalkAround(FileRead("/STDebug.DD"));
 } else
   WalkAround;

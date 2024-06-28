@@ -5,9 +5,8 @@ moveGoesOverEdge: dist=CFrogNum atAngle: a=CFrogNum ->CFrogNum
   zz=CFrogNum
   hole_depth=CFrogNum
 |
-'3* becuase we only update every 3 frames(physics moves for us)' .
   zz _ #world getPlatformHeightAtX: x atY: y .
-  dist _  (3.5 * dist) + template->radius + 64 .
+  dist _  (3.5 * dist) + template->radius.
   xx _ x + (dist * a cos) .
   yy _ y + (dist * a sin) .
 

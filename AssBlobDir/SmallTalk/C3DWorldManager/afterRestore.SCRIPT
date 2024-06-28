@@ -3,6 +3,7 @@ afterRestore->* |
   gx=CFrogNum
   gy=CFrogNum
   col=CFrogArray
+  old_doors=CFrogArray
 |
   'Re-initialize the grid'. 
   gx _ (self width + 15 ) / 16 .
@@ -24,6 +25,10 @@ afterRestore->* |
     self updateThingPos: t .
   ] .
 
-  doors do:[:d=CDoor|
+
+  'Relaod the doors into the level' .
+  old_doors _doors .
+  doors _ #() .
+  old_doors do:[:d=CDoor|
     self addDoor: d
   ] .
