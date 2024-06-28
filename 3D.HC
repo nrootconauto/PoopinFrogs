@@ -1,3 +1,4 @@
+#define mp_cnt 1
 #include "AnimDC.HC"
 #include "BlobFile.HC";
 #include "SmallTalk/Load.HC"
@@ -118,7 +119,8 @@ class C3DParticle:CQue {
 };
 
 I64 class CWallCommand {
-  I16 start,end,dist,pad;
+  I16 start,end;
+  I32 dist;
 };
 
 #define GRID_SZ 128
@@ -154,13 +156,14 @@ Bool DrawIsBlocked(C3DWorld *w,I64 x,I64 y0,I64 y1,I16 dist) {
   CWallCommand *cmds=&w->wall_commands[x];
   while(--c>=0) {
     if(cmds[c].dist<dist) {
-      if(cmds[c].start<=y0&&y1<=cmds[c].end)
+      if(cmds[c].start<=y0&&y1<=cmds[c].end) {
 	return TRUE;
+      }
     }
   }
   return FALSE;
 }
-U0 AddWallCommand(C3DWorld *w,I64 x,I64 y0,I64 y1,I16 dist) {
+U0 AddWallCommand(C3DWorld *w,I64 x,I64 y0,I64 y1,I64 dist) {
   I64 c=w->wall_command_cnts[x];
   CWallCommand cmd;
   if(c>=0x80) return;
@@ -1071,7 +1074,7 @@ CDC *FloorStain(C3DWorld *w,I64 tx,I64 ty,I64 *xoff,I64 *yoff,Bool ceil) {
 }
 
 I64 ColorFloor(C3DWorld *w,I64 view_x,F64 floor_height,I64 sy,I64 ey,CDC *texture,Bool ceil=FALSE) {
-  if(!texture) return ey;
+  if(!texture) return sy;
   ey=GR_HEIGHT-ey;
   sy=GR_HEIGHT-sy;
   F64 dist,dist2;
@@ -1084,7 +1087,7 @@ I64 ColorFloor(C3DWorld *w,I64 view_x,F64 floor_height,I64 sy,I64 ey,CDC *textur
   else
     dist2=DIST_SCALE/((GR_HEIGHT/2-sy)/(w->cam_height-floor_height));
   if(DrawIsBlocked(w,view_x,GR_HEIGHT-MaxI64(sy,ey),GR_HEIGHT-MinI64(sy,ey),Min(dist,dist2))) {
-    return GR_HEIGHT-ey;
+    return GR_HEIGHT-sy;
   }
   CDC *dc=w->to_dc,*stain=NULL;
   F64 angley=0;
@@ -1602,16 +1605,16 @@ ceil2:
 	  }
         }
         y0=GR_HEIGHT/2-h*(ceil+w->ceilmap2[idx]-w->cam_height);
-	if(!DrawIsBlocked(w,x,y0,y0+adj_height*h,dist)) {
+	if(!DrawIsBlocked(w,x,y0,y0+adj_height*ToI64(h),dist)) {
           for(idx3=0;idx3<adj_height;idx3++) {
 //.u8[1] is ceil tile
 
 //Check if screen range overlaps
 //https://stackoverflow.com/questions/3269434/whats-the-most-efficient-way-to-test-if-two-ranges-overlap
-          if(Max(0,y0+h*idx3)<=Min(y0+h*idx3+h,GR_HEIGHT))
-            DrawWallSegment(w,segment,x,y0+h*idx3,w->wall_textures[w->world_mat[idx].u8[1]],h,dist,ceil+adj_height-idx3,idx,side);
+            if(Max(0,y0+h*idx3)<=Min(y0+h*idx3+h,GR_HEIGHT))
+              DrawWallSegment(w,segment,x,y0+h*idx3,w->wall_textures[w->world_mat[idx].u8[1]],h,dist,ceil+adj_height-idx3,idx,side);
           }
-          AddWallCommand(w,x,y0,y0+adj_height*h,dist);
+          AddWallCommand(w,x,y0,y0+idx3*ToI64(h),dist);
 	}
         last_ceil=ceil;
       }
