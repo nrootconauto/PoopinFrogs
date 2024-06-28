@@ -1,4 +1,3 @@
-#define mp_cnt 1
 #include "AnimDC.HC"
 #include "BlobFile.HC";
 #include "SmallTalk/Load.HC"
