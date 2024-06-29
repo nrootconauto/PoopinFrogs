@@ -357,43 +357,43 @@ U0 SetClassMemberVal(CFrogThing *t,U8 *member,I64 val) {
   MemSet(&dummy,0,sizeof CFrogThing);
   if(!cls) NULL;
   if(mlst=MemberFind(member,cls)) {
-     if(mlst->member_class->ptr_stars_cnt==1) {
-       StrCpy(dummy.class_name,mlst->member_class[-1].str);
-       if(ThingHasClass(&dummy,"CFrogThing")) { 
-         (t(U8*)+mlst->offset)(I64*)[0]=FrogIncRefCnt(val);
-	 return ;
-       }
-     }
-     v2=AsF64(val);
-     switch(mlst->member_class->raw_type) {
-       case RT_U8:
-         *(t(U8*)+mlst->offset)=v2;
-	 break;
-       case RT_U16:
-         (t(U8*)+mlst->offset)(U16*)[0]=v2;
-	 break;
-       case RT_U32:
-         (t(U8*)+mlst->offset)(U32*)[0]=v2;
-	 break;
-       case RT_U64:
-         (t(U8*)+mlst->offset)(U64*)[0]=v2;
-	 break;
-       case RT_I8:
-         *(t(I8*)+mlst->offset)=v2;
-	 break;
-       case RT_I16:
-         (t(U8*)+mlst->offset)(I16*)[0]=v2;
-	 break;
-       case RT_I32:
-         (t(U8*)+mlst->offset)(I32*)[0]=v2;
-	 break;
-       case RT_I64:
-         (t(U8*)+mlst->offset)(I64*)[0]=v2;
-	 break;
-       case RT_F64:
-         (t(U8*)+mlst->offset)(F64*)[0]=v2;
-	 break;
-     }
+    if(mlst->member_class->ptr_stars_cnt==1) {
+      StrCpy(dummy.class_name,mlst->member_class[-1].str);
+      if(ThingHasClass(&dummy,"CFrogThing")) { 
+        (t(U8*)+mlst->offset)(I64*)[0]=FrogIncRefCnt(val);
+        return ;
+      }
+    }
+    v2=AsF64(val);
+    switch(mlst->member_class->raw_type) {
+      case RT_U8:
+        *(t(U8*)+mlst->offset)=v2;
+        break;
+      case RT_U16:
+        (t(U8*)+mlst->offset)(U16*)[0]=v2;
+        break;
+      case RT_U32:
+        (t(U8*)+mlst->offset)(U32*)[0]=v2;
+        break;
+      case RT_U64:
+        (t(U8*)+mlst->offset)(U64*)[0]=v2;
+        break;
+      case RT_I8:
+        *(t(I8*)+mlst->offset)=v2;
+        break;
+      case RT_I16:
+        (t(U8*)+mlst->offset)(I16*)[0]=v2;
+        break;
+      case RT_I32:
+        (t(U8*)+mlst->offset)(I32*)[0]=v2;
+        break;
+      case RT_I64:
+        (t(U8*)+mlst->offset)(I64*)[0]=v2;
+        break;
+      case RT_F64:
+        (t(U8*)+mlst->offset)(F64*)[0]=v2;
+        break;
+    }
   }
   return;
 }

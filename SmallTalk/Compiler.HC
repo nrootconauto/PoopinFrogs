@@ -128,6 +128,7 @@ CLocalsGeneric *STAddMethodFrame(CMethod *method,U8 *frame_title,U8*class_name) 
 //DO NOT FREE
 U8 *RawAccessType(U8 *cls,U8 *name) {
   CHashClass *c=HashFind(cls,frog_mem_task->hash_table,HTT_CLASS);
+  if(!c) return NULL;
   CMemberLst *mlst=MemberFind(name,c);
   if(mlst) {
     c=mlst->member_class;
@@ -469,21 +470,12 @@ args:
     DocPrint(doc,",");
     DocPrint(doc,"%s",StackFrame2Var(stack_depth+1+idx));
  }
-  DocPrint(doc,");/*%s*/\n",op);
+  DocPrint(doc,");/* %s */\n",op);
   DocPrint(doc,"  %s=retval;\n",StackFrame2Var(stack_depth));
   if(rc=MethodReturnClass(cls_name,op)) {
     StrCpy(ast->var_class_name,rc);
   }
 
-}
-Bool IsAllF64(CAST *ast) {
-  if(!ast->is_f64) return FALSE;
-  CAST *head=&ast->args,*cur=head->next;
-  while(head!=cur) {
-    if(!IsAllF64(cur)) return FALSE;
-    cur=cur->next;
-  }
-  return TRUE;
 }
 Bool IsF64ExprNode(CLocals *l,CAST *ast) {
   U8 *cn;
@@ -494,6 +486,13 @@ Bool IsF64ExprNode(CLocals *l,CAST *ast) {
    case AST_VAR:
       if(STIsRawMember(l,ast->name)) {
 	return ast->is_f64=TRUE;
+      }
+      return FALSE;
+   case AST_MEMBER:
+      a=ast->args.next;
+      if(a->type==AST_VAR&&StrLen(a->var_class_name)) {
+	if(RawAccessType(a->var_class_name,ast->name))
+	  return ast->is_f64=TRUE;
       }
       return FALSE;
    case AST_UNOP:
@@ -515,15 +514,33 @@ Bool IsF64ExprNode(CLocals *l,CAST *ast) {
        if(!IsF64ExprNode(l,b)) return FALSE;
      }
      return ast->is_f64=ClassHasMethod("CFrogNum",ast->op_name);
+
   }
   return FALSE;
+}
+Bool IsAllF64(CAST *ast) {
+  if(!ast->is_f64) return FALSE;
+  CAST *head=&ast->args,*cur=head->next;
+  while(head!=cur) {
+//Special case,AST_MEMBER's var side might not be a f64,but the result is an f64
+    if(cur->type!=AST_MEMBER) {
+      if(!IsAllF64(cur)) return FALSE;
+    } else if(!cur->is_f64) //cur->tpye==AST_MEMBER
+      return FALSE;
+    cur=cur->next;
+  }
+  return TRUE;
 }
 U0 NumPrimDft(CDoc *doc,CLocals *l,CAST *ast,I64 stack_depth) {
   CAST *head=&ast->args,*cur;
   I64 idx=0;
+  U8 *cls_name;
   ast->is_f64=TRUE;
   DocPrint(doc,"AsF64(");
-  GenerateMethodCall(doc,"CFrogNum",ast->name);
+  if(cls_name=ClassHasMethod("CFrogNum",ast->name))
+    GenerateMethodCall(doc,cls_name,ast->name,FALSE);
+  else
+    DocPrint(doc,"CallScriptUniverse(%d,\n",NameToUniverseNumber(ast->name));
   for(cur=head->next;cur!=head;cur=cur->next) {
     DocPrint(doc,"FrogNumNew(");
     CompileAST(doc,cur,l,stack_depth,,TRUE);
@@ -591,6 +608,22 @@ U0 UnrollBlock(CDoc *doc,CLocals *l,I64 stack_depth,CAST *bl,I64 jump_to=INVALID
   DocPrint(doc,"  %s=retval;\n",StackFrame2Var(stack_depth));
   if(jump_to!=INVALID_PTR)
     DocPrint(doc,"goto L%d;\n",jump_to);
+}
+F64 MemberF64(U8 *self,U8 *expect_type,I64 offset,I64 raw_type) {
+  if(!ThingHasClass(self,expect_type)) return 0.;
+  self+=offset;
+  switch(raw_type) {
+    case RT_I8: return self(I8*)[0];
+    case RT_I16: return self(I16*)[0];
+    case RT_I32: return self(I32*)[0];
+    case RT_I64: return self(I64*)[0];
+    case RT_U8: return self(U8*)[0];
+    case RT_U16: return self(U16*)[0];
+    case RT_U32: return self(U32*)[0];
+    case RT_U64: return self(U64*)[0];
+    case RT_F64: return self(F64*)[0];
+  }
+  return 0.;
 }
 U0 CompileAST(CDoc *doc,CAST *ast,CLocals *locals,I64 stack_depth,I64 jump_to=INVALID_PTR,Bool allow_f64=FALSE) {
   U8 dummy[STR_LEN];
@@ -868,15 +901,15 @@ prim_skip:
         DocPrint(doc,"L%d:\n",ast->switch_num);
         raw_class_name=VarClassName(locals,cur->name);
         DocPrint(doc,"");
-	if(STIsSelfMember(locals,cur->name)) {
+        if(STIsSelfMember(locals,cur->name)) {
 	  mlst=MemberFind(cur->name,HashFind(FramePtr("MethodClass"),frog_mem_task->hash_table,HTT_CLASS));
 	  DocPrint(doc,"(ToI64(self)+%d)(%s*)[0]=",mlst->offset,raw_class_name);
-	} else {
+        } else {
 	  STGetLocal(doc,locals,cur->name);
 	  DocPrint(doc,"(%s)=",raw_class_name);
-	}
+        }
         CompileAST(doc,ast->args.last,locals,stack_depth,,TRUE);
-	DocPrint(doc,";\n");
+        DocPrint(doc,";\n");
         DocPrint(doc,"  stk0=retval=FROG_SMALL_NIL;\n");
         break;
       }
@@ -903,7 +936,7 @@ assign_st :
 	  STGetLocal(doc,locals,cur->name);
 	  DocPrint(doc,";\n");
 assign_raw:
-          raw_class_name=VarClassName(locals,cur->name);
+	  raw_class_name=VarClassName(locals,cur->name);
 	  DocPrint(doc,"tmp(%s*)[0]=AsF64(%s);\n",raw_class_name,StackFrame2Var(stack_depth));
         }
       } else if(cur->type==AST_MEMBER) {
@@ -927,7 +960,7 @@ assign_raw:
 	      DocPrint(doc,"(ToI64(%s)+%d)(CFrogThing**)[0]=%s;",StackFrame2Var(stack_depth),mlst->offset,StackFrame2Var(stack_depth+1));
 	      StrCpy(ast->var_class_name,mlst->member_class[-1].str);
 	    } else
-	     throw('Fuck');
+	      throw('Fuck');
 	  } else {
 	    throw('Member'); 
 	  }
@@ -958,7 +991,7 @@ write_generic_member:
         if(idx) StrCpy(ast->var_class_name,idx);
         if(STIsSelfMember(locals,ast->name)) {
 	  mlst=MemberFind(ast->name,HashFind(FramePtr("MethodClass"),frog_mem_task->hash_table,HTT_CLASS));
-          raw_class_name=VarClassName(locals,ast->name);
+	  raw_class_name=VarClassName(locals,ast->name);
 //ToF64 turns an I64(forced) into an F64
 	  if(STIsRawMember(locals,ast->name)) {
 	    if(ast->is_f64&&!StrCmp(raw_class_name,"F64"))
@@ -978,7 +1011,7 @@ write_generic_member:
 	  if(ast->is_f64)
 	    DocPrint(doc,")");
         } else {
-          raw_class_name=VarClassName(locals,ast->name);
+	  raw_class_name=VarClassName(locals,ast->name);
 //ToF64 turns an I64(forced) into an F64
 	  if(ast->is_f64&&!StrCmp(raw_class_name,"F64"))
 	    conv_name="";
@@ -1046,6 +1079,32 @@ write_generic_member:
       }
       break;case AST_MEMBER:
       cur=ast->args.next;
+      if(cur->type==AST_VAR&&ast->is_f64&&StrLen(cur->var_class_name)) {
+        mlst=MemberFind(ast->name,HashFind(cur->var_class_name,Fs->hash_table,HTT_CLASS));
+        if(mlst) {
+	  DocPrint(doc,"MemberF64(");
+	  if(STIsSelfMember(locals,cur->name)) {
+	    DocPrint(doc,"(ToI64(self)+%d)(CFrogThing**)[0]",
+ 	      MemberFind(cur->name,HashFind(FramePtr("MethodClass"),frog_mem_task->hash_table,HTT_CLASS))->offset,
+	      raw_class_name);
+	  } else {
+	    STGetLocal(doc,locals,cur->name);
+	  }
+	  DocPrint(doc,",\"%Q\",%d,%d)",cur->var_class_name,mlst->offset,mlst->member_class->raw_type);
+	  return;
+        }
+      }
+      if(cur->type==AST_VAR&&ast->is_f64) {
+        DocPrint(doc,"GetClassMemberValF64(");
+        if(STIsSelfMember(locals,cur->name)) {
+	  mlst=MemberFind(cur->name,HashFind(FramePtr("MethodClass"),frog_mem_task->hash_table,HTT_CLASS));
+	  DocPrint(doc,"(ToI64(self)+%d)(CFrogThing**)[0]",mlst->offset,raw_class_name);
+        } else {
+	  STGetLocal(doc,locals,cur->name);
+        }
+        DocPrint(doc,",\"%Q\")",ast->name);
+        return;
+      }
       CompileAST(doc,cur,locals,stack_depth,,FALSE);
       ast->switch_num=ast_case_num++;
       DocPrint(doc,"L%d:\n",ast->switch_num);
@@ -1065,7 +1124,7 @@ write_generic_member:
 	  DocPrint(doc,"else %s=FROG_SMALL_NIL;",StackFrame2Var(stack_depth));
         } else {
 	  throw('Compiler');
- 	}
+        }
       } else {
 generic_member:
         DocPrint(doc,"%s=GetClassMemberVal(%s,\"%s\");\n",StackFrame2Var(stack_depth),StackFrame2Var(stack_depth),ast->name);
