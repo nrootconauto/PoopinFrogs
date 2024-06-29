@@ -21,7 +21,7 @@ U0 JobCallScript(CCSPair *p) {
   Fs->hash_table=p->ht;
   CallScript(p->name,p->thing);
   Free(p);
-  while(LBts(&cpu_job_cnts_lock,Gs->num))
+  while(LBts(&cpu_job_cnts_lock,Gs->num))
     Yield;
   cpu_job_cnts[Gs->num]--;
   LBtr(&cpu_job_cnts_lock,Gs->num);

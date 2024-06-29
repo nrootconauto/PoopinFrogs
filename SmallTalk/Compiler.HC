@@ -469,7 +469,7 @@ args:
     DocPrint(doc,",");
     DocPrint(doc,"%s",StackFrame2Var(stack_depth+1+idx));
  }
-  DocPrint(doc,");/*%s*/\n",op);
+  DocPrint(doc,");/* %s */\n",op);
   DocPrint(doc,"  %s=retval;\n",StackFrame2Var(stack_depth));
   if(rc=MethodReturnClass(cls_name,op)) {
     StrCpy(ast->var_class_name,rc);
