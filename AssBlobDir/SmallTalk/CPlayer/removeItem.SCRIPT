@@ -1,6 +1,6 @@
 removeItem: i* ->* ||
   quick_inventory removeItem: i . 
-  main_inventory removeItem: i .
+  main_inventory removeItem: i.
   i->item = #hand_item ifTrue: [
     #hand_item _ 0
   ]

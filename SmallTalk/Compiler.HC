@@ -469,7 +469,7 @@ args:
     DocPrint(doc,",");
     DocPrint(doc,"%s",StackFrame2Var(stack_depth+1+idx));
  }
-  DocPrint(doc,");\n");
+  DocPrint(doc,");/*%s*/\n",op);
   DocPrint(doc,"  %s=retval;\n",StackFrame2Var(stack_depth));
   if(rc=MethodReturnClass(cls_name,op)) {
     StrCpy(ast->var_class_name,rc);
@@ -492,20 +492,22 @@ Bool IsF64ExprNode(CLocals *l,CAST *ast) {
     case AST_NUM:
       return ast->is_f64=TRUE;
    case AST_VAR:
-      if(cn=VarClassName(l,ast->name)) {
-	if(!StrCmp(cn,"CFrogNum")) return ast->is_f64=TRUE;
+      if(STIsRawMember(l,ast->name)) {
+	return ast->is_f64=TRUE;
       }
       return FALSE;
    case AST_UNOP:
      a=ast->args.next;
-     if(IsF64ExprNode(l,a))
+     if(IsF64ExprNode(l,a)) {
        return ast->is_f64=ClassHasMethod("CFrogNum",ast->op_name);
+      }
      return FALSE;
    case AST_BINOP:
      a=ast->args.next;
      b=ast->args.last;
-     if(IsF64ExprNode(l,a)&&IsF64ExprNode(l,b))
+     if(IsF64ExprNode(l,a)&&IsF64ExprNode(l,b)) {
        return ast->is_f64=ClassHasMethod("CFrogNum",ast->op_name);
+     }
      return FALSE;
    case AST_KEYWORD:
      a=&ast->args;
@@ -524,7 +526,7 @@ U0 NumPrimDft(CDoc *doc,CLocals *l,CAST *ast,I64 stack_depth) {
   GenerateMethodCall(doc,"CFrogNum",ast->name);
   for(cur=head->next;cur!=head;cur=cur->next) {
     DocPrint(doc,"FrogNumNew(");
-    CompileAST(doc,cur,l,stack_depth);
+    CompileAST(doc,cur,l,stack_depth,,TRUE);
     DocPrint(doc,")");
     if(cur->next!=head)
       DocPrint(doc,",");
@@ -601,6 +603,16 @@ U0 CompileAST(CDoc *doc,CAST *ast,CLocals *locals,I64 stack_depth,I64 jump_to=IN
   CMemberLst *mlst;
   if(allow_f64) {
     ast->is_f64=IsF64ExprNode(locals,ast);
+  } else if(IsF64ExprNode(locals,ast)) {
+    DocPrint(doc,"L%d:\n",ast_case_num++);
+    DocPrint(doc,"retval=FrogNumNew(");
+    CompileAST(doc,ast,locals,stack_depth+1,jump_to,TRUE);
+    DocPrint(doc,");\nif(return_flag[0]) goto ret;\n");
+    DocPrint(doc,"%s=retval;",StackFrame2Var(stack_depth));
+    if(jump_to!=INVALID_PTR) {
+      DocPrint(doc,"goto L%d;\n",jump_to);
+    }
+    return;
   }
   switch(ast->type) {
       break;case AST_UNOP:
@@ -849,11 +861,28 @@ prim_skip:
       cnt=StrOcc(ast->op_name,':');
       goto pass;
       break;case AST_ASSIGN:
+      cur=ast->args.next;
       DocPrint(doc,"if(return_flag[0]) { goto ret;}");
+      if(cur->type==AST_VAR&&STIsRawMember(locals,cur->name)&&IsF64ExprNode(locals,ast->args.last)) {
+        ast->switch_num=ast_case_num++;
+        DocPrint(doc,"L%d:\n",ast->switch_num);
+        raw_class_name=VarClassName(locals,cur->name);
+        DocPrint(doc,"");
+	if(STIsSelfMember(locals,cur->name)) {
+	  mlst=MemberFind(cur->name,HashFind(FramePtr("MethodClass"),frog_mem_task->hash_table,HTT_CLASS));
+	  DocPrint(doc,"(ToI64(self)+%d)(%s*)[0]=",mlst->offset,raw_class_name);
+	} else {
+	  STGetLocal(doc,locals,cur->name);
+	  DocPrint(doc,"(%s)=",raw_class_name);
+	}
+        CompileAST(doc,ast->args.last,locals,stack_depth,,TRUE);
+	DocPrint(doc,";\n");
+        DocPrint(doc,"  stk0=retval=FROG_SMALL_NIL;\n");
+        break;
+      }
       CompileAST(doc,ast->args.last,locals,stack_depth);
       ast->switch_num=ast_case_num++;
       DocPrint(doc,"L%d:\n",ast->switch_num);
-      cur=ast->args.next;
       if(cur->type==AST_SYMBOL) {
         DocPrint(doc,"\n  FrogSymbol0(%d)->value=%s;\n",NameToUniverseNumber(cur->name),StackFrame2Var(stack_depth));
       } else if(cur->type==AST_VAR) {      

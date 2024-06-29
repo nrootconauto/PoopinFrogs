@@ -1537,7 +1537,7 @@ ceil2:
 	goto ent;
       ceil=w->ceilmap[idx];
       adj_height=w->ceilmap2[idx];
-      //Draw Ceil
+  //Draw Ceil
       if(ceil!=I8_MAX&&ceil>w->cam_height) {
 //.u8[1] is ceil tile
         if(use_dc=w->ceil_textures[w->world_mat[idx].u8[1]]) {
