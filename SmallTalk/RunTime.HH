@@ -9,7 +9,7 @@ class CFrogThing:CQue {
   I32 thing_flags,shadow_ref_cnt;
   I32 id,ref_cnt;
   CCPU *owner_cpu;
-  I64 lock_cnt;
+  I32 lock_cnt,universe_class_idx;
   U8 class_name[32];
 };
 class CFrogFrame {

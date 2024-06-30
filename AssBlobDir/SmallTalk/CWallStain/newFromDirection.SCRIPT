@@ -3,7 +3,15 @@ placeAtAngle: a=CFrogNum
   fromY: yy=CFrogNum
   atHeight: zz=CFrogNum
   ->*
-  | X=CFrogNum Y=CFrogNum rando=CFrogRandom h=CFrogNum seg=CFrogNum|
+|
+  X=CFrogNum
+  Y=CFrogNum
+  rando=CFrogRandom
+  h=CFrogNum
+  seg=CFrogNum
+  door_offset=CFrogNum
+  door=CDoorx
+|
   tile _ #world rayTileAtX: xx atY: yy atAngle: a atHeight: zz .
   'Heres the deal,floating point reounding may give an improper'
   'tile so be sure to check if the stain hit the wall'.
@@ -11,5 +19,13 @@ placeAtAngle: a=CFrogNum
   seg _ #world raySegmentAtX: xx atY: yy atAngle: a atHeight: zz forTile: tile .
   rando _ CFrogRandom new .
   x _ ((rando next - .5) * 16)  + seg  .
+  'Heres the deal,if we hit a door,account for door height' . 
+  door _ #world doorInRadius: 120 atX: tile->x * 128 + 64 atY: tile->y * 128 +64 atAngle: a .
+  (door hasClass: CDoor) ifTrue: [
+    door_offset _ door->height - (door->percent * door->height) .
+  ] ifFalse: [
+    door_offset _ 0 .
+  ] .
+  zz _ zz + door_offset .
   y _ ((rando next - .5) * 16) - (zz floor * 128) + 128 - ((zz abs rem: 1. ) * 128) . 
   #world addWallStain: self .

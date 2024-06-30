@@ -262,6 +262,17 @@ Bool ThingHasClass(CFrogThing *thing,U8 *name,I64 small_type=0) {
   }
   return FALSE;
 }
+Bool ThingHasClass2(CFrogThing *thing,I64 universe,I64 small_type=0) {
+//Quick check for small Types
+  if(small_type&&thing&1) {
+    return thing&0xffff==small_type;
+  }
+  if(thing&1) {
+    return ThingHasClass(thing,I64SetGetAt(universe_values,universe));
+  }
+  return UniverseIsSubClassOf(thing->universe_class_idx,universe);
+}
+
 Bool ThingIsError(CFrogThing *t) {
   return t&0xffFF==FROG_SMALL_ERROR;
 }
@@ -529,6 +540,7 @@ CFrogThing *_ConstructThing(U8 *class_name,I64 argc,I64 *argv) {
   U8 *constructor;
   if(!cls) return NULL;
   CFrogThing *t=CAlloc(cls->size,mem_task);
+  t->universe_class_idx=UniverseAddClass(class_name);
   QueInit(t);
   StrCpy(t->class_name,class_name);
   CHashFun *fun;
@@ -652,6 +664,16 @@ CFrogThing *CallPtr(U8 *fun_ptr,U8 *must_have,CFrogThing *self,...) {
     if(!ThingHasClass(self,must_have)) {
      return FROG_SMALL_NIL;
     }
+  }
+  CFrogThing *ret=CallVaArgs(fun_ptr,argc,argv,self);
+  if(!ret)
+    ret=FROG_SMALL_NIL;
+  return ret;
+}
+CFrogThing *CallPtr2(U8 *fun_ptr,I64 universe_class,CFrogThing *self,...) {
+  if(self==FROG_SMALL_NIL) return FROG_SMALL_NIL;
+  if(!ThingHasClass2(self,universe_class)) {
+    return FROG_SMALL_NIL;
   }
   CFrogThing *ret=CallVaArgs(fun_ptr,argc,argv,self);
   if(!ret)

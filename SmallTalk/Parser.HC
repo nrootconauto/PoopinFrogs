@@ -15,6 +15,8 @@
 #define AST_RETURN 14
 #define AST_SELF 15
 #define AST_MEMBER 17
+//Used by Compiler.HC
+#define AST_STACK_TEMPORARY 18
 
 class CAST:CQue {
   CQue args;
@@ -26,6 +28,7 @@ class CAST:CQue {
   };
   U8 var_class_name[STR_LEN/2];
   union {
+    I64 stk_idx;
     F64 num;
     CAST *cascade_head;
     U8 *str;
