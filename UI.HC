@@ -159,7 +159,7 @@ U0 UIUnFocus() {
   FramePtrDel(UI_FOCUS_FPTR,ui_task);
 }
 //Do not Free
-I64 *UpdateUI(CUIElem *update,I64 msg_type,I64 m1,I64 m2,I64 right_x=GR_WIDTH,I64 right_y=GR_HEIGHT) {
+I64 *UpdateUI(CUIElem *update,I64 msg_type,I64 m1,I64 m2,I64 right_x=GR_WIDTH,I64 right_y=GR_HEIGHT,Bool root=TRUE) {
   CUIElem *chain,**body=update->sub_elems->items->body,*drag;
   I64 x,y,got,cnt=update->sub_elems->items->cnt,idx;
   U8 *cb;
@@ -188,7 +188,7 @@ I64 *UpdateUI(CUIElem *update,I64 msg_type,I64 m1,I64 m2,I64 right_x=GR_WIDTH,I6
     end:
 //These are handled by the focused silly sauce
       if(update==FramePtr(UI_FOCUS_FPTR,ui_task)&&ThingHasClass(cb,"CFrogBlock")) {
-        ThingDel(FrogBlockValue(cb,FrogIncRefCnt(update),FrogChrNew(m1),FrogNumNew(m2&0xff)));
+        FrogBlockValue(cb,FrogIncRefCnt(update),FrogChrNew(m1),FrogNumNew(m2&0xff));
         ret_code=TRUE;
         return &ret_code;
       }
@@ -204,7 +204,7 @@ I64 *UpdateUI(CUIElem *update,I64 msg_type,I64 m1,I64 m2,I64 right_x=GR_WIDTH,I6
 pass:
   if(!(update->update_parent_first))
     for(idx=0;idx!=cnt;idx++) {
-      if(chain=UpdateUI(body[idx],msg_type,m1,m2,x+body[idx]->sz_x,y+body[idx]->sz_y)) {
+      if(chain=UpdateUI(body[idx],msg_type,m1,m2,x+body[idx]->sz_x,y+body[idx]->sz_y,FALSE)) {
         return chain;
       }
     }
@@ -218,41 +218,40 @@ pass:
         cb=update->ms_rdown;
       goto ms_cb;
     case MSG_MS_L_UP:
-      drag=FramePtr(UI_FOCUS_FPTR,ui_task);
-      if(drag)
+      drag=FramePtr(UI_GRID_DRAG_FPTR,ui_task);
+//If we are at root and no one uses the drag,remove it 
+      if(drag&&root)
         if(ThingHasClass(drag,"CUIGridItem"))
-          FramePtrDel(UI_FOCUS_FPTR);
+          FramePtrDel(UI_GRID_DRAG_FPTR);
       if(ThingHasClass(update->drag_end,"CFrogBlock")) {
         if(m1!=drag_start_x||m2!=drag_start_y) {
-	  if(drag=FramePtr(UI_GRID_DRAG_FPTR)) {
-	    ThingDel(FrogBlockValue(update->drag_end,
+	  if(drag) {
+	    FrogBlockValue(update->drag_end,
 		  FrogIncRefCnt(update),
 		  FrogNumNew(m1-x),
 		  FrogNumNew(m2-y),
 		  drag
-		  ));
-	    FramePtrDel(UI_GRID_DRAG_FPTR);
+		  );
+            FramePtrDel(UI_GRID_DRAG_FPTR);
 	    ret_code=TRUE;
 	    return &ret_code;
 	  }
-        } else  {
-	  if(drag=FramePtr(UI_GRID_DRAG_FPTR)) {
-	    cb=drag->ms_lup;
-	    FramePtrDel(UI_GRID_DRAG_FPTR);
-	    goto ms_cb;
-	  }
-	}
+        }
       } else if(ThingHasClass(update,"CUITextBar")) {
-	FramePtrAdd(UI_FOCUS_FPTR,update);
+	FramePtrDel(UI_FOCUS_FPTR);
+       	FramePtrAdd(UI_FOCUS_FPTR,update);
+        FramePtrDel(UI_GRID_DRAG_FPTR);
         ret_code=TRUE;
         return &ret_code;
       }
       cb=update->ms_lup;
+//If releaseing the left thing with a valid callback(not accepted by drag_end),just end the drag
+      if(ThingHasClass(cb,"CFrogBlock")) 
+        FramePtrDel(UI_GRID_DRAG_FPTR);
       goto ms_cb;
     case MSG_MS_L_DOWN:
       if(ThingHasClass(update->drag_start,"CFrogBlock")) {
         if(!FramePtr(UI_GRID_DRAG_FPTR)) {
-	  FramePtrDel(UI_GRID_DRAG_FPTR);
 	  drag=FrogBlockValue(update->drag_start,
 	        FrogIncRefCnt(update),
 	        FrogNumNew(m1-x),
@@ -260,10 +259,10 @@ pass:
 	  );
 	  drag_start_x=m1;
 	  drag_start_y=m2;
-	  if(ThingHasClass(drag,"CUIGridItem"))
+	  if(ThingHasClass(drag,"CUIGridItem")) {
 	    FramePtrAdd(UI_GRID_DRAG_FPTR,drag);
-	  else
-	    ThingDel(drag);
+	  } else
+	    break;
 	  ret_code=TRUE;
 	  return &ret_code;
         }
@@ -277,11 +276,11 @@ pass:
       cb=update->ms_rdown;
 ms_cb:
       if(ThingHasClass(cb,"CFrogBlock")) {
-        ThingDel(FrogBlockValue(cb,
+        FrogBlockValue(cb,
 	      FrogIncRefCnt(update),
 	      FrogNumNew(m1-x),
 	      FrogNumNew(m2-y)
-        ));
+        );
         ret_code=TRUE;
         return &ret_code;
       }
@@ -290,7 +289,7 @@ ms_cb:
   if(update->update_parent_first) {
     for(idx=0;idx!=cnt;idx++) {
       update=body[idx];
-      if(chain=UpdateUI(update,msg_type,m1,m2,x+update->sz_x,y+update->sz_y)) {
+      if(chain=UpdateUI(update,msg_type,m1,m2,x+update->sz_x,y+update->sz_y,FALSE)) {
         return chain;
       }
     }
@@ -640,15 +639,20 @@ U0 DrawUIRoot(CTask *t,CDC *dc) {
   CFrogSymbol *s=FrogSymbol("ui_root");
   CUIElem *e;
   I64 oldx,oldy;
+  I64 oldcx,oldcy;
   if(ThingHasClass(s->value,"CUIElem")) {
     RenderUI(dc,s->value,0,0,t->pix_width,t->pix_height);
   }
   if(e=FramePtr(UI_GRID_DRAG_FPTR,t)) {
     oldx=e->x;
     oldy=e->y;
+    oldcx=e->computed_x;
+    oldcy=e->computed_y;
     e->x=0;
     e->y=0;
     RenderUI(dc,e,ms.pos.x-t->pix_left,ms.pos.y-t->pix_top,t->pix_width,t->pix_height);
+    e->computed_x=oldcx;
+    e->computed_y=oldcy;
     e->x=oldx;
     e->y=oldy;
   }

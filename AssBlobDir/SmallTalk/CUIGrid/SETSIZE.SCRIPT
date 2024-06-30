@@ -1,9 +1,10 @@
 setWidth: w=CFrogNum withHeight: h=CFrogNum ->* | tmp=CFrogArray |
   mat _ #() .
   0 to: w do: [
-    tmp _ #()
-    0 to: h do [
-     tmp add: 0
+    tmp _ #() .
+    0 to: h do: [
+      tmp add: 0 .
+      
     ] .
     mat add: tmp 
   ] .

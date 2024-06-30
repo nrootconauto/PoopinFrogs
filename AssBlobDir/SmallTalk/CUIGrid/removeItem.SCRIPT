@@ -3,7 +3,6 @@ removeItem: i* -> CFrogNum | idx=CFrogNum |
   mat do: [:row=CFrogArray|
     idx _ row indexOf: i .
     idx ~= -1 ifTrue: [
-idx show .
       row at: idx put: 0 .
       ^ 1 
     ]

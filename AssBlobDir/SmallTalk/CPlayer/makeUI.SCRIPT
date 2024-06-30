@@ -42,7 +42,7 @@ makeUI ->* | w=CFrogNum h=CFrogNum label*|
   chat_log_input setHeight: 10 .
   chat_log_input setY: 20 + 256 .
   chat_log_input setX: 320 - (chat_log_input getWidth / 2 ) .
-  chat_log_input setOnEnter: [:s=CFrogStr | s show ] .
+  chat_log_input setOnEnter: [:s=CFrogStr | s show  ] .
   
   chat_log _ CUIChatLog new .
   chat_log setWidth: 300 .

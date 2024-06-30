@@ -15,7 +15,7 @@ class CFrogThing:CQue {
 class CFrogNum:CFrogThing {
   F64 num;
 };
-class CFrogUndefined:CFrogThing {
+class CFrogUndefined:CFrogThing {
 };
 class CFrogClass:CFrogThing {
   U8 name[STR_LEN];

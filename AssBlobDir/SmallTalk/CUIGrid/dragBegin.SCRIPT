@@ -1,8 +1,8 @@
-dragBeginAtX: x=CFrogNum atY: y=CFrogNum ->CUIGridItem | item=CUIGridItem |
+dragBeginAtX: x=CFrogNum atY: y=CFrogNum ->CUIGridItem | item* |
   x _ x / 32 . 
   y _ y / 32 .
   item _ (mat at: x )  at: y .
   ( item hasClass: CUIGridItem ) ifTrue: [
     #ui_drag_item _ item .
     ^ item
-  ] .
+  ]

@@ -1,8 +1,6 @@
 afterRestore->* |
   old_items=CFrogArray
 |
-  'piss_steam' show .
-  piss_stream show .
   piss_stream setFrom: self.
   
   template _ #world getThingTemplate: template_name. 
@@ -11,6 +9,5 @@ afterRestore->* |
   old_items _ items .
   items _ #() .
   old_items do: [:i=CHandItem|
-    i show .
     i addToPlayerAgain: self .
   ] .

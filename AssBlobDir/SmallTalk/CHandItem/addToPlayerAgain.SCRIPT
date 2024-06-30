@@ -18,16 +18,6 @@ addToPlayerAgain:p=CPlayer ->* |
   p->items add: self .
 
 
-  'poo poo' show .
-  grid_x show .
-  grid_y show .
-  who show .
-
   who addItem: inventory_item atX: grid_x atY: grid_y .
-
-  who->sub_elems size show .
-
-  'poo poo2' show.
-  gr_name show .
 
   self setGraphics: gr_name .

@@ -5,12 +5,10 @@ beforeSave->* |
 |
   p _ #world getPlayer .
   who _ p->quick_inventory.
-'who 'show .
   (who->sub_elems includes: inventory_item) ifTrue: [
     in_quick_inventory _ 1 .
   ] ifFalse: [
     who _ p->main_inventory .
-'who2 ' show .
     in_quick_inventory _ 0 .
   ] .
 

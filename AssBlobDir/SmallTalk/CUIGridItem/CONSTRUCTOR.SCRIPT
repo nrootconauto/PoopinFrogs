@@ -1,3 +1,5 @@
 init | |
   cnt _ 1 .
+  sz_x _ 24 .
+  sz_y _ 24 .
  ^ self
