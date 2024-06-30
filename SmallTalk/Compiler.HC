@@ -1083,7 +1083,8 @@ write_generic_member:
         DocPrint(doc,"  %s=%d; /* %n */ \n",StackFrame2Var(stack_depth),FrogNumNew(ast->num),ast->num); 
       } else {
 //In some FPU's 30 may become 29.999999...,FrogNumNew will correct this by ensuring the integer componet is lit
-        DocPrint(doc,"%d(F64) /* %n */ ",AsF64(FrogNumNew(ast->num)),ast->num);
+//(Use parens to preserve sign)
+        DocPrint(doc,"(%d)(F64) /* %n */ ",AsF64(FrogNumNew(ast->num)),ast->num);
         return;
       }
       break;case AST_MEMBER:

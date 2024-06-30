@@ -127,9 +127,10 @@ F64 AsF64(CFrogThing *t) {
 CFrogThing *FrogNumNew(F64 n) {
   n*=I16_MAX;
   I64 ipart=ToI64(n);
-  if (n>ipart&&n-ipart>.5)
+  n-=ipart;
+  if (n>.5)
     ++ipart;
-  else if(n<ipart&&ipart-n>.5)
+  else if(n<-.5)
     --ipart;
   return ipart<<16|FROG_SMALL_NUM;
 }
