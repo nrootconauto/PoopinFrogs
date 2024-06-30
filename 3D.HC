@@ -631,7 +631,7 @@ C3DThing *BumpsIntoThing(C3DThing *self,...) {
   F64 x,y;
   x=who->x-self->x;
   y=who->y-self->y;
-  if(radius>=x*x+y+y)
+  if(radius>=x*x+y*y)
     return FrogNumNew(1);
   return FrogNumNew(0);
 } 

@@ -652,7 +652,6 @@ U0 CompileAST(CDoc *doc,CAST *ast,CLocals *locals,I64 stack_depth,I64 jump_to=IN
       if(allow_f64) {
         DocPrint(doc,"%s",StackFrame2Var(ast->stk_idx));
       } else {
-DocInsDoc(DocPut,doc);
         throw('Fuck');
       }
       return;
@@ -1080,9 +1079,11 @@ write_generic_member:
       if(!ast->is_f64) { 
         ast->switch_num=ast_case_num++;
         DocPrint(doc,"L%d:\n",ast->switch_num);
-        DocPrint(doc,"  %s=FrogNumNew(%n);\n",StackFrame2Var(stack_depth),ast->num); 
+//"Unroll" the call to FrogNumNew
+        DocPrint(doc,"  %s=%d; /* %n */ \n",StackFrame2Var(stack_depth),FrogNumNew(ast->num),ast->num); 
       } else {
-        DocPrint(doc,"%n",ast->num);
+//In some FPU's 30 may become 29.999999...,FrogNumNew will correct this by ensuring the integer componet is lit
+        DocPrint(doc,"%d(F64) /* %n */ ",AsF64(FrogNumNew(ast->num)),ast->num);
         return;
       }
       break;case AST_MEMBER:
