@@ -1,0 +1,19 @@
+damage: amt=CFrogNum from: t=C3DThing ->* | |
+  'blood' .
+  1 to: amt / 6 + 5 do:[ 
+    #world newParticleAtX: x atY: y atZ: z + .5 withSpread: 64 withColor: #color_RED 
+  ] .
+ 
+
+  'Attack '.
+  target _ t .
+  'Ass bird will get bored of attaking after awhile'.
+  (state ~= 'Chase0' and: state ~= 'Chase1') ifTrue: [
+    state_start_tS  _ CFrogTime now asSeconds .
+    state _ 'Chase0' .
+  ] .
+
+  self damage: amt . 
+
+  'Trigger state change' .
+  self update .

@@ -199,12 +199,13 @@ class C3DThing:CFrogThing {
 //Private
   CFrogStr *template_name;
   Bool no_fall_off_edge;
+  Bool floating;
 };
 class C3DWorldManager:CFrogThing {
   U8 *world_handle;
   CFrogArray *things recur_serialize 1;
 //See CWallStain mofo
-  CFrogArray *wall_stains no_serialize 1;
+  CFrogArray *wall_stains no_serialize 1;
   CFrogArray *floor_stains no_serialize 1;
   CFrogDictionary *thing_templates no_serialize 1;
   CFrogDictionary *tile_templates no_serialize 1;
@@ -360,7 +361,7 @@ class CPlayer:C3DThing {
   CFrogArray *shell_casings no_serialize 1;
   CUIMeter *health_meter no_serialize 1;
   CUIMeter *ammo_meter no_serialize 1;
-  CUIGrid *quick_inventory no_serialize 1;
+  CUIGrid *quick_inventory no_serialize 1;
   CUIGrid *main_inventory no_serialize 1;
   CUIButton *open_inventory_button no_serialize 1;
   CUIChatLog *chat_log no_serialize 1;

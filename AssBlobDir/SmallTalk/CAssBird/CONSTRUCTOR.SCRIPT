@@ -1,8 +1,8 @@
 init ->CAssBird | |
-  #world add: self.
+  #world addThing: self.
   state _ 'Wander'.
   random_generator _ CFrogRandom new .
   template _ #world getThingTemplate: 'CAssBird' .
   health _ 75 .
-  speed _ 10 .
+  speed _ 5 .
   ^ self

@@ -1605,7 +1605,7 @@ CFrogThing *FrogBlobFileReadLump(CFrogBlobFile *f,...) {
 } 
 AddMethod("CFrogBlobFile","readLump:",&FrogBlobFileReadLump);
 
-F64 frog_time_offset=0.;
+F64 frog_time_offset=-tS;
 CFrogThing *FrogTimeNow(CFrogThing *ul,...) {
   CFrogTime *t=ConstructThing("CFrogTime");
   t->ts=FrogNumNew(tS+frog_time_offset);

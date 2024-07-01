@@ -1,0 +1,146 @@
+update->*
+|
+  w=C3DWorldManager
+  p=CPlayer
+  things=CFrogArray
+  best_dist=CFrogNum
+  dist=CFrogNum
+  now=CFrogNum
+  rocket=CPoopRocket
+|
+
+'The AssBird will just look for dead enemies to ressurect'.
+'The AssBird will also not attack if not provoked' .
+  now _ CFrogTime now asSeconds.
+  w _ #world .
+
+  health <= 0 ifTrue: [
+    floating _ 0 .
+    (state ~= 'Dead') ifTrue: [
+       momz _ 0 .
+       momx2 _ 0 .
+       momy2 _ 0 .
+       momx _ (random_generator next - .5) * 32 .
+       momy _ (random_generator next - .5) * 32 .
+       animation_no_repeat _ 1 .
+       animation_start_tS _ now .
+       template _ w getThingTemplate: 'CAssBird/Dead' .
+       state _ 'Dead' .
+    ].
+    ^ 1
+  ] .
+
+  p _ w getPlayer .
+
+  floating _ 1 .
+
+  
+  'Provoked via damage:from:' .
+  'Attack for 5 seconds then return to healing dead assholes'.
+  (state = 'Chase0') ifTrue: [
+     now < (state_start_tS + 5) ifTrue: [
+       speed _ 15 .
+       'rise above target  before attack' .
+       self wanderFly: speed withTarget: target .
+       momz _ (target->z + 2.5 - z) * .1 .
+       'Wait at least .75 seconds before attempting attack'.
+       (state_start_tS + .75) < now ifTrue:  [
+         dist _ (target->x - x ) squared + (target->y - y ) squared  .
+         dist < (10  *128) squared ifTrue: [
+           (random_generator next < (.25 / 10)) ifTrue: [
+             'TODO angry graphics'.
+             state_start_tS _ now .
+             state _ 'Chase1' .
+             angle _ target->x - x arg: target->y - y .
+             speed _ 15 .
+             momx2 _ 0 .
+             momy2 _ 0 .
+             momx _ speed * angle cos .
+             momy _ speed * angle sin .
+             momz _ (target->z - z) * speed / dist .
+           ] .
+         ] .
+       ]
+     ] .
+  ] .
+
+  state = 'Chase1' ifTrue: [
+    now > (state_start_tS + 1 ) ifTrue: [
+      state _ 'Wander' .  
+    ] . 
+    'Throw shit towards at the player' .
+    random_generator next < (5 / 10) ifTrue: [
+      angle _ target->x -x arg: target->y -y .
+      rocket _ CPoopRocket new .
+      rocket->from _ self . 
+      rocket->x _ x . 
+      rocket->y _ y .
+      rocket->z _ z +.5 .
+      rocket -> angle _ angle + ((random_generator next - .5) * (3.14 / 2) ) .
+      rocket->momx _ rocket->angle cos * 16 .
+      rocket->momy _ rocket->angle sin * 16 .
+      dist _ ((target->x - rocket->x) squared +(target->y - rocket->y)) sqrt .
+      rocket->momz _ (target->z + .5 - rocket->z) / dist * 16 .
+    ] .
+    self isOnGround ifTrue: [
+      state _ 'Wander' .
+    ] .
+    ^ 1 .
+  ] .
+
+  (state = 'Wander' ) ifTrue:[
+    speed _ 5 .
+    'Look for dead things to ressurect '.
+    things _ w getThingsInRadiusFromX: x fromY: y withRadius: 16 * 128 .
+    things _ things select: [:t=C3DThing| t ->health <= 0 and: (t hasClass: CPickup) not ] .
+    best_dist _ 16000 * 16000 .
+    things do: [:t=C3DThing|
+      'TODO check for "Small" enemy(also dont revive other CAssBirds)'.
+       ((self canSeeThing: t) and: (t hasClass: CAssBird) not) ifTrue:[
+         dist _ (t->x - x ) squared + (t->y - y) squared .
+         (dist < best_dist and: p ~= t ) ifTrue: [
+           best_dist _ dist .
+           state _ 'Heal0' .
+           target _ t .
+         ]
+       ] .
+    ] .
+
+    (target hasClass: C3DThing) ifFalse: [
+      self wander: speed .
+    ] .
+  ].
+
+  'Get close to entity to heal it'.
+  state = 'Heal0' ifTrue: [
+    speed _ 10 .
+    self wanderFly: speed withTarget: target .
+    dist _ (target->x - x ) squared + (target->y - y) squared .
+    dist < 48 squared ifTrue: [
+      state _ 'Heal1' .
+      state_start_tS _ now .
+    ] .
+  ] .
+  
+ 'If we are close to an entity,Sink to its level for 1.5 seconds then '.
+ ' Shit on the target to bring it back to life' .
+ state = 'Heal1' ifTrue: [
+   momx2 _ 0 .
+   momy2 _ 0 .
+   speed _ 1 .
+   self move: speed atAngle: (target->x -x arg: target->y -y ) .
+   floating _ 0 .
+   now > (state_start_tS + 1.5 ) ifTrue: [
+     'Ass Blast into the air'.
+     momz _ random_generator next * 1.4 + .5 .
+     1 to: 15 do:[ 
+       w newParticleAtX: x atY: y atZ: z +.5 withSpread: 128 withColor: #color_BROWN
+       'Bring back to life(remove/init)' .
+       w removeThing: target .
+       target init .
+     ] .
+     state _ 'Wander' .
+     target _ 0 .
+   ] .
+   ^ 1 .
+ ].

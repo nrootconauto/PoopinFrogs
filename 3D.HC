@@ -836,7 +836,7 @@ U0 PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm) {
   CallScript("removeFromGrid:",wm,FrogIncRefCnt(t));
   if(C3DWorldMoveZWithCollision(w,t->momz,t->x,t->y,&t->z)) {
     t->momz=0;
-  } else if(!rocket)
+  } else if(!rocket&&!t->floating)
       t->momz-=wm->gravity;
   ox=t->x;
   oy=t->y;
@@ -2624,7 +2624,7 @@ U0 WalkAround(U8 *save_string=NULL) {
 //On american keybaords,0 is the last key
 		case '0':
 		  CallScript("selectQuickItemByNum:",player,FrogNumNew(9));
-		  break;
+		  break;
 	      }
 	    break;case MSG_KEY_UP:
 	    ch=m1,sc=m2;
@@ -2697,7 +2697,7 @@ next:;
 	  }
         }
      }
-      QueCallScript("animate",FrogSymbol("hand_item")->value);
+      QueCallScript("animate",FrogSymbol("hand_item")->value);
       UpdateDrawBuffer;
       ClearPlatformCache; //Clear the cache becuase of changeing doors
       Refresh;

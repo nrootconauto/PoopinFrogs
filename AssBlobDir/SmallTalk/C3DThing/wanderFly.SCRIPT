@@ -1,6 +1,19 @@
 wanderFly: speed=CFrogNum withTarget: target=C3DThing ->* |
   w=C3DWorldManager
   f=CFrogNum
+  hit_wall=CFrogNum
+  rand=CFrogRandom
 |
+  momx2 _ 0 .
+  momy2 _ 0 .
+  rand _ CFrogRandom new .
+  ( rand next < (2 / 10) ) ifTrue: [
+    self newChaseDirection: speed withTarget: target .
+  ] .
+  hit_wall _ self move: speed atAngle: angle .
+  hit_wall ifTrue:  [
+    self newChaseDirection: speed withTarget: target .
+  ] .
+  momz _ (( .5 + target->z) -z) * .1 .
   ^ 1 .
   

@@ -898,7 +898,7 @@ next:
   DCDel(ed->screen);
 }$WW,1$
 U8 *TextureEdit(U8 *blob_file,U8 *dft=NULL,I64 dft_w=150,I64 dft_h=275) {
-  U8 *lump_name=NULL,*data=NULL;
+  U8 *lump_name=NULL,*data=NULL;
   U8 write_to[STR_LEN];
   U64 type;
   I64 len;

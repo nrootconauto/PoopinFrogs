@@ -1195,15 +1195,14 @@ Bool EditDC(U8 *blob,U8 *name,I64 dft_w,I64 dft_h) {
 //TempleOS lexer gets rid of rest of line after #include
 Bool old_flat=world_edit.flat_mode;
 world_edit.flat_mode=TRUE;
-PopUpPrint(
+PopUpPrint(
 "Cd(\"%Q\");\n"
-"#include \"TextureEditor.HC\";\n"
-"U8 *lump_name=TextureEdit(\"%Q\",,%d,%d);\n"
-"if(lump_name) StrCpy(%d,lump_name);\n"
-"else StrCpy(%d,"");\n",
+"#include \"TextureEditor.HC\";;\n"
+"StrCpy(%d,\"\");\n"
+"U8 *n=TextureEdit(\"%Q\",,%d,%d);\n"
+"if(n) StrCpy(%d,n);\n",
 __DIR__,
-blob,dft_w,dft_h,name,name
-);
+name,blob,dft_w,dft_h,name);
 world_edit.flat_mode=old_flat;
 return ToBool(StrLen(name));
 }
