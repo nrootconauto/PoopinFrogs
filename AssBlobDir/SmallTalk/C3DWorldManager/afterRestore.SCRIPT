@@ -32,3 +32,5 @@ afterRestore->* |
   old_doors do:[:d=CDoor|
     self addDoor: d
   ] .
+
+  CFrogTime setTime: game_load_tS .

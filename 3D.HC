@@ -2618,6 +2618,13 @@ U0 WalkAround(U8 *save_string=NULL) {
 	        case 'A': left=TRUE; break;
 	        case 'S': down=TRUE; break;
 	        case 'D': right=TRUE; break;
+		case '1' ... '9':
+		  CallScript("selectQuickItemByNum:",player,FrogNumNew(ch-'1'));
+		  break;
+//On american keybaords,0 is the last key
+		case '0':
+		  CallScript("selectQuickItemByNum:",player,FrogNumNew(9));
+		  break;
 	      }
 	    break;case MSG_KEY_UP:
 	    ch=m1,sc=m2;

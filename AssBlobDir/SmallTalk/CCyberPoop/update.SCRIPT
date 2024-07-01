@@ -56,7 +56,7 @@ update ->*
         rocket->angle _ angle + (o * 3.13 / 3) .
         rocket->momx _ 10 * rocket->angle cos .
         rocket->momy _ 10 * rocket->angle sin .
-        rocket->momz _ (target->z - rocket->z ) / dist / 10 . 
+        rocket->momz _ (target->z - rocket->z ) / dist * 10 . 
       ] .
       r _ random_generator next .  
       ((self canSeeThing: target) and: (r > .333))  ifTrue: [

@@ -1,0 +1,13 @@
+= other | idx=CFrogNum sz=CFrogNum |
+  other size ~= self size ifTrue: [ ^ 0 ] .
+  idx _ 0 .
+  sz _ self size .
+  [ 
+    idx < sz
+  ] whileTrue: [
+    (self at: idx ) ~= (other at: idx ) ifTrue: [
+     ^ 0
+    ] .
+    idx _ idx + 1 .
+  ] .
+  ^ 1 .

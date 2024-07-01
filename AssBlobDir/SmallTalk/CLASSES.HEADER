@@ -213,6 +213,8 @@ class C3DWorldManager:CFrogThing {
 //A grid of things having the things(128*128 size)
   CFrogArray *grid no_serialize 1;
   CFrogArray *doors recur_serialize 1;
+//Private
+  F64 game_load_tS;  //The CFrogTime now asSeconds that the game world is at when loaded
 };
 
 class CHandItem:CFrogThing {
@@ -358,7 +360,7 @@ class CPlayer:C3DThing {
   CFrogArray *shell_casings no_serialize 1;
   CUIMeter *health_meter no_serialize 1;
   CUIMeter *ammo_meter no_serialize 1;
-  CUIGrid *quick_inventory no_serialize 1;
+  CUIGrid *quick_inventory no_serialize 1;
   CUIGrid *main_inventory no_serialize 1;
   CUIButton *open_inventory_button no_serialize 1;
   CUIChatLog *chat_log no_serialize 1;

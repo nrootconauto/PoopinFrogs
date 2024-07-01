@@ -1,0 +1,4 @@
+beforeSave ->*
+  |
+  |
+  game_load_tS _ CFrogTime now asSeconds .

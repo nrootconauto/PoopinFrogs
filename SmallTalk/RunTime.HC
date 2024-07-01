@@ -1605,13 +1605,19 @@ CFrogThing *FrogBlobFileReadLump(CFrogBlobFile *f,...) {
 } 
 AddMethod("CFrogBlobFile","readLump:",&FrogBlobFileReadLump);
 
+F64 frog_time_offset=0.;
 CFrogThing *FrogTimeNow(CFrogThing *ul,...) {
   CFrogTime *t=ConstructThing("CFrogTime");
-  t->ts=FrogNumNew(tS);
+  t->ts=FrogNumNew(tS+frog_time_offset);
   return t;
 }
 AddClassMethod("CFrogTime","now",&FrogTimeNow);
-
+CFrogThing *FrogSetTime(CFrogThing *ul,...) {
+  F64 t=AsF64(argv[0]);
+  frog_time_offset=t-tS;
+  return FROG_SMALL_NIL;
+}
+AddClassMethod("CFrogTime","setTime:",&FrogSetTime);
 
 U0 FrogBinDel(CFrogBin *bin) {
   Free(bin->data);
