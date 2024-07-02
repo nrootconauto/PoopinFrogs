@@ -27,7 +27,7 @@ U0 JobCallScript(CCSPair *p) {
   while(LBts(&cpu_job_cnts_lock,Gs->num))
     Yield;
   cpu_job_cnts[Gs->num]--;
-  LBtr(&cpu_job_cnts_lock,Gs->num);
+  LBtr(&cpu_job_cnts_lock,Gs->num);
   Fs->hash_table=t;
 }
 U0 QueCallScript(U8 *name,CFrogThing *t) {

@@ -232,7 +232,7 @@ class CHandItem:CFrogThing {
 //Private
   CFrogStr *gr_name;
   I64 grid_x,grid_y;
-  I64 in_quick_inventory;
+  Bool in_quick_inventory,is_equiped;
 };
 
 

@@ -10,4 +10,7 @@ afterRestore->* |
   items _ #() .
   old_items do: [:i=CHandItem|
     i addToPlayerAgain: self .
+    i -> is_equiped ifTrue: [
+      #hand_item _ i .
+    ] .
   ] .

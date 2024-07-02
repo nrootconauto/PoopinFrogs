@@ -16,6 +16,7 @@ beforeSave->* |
     col _ who->mat at: x .
     0 to: col size do: [:y=CFrogNum|
       (col at: y ) = inventory_item ifTrue: [
+        is_equiped _ #hand_item = self .
         grid_x _ x .
         grid_y _ y .
         ^ 1 .
