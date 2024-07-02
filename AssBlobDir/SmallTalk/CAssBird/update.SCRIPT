@@ -14,6 +14,7 @@ update->*
   now _ CFrogTime now asSeconds.
   w _ #world .
 
+
   health <= 0 ifTrue: [
     floating _ 0 .
     (state ~= 'Dead') ifTrue: [
@@ -46,7 +47,7 @@ update->*
        'Wait at least .75 seconds before attempting attack'.
        (state_start_tS + .75) < now ifTrue:  [
          dist _ (target->x - x ) squared + (target->y - y ) squared  .
-         dist < (10  *128) squared ifTrue: [
+         dist < (32  *128) squared ifTrue: [
            (random_generator next < (.25 / 10)) ifTrue: [
              'TODO angry graphics'.
              state_start_tS _ now .
@@ -61,11 +62,13 @@ update->*
            ] .
          ] .
        ]
+     ] ifFalse: [
+      state _ 'Wander' .
      ] .
   ] .
 
   state = 'Chase1' ifTrue: [
-    now > (state_start_tS + 1 ) ifTrue: [
+    now > (state_start_tS + 5. ) ifTrue: [
       state _ 'Wander' .  
     ] . 
     'Throw shit towards at the player' .
@@ -91,7 +94,7 @@ update->*
   (state = 'Wander' ) ifTrue:[
     speed _ 5 .
     'Look for dead things to ressurect '.
-    things _ w getThingsInRadiusFromX: x fromY: y withRadius: 16 * 128 .
+    things _ w getThingsInRadiusFromX: x fromY: y withRadius: 28 * 128 .
     things _ things select: [:t=C3DThing| t ->health <= 0 and: (t hasClass: CPickup) not ] .
     best_dist _ 16000 * 16000 .
     things do: [:t=C3DThing|
@@ -116,7 +119,7 @@ update->*
     speed _ 10 .
     self wanderFly: speed withTarget: target .
     dist _ (target->x - x ) squared + (target->y - y) squared .
-    dist < 48 squared ifTrue: [
+    dist < (6 * 128) squared ifTrue: [
       state _ 'Heal1' .
       state_start_tS _ now .
     ] .
@@ -125,22 +128,23 @@ update->*
  'If we are close to an entity,Sink to its level for 1.5 seconds then '.
  ' Shit on the target to bring it back to life' .
  state = 'Heal1' ifTrue: [
-   momx2 _ 0 .
-   momy2 _ 0 .
-   speed _ 1 .
-   self move: speed atAngle: (target->x -x arg: target->y -y ) .
-   floating _ 0 .
-   now > (state_start_tS + 1.5 ) ifTrue: [
-     'Ass Blast into the air'.
-     momz _ random_generator next * 1.4 + .5 .
+   self wanderFly: speed withTarget: target .
+   (now > (state_start_tS + 1.5 ) and: (self canSeeThing: target)) ifTrue: [
      1 to: 15 do:[ 
-       w newParticleAtX: x atY: y atZ: z +.5 withSpread: 128 withColor: #color_BROWN
-       'Bring back to life(remove/init)' .
-       w removeThing: target .
-       target init .
+       w newParticleAtX: x atY: y atZ: z +.5 withSpread: 128 withColor: #color_YELLOW .
      ] .
+     'Bring back to life(remove/init)' .
+     w removeThing: target .
+     target init .
+     lightning_bolt shootAtX: target->x atY: target->y atZ: target->z + .1 .
      state _ 'Wander' .
      target _ 0 .
+   ] ifFalse:  [
+     'Look for new target if havent found homie in 4 seconds' .
+     now > (state_start_tS + 4 )  ifTrue: [
+       state _ 'Wander' .
+       target _ 0 . 
+     ] .
    ] .
    ^ 1 .
  ].

@@ -1,0 +1,4 @@
+init | |
+  links _ #() .
+  random_generator _ CFrogRandom new .
+  ^ self

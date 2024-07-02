@@ -6,11 +6,11 @@ wander:speed=CFrogNum ->*
   momy2 _ 0 .
   (self move: speed atAngle: angle) ifTrue: [
     'Hit wall' .
-    self newDirection .
+    self newDirection: speed .
     self move: speed atAngle: angle .
   ] ifFalse: [
     rand _ CFrogRandom new.
     rand next < (.1 /10 ) ifTrue: [
-      self newDirection .     
+      self newDirection: speed .     
     ] .
   ] .

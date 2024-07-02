@@ -11,7 +11,7 @@ class CFrogThing:CQue {
   CCPU *owner_cpu;
   I32 lock_cnt,universe_class_idx;
   U8 class_name[32];
-};
+};
 class CFrogNum:CFrogThing {
   F64 num;
 };
@@ -314,6 +314,16 @@ class CPissLink:CFrogThing {
   F64 x,y,z;
   F64 momx,momy,momz;
 };
+
+class CLightningLink:CPissLink {
+  I64 color;
+};
+class CLightningBolt:CFrogThing {
+  C3DThing *from no_serialize 1;
+  CFrogRandom *random_generator;
+//CLighningLink
+  CFrogArray *links recur_serialize 1;
+};
 class CPissStream:CFrogThing {
   C3DThing *from no_serialize 1;
 //CPissLink
@@ -404,6 +414,7 @@ class CAssBird:C3DThing {
   F64 state_duration;
   CFrogStr *state;
   C3DThing *target no_serialize 1;
+  CLightningBolt *lightning_bolt recur_serialize 1;
 };
 class CCyberPoop:C3DThing {
   CFrogRandom *random_generator;

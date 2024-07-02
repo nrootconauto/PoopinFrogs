@@ -6,14 +6,12 @@ wanderFly: speed=CFrogNum withTarget: target=C3DThing ->* |
 |
   momx2 _ 0 .
   momy2 _ 0 .
-  rand _ CFrogRandom new .
-  ( rand next < (2 / 10) ) ifTrue: [
-    self newChaseDirection: speed withTarget: target .
-  ] .
-  hit_wall _ self move: speed atAngle: angle .
-  hit_wall ifTrue:  [
-    self newChaseDirection: speed withTarget: target .
-  ] .
-  momz _ (( .5 + target->z) -z) * .1 .
+  self newChaseDirection: speed withTarget: target .
+  momz _ (( 1.5 + target->z) -z) * .1 .
+'Dont go too fast up or down'.
+  momz > .5 ifTrue: [ momz _ .5 ].
+  momz < .5 negated ifTrue: [ momz _ .5 negated ].
+
+  self move: speed withAngle: angle .
   ^ 1 .
   

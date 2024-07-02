@@ -1799,7 +1799,7 @@ U0 Line3D(C3DWorld *w,CDC *dc,CD3 *st,CD3 *en) {
   CD3 res,res2;
   PointToScrn(w,st->x,st->y,st->z,&res);
   PointToScrn(w,en->x,en->y,en->z,&res2);
-  GrLine3(dc,res.x,res.y,res.z,res2.x,res2.y,res2.z);
+  GrLine3(dc,res.x,res.y,res.z*0,res2.x,res2.y,res2.z*0);
 }
 
 U0 DrawFrogTongue(C3DWorld *w,CFrogTongue *t) {
@@ -1822,6 +1822,33 @@ U0 DrawFrogTongue(C3DWorld *w,CFrogTongue *t) {
     Line3D(w,dc,&stp,&enp);
   }
 }
+
+U0 DrawLightningBolt(C3DWorld *w,CLightningBolt *l) {
+  CDC *dc=w->to_dc;
+  CD3 stp,enp,last;
+  CLightningLink **links=l->links(CFrogArray*)->items->body;
+  I64 idx,cnt=l->links(CFrogArray*)->items->cnt;
+  if(cnt<1) return;
+  last.x=links[0]->x;
+  last.y=links[0]->y;
+  last.z=links[0]->z;
+  dc->thick=4;
+  for(idx=1;idx!=cnt;idx++) {
+    dc->color=links[idx]->color;
+    stp.x=last.x;
+    stp.y=last.y;
+    stp.z=last.z;
+    enp.x=links[idx]->x;
+    enp.y=links[idx]->y;
+    enp.z=links[idx]->z;
+    if(ClipLineToCamera(w,&stp,&enp))
+      Line3D(w,dc,&stp,&enp);
+    last.x=links[idx]->x;
+    last.y=links[idx]->y;
+    last.z=links[idx]->z;
+  }
+}
+
 U0 DrawPissStream(C3DWorld *w,CPissStream *ps) {
   CDC *dc=w->to_dc;
   CD3 stp,enp,last;
@@ -1991,6 +2018,9 @@ fin:
   }
   if(ThingHasClass(thing,"CZombie")) {
    DrawPissStream(w,thing(CZombie*)->piss_stream);
+  }
+  if(ThingHasClass(thing,"CAssBird")) {
+    DrawLightningBolt(w,thing(CAssBird*)->lightning_bolt);
   }
 }
 U0 WallStainDel(CWallStain *s) {

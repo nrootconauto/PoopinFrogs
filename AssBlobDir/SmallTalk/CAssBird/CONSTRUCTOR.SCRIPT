@@ -5,4 +5,6 @@ init ->CAssBird | |
   template _ #world getThingTemplate: 'CAssBird' .
   health _ 75 .
   speed _ 5 .
+  lightning_bolt _ CLightningBolt new.
+  lightning_bolt -> from _ self .
   ^ self

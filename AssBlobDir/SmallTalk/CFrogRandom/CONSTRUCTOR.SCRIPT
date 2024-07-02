@@ -1,6 +1,6 @@
 init | |
   mod _ 65535 .
-  mul _ 22695477 .
-  inc _ 1 .
+  mul _ 75 .
+  inc _ 74 .
   seed _ 1 .
   ^ self

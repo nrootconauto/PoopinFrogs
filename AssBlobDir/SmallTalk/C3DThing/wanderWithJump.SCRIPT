@@ -8,9 +8,6 @@ wander: dist=CFrogNum
   momx2 _ 0 .
   momy2 _ 0 .
   rand _ CFrogRandom new .
-  ( rand next < (2 / 10) ) ifTrue: [
-    self newChaseDirection: dist withTarget: target .
-  ] .
   (self moveGoesOverEdge: dist atAngle: angle) not ifTrue: [
     hit_wall _ self move: dist atAngle: angle .
     (hit_wall and: self isOnGround ) ifTrue: [
@@ -24,5 +21,6 @@ wander: dist=CFrogNum
   ] ifFalse: [
       self newChaseDirection: dist withTarget: target .
   ].
+  
 
   ^ 1. 

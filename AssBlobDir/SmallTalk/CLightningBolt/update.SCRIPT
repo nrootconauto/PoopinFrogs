@@ -1,0 +1,8 @@
+update->*
+|
+|
+  'Just remove the first link until all links are rmeoved'. 
+  'This simulates "Vanishing" after the bolt is shot'.
+  links size ifTrue: [
+    links removeAt: 0 .
+  ] .

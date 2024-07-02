@@ -1,0 +1,43 @@
+shootAtX: x=CFrogNum atY: y=CFrogNum atZ: z=CFrogNum ->*
+|
+  angle=CFrogNum 
+  wiggle=CFrogNum
+  dist=CFrogNum
+  link=CLightningLink
+  last_link=CLightningLink
+  normal=CFrogNum
+  tx=CFrogNum
+  ty=CFrogNum
+  tz=CFrogNum
+|
+  links _ #() .
+  wiggle _ 64 .
+  dist _ ((x - from->x) squared + (y - from->y) squared) sqrt .
+  angle _ x - from->x arg: y - from->y .
+  normal _ angle + (3.14 / 2).
+  link _ CLightningLink new . 
+  link->x _ from->x .
+  link->y _ from->y .
+  link->z _ from->z +.5 .
+'YELLOW/WHITE' .
+  link->color _ 14 + (random_generator next * 2) floor .
+  links add: link .
+  last_link _ link .
+  1 to: (dist / 48) floor do: [:seg=CFrogNum|
+    link _ CLightningLink new . 
+    tx _ from->x + (angle cos * seg * (dist/48)) .
+    ty _ from->y + (angle sin * seg * (dist/48)) .
+    tz _ ((z - (from->z + .5)) / dist * seg* (dist / 48)) + from->z + .5 . 
+    link->x _ tx + ((random_generator next - .5) * normal cos * wiggle).
+    link->y _ ty + ((random_generator next - .5 ) * normal sin * wiggle).
+    link->z _ tz + (random_generator next - .5) .
+    'YELLOW/WHITE' .
+    link->color _ 14 + (random_generator next * 2) floor .  
+    links add: link .
+    last_link _ link
+  ] .
+  link->x _ x .
+  link->y _ y .
+  link->z _ z + .1 .
+  'YELLOW/WHITE' .
+  link->color _ 14 + (random_generator next * 2) floor .  
