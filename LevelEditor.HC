@@ -1195,7 +1195,7 @@ Bool EditDC(U8 *blob,U8 *name,I64 dft_w,I64 dft_h) {
 //TempleOS lexer gets rid of rest of line after #include
 Bool old_flat=world_edit.flat_mode;
 world_edit.flat_mode=TRUE;
-PopUpPrint(
+PopUpPrint(
 "Cd(\"%Q\");\n"
 "#include \"TextureEditor.HC\";;\n"
 "StrCpy(%d,\"\");\n"

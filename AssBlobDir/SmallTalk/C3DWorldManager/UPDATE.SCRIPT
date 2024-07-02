@@ -15,7 +15,7 @@ pickups=CFrogArray
   things do: [:t* |
     dist _  (t->x - p->x) squared + (t->y - p->y) squared .
     dist > simulation_dist squared ifTrue: [
-      'Outside of the simulation distance' .
+      'Outside of the simulation distance'.
       (t hasClass: CRocket) ifTrue: [
         'Explode far away rockets' .
         t explode .

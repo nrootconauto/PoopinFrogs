@@ -2512,7 +2512,7 @@ U0 UpdateDrawBuffer() {
     hand->x=ms.pos.x;
     if(hand_gr=hand->gr) {
       c=AnimDCCnt(hand_gr);
-      f=(Frog_tS-hand->anim_start_tS)/ANIM_DELAY;
+      f=(Frog_tS-hand->anim_start_tS)/ANIM_DELAY;
       if(hand->anim_no_repeat) {
         if(f>=c)
 	  f=c-1;

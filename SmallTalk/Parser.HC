@@ -34,6 +34,7 @@ class CAST:CQue {
     U8 *str;
     CQue body;
   };
+  Bool compiled;
 };
 class CMethod {
   U8 name[STR_LEN];
