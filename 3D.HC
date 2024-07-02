@@ -4,6 +4,9 @@
 #include "Intersect.HC";
 #define TEST_3D
 #ifndef ENGINE_3D
+F64 Frog_tS() {
+  return tS+frog_time_offset;
+}
 extern I64 *GetTilesInPath(U8 *w,F64 angle,F64 dist);
 #define ENGINE_3D 1
 #define SCRN_TURN_MARGIN 100
@@ -194,7 +197,7 @@ U0 NewParticle(C3DWorld *w,I64 color,I64 sz,F64 x,F64 y,F64 z,F64 mx,F64 my,F64 
   p->momx=mx;
   p->momy=my;
   p->momz=mz;
-  p->born_at=tS;
+  p->born_at=Frog_tS;
   QueIns(p,w->particles.last);
   w->particle_cnt++;
 }
@@ -954,7 +957,7 @@ U0 DrawWallSegment(C3DWorld *w,I64 segment,I64 x,I64 start_y,CDC *texture,I64 he
   if(!texture||!height) return;
   U8 *dst=w->to_dc->body;
   I32 *depth_dst,idist;
-  I64 tmp,i,segment_y,width=w->to_dc->width_internal,anim_frame=ToI64(tS/ANIM_DELAY)%AnimDCCnt(texture),xp;
+  I64 tmp,i,segment_y,width=w->to_dc->width_internal,anim_frame=ToI64(Frog_tS/ANIM_DELAY)%AnimDCCnt(texture),xp;
   dst+=x+MaxI64(start_y,0)*width;
   if(w->to_dc->depth_buf)
     depth_dst=w->to_dc->depth_buf+x+MaxI64(start_y,0)*width;
@@ -1091,7 +1094,7 @@ I64 ColorFloor(C3DWorld *w,I64 view_x,F64 floor_height,I64 sy,I64 ey,CDC *textur
   CDC *dc=w->to_dc,*stain=NULL;
   F64 angley=0;
   F64 step;
-  I64 y,fx,fy,anim_frame=ToI64(tS/ANIM_DELAY)%AnimDCCnt(texture),idx,which,tx,ty,y2;
+  I64 y,fx,fy,anim_frame=ToI64(Frog_tS/ANIM_DELAY)%AnimDCCnt(texture),idx,which,tx,ty,y2;
   I64 old_tx=-1,old_ty=-1;
   U64 colors,width=dc->width_internal,cnt;
   U8 *dst;
@@ -1860,7 +1863,7 @@ U0 Draw2DThing(C3DWorld *w,C3DThing *thing) {
   I32 dist=Sqrt(Sqr(x)+Sqr(y));
   if(dist<2) return;
   CDC *use_dc;
-  I64 dc_w=dc->width,frame=ToI64((tS-thing->animation_start_tS)/ANIM_DELAY);
+  I64 dc_w=dc->width,frame=ToI64((Frog_tS-thing->animation_start_tS)/ANIM_DELAY);
   I64 to_x,to_y;
   I64 line,col,face,cnt;
   I64 ix,iy;
@@ -2473,7 +2476,7 @@ U0 UpdateDrawBuffer() {
       }
     DrawParticle(w,p);
     n=p->next;
-    if(tS>1+p->born_at) {
+    if(Frog_tS>1+p->born_at) {
       QueRem(p);
       Free(p);
       w->particle_cnt--;
@@ -2509,7 +2512,7 @@ U0 UpdateDrawBuffer() {
     hand->x=ms.pos.x;
     if(hand_gr=hand->gr) {
       c=AnimDCCnt(hand_gr);
-      f=(tS-hand->anim_start_tS)/ANIM_DELAY;
+      f=(Frog_tS-hand->anim_start_tS)/ANIM_DELAY;
       if(hand->anim_no_repeat) {
         if(f>=c)
 	  f=c-1;
@@ -2697,7 +2700,7 @@ next:;
 	  }
         }
      }
-      QueCallScript("animate",FrogSymbol("hand_item")->value);
+      QueCallScript("animate",FrogSymbol("hand_item")->value);
       UpdateDrawBuffer;
       ClearPlatformCache; //Clear the cache becuase of changeing doors
       Refresh;

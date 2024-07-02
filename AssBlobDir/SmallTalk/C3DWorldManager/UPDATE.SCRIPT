@@ -1,20 +1,33 @@
 update ->* |
 p=CPlayer
 now=CFrogNum
+dist=CFrogNum
+simulation_dist=CFrogNum
+pickups=CFrogArray
 |
   p _self getPlayer .
   now _ CFrogTime now asSeconds .
   last_update + .3333 > now ifTrue: [
     ^ 0
   ] .
+  simulation_dist _ 24 * 128 .
   last_update _ now .
   things do: [:t* |
-    t update .
+    dist _  (t->x - p->x) squared + (t->y - p->y) squared .
+    dist > simulation_dist squared ifTrue: [
+      'Outside of the simulation distance' .
+      (t hasClass: CRocket) ifTrue: [
+        'Explode far away rockets' .
+        t explode .
+      ].
+    ] ifFalse: [
+      t update .
+    ].
     (t hasClass: CPlayer ) ifTrue: [
       ((grid at: (p ->x / 128 / 16) ) at: p ->y / 128 / 16) do: [:pu* |
         (pu hasClass: CPickup ) ifTrue: [
-            'canSeeThing doesnt acount for angles tahnkfully' .
-            ((pu hitsThing: p ) and: (pu canSeeThing: p)) ifTrue: [ pu addToPlayer: p ]
+          'canSeeThing doesnt acount for angles tahnkfully' .
+          ((pu hitsThing: p ) and: (pu canSeeThing: p)) ifTrue: [ pu addToPlayer: p ]
         ].
       ]
     ] .
