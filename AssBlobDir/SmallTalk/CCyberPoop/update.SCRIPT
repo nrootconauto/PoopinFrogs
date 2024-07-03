@@ -18,6 +18,7 @@ update ->*
     state = 'Dead' ifTrue: [
       ^ 0
     ].
+    w sweepSoundForTime: 1000 withMin: 30 withMax: 20 .
     animation_start_tS _ CFrogTime now asSeconds .
     animation_no_repeat _ 1 .
     template _ w getThingTemplate: 'CCyberPoop/Dead'.
@@ -44,6 +45,7 @@ update ->*
 
   state = 'Fire' ifTrue: [
     now > (state_start_tS + .333) ifTrue: [
+      w noiseSoundForTime: 300 withMin: 30 withMax: 40 .
       state_start_tS _ now .
       angle _ (target->x - x) arg: (target->y - y) .
       dist _ ((target->x - x) squared + (target->y - y) squared ) sqrt .
@@ -91,6 +93,7 @@ update ->*
     r _ random_generator next .  
     r < (1 / 10 ) ifTrue: [
       state _ 'PrepareFire' .
+      w sweepNoiseForTime: 1000 withMin: 50 withMax: 70 .
       angle _ (target->x - x) arg: (target->y - y) .
       template _ w getThingTemplate: 'CCyberPoop/Fire'.
       state_start_tS _ now .

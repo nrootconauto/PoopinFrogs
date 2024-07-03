@@ -17,6 +17,7 @@ fire ->CFrogNum |
     timeout < cur_ts ifTrue: [
       anim_start_tS _ cur_ts .
       timeout _ cur_ts + .75 .
+      #world sweepSoundForTime: 300 withMin: 80 withMax: 50 .
       self setGraphics: 'GR/RocketL/fire' .
       ammo _ ammo - 1 max: 0 .
       inventory_item setCount: ammo .

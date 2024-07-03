@@ -214,9 +214,10 @@ class C3DWorldManager:CFrogThing {
 //A grid of things having the things(128*128 size)
   CFrogArray *grid no_serialize 1;
   CFrogArray *doors recur_serialize 1;
+  CTask *sound_task no_serialize 1;
 //Private
   F64 game_load_tS;  //The CFrogTime now asSeconds that the game world is at when loaded
-};
+};
 
 class CHandItem:CFrogThing {
   CDC *gr;
@@ -232,7 +233,7 @@ class CHandItem:CFrogThing {
 //Private
   CFrogStr *gr_name;
   I64 grid_x,grid_y;
-  Bool in_quick_inventory,is_equiped;
+  Bool in_quick_inventory,is_equiped;
 };
 
 

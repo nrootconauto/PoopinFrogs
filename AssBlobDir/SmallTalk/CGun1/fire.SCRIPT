@@ -7,8 +7,10 @@ fire ->* |
  sz=CFrogNum
  floor_stain=CFloorStain
  best_thing*
+ w=C3DWorldManager
  |
-  player _ #world getPlayer .
+  w _ #world .
+  player _ w getPlayer .
   ammo ifTrue: [
    
     cur_ts _ CFrogTime now asSeconds .
@@ -18,15 +20,15 @@ fire ->* |
       case ejectAtX: x atY: y .
       anim_start_tS _ cur_ts .
       player addShellCasing: case .
+      w sweepSoundForTime: 100 withMin: 50 withMax: 60 .
 
-
-      sz _ #world screenCoordToZ .
-      #world screenCoordIsOnFloor ifTrue: [
+      sz _ w screenCoordToZ .
+      w screenCoordIsOnFloor ifTrue: [
         floor_stain _ CFloorStain new .
         floor_stain setGraphics: 'GR/GUN1/BULLET_HOLE' atAngle: 0 .
-        floor_stain putAtX: #world screenCoordToX 
-                    atY: #world screenCoordToY .
-        #world addFloorStain: floor_stain .
+        floor_stain putAtX: w screenCoordToX 
+                    atY: w screenCoordToY .
+        w addFloorStain: floor_stain .
       ] ifFalse: [
         wall_hole _ CWallStain new .
         wall_hole

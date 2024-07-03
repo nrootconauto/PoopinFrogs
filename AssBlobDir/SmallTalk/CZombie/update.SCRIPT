@@ -4,15 +4,18 @@ update -> * |
   dist=CFrogNum
   new_t=C3DThingTemplate
   hit_wall=CFrogNum
+  w=C3DWorldManager
 |
+  w _ #world .
   momx2 _ 0 .
   momy2 _ 0 .
   health <= 0 ifTrue: [
-    new_t _ #world getThingTemplate: 'CZombie/Dead' .
-    new_t ~= template ifTrue: [
+    state ~= 'Dead' ifTrue: [
+      template  _ #world getThingTemplate: 'CZombie/Dead' .
+      w sweepSoundForTime: 300 withMin: 30 withMax: 20 .
+      state _ 'Dead' .
       animation_start_tS _ CFrogTime now asSeconds .
       animation_no_repeat _ 1 .
-      template _  new_t .
     ] .
     ^ 1 .
   ] .
@@ -28,6 +31,7 @@ update -> * |
   state = 'Chase' ifTrue: [
     dist _ ((target ->x - x ) squared + (target ->y - y) squared ) sqrt .
     dist < (1.5 * 128) ifTrue: [
+      w noiseSoundForTime: 300 withMin:30 withMax: 40 .
       state _ 'Bite' .
       state_start_tS _ cur_tS .
       state_duration _ 1 .
@@ -51,6 +55,7 @@ update -> * |
       state_start_tS _ cur_tS .
       state_duration _ 0 . 
       state _ 'Chase' .
+      w sweepSoundForTime: 600 withMin: 57 withMax: 50 .
     ] ifFalse: [
       template _ #world getThingTemplate: 'CZombie/Piss' .
       self pissTowardsThing: target .
@@ -61,6 +66,7 @@ update -> * |
   ( cur_tS - state_start_tS ) >= state_duration  ifTrue: [
     'Piss? after chasing'
     (state = 'Chase'  and: (random_generator next < (3 / 10 ))) ifTrue: [
+      w sweepSoundForTime: 600 withMin: 50 withMax: 57 .
       state _ 'Piss' .
       template _ #world getThingTemplate: 'CZombie/Piss' .
       self pissTowardsThing: target .

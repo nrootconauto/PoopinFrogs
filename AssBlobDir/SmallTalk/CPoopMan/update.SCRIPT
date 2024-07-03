@@ -16,6 +16,9 @@ update->* |
 
   health <= 0 ifTrue: [
     state ~= 'Dead' ifTrue: [
+      w sweepSoundForTime: 500 withMin: 50 withMax: 30 .
+      momx2 _ 0 .
+      momy2 _ 0 .
       template _ w getThingTemplate: 'CPoopMan/Dead' .
       state _ 'Dead' .
       animation_no_repeat _ 1 .
@@ -49,7 +52,7 @@ update->* |
       ]
     ] .
 
-'Only walk around if target is defined'.
+    'Only walk around if target is defined'.
     (target hasClass:C3DThing) ifTrue: [
       self wander: speed withJumpVelocity: .75 withTarget: target .
       (random_generator next < ( .3 / 10 ) and: (self canSeeThing: target)) ifTrue: [
@@ -68,6 +71,7 @@ update->* |
   state = 'Throw' ifTrue: [
     ((tS - state_start_tS) > (6 / 4) and: threw not )ifTrue: [
       threw _ 1 .
+      w noiseSoundForTime: 100 withMin: 30 withMax: 40 .
       rocket _ CPoopRocket new .
       rocket->from _ self . 
       rocket->x _ x . 

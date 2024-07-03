@@ -17,6 +17,7 @@ fire ->* |
   step _ 1 .
   ammo ifTrue: [
     timeout < cur_ts ifTrue: [
+      #world sweepSoundForTime: 100 withMin: 80 withMax:95 .
       rand _ CFrogRandom new .
       piss_stream _ player getPissStream .
       targetd _ #world screenCoordToDist .
@@ -28,7 +29,7 @@ fire ->* |
 
       'Make 3 pisses updated with weight for smooter looks' .
       a _ player getAngle + (3.14 / 100 * rand next )  .
-      0 to: step do: [:v|
+      0 to: step do: [:v=CFrogNum |
         piss _ CPissLink new .
         piss -> x _  player ->x + (16 * a cos ) .
         piss -> y _  player ->y + (16 * a sin ) .

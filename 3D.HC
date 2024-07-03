@@ -27,7 +27,7 @@ U0 JobCallScript(CCSPair *p) {
   while(LBts(&cpu_job_cnts_lock,Gs->num))
     Yield;
   cpu_job_cnts[Gs->num]--;
-  LBtr(&cpu_job_cnts_lock,Gs->num);
+  LBtr(&cpu_job_cnts_lock,Gs->num);
   Fs->hash_table=t;
 }
 U0 QueCallScript(U8 *name,CFrogThing *t) {
@@ -2147,6 +2147,25 @@ CFrogThing *WorldManagerNewParticle(C3DWorldManager *man,...) {
   return FROG_SMALL_NIL;
 }
 AddMethod("C3DWorldManager","newParticleAtX:atY:atZ:withSpread:withColor:",&WorldManagerNewParticle);
+CFrogThing *WorldManagerNewSweepSound(C3DWorldManager *man,...) {
+  if(man->sound_task) Kill(man->sound_task,FALSE);
+  man->sound_task=Sweep(
+	AsF64(argv[0]),
+	AsF64(argv[1]),
+	AsF64(argv[2]));
+  return FROG_SMALL_NIL;
+}
+AddMethod("C3DWorldManager","sweepSoundForTime:withMin:withMax:",&WorldManagerNewSweepSound);
+CFrogThing *WorldManagerNewNoiseSound(C3DWorldManager *man,...) {
+  if(man->sound_task) Kill(man->sound_task,FALSE);
+  man->sound_task=Noise(
+	AsF64(argv[0]),
+	AsF64(argv[1]),
+	AsF64(argv[2]));
+  return FROG_SMALL_NIL;
+}
+AddMethod("C3DWorldManager","noiseSoundForTime:withMin:withMax:",&WorldManagerNewNoiseSound);
+
 
 //Returns 1. if COLLISION,else 0
 CFrogThing *C3DThingMoveAtAngle(C3DThing *self,...) {

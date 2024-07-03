@@ -18,11 +18,12 @@ update->*
   health <= 0 ifTrue: [
     floating _ 0 .
     (state ~= 'Dead') ifTrue: [
+       w sweepNoiseForTime: 500 withMin: 40 withMax: 17 .
        momz _ 0 .
        momx2 _ 0 .
        momy2 _ 0 .
-       momx _ (random_generator next - .5) * 32 .
-       momy _ (random_generator next - .5) * 32 .
+       momx _ (random_generator next - .5) * 10 .
+       momy _ (random_generator next - .5) * 10 .
        animation_no_repeat _ 1 .
        animation_start_tS _ now .
        template _ w getThingTemplate: 'CAssBird/Dead' .
@@ -134,6 +135,7 @@ update->*
        w newParticleAtX: x atY: y atZ: z +.5 withSpread: 128 withColor: #color_YELLOW .
      ] .
      'Bring back to life(remove/init)' .
+     w sweepNoiseForTime: 500 withMin: 30 withMax: 70 .
      w removeThing: target .
      target init .
      lightning_bolt shootAtX: target->x atY: target->y atZ: target->z + .1 .

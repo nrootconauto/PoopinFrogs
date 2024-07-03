@@ -4,6 +4,6 @@ init->CPoopMan | |
   state_start_tS _ CFrogTime now asSeconds .
   state _ 'Normal' .
   random_generator _ CFrogRandom new .
-  health _ 60 .
+  health _ 25 .
   no_fall_off_edge _ 1 .
   ^ self

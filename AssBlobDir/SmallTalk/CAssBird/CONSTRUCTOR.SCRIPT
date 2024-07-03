@@ -3,7 +3,7 @@ init ->CAssBird | |
   state _ 'Wander'.
   random_generator _ CFrogRandom new .
   template _ #world getThingTemplate: 'CAssBird' .
-  health _ 75 .
+  health _ 60 .
   speed _ 5 .
   lightning_bolt _ CLightningBolt new.
   lightning_bolt -> from _ self .

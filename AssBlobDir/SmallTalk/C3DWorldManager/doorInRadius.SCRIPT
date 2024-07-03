@@ -8,13 +8,16 @@ doorInRadius: r=CFrogNum
   r _ r / 128 .
   x _ x / 128 .
   y _ y / 128 .
-  ((grid at: x / 16)
-    at: y /16) do:[:d=CDoor|
-     (d hasClass: CDoor) ifTrue: [
-    
-    ((d ->x + .5 - x ) squared + (d->y + .5 - y) squared ) sqrt < 2 ifTrue: [
-      ^ d
+  -1 to: 2 do:[:xoff=CFrogNum|
+    -1 to: 2 do:[:yoff=CFrogNum|
+      ((grid at: x / 16 + xoff)
+        at: y /16 + yoff) do:[:d=CDoor|
+         (d hasClass: CDoor) ifTrue: [    
+           ((d ->x + .5 - x ) squared + (d->y + .5 - y) squared ) sqrt < 2 ifTrue: [
+            ^ d
+          ]
+        ]
+      ]
     ]
-]
   ]. 
   ^ 0 
