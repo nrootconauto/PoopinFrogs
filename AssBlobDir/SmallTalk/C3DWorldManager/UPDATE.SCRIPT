@@ -23,14 +23,6 @@ pickups=CFrogArray
     ] ifFalse: [
       t update .
     ].
-    (t hasClass: CPlayer ) ifTrue: [
-      ((grid at: (p ->x / 128 / 16) ) at: p ->y / 128 / 16) do: [:pu* |
-        (pu hasClass: CPickup ) ifTrue: [
-          'canSeeThing doesnt acount for angles tahnkfully' .
-          ((pu hitsThing: p ) and: (pu canSeeThing: p)) ifTrue: [ pu addToPlayer: p ]
-        ].
-      ]
-    ] .
   ] .
 
   'UI and stuf' .

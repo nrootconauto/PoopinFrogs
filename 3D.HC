@@ -2601,7 +2601,7 @@ U0 WalkAround(U8 *save_string=NULL) {
        wm=load_game;
        w->_2d_things=wm->things->items;
        w->_wall_stains=wm->wall_stains->items;
-       w->_floor_stains=wm->floor_stains->items;
+       w->_floor_stains=wm->floor_stains->items;
      }
   }
   CPlayer *player=CallScript("getPlayer",man->value);
@@ -2618,6 +2618,7 @@ U0 WalkAround(U8 *save_string=NULL) {
   try while (cont) {
      every++;
      if(every%3==0) QueCallScript("update",man->value);
+     QueCallScript("handlePowerups",man->value);
      body=wm->doors->items->body;
      c=wm->doors->items->cnt;
      for(idx=0;idx<c;idx++)

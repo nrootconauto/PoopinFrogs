@@ -9,8 +9,9 @@ getThingsInRadiusFromX: x=CFrogNum fromY: y=CFrogNum withRadius: r=CFrogNum
   Y _ y / 128 / 16 .
   ret _ #() .
   -1 to: 2 do: [:xo=CFrogNum |
-    -1 to: 2 do: [:yo=CFrogNum |
-      ((grid at: X + xo) at: Y + yo) do: [:t=C3DThing| 
+    -1 to: 2 do: [:yo=CFrogNum | 
+      'Floor to avoud .5 becoming 0(leads to repeats)' .
+      ((grid at: (X + xo) floor ) at: (Y + yo) floor) do: [:t=C3DThing| 
         (t hasClass: C3DThing) ifTrue: [
           r >= ((x - t ->x) squared + (y - t ->y ) squared) ifTrue: [
             ret add: t .
