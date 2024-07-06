@@ -18,7 +18,6 @@ matchWords: array=CFrogArray putWildcardsIn: result=CFrogArray ->*|
           wildcard add: ( array at: wi ) copy .
           wi _ wi + 1 .
         ]
-
       ] .
       result add: wildcard .
     ] ifFalse: [
@@ -30,4 +29,5 @@ matchWords: array=CFrogArray putWildcardsIn: result=CFrogArray ->*|
       ]
     ]
   ] .
+'pass ' show .
   ^ 1 

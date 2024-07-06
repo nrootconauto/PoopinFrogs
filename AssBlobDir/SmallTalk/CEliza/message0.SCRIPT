@@ -9,6 +9,7 @@ message0: str=CFrogStr ->* |
    best_flag_cnt=CFrogNum
    set=CFrogArray
    score=CFrogNum
+   accept=CFrogBlock
 |
   player _ #world getPlayer .
   tmp _ '' .
@@ -30,7 +31,7 @@ message0: str=CFrogStr ->* |
   valid _ reasms select: [:r=CElizaReasm | 
     (r matchWords: split ) and: ( r acceptsFlags: player->quest_flags )
   ] .
-  
+
   valid size ifFalse: [
     ^ 0 .
   ] .
@@ -68,16 +69,28 @@ message0: str=CFrogStr ->* |
   '#(CElizaReasm wildcards score )' .
   split _ set at: (CFrogRandom new next * set size rem: set size) .
   choose _ split at: 0 . 
-  choose->add_flags do: [:add=CFrogStr|
-    (player->quest_flags has: add) ifFalse: [
-      player->quest_flags add: add copy. 
-'add 'show .
-add show .
+
+
+  accept _ [
+    choose->add_flags do: [:add=CFrogStr|
+      (player->quest_flags has: add) ifFalse: [
+        player->quest_flags add: add copy
+      ] .
     ] .
+    choose->remove_flags do: [:rem=CFrogStr|
+      player->quest_flags remove: rem 
+    ] .
+    (choose->give_item_class hasClass: CFrogClass) ifTrue: [
+      choose->give_item_class new
+    ].
   ] .
-  choose->remove_flags do: [:rem=CFrogStr|
-    player->quest_flags remove: rem 
-'rempove'show .
-rem show .
-  ] .
+
+
+  (choose->global_response_name hasClass: CFrogStr) ifTrue: [
+    (player->quest_seen_responses has: choose->global_response_name ) ifFalse: [
+      player->quest_seen_responses add: choose->global_response_name copy .
+      accept value .
+    ]
+  ] ifFalse: accept .
+
   ^ choose reassemble: (split at: 1)

@@ -3,7 +3,17 @@ reassemble: wildcards=CFrogArray ->* |
   cumsum=CFrogStr 
   replace=CFrogBlock 
   found_at=CFrogNum
+  result*
+  player=CPlayer
 |
+  player _ #world getPlayer .
+  result _ first_result . 
+  (player->quest_seen_responses has: global_response_name) ifTrue: [
+     result _ again_result .
+  ] .
+  result show .
+
+
   (result hasClass: CFrogArray ) ifTrue: [
     ret _ (result at: (result size * CFrogRandom new next rem: result size )).
   ] ifFalse: [

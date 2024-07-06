@@ -13,6 +13,6 @@ init | |
   inventory_item setItem: self .
   inventory_item onLeftUp: [
     #hand_item _ self .
-  ].
-  #world getPlayer addInventoryItem: inventory_item.
+  ] .
+  #world getPlayer addInventoryItem: inventory_item .
   ^ self

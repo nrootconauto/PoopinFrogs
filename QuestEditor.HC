@@ -8,33 +8,35 @@
 class CQuestEntry {
   U8 code_name[STR_LEN];
   U8 input[STR_LEN] format "$$DA-P,A=\"Input Keywords:%s\"$$\n";
-  U8 output[STR_LEN] format "$$DA-P,A=\"Output:%s\"$$\n";
+  U8 first_output[STR_LEN] format "$$DA-P,A=\"First Output:%s\"$$\n";
+  U8 again_output[STR_LEN] format "$$DA-P,A=\"Again Output:%s\"$$\n";
 //Comma seperated
   U8 add_keywords[STR_LEN] format "$$DA-P,A=\"Add Keywords:%s\"$$\n";
 //Comma seperated
   U8 remove_keywords[STR_LEN] format "$$DA-P,A=\"Remove Keywords:%s\"$$\n"; 
+//Comma seperated
+  U8 need_keywords[STR_LEN] format "$$DA-P,A=\"Need Keywords:%s\"$$\n"; 
 //Remove item(SmallTalk ClassName).
   U8 remove_item[STR_LEN] format "$$DA-P,A=\"Remove Item:%s\"$$\n";
   I64 remove_item_cnt format"$$DA-TRM,A=\"RemoveCnt:%d\"$$\n"; //See above
 //Give item
   U8 give_item[STR_LEN] format "$$DA-P,A=\"Add Item:%s\"$$\n";
-  I64 give_item_cnt format"$$DA-TRM,A=\"Add Cnt:%d\"$$\n"; //See above
-//Comma seperated
-  U8 need_keywords[STR_LEN] format "$$DA-P,A=\"Need Keywords:%s\"$$\n"; 
+  I64 give_item_cnt format "$$DA-TRM,A=\"Add Cnt:%d\"$$\n"; //See above
+//Inherit the reponses from this quest UNUSED
+  U8 inherit_quest[STR_LEN] ; //format "$$DA-P,A=\"Inherit Quest:%s\"$$\n";
 };
 
 U0 DispQuestEntry(CDoc *d,CQuestEntry *entry,I64 idx) {
   DocPrint(d,"$$TR-C,\"%Q\"$$",entry->code_name);
   DocPrint(d,"$$ID,2$$\n");
   DocPrint(d,"Input:\t$$LTBLUE$$%Q$$FD$$\n",entry->input);
-  DocPrint(d,"Output:\t$$LTBLUE$$%Q$$FD$$\n",entry->output);
+  DocPrint(d,"First Output:\t$$LTBLUE$$%Q$$FD$$\n",entry->first_output);
+  DocPrint(d,"Again Output:\t$$LTBLUE$$%Q$$FD$$\n",entry->again_output);
   DocPrint(d,"Add Keywords:\t$$LTBLUE$$%Q$$FD$$\n",entry->add_keywords);
   DocPrint(d,"Remove Keywords:\t$$LTBLUE$$%Q$$FD$$\n",entry->remove_keywords);
-  DocPrint(d,"Remove CHandItem:\t$$LTBLUE$$%Q$$FD$$\n",entry->remove_item);
-  DocPrint(d,"Remove CHandItem Count:\t$$LTBLUE$$%d$$FD$$\n",entry->remove_item_cnt);
-  DocPrint(d,"Give CHandItem:\t$$LTBLUE$$%Q$$FD$$\n",entry->give_item);
-  DocPrint(d,"Give CHandItem Count:\t$$LTBLUE$$%d$$FD$$\n",entry->give_item_cnt);
   DocPrint(d,"Need Keywords:\t$$LTBLUE$$%Q$$FD$$\n",entry->need_keywords);
+  DocPrint(d,"Remove CHandItem:\t$$LTBLUE$$%Q$$FD$$\n",entry->remove_item);
+  DocPrint(d,"Give CHandItem:\t$$LTBLUE$$%Q$$FD$$\n",entry->give_item);
   DocPrint(d,"\n");
   DocPrint(d,"$$RED$$$$MU,\"(Edit)\",LE=%d$$ ",idx<<3|QUESTCODE_EDIT);
   DocPrint(d,"$$MU,\"(Delete)\",LE=%d$$$$FD$$",idx<<3|QUESTCODE_DELETE);
@@ -73,12 +75,18 @@ CEliza *LoadQuestChatBot(U8 *quest_name,U8 *ass_blob="ASS") {
       r=ConstructThing("CElizaReasm");
       CallScript("init",r);
       CallScript("initFromString:",r,FrogStrNew(ent->input));
-      r->result=FrogStrNew(ent->output);
-      if(*ent->add_keywords) r->add_flags=SplitItems(ent->add_keywords);
+      r->first_result=FrogStrNew(ent->first_output);
+      r->global_response_name=FrogStrNew(hdr->name);
+      if(ent->again_output[0])
+        r->again_result=FrogStrNew(ent->again_output);
+      else
+	r->again_result=r->first_result;
+      if(*ent->add_keywords)  r->add_flags=SplitItems(ent->add_keywords);
       if(*ent->remove_keywords) r->remove_flags=SplitItems(ent->remove_keywords);
       if(*ent->need_keywords) r->need_flags=SplitItems(ent->need_keywords);
+      if(HashFind(ent->give_item,Fs->hash_table,HTT_CLASS))
+        r->give_item_class=FrogClassNew(UniverseAddClass(ent->give_item));
       CallScript("addReasm:",e,r);
-     
     }
   }
   Free(ass_blob);
@@ -240,7 +248,7 @@ QuestEditor;
 #ifdef TEST_QUEST
 CEliza *eliza=LoadQuestChatBot("Test123");
 CFrogStr *poo_poo;
-poo_poo=CallScript("message:",eliza,FrogStrNew("hello"));
+poo_poo=CallScript("message:",eliza,FrogStrNew("yes"));
 "HELLO:%s\n",AsString(poo_poo);
 poo_poo=CallScript("message:",eliza,FrogStrNew("I eat potatoes"));
 "I EAT *:%s\n",AsString(poo_poo);

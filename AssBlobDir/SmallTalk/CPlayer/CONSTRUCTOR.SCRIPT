@@ -15,5 +15,6 @@ init ->CPlayer | |
   CMarkerDrugItem new .
 
   quest_flags _ #() .
+  quest_seen_responses _ #().
 
   ^ self

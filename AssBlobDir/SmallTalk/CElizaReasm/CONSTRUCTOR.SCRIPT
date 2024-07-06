@@ -5,5 +5,4 @@ init | |
   freq _ 0 .
   goto_text _ '' .
   parts _ #() .
-  result _  '' .
  ^ self

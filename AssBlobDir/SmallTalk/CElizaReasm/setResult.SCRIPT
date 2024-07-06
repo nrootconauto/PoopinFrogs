@@ -1,2 +1,2 @@
 setResult:r=CFrogStr ->* ||
-  result _ r 
+  first_result _ r 

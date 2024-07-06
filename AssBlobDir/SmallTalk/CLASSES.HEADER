@@ -278,10 +278,17 @@ class CElizaReasm:CFrogThing {
   CFrogArray *add_flags;
   CFrogArray *remove_flags;
   CFrogArray *need_flags;
+  CFrogClass *give_item_class;
+  I64 give_item_cnt;
   F64 freq;
   CFrogStr *goto_text;
   CFrogArray *parts;
-  CFrogStr *result;
+
+//Used for not repeating responses(See CPlayer.quest_seen_responses)
+  CFrogStr *global_response_name;
+
+  CFrogStr *first_result;
+  CFrogStr *again_result;
   CFrogBlock *is_valid_block;
   CFrogBlock *on_complete_block;
 };
@@ -385,7 +392,9 @@ class CPlayer:C3DThing {
   I64 chatting_active;
   CPissStream *piss_stream recur_serialize 1;
   F64 last_x,last_y;
- CFrogArray *quest_flags recur_serialize 1;
+  CFrogArray *quest_flags recur_serialize 1;
+//Has form "QuestName/Codename"
+  CFrogArray *quest_seen_responses recur_serialize 1;
 //How many bloody footprints will be made
   F64 bloody_foot_count;
 }; 
