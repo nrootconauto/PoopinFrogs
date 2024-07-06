@@ -865,6 +865,10 @@ force_f64:;
 	  NumPrim1(doc,locals,ast,stack_depth,"Sin","sin");
 	  goto prim_skip;
         }
+        if(!StrCmp(ast->op_name,"squared")) {
+	  NumPrim1(doc,locals,ast,stack_depth,"Sqr","squared");
+	  goto prim_skip;
+        }
         if(!StrCmp(ast->op_name,"tan")) {
 	  NumPrim1(doc,locals,ast,stack_depth,"Tan","tan");
 	  goto prim_skip;

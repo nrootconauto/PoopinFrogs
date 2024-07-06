@@ -71,4 +71,5 @@ addThing: thing* ->* |
   (things includes: thing) not ifTrue: [
     things add: thing .
   ] .
+  thing->chat_bot _ self getQuestChatBot: thing->chat_bot_name .
   self updateThingPos: thing .

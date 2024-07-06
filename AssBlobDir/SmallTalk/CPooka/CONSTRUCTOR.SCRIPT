@@ -1,4 +1,5 @@
 init ->CPooka | |
   #world addThing: self .
+  health _ 100 .
   template _ #world getThingTemplate: 'CPooka' .
   ^ self

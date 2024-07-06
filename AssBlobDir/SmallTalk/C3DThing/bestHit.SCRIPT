@@ -8,7 +8,6 @@ bestTargetAtAngle: angle=CFrogNum ->C3DThing |
   best_angle _ 6.24 .
   best_thing _ 0 .
   canidates do: [ :t=C3DThing |
-   
     ((self canSeeThing: t) and: (self ~= t and: t->health > 0. )) ifTrue: [
       from_angle _ (self angleFromThing: t facingAngle: angle ) .
       from_angle < best_angle ifTrue: [

@@ -2,7 +2,7 @@ acceptsFlags: flags=CFrogArray ->CFrogNum |
 |
   'Returns 1 + accept acount' .
   need_flags do:[:str=CFrogStr|
-    (flags indexOf: str) = -1 ifTrue: [
+    (flags has: str) ifFalse: [
       ^ 0 
     ]
   ] .

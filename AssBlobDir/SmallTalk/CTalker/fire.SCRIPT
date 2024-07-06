@@ -1,12 +1,12 @@
 fire ->CFrogNum |
   player=CFrogPlayer 
   chatter=CEliza
-  hit*
-  canidates=CFrogArray
+  hit=C3DThing
 |
   player _ #world getPlayer .
   hit _ player bestTargetAtAngle: player->angle .
-  chatter _ hit getChatBot .
+  hit show .
+  chatter _ hit -> chat_bot .
   (chatter hasClass: CEliza) ifTrue: [ 
     hit getName show .
     player chatWith: hit .

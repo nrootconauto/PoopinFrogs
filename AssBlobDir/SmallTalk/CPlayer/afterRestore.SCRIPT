@@ -4,6 +4,7 @@ afterRestore->* |
   piss_stream setFrom: self.
   
   template _ #world getThingTemplate: template_name. 
+  chat_bot _ #world getChatBot: chat_bot_name .
 
 'Re-add the items to the player(update graphics and put in inentory grids).' .
   old_items _ items .

@@ -1,7 +1,8 @@
 #include "AnimDC.HC"
-#include "BlobFile.HC";
+#include "BlobFile.HC"
 #include "SmallTalk/Load.HC"
-#include "Intersect.HC";
+#include "Intersect.HC"
+#include "QuestEditor.HC";
 #define TEST_3D
 #ifndef ENGINE_3D
 F64 Frog_tS() {
@@ -72,6 +73,10 @@ class CFileThing {
   U16 thing_template_idx;
 //x/y are in tiles 
   F64 x,y,rot;
+  U8 chat_bot_name[32];
+  U8 pad[32];
+  U8 pad[32];
+  U8 pad[32];
 };
 #define DOORF_SMALL_KEY 1
 #define DOORF_BIG_KEY 2
@@ -312,6 +317,7 @@ C3DWorld *LoadWorldFromFile(U8 *blob_file="ASS",U8 *filename,F64 fov=pi/4) {
 	  thing->x=fptr(CFileThing*)->x*GRID_SZ-xoff;
 	  thing->y=fptr(CFileThing*)->y*GRID_SZ-yoff;
 	  thing->angle=fptr(CFileThing*)->rot;
+	  thing->chat_bot_name=FrogStrNew(fptr(CFileThing*)->chat_bot_name);
 	  CallScript("init",thing);
 //Things add themselves to the world
 //	  I64SetAdd(ret->_2d_things,thing);
@@ -2165,7 +2171,15 @@ CFrogThing *WorldManagerNewNoiseSound(C3DWorldManager *man,...) {
   return FROG_SMALL_NIL;
 }
 AddMethod("C3DWorldManager","noiseSoundForTime:withMin:withMax:",&WorldManagerNewNoiseSound);
-
+CFrogThing *WorldManagerGetQuestChatBot(C3DWorldManager *man,...) {
+  U8 *name=AsString(argv[0]);
+  CEliza *e=FROG_SMALL_NIL;
+  if(name)
+    e=LoadQuestChatBot(name);
+  Free(name);
+  return e;
+}
+AddMethod("C3DWorldManager","getQuestChatBot:",&WorldManagerGetQuestChatBot);
 
 //Returns 1. if COLLISION,else 0
 CFrogThing *C3DThingMoveAtAngle(C3DThing *self,...) {
@@ -2601,7 +2615,7 @@ U0 WalkAround(U8 *save_string=NULL) {
        wm=load_game;
        w->_2d_things=wm->things->items;
        w->_wall_stains=wm->wall_stains->items;
-       w->_floor_stains=wm->floor_stains->items;
+       w->_floor_stains=wm->floor_stains->items;
      }
   }
   CPlayer *player=CallScript("getPlayer",man->value);

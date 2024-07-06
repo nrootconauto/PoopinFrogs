@@ -1,7 +1,9 @@
-FramePtrAdd("OLD_DIR",DirCur);
- Cd(__DIR__);;
+FramePtrAdd("OLD_DIR",DirCur);;
+#exe {Cd(__DIR__);;};;
+#ifndef ST_LOAD
+#define ST_LOAD
 #include "Compiler.HC";
 #include "Save.HC";
-"%s\n",FramePtr("OLD_DIR");
+#endif
 Cd(FramePtr("OLD_DIR"));
 FramePtrDel("OLD_DIR");

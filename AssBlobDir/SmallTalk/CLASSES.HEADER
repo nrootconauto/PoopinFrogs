@@ -189,6 +189,7 @@ class C3DThingTemplate:CFrogThing {
   CDC *back;
   U8 *destroy dft "C3DThingTemplateDel";
 };
+extern class CEliza;
 class C3DThing:CFrogThing {
   C3DThingTemplate *template no_serialize 1;
   F64 x,y,z,angle,health;
@@ -198,6 +199,8 @@ class C3DThing:CFrogThing {
   Bool no_draw,animation_no_repeat,pad[6];
 //Private
   CFrogStr *template_name;
+  CEliza *chat_bot no_serialize 1;
+  CFrogStr *chat_bot_name;
   Bool no_fall_off_edge;
   Bool floating;
 };
@@ -217,7 +220,7 @@ class C3DWorldManager:CFrogThing {
   CTask *sound_task no_serialize 1;
 //Private
   F64 game_load_tS;  //The CFrogTime now asSeconds that the game world is at when loaded
-};
+};
 
 class CHandItem:CFrogThing {
   CDC *gr;
@@ -363,7 +366,6 @@ class CFrogNPC:C3DThing {
   F64 state_duration;
   I64 just_jumped;
   CFrogStr *state;
-//  CEliza *chat_bot;
 };
 class CPooka:C3DThing {
 };
@@ -383,12 +385,12 @@ class CPlayer:C3DThing {
   I64 chatting_active;
   CPissStream *piss_stream recur_serialize 1;
   F64 last_x,last_y;
+ CFrogArray *quest_flags recur_serialize 1;
 //How many bloody footprints will be made
   F64 bloody_foot_count;
 }; 
 class CPoopMan:C3DThing {
   CFrogRandom *random_generator;
-//  CEliza *chat_bot;
   CFrogStr *state;
   F64 state_start_tS,speed;
   F64 state_duration;
@@ -399,7 +401,6 @@ class CPoopMan:C3DThing {
 class CZombie:C3DThing {
   CFrogRandom *random_generator;
   F64 speed;
-//  CEliza *chat_bot;
   F64 state_start_tS;
   F64 state_duration;
   F64 next_piss_tS;

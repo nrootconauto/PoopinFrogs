@@ -13,4 +13,7 @@ init ->CPlayer | |
   CKnife new .
   CTalker  new .
   CMarkerDrugItem new .
+
+  quest_flags _ #() .
+
   ^ self

@@ -3,7 +3,7 @@ chatWith: thing* ->* |
   name=CFrogName
   add_to_chat_log=CFrogBlock
 |
-  eliza _ thing getChatBot .
+  eliza _ thing ->chat_bot .
   ( eliza hasClass: CEliza ) ifFalse: [^ 0 ].
   chatting_active ifTrue: [ ^ 0 ] .
   chatting_active _ 1 .

@@ -1,4 +1,5 @@
 message0: str=CFrogStr ->* |
+   player=CPlayer
    valid=CFrogArray
    split=CFrogArray 
    tmp=CFrogStr
@@ -9,6 +10,7 @@ message0: str=CFrogStr ->* |
    set=CFrogArray
    score=CFrogNum
 |
+  player _ #world getPlayer .
   tmp _ '' .
   split _ #() .
   str do: [:ch* | 
@@ -26,7 +28,7 @@ message0: str=CFrogStr ->* |
   ] .
 
   valid _ reasms select: [:r=CElizaReasm | 
-    (r matchWords: split ) and: ( r acceptsFlags: cur_flags )
+    (r matchWords: split ) and: ( r acceptsFlags: player->quest_flags )
   ] .
   
   valid size ifFalse: [
@@ -65,4 +67,17 @@ message0: str=CFrogStr ->* |
   set size ifFalse: [^ 0 ] .
   '#(CElizaReasm wildcards score )' .
   split _ set at: (CFrogRandom new next * set size rem: set size) .
-  ^ (split at: 0) reassemble: (split at: 1)
+  choose _ split at: 0 . 
+  choose->add_flags do: [:add=CFrogStr|
+    (player->quest_flags has: add) ifFalse: [
+      player->quest_flags add: add copy. 
+'add 'show .
+add show .
+    ] .
+  ] .
+  choose->remove_flags do: [:rem=CFrogStr|
+    player->quest_flags remove: rem 
+'rempove'show .
+rem show .
+  ] .
+  ^ choose reassemble: (split at: 1)

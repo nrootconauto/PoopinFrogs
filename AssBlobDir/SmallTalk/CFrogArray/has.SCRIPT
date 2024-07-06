@@ -1,0 +1,4 @@
+has: v* ->CFrogNum |
+|
+  self do:[:v2* | v = v2 ifTrue: [^ 1 ]].
+  ^ 0 .
