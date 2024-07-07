@@ -10,6 +10,7 @@ message0: str=CFrogStr ->* |
    set=CFrogArray
    score=CFrogNum
    accept=CFrogBlock
+   ret*
 |
   player _ #world getPlayer .
   tmp _ '' .
@@ -85,6 +86,9 @@ message0: str=CFrogStr ->* |
     ].
   ] .
 
+'Choose result before adding quest_seen_responses' .
+
+  ret _ choose reassemble: (split at: 1) .
 
   (choose->global_response_name hasClass: CFrogStr) ifTrue: [
     (player->quest_seen_responses has: choose->global_response_name ) ifFalse: [
@@ -93,4 +97,4 @@ message0: str=CFrogStr ->* |
     ]
   ] ifFalse: accept .
 
-  ^ choose reassemble: (split at: 1)
+  ^ ret .

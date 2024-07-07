@@ -5,6 +5,7 @@
 #define QUESTCODE_EDIT 1 
 #define QUESTCODE_DELETE 0b11 
 #define QUESTCODE_CHOOSE 0b101 
+#define QUESTCODE_SUB_QUEST 0b110 
 #define QUESTCODE_META 0b111 
 class CQuestEntry {
   U8 code_name[STR_LEN];
@@ -28,8 +29,14 @@ class CQuestEntry {
 class CQuestInfo {
 //Inherit the reponses from this quest UNUSED
   U8 inherit_quest[STR_LEN] format "$$DA-P,A=\"Inherit Quest:%s\"$$\n";
+  U8 hello[STR_LEN] format "$$DA-P,A=\"Hello:%s\"$$\n";
+  U8 bye[STR_LEN] format "$$DA-P,A=\"Bye:%s\"$$\n";
 };
-U0 DispQuestEntry(CDoc *d,CQuestEntry *entry,I64 idx) {
+//Displays sub entries
+//nest_level==2 when /Quests/Name/entry
+U0 DispQuestEntry(CDoc *d,CQuestEntry *entry,I64 idx,CBlobFileHeader *lumps,I64 nest_level=2) {
+  CLumpHeader *hdr=&lumps->lump_table[idx],*sub;
+  if(StrOcc(hdr->name,'/')!=nest_level) return;
   DocPrint(d,"$$TR-C,\"%Q\"$$",entry->code_name);
   DocPrint(d,"$$ID,2$$\n");
   DocPrint(d,"Input:\t$$LTBLUE$$%Q$$FD$$\n",entry->input);
@@ -40,11 +47,22 @@ U0 DispQuestEntry(CDoc *d,CQuestEntry *entry,I64 idx) {
   DocPrint(d,"Need Keywords:\t$$LTBLUE$$%Q$$FD$$\n",entry->need_keywords);
   DocPrint(d,"Remove CHandItem:\t$$LTBLUE$$%Q$$FD$$\n",entry->remove_item);
   DocPrint(d,"Give CHandItem:\t$$LTBLUE$$%Q$$FD$$\n",entry->give_item);
-  DocPrint(d,"\n");
-  DocPrint(d,"$$RED$$$$MU,\"(Edit)\",LE=%d$$ ",idx<<3|QUESTCODE_EDIT);
+  DocPrint(d,"\n$$RED$$");
+  DocPrint(d,"$$MU,\"(Edit)\",LE=%d$$ ",idx<<3|QUESTCODE_EDIT);
+  DocPrint(d,"$$MU,\"(Sub-Quest)\",LE=%d$$ ",idx<<3|QUESTCODE_SUB_QUEST);
   DocPrint(d,"$$MU,\"(Delete)\",LE=%d$$$$FD$$",idx<<3|QUESTCODE_DELETE);
   DocPrint(d,"\n");
+//Display sub-quests
+  idx=0;
+  while(idx<lumps->lump_cnt) {
+    sub=&lumps->lump_table[idx];
+    if(!StrNCmp(hdr->name,sub->name,StrLen(hdr->name))) {
+       DispQuestEntry(d,lumps(U8*)+sub->offset,idx,lumps,nest_level+1);
+    }
+    idx++;
+  }
   DocPrint(d,"$$ID,-2$$\n");
+  return;
 }
 CFrogArray *SplitItems(U8 *poo_poo) {
   U8 dummy[STR_LEN];
@@ -60,15 +78,15 @@ CFrogArray *SplitItems(U8 *poo_poo) {
   CallScript("add:",ret,FrogStrNew(LstSub(cnt,dummy)));
   return ret;
 }
-CEliza *LoadQuestChatBot(U8 *quest_name,U8 *ass_blob="ASS") {
+CEliza *LoadQuestChatBot(U8 *quest_name,U8 *ass_blob="ASS",I64 nest_level=2) {
   ass_blob=ExtDft(ass_blob,"BLOB");
   CBlobFileHeader *lumps=FileRead(ass_blob);
-  CLumpHeader *hdr;
-  I64 cnt=lumps->lump_cnt,code,idx;
+  CLumpHeader *hdr,*hdr2;
+  I64 cnt=lumps->lump_cnt,code,idx,cnt2;
   U8 *wildcard=MStrPrint(QUEST_DIR"%s/*",quest_name);
   U8 *info_lump=MStrPrint(QUEST_DIR"%s/"QUEST_INFO_NAME,quest_name);
   U8 sep[STR_LEN];
-  CEliza *e=ConstructThing("CEliza"),*inherit;
+  CEliza *e=ConstructThing("CEliza"),*inherit,*sub;
   CElizaReasm *r;
   CQuestEntry *ent;
   CQuestInfo *info_ent=NULL;
@@ -79,22 +97,41 @@ CEliza *LoadQuestChatBot(U8 *quest_name,U8 *ass_blob="ASS") {
 //Do it later
       info_ent=hdr->offset+lumps(U8*);
     } else if(WildMatch(hdr->name,wildcard)) {
-      ent=lumps(U8*)+hdr->offset;
-      r=ConstructThing("CElizaReasm");
-      CallScript("init",r);
-      CallScript("initFromString:",r,FrogStrNew(ent->input));
-      r->first_result=FrogStrNew(ent->first_output);
-      r->global_response_name=FrogStrNew(hdr->name);
-      if(ent->again_output[0])
-        r->again_result=FrogStrNew(ent->again_output);
-      else
-        r->again_result=r->first_result;
-      if(*ent->add_keywords)  r->add_flags=SplitItems(ent->add_keywords);
-      if(*ent->remove_keywords) r->remove_flags=SplitItems(ent->remove_keywords);
-      if(*ent->need_keywords) r->need_flags=SplitItems(ent->need_keywords);
-      if(HashFind(ent->give_item,Fs->hash_table,HTT_CLASS))
-        r->give_item_class=FrogClassNew(UniverseAddClass(ent->give_item));
-      CallScript("addReasm:",e,r);
+      if(nest_level==StrOcc(hdr->name,'/')) {
+        ent=lumps(U8*)+hdr->offset;
+        r=ConstructThing("CElizaReasm");
+        CallScript("init",r);
+        CallScript("initFromString:",r,FrogStrNew(ent->input));
+        r->first_result=FrogStrNew(ent->first_output);
+        r->global_response_name=FrogStrNew(hdr->name);
+        if(*ent->add_keywords)  r->add_flags=SplitItems(ent->add_keywords);
+        if(*ent->remove_keywords) r->remove_flags=SplitItems(ent->remove_keywords);
+        if(*ent->need_keywords) r->need_flags=SplitItems(ent->need_keywords);
+        if(HashFind(ent->give_item,Fs->hash_table,HTT_CLASS))
+	  r->give_item_class=FrogClassNew(UniverseAddClass(ent->give_item));
+/*Check for sub responmses*/
+        cnt2=lumps->lump_cnt;
+        while(--cnt2>=0) {
+	  hdr2=&lumps->lump_table[cnt2];
+	  if(!StrNCmp(hdr->name,hdr2->name,StrLen(hdr->name))) {
+	    if(hdr2->name[StrLen(hdr->name)]=='/') {
+//Sub-response
+//$BK,1$(IMPORTANT) Add StrLen(QUEST_DIR) to ignore /Quests/$BK,0$
+	      sub=LoadQuestChatBot(hdr->name+StrLen(QUEST_DIR),ass_blob,nest_level+1);
+//Set the hello message with the parent result
+	      sub->hello=r->first_result;
+//Parent result is now sub-reposne
+	      r->first_result=sub;
+	      break;
+	    }
+	  }
+        }
+        if(ent->again_output[0])
+	  r->again_result=FrogStrNew(ent->again_output);
+        else
+	  r->again_result=r->first_result;
+        CallScript("addReasm:",e,r);
+      }
     }
   }
   if(info_ent) {
@@ -105,6 +142,10 @@ CEliza *LoadQuestChatBot(U8 *quest_name,U8 *ass_blob="ASS") {
       CallScript("inheritOther:",e,inherit);
       FramePtrDel(info_ent->inherit_quest);
     }
+    if(info_ent->hello[0])
+      e->hello=FrogStrNew(info_ent->hello);
+    if(info_ent->bye[0])
+      e->quit=FrogStrNew(info_ent->bye);
   }
   Free(info_lump);
   Free(ass_blob);
@@ -125,12 +166,14 @@ ent:
   CQuestInfo *info_ent,info_dummy;
   name=MStrPrint(QUEST_DIR"%s/*",oname);
   info_lump=MStrPrint(QUEST_DIR"%s/"QUEST_INFO_NAME,oname);
-  while(--cnt>=0) {
-    hdr=&lumps->lump_table[cnt];
+  idx=0;
+  while(idx<cnt) {
+    hdr=&lumps->lump_table[idx];
     if(!StrCmp(info_lump,hdr->name)) {
     } else if(WildMatch(hdr->name,name)) {
-      DispQuestEntry(d,hdr->offset+lumps(U8*),cnt);
+      DispQuestEntry(d,hdr->offset+lumps(U8*),idx,lumps);
     }
+    idx++;
   }
 
   DocPrint(d,"$$RED$$$$MU,\"New Entry\",LE=%d$$ ",-1<<3|QUESTCODE_EDIT);
@@ -160,7 +203,7 @@ ent:
     case QUESTCODE_EDIT:
       MemSet(&dummy,0,sizeof(CQuestEntry));
       if(idx==-1) {
-	tmp=PopUpGetStr("Codename for New Entry:\n");
+	tmp=PopUpGetStr("Codename for New Entry:");
 	StrCpy(dummy.code_name,tmp);
 	Free(tmp);
 	ent=&dummy;
@@ -170,6 +213,16 @@ ent:
       PopUpForm(ent,"CQuestEntry");
       tmp=MStrPrint(QUEST_DIR"%s/%s",oname,ent->code_name);
       BlobFileAddLump(ass_blob,tmp,ent,sizeof(CQuestEntry));
+      Free(tmp);
+      break;
+    case QUESTCODE_SUB_QUEST:
+      MemSet(&dummy,0,sizeof(CQuestEntry));
+      tmp=PopUpGetStr("Codename for New Sub-Entry:");
+      StrPrint(dummy.code_name,"%s",tmp);
+      Free(tmp);
+      PopUpForm(&dummy,"CQuestEntry");
+      tmp=MStrPrint("%s/%s",hdr->name,dummy.code_name);
+      BlobFileAddLump(ass_blob,tmp,&dummy,sizeof(CQuestEntry));
       Free(tmp);
       break;
   }
@@ -287,6 +340,8 @@ poo_poo=CallScript("message:",eliza,FrogStrNew("I like video games"));
 "I EAT *:%s\n",AsString(poo_poo);
 poo_poo=CallScript("message:",eliza,FrogStrNew("blue"));
 "CAN * HAVE * :%s\n",AsString(poo_poo);
+poo_poo=CallScript("message:",eliza,FrogStrNew("YES"));
+"* YES * :%s\n",AsString(poo_poo);
 poo_poo=CallScript("message:",eliza,FrogStrNew("YES"));
 "* YES * :%s\n",AsString(poo_poo);
 #endif
