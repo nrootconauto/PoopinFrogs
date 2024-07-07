@@ -1,0 +1,10 @@
+inheritOther: other=CEliza ->*
+|
+  has_parts=CFrogArray
+|
+  has_parts _ reasms collect: [:r=CElizaReasm| r -> parts] .
+  other->reasms do: [:r=CElizaReasm|
+    (has_parts has: r->parts) ifFalse: [
+      reasms add: r
+    ].
+  ] .

@@ -5,6 +5,7 @@
 #define QUESTCODE_EDIT 1 
 #define QUESTCODE_DELETE 0b11 
 #define QUESTCODE_CHOOSE 0b101 
+#define QUESTCODE_META 0b111 
 class CQuestEntry {
   U8 code_name[STR_LEN];
   U8 input[STR_LEN] format "$$DA-P,A=\"Input Keywords:%s\"$$\n";
@@ -22,10 +23,12 @@ class CQuestEntry {
 //Give item
   U8 give_item[STR_LEN] format "$$DA-P,A=\"Add Item:%s\"$$\n";
   I64 give_item_cnt format "$$DA-TRM,A=\"Add Cnt:%d\"$$\n"; //See above
-//Inherit the reponses from this quest UNUSED
-  U8 inherit_quest[STR_LEN] ; //format "$$DA-P,A=\"Inherit Quest:%s\"$$\n";
 };
-
+#define QUEST_INFO_NAME "QuestInfo"
+class CQuestInfo {
+//Inherit the reponses from this quest UNUSED
+  U8 inherit_quest[STR_LEN] format "$$DA-P,A=\"Inherit Quest:%s\"$$\n";
+};
 U0 DispQuestEntry(CDoc *d,CQuestEntry *entry,I64 idx) {
   DocPrint(d,"$$TR-C,\"%Q\"$$",entry->code_name);
   DocPrint(d,"$$ID,2$$\n");
@@ -63,14 +66,19 @@ CEliza *LoadQuestChatBot(U8 *quest_name,U8 *ass_blob="ASS") {
   CLumpHeader *hdr;
   I64 cnt=lumps->lump_cnt,code,idx;
   U8 *wildcard=MStrPrint(QUEST_DIR"%s/*",quest_name);
+  U8 *info_lump=MStrPrint(QUEST_DIR"%s/"QUEST_INFO_NAME,quest_name);
   U8 sep[STR_LEN];
-  CEliza *e=ConstructThing("CEliza");
+  CEliza *e=ConstructThing("CEliza"),*inherit;
   CElizaReasm *r;
   CQuestEntry *ent;
+  CQuestInfo *info_ent=NULL;
   CallScript("init",e);
   while(--cnt>=0) {
     hdr=&lumps->lump_table[cnt];
-    if(WildMatch(hdr->name,wildcard)) {
+    if(!StrCmp(hdr->name,info_lump)) {
+//Do it later
+      info_ent=hdr->offset+lumps(U8*);
+    } else if(WildMatch(hdr->name,wildcard)) {
       ent=lumps(U8*)+hdr->offset;
       r=ConstructThing("CElizaReasm");
       CallScript("init",r);
@@ -80,7 +88,7 @@ CEliza *LoadQuestChatBot(U8 *quest_name,U8 *ass_blob="ASS") {
       if(ent->again_output[0])
         r->again_result=FrogStrNew(ent->again_output);
       else
-	r->again_result=r->first_result;
+        r->again_result=r->first_result;
       if(*ent->add_keywords)  r->add_flags=SplitItems(ent->add_keywords);
       if(*ent->remove_keywords) r->remove_flags=SplitItems(ent->remove_keywords);
       if(*ent->need_keywords) r->need_flags=SplitItems(ent->need_keywords);
@@ -89,13 +97,23 @@ CEliza *LoadQuestChatBot(U8 *quest_name,U8 *ass_blob="ASS") {
       CallScript("addReasm:",e,r);
     }
   }
+  if(info_ent) {
+//Use FramePtr to avoid infinite recursion
+    if(info_ent->inherit_quest[0]&&!FramePtr(info_ent->inherit_quest)) {
+      FramePtrAdd(info_ent->inherit_quest);
+      inherit=LoadQuestChatBot(info_ent->inherit_quest,ass_blob);
+      CallScript("inheritOther:",e,inherit);
+      FramePtrDel(info_ent->inherit_quest);
+    }
+  }
+  Free(info_lump);
   Free(ass_blob);
   Free(lumps);
   Free(wildcard);
   return e;
 }
 Bool EditQuest(U8 *ass_blob,U8 *name) {
-  U8 *tmp,*oname=name;
+  U8 *tmp,*oname=name,*info_lump;
 ent:
   CDoc *d=DocNew;
   DocClear(d);
@@ -104,15 +122,19 @@ ent:
   I64 cnt=lumps->lump_cnt,code,idx;
   Bool continue=TRUE;
   CQuestEntry *ent,dummy;
+  CQuestInfo *info_ent,info_dummy;
   name=MStrPrint(QUEST_DIR"%s/*",oname);
+  info_lump=MStrPrint(QUEST_DIR"%s/"QUEST_INFO_NAME,oname);
   while(--cnt>=0) {
     hdr=&lumps->lump_table[cnt];
-    if(WildMatch(hdr->name,name)) {
+    if(!StrCmp(info_lump,hdr->name)) {
+    } else if(WildMatch(hdr->name,name)) {
       DispQuestEntry(d,hdr->offset+lumps(U8*),cnt);
     }
   }
 
-  DocPrint(d,"$$RED$$$$MU,\"New Entry\",LE=%d$$$$FD$$",-1<<3|QUESTCODE_EDIT);
+  DocPrint(d,"$$RED$$$$MU,\"New Entry\",LE=%d$$ ",-1<<3|QUESTCODE_EDIT);
+  DocPrint(d,"$$MU,\"Edit Meta-Info\",LE=%d$$$$FD$$",QUESTCODE_META);
 
   code=PopUpMenu(d);
   if(code==DOCM_CANCEL) {
@@ -122,6 +144,16 @@ ent:
   idx=code>>3;
   hdr=&lumps->lump_table[idx];
   switch(code&0b111) {
+    case QUESTCODE_META:
+      MemSet(&info_dummy,0,sizeof(CQuestInfo));
+      info_ent=BlobFileGetLump(ass_blob,info_lump);
+      if(!info_ent)
+	info_ent=&info_dummy;
+      PopUpForm(info_ent,"CQuestInfo");
+      BlobFileAddLump(ass_blob,info_lump,info_ent,sizeof(CQuestInfo));
+      if(info_ent!=&info_dummy)
+	Free(info_ent);
+      break;
     case QUESTCODE_DELETE:
       BlobFileDeleteLump(ass_blob,hdr->name);
       break;
@@ -142,6 +174,7 @@ ent:
       break;
   }
 fin:
+  Free(info_lump);
   Free(lumps);
   Free(name);
   DocDel(d);
@@ -250,9 +283,9 @@ CEliza *eliza=LoadQuestChatBot("Test123");
 CFrogStr *poo_poo;
 poo_poo=CallScript("message:",eliza,FrogStrNew("yes"));
 "HELLO:%s\n",AsString(poo_poo);
-poo_poo=CallScript("message:",eliza,FrogStrNew("I eat potatoes"));
+poo_poo=CallScript("message:",eliza,FrogStrNew("I like video games"));
 "I EAT *:%s\n",AsString(poo_poo);
-poo_poo=CallScript("message:",eliza,FrogStrNew("Can I have some food"));
+poo_poo=CallScript("message:",eliza,FrogStrNew("blue"));
 "CAN * HAVE * :%s\n",AsString(poo_poo);
 poo_poo=CallScript("message:",eliza,FrogStrNew("YES"));
 "* YES * :%s\n",AsString(poo_poo);

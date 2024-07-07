@@ -674,13 +674,13 @@ U0 CompileAST(CDoc *doc,CAST *ast,CLocals *locals,I64 stack_depth,I64 jump_to=IN
     }
     return;
   }
-if(ast->type!=AST_STACK_TEMPORARY)
-  if(ast->compiled++) {
-DocInsDoc(,doc);
-idx=64;
-while(--idx>=0) "%P\n",Caller(idx);
- throw('AST2');
- }
+  if(ast->type!=AST_STACK_TEMPORARY)
+    if(ast->compiled++) {
+      DocInsDoc(,doc);
+      idx=64;
+      while(--idx>=0) "%P\n",Caller(idx);
+      throw('AST2');
+    }
   switch(ast->type) {
       break;case AST_STACK_TEMPORARY:
       DocPrint(doc,"AsF64(%s)",StackFrame2Var(ast->stk_idx));
@@ -764,7 +764,7 @@ pass:
         ReplaceElem(doc,ent,"%d",ast_case_num);
         UnrollBlock(doc,locals,stack_depth,ast->args.last);
         ReplaceElem(doc,ent2,"%d",ast_case_num);
-	return;
+        return;
       }
 //Primtive method time
       if(!IsAllF64(ast)) { //These(is_f64) are computed beforehand
@@ -788,13 +788,13 @@ pass:
         cur=ast->args.next;
 
         if(!has_non_f64) {
-          for(idx=0;idx<cnt+1;idx++) { //+1 includes self
+	  for(idx=0;idx<cnt+1;idx++) { //+1 includes self
 	    if(!IsF64ExprNode(locals,cur)) {
-		cur->type=AST_STACK_TEMPORARY;
-		cur->stk_idx=stack_depth+idx;
-		cur->is_f64=TRUE;
+	      cur->type=AST_STACK_TEMPORARY;
+	      cur->stk_idx=stack_depth+idx;
+	      cur->is_f64=TRUE;
 	    }
- 	    cur=cur->next;
+	    cur=cur->next;
 	  }
 	  wants_end_paren=TRUE;
 	  DocPrint(doc,"%s=FrogNumNew(",StackFrame2Var(stack_depth));

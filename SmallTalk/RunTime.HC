@@ -904,6 +904,40 @@ CFrogThing *FrogArrayRemove(CFrogArray *self, CFrogThing *t) {
   self->items->cnt=ptr;
   return FROG_SMALL_NIL;
 }
+
+CFrogThing *FrogArrayEqual(CFrogArray *self, CFrogArray *t) {
+  I64 idx,ptr=0;
+  I64 *flat=self->items->body;
+  I64 *flat2=t->items->body;
+  CFrogThing *ret;
+  if(self->items->cnt!=t->items->cnt)
+    return FrogNumNew(0);
+  for(idx=0;idx<self->items->cnt;idx++) {
+    ret=CallScript("=",flat[idx],flat2[idx]);
+    if(AsF64(ret)) {
+      //Skip
+    } else
+      return FrogNumNew(0.);
+  }
+  return FrogNumNew(1);
+}
+CFrogThing *FrogArrayNotEqual(CFrogArray *self, CFrogArray *t) {
+  I64 idx,ptr=0;
+  I64 *flat=self->items->body;
+  I64 *flat2=t->items->body;
+  if(self->items->cnt!=t->items->cnt)
+    return FrogNumNew(1);
+  CFrogThing *ret;
+  for(idx=0;idx<self->items->cnt;idx++) {
+    ret=CallScript("=",flat[idx],flat2[idx]);
+    if(AsF64(ret)) {
+      //Skip
+    } else
+      return FrogNumNew(1);
+  }
+  return FrogNumNew(0);
+}
+
 U0 FrogArrayDel(CFrogArray *self) {
   I64SetDel(self->items);
   Free(self);
@@ -1051,6 +1085,8 @@ CFrogThing *FrogThingCopy(CFrogThing *t) {
   ConstructBuiltin("FrogArrayRemAt(self,AsF64(thing))","CFrogArray","removeAt:","CFrogNum","thing");
   ConstructBuiltin("FrogNumNew(self->items->cnt)","CFrogArray","size");
   ConstructBuiltin("FrogArrayCopy(self)","CFrogArray","copy");
+  ConstructBuiltin("FrogArrayEqual(self,other)","CFrogArray","=","CFrogArray","other");
+  ConstructBuiltin("FrogArrayNotEqual(self,other)","CFrogArray","~=","CFrogArray","other");
 }
 #exe {
 //String
