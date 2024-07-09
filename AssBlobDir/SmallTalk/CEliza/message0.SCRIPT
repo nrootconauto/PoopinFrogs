@@ -4,6 +4,7 @@ message0: str=CFrogStr ->* |
    split=CFrogArray 
    tmp=CFrogStr
    choose=CElizaReasm
+   choose2=CElizaReasm
    wildcards=CFrogArray
    best_match_len=CFrogNum
    best_flag_cnt=CFrogNum
@@ -67,9 +68,24 @@ message0: str=CFrogStr ->* |
 
   '???' .
   set size ifFalse: [^ 0 ] .
+
+'s3' show .
+  set size show.
+
   '#(CElizaReasm wildcards score )' .
-  split _ set at: (CFrogRandom new next * set size rem: set size) .
-  choose _ split at: 0 . 
+  'Pick lowest frequnecy response' .
+  split _  set at: (CFrogRandom new next * set size - .001) . 
+  choose _ split at: 0 .
+  set do: [:e*|
+    choose2 _ e at: 0 .
+'cc2' show .
+    choose->freq show .
+    choose2->freq show .
+    choose->freq > choose2->freq ifTrue: [
+      choose _ choose2 .
+      split _ e 
+    ] .
+  ] .
 
 
   accept _ [

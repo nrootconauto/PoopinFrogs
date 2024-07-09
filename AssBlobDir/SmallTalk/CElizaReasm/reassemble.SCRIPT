@@ -6,6 +6,8 @@ reassemble: wildcards=CFrogArray ->* |
   result*
   player=CPlayer
 |
+  freq _ freq + 1 .
+
   player _ #world getPlayer .
   result _ first_result . 
   (player->quest_seen_responses has: global_response_name) ifTrue: [
@@ -45,6 +47,5 @@ reassemble: wildcards=CFrogArray ->* |
       value: cumsum
   ] .
 
-  freq _ freq + 1 .
 
   ^ ret

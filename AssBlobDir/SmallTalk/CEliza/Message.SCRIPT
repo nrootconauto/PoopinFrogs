@@ -2,13 +2,14 @@ message: str=CFrogStr -> * |
   sub*
   reduce=CFrogBlock
   res*
+  clone=CFrogArray
 |
   reduce _ [:result* |
     (result hasClass: CFrogStr) ifTrue: [
       ^ result 
     ] .
     (result hasClass: CEliza) ifTrue: [
-      stack  remove result .
+      stack remove result .
       stack add: result .
       ^ result getHello copy
     ] .
@@ -24,10 +25,11 @@ message: str=CFrogStr -> * |
        ] .
     ] .
   ] .
+  clone _ stack copy .
   stack size ifTrue: [
     0 to: stack size do: [:idx=CFrogNum|
       'Most recent are at end '.
-      sub _ stack at: (stack size - 1 - idx)  .
+      sub _ clone at: (clone size - 1 - idx)  .
       sub setSynonyms: self getSynonyms .
       res _ sub message0: str .
       reduce value: res .

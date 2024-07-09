@@ -929,7 +929,6 @@ new:
   AnimDCDel(dc);
 fin:
   Free(data);
-  Free(lump_name);
   return lump_name;
 }
 #if __CMD_LINE__

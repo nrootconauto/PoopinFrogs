@@ -1180,7 +1180,7 @@ U0 LevelEditorDraw(CTask *t,CDC *dc) {
 	    texture=world_edit.textures[data.u8[1]];
 	    cheight=seg->ceil_heights[x-seg->xoff][y-seg->yoff];
 	    ch2=seg->ceil_heights2[x-seg->xoff][y-seg->yoff];
-	    if(cheight!=I8_MAX&&cheight>theight)
+	    if(cheight!=I8_MAX&&cheight>=theight)
 	      if(texture&&Blink) {
 	        DrawTileDumb(dc,world_edit.base_x,world_edit.base_y,texture->dc,x,y);
 	      }
@@ -1195,6 +1195,13 @@ next:;
   DrawSidebar(dc,0);
   DrawSidebar(dc,t->pix_width-SIDEBAR_WIDTH,TRUE);
   DrawThingBar(dc,t);
+  dc->color=RED;
+  GrRect(dc,SIDEBAR_WIDTH,0,t->pix_width-SIDEBAR_WIDTH*2,8);
+  if(Blink)
+    dc->color=YELLOW;
+  else
+    dc->color=LTCYAN;
+  GrPutS(dc,SIDEBAR_WIDTH,0,"Press F1 for help.");
   dc->color=BLUE;
   GrRect(dc,SIDEBAR_WIDTH,t->pix_height-24,t->pix_width-SIDEBAR_WIDTH*2,16);
   str=MStrPrint("Floor Height(%d),Ceil Height(%d)(Shift+Wheel == Change Ceil Height)",
@@ -1717,6 +1724,39 @@ next:
 fin:
   Free(stk);
 }
+U0 HelpMenu() {
+  Bool old_flat=world_edit.flat_mode;
+  CDoc *doc=DocNew;
+  world_edit.flat_mode=TRUE;
+  DocPrint(doc,"$$PURPLE$$$$TX+CX,\"Level Editor Help!\"$$$$FD$$\n");
+  DocPrint(doc,"\n  See $$LK,\"(This)\",A=\"FI:Help/LevelEditor.DD\"$$ for the general gist of things\n");
+  DocPrint(doc,"$$TR-C,\"Level Controls\"$$\n$$ID,2$$\n");
+  DocPrint(doc,"$$PURPLE$$[f]$$FD$$ - Flood fill the floor with a tile\n");
+  DocPrint(doc,"$$PURPLE$$[s]$$FD$$ - Sexy ceiling maker(make sure ceiling exists)\n");
+  DocPrint(doc,"$$PURPLE$$[d]$$FD$$ - Make a door\n");
+  DocPrint(doc,"$$PURPLE$$[Shift+d]$$FD$$ - Remove a door\n");
+  DocPrint(doc,"$$PURPLE$$[Left-Click]$$FD$$ - Place tile\n");
+  DocPrint(doc,"$$PURPLE$$[Right-Click]$$FD$$ - Place ceiling\n");
+  DocPrint(doc,"$$PURPLE$$[Shift+Right-Click]$$FD$$ - Remove ceiling/thing\n");
+  DocPrint(doc,"$$PURPLE$$[Shift+Left-Click]$$FD$$ - Place thing\n");
+  DocPrint(doc,"$$PURPLE$$[q]$$FD$$ - Edit Quest on thing\n");
+  DocPrint(doc,"$$PURPLE$$[Ctrl+z]$$FD$$ - Undo\n");
+  DocPrint(doc,"$$ID,-2$$\n");
+  DocPrint(doc,"$$TR-C,\"Height Controls\"$$\n$$ID,2$$\n");
+  DocPrint(doc,"$$PURPLE$$[Mouse-Wheel]$$FD$$ - Change floor height\n");
+  DocPrint(doc,"$$PURPLE$$[Shift+Mouse-Wheel]$$FD$$ - Change ceil height\n");
+  DocPrint(doc,"$$PURPLE$$[Ctrl+Mouse-Wheel]$$FD$$ - Change ceil rise\n");
+  DocPrint(doc,"$$ID,-2$$\n");
+  DocPrint(doc,"$$TR-C,\"Camera Controls\"$$\n$$ID,2$$\n");
+  DocPrint(doc,"$$PURPLE$$[PageUp]$$FD$$ - Move camera up\n");
+  DocPrint(doc,"$$PURPLE$$[PageDown]$$FD$$ - Move camera down\n");
+  DocPrint(doc,"$$PURPLE$$[Shift+f]$$FD$$ - Toggle flat view-mode\n");
+  DocPrint(doc,"$$PURPLE$$[Arrow keys]$$FD$$ - What do you think they do?\n");
+  DocPrint(doc,"$$ID,-2$$\n");
+  PopUpMenu(doc);
+  world_edit.flat_mode=old_flat;
+  DocDel(doc);
+}
 I64 WallCeilFloor() {
   CDoc *doc=DocNew;
   DocPrint(doc,"$$TX+CX,\"Wall,Ceil or Floor texture?\"$$\n");
@@ -1983,7 +2023,9 @@ no_edit_tile:;
 	  default: which_key=NULL;
         }
         case MSG_KEY_DOWN:
-	  if(m1==CH_CTRLZ) {
+	  if(m2.u8[0]==SC_F1) {
+	    HelpMenu;
+	  } if(m1==CH_CTRLZ) {
 	    WorldEditUndo;
 	  } else if(m1=='F') {
 	    world_edit.flat_mode^=TRUE;
@@ -2290,7 +2332,7 @@ next:;
   //
   // Part for making sexy ceilings
   //
-  Bool IsPerimeterCeil(I64 x,I64 y) {
+Bool IsPerimeterCeil(I64 x,I64 y) {
   I64 xoff,yoff;
   for(xoff=-1;xoff<2;xoff++) 
     for(yoff=-1;yoff<2;yoff++)
@@ -2309,14 +2351,13 @@ U0 SexyCeiling(I64 x,I64 y) {
   CLevelSegment *seg;
   CLevelSegmentEditFill *edit_ff;
   I64 tile,idx2,tile2;
-  I64 xoff,yoff,idx,lowest,h;
+  I64 xoff,yoff,idx,lowest,h,highest;
   F64 ts=tS;
   tile.i32[0]=x;
   tile.i32[1]=y;
   I64SetAdd(working_set,tile);
   I64SetAdd(ceil_tiles,tile);
-  h=WorldGetCeilAt(x,y);
-  lowest=h+WorldGetCeilRiseAt(x,y);
+  highest=WorldGetCeilAt(x,y);
   while(working_set->cnt>0) {
     tile=working_set->body[--working_set->cnt];
     for(xoff=-1;xoff<2;xoff++)
@@ -2326,14 +2367,14 @@ U0 SexyCeiling(I64 x,I64 y) {
         idx=WorldGetCeilAt(tile2.i32[0],tile2.i32[1]);
         idx2=WorldGetCeilRiseAt(tile2.i32[0],tile2.i32[1]);
         if(idx!=I8_MAX&&
-	      idx<=h){
+	      idx>=h&&idx2) {
 	  if(!I64SetHas(ceil_tiles,tile2)) {
 	    I64SetAdd(working_set,tile2);
 	    I64SetAdd(ceil_tiles,tile2);
 	    seg=GetSegmentForPos(tile2.i32[0],tile2.i32[1]);
 	    if(!I64SetHas(affected_segments,seg))
 	      I64SetAdd(affected_segments,seg);
-	    lowest=MinI64(lowest,idx+idx2);
+	    highest=MaxI64(highest,idx);
 	  }
         }
       }
@@ -2365,7 +2406,7 @@ U0 SexyCeiling(I64 x,I64 y) {
     seg=GetSegmentForPos(x,y);
     x-=seg->xoff;
     y-=seg->yoff;
-    seg->ceil_heights2[x][y]=lowest-seg->ceil_heights[x][y];
+    seg->ceil_heights2[x][y]=highest-seg->ceil_heights[x][y]+MaxI64(rise_by,1);
   }
 //Go away from perimeter(center?)
   while(working_set->cnt) {
@@ -2397,11 +2438,7 @@ U0 SexyCeiling(I64 x,I64 y) {
         y=tile.i32[1];
         seg=GetSegmentForPos(x,y);
         h=seg->ceil_heights[x-seg->xoff][y-seg->yoff];
-        if(!rise_by) {
-//Prevent "empty" ceilings
-	  seg->ceil_heights2[x-seg->xoff][y-seg->yoff]=lowest+1-h;
-        } else if(lowest+rise_by>h)
-	  seg->ceil_heights2[x-seg->xoff][y-seg->yoff]=lowest+rise_by-h;
+	seg->ceil_heights2[x-seg->xoff][y-seg->yoff]=lowest+rise_by-h;
       }
     }
     working_set->cnt=0;
