@@ -1,0 +1,90 @@
+update ->*
+|
+  tS=CFrogNum
+  w=C3DWorldManager
+  dist=CFrogNum
+  p=CPlayer
+  r=CFrogNum 
+|
+  tS _ CFrogTime now asSeconds.
+  momx2 _ 0 .
+  momy2 _ 0 .
+  w _ #world .
+
+  health <= 0 ifTrue: [
+    state ~= 'Dead' ifTrue: [
+      w sweepSoundForTime: 500 withMin: 50 withMax: 30 .
+      momx2 _ 0 .
+      momy2 _ 0 .
+      template _ w getThingTemplate: 'CPorky/Dead' .
+      state _ 'Dead' .
+      animation_no_repeat _ 1 .
+      animation_start_tS _ tS .
+    ] .
+    ^ 1 .
+  ] .
+
+  state = 'Normal' ifTrue: [
+    template _ w getThingTemplate: 'CPorky' .
+    animation_no_repeat _ 0 .
+
+    (target hasClass: C3DThing) ifTrue: [
+      (target->health <= 0) ifTrue: [
+        p _ w getPlayer .
+        (self canSeeThing: p) ifTrue: [
+          target _ p.
+        ]
+      ] .
+    ] ifFalse: [
+      p _ w getPlayer .
+      (self canSeeThing: p) ifTrue: [
+        target _ p.
+      ]
+    ] .
+
+    'Only walk around if target is defined'.
+    (target hasClass: C3DThing) ifTrue: [
+      dist _ ((target->x - x) squared + (target->y - y) squared ) sqrt .
+      self wander: 16. withJumpVelocity: .75 withTarget: target .
+      ((r < ( 2 / 10 ) and: (self canSeeThing: target)) 
+        and: dist < (16 * 128) ) ifTrue: [
+        licked _ 0 .
+        state _ 'Lick' .
+        template _ w getThingTemplate: 'CPorky/Lick' .
+        animation_no_repeat _ 1 .
+        animation_start_tS _ tS.
+        state_start_tS _  tS.
+        state_duration _  3. .
+        angle _ (target->x - x) arg: (target->y - y) .
+      ] .
+    ] .
+  ] .
+
+
+  state = 'Lick' ifTrue: [
+    ((tS - state_start_tS) > (3 / 4) and: licked not) ifTrue: [
+      w noiseSoundForTime: 100 withMin: 30 withMax: 40 .
+      dist _ ((target->x - x) squared +(target->y - y) squared ) sqrt .
+      angle _ (target->x - x arg: target->y - y ).
+      tongue _ CDogTongue new .
+      tongue->from _ self .
+      tongue->x _ x .
+      tongue->y _ y .
+      tongue->z _ z + .5 .
+      tongue->start_tS _ tS .
+      tongue->target_x _ x + (angle cos * (dist + 64)) .
+      tongue->target_y _ y + (angle sin * (dist + 64)).
+      tongue->target_z _ target ->z + .5 .
+      licked _ 1 .
+    ] .
+    (tongue hasClass: CDogTongue) ifTrue: [
+      tongue update ifFalse: [
+        tongue _ 0 .
+        state _ 'Normal' .
+      ] .
+    ] .
+    (tS - state_start_tS) > state_duration ifTrue: [
+      state _ 'Normal' .
+      tongue _ 0 .
+    ] .
+  ] .

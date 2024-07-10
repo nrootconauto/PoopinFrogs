@@ -1805,7 +1805,7 @@ U0 Line3D(C3DWorld *w,CDC *dc,CD3 *st,CD3 *en) {
   CD3 res,res2;
   PointToScrn(w,st->x,st->y,st->z,&res);
   PointToScrn(w,en->x,en->y,en->z,&res2);
-  GrLine3(dc,res.x,res.y,res.z*0,res2.x,res2.y,res2.z*0);
+  GrLine3(dc,res.x,res.y,res.z,res2.x,res2.y,res2.z);
 }
 
 U0 DrawFrogTongue(C3DWorld *w,CFrogTongue *t) {
@@ -1826,6 +1826,30 @@ U0 DrawFrogTongue(C3DWorld *w,CFrogTongue *t) {
     dc->color=LTRED;
     dc->thick=4;   
     Line3D(w,dc,&stp,&enp);
+  }
+}
+
+U0 DrawDogTongue(C3DWorld *w,CDogTongue *t) {
+  if(!ThingHasClass(t,"CDogTongue"))
+    return;
+  if(!ThingHasClass(t->from,"C3DThing"))
+    return;
+  CD3 stp,enp;
+  CDC *dc=w->to_dc;
+  F64 stz,enz;
+  stp.x=t->x;
+  stp.y=t->y;
+  stp.z=t->z;
+  enp.x=t->from->x;
+  enp.y=t->from->y;
+  enp.z=t->from->z+.8;
+  if(ClipLineToCamera(w,&stp,&enp)){
+    dc->color=RED;
+    dc->thick=16;   
+    Line3D(w,dc,&stp,&enp);
+    dc->color=LTRED;
+    dc->thick=24;
+    GrPlot3(dc,enp.x,enp.y,enp.z);
   }
 }
 
@@ -2016,6 +2040,9 @@ skip2:;
     }
   }
 fin:
+  if(ThingHasClass(thing,"CPorky")) {
+    DrawDogTongue(w,thing(CPorky*)->tongue);
+  }
   if(ThingHasClass(thing,"CFrogNPC")) {
     DrawFrogTongue(w,thing(CFrogNPC*)->tongue);
   }

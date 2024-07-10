@@ -12,7 +12,11 @@ update ->CFrogNum |
   dist2=CFrogNum
   angle=CFrogNum
  |
-  t _ ((CFrogTime now asSeconds - start_tS)   )  * 2 .
+  going_back ifTrue: [
+    t _ ((CFrogTime now asSeconds - start_tS)   )  * speed + (3.14 / 2 ) .
+  ] ifFalse: [
+    t _ ((CFrogTime now asSeconds - start_tS)   )  * speed .
+  ] .
   t > 3.14 ifTrue: [
     ^ 0 
   ] .
@@ -30,28 +34,43 @@ update ->CFrogNum |
 
   z _ lerp value: from ->z + .5  value: target_z .
   h _ #world tileHeightAtX: x / 128 atY: y / 128 .
-  h >= z ifTrue: [
+  (h >= z and: going_back not) ifTrue: [
+     start_tS _ CFrogTime now asSeconds .
+     going_back _ 1 .
+     target_x _ x .
+     target_y _ y .
+     target_z _ z .
      ^ 0 .
   ] .
+
   things _ #world thingsInDist: dist atAngle: ((x - fx) arg: (y - fy)) fromThing: from .
 
   'check if our angle with with 5 degrees of poo poo'.
 
   things do: [:t=C3DThing | 
-    t ~= from ifTrue: [
+    (t ~= from and: (hit has: t) not ) ifTrue: [
       angle _ (t angleBetween: from ) .
       angle < (3.14 / 180 * 15) ifTrue: [
         dist2 _ ((t ->x - fx) squared + (t ->y - fy) squared ) sqrt .
         dist > dist2 ifTrue:[
+          hit add: t .
+          going_back ifFalse: [
+            going_back _ 1 .
+            target_x _ t->x .
+            target_y _ t->y .
+            target_z _ z .
+            start_tS _ CFrogTime now asSeconds .
+          ] .
+          angle _ x -  t->x arg: y - t->y .
           r _ CFrogRandom new .
-          t damage: 5 + (r next * 16 ) .
-          t addMomX: (r next * 32)  * (angle cos negated). 
-          t addMomY: (r next * 32)  * (angle sin negated). 
-          t addMomZ: r next * 1 . 
+          t damage: 20 + (r next * 7 ) .
+          t addMomX: (r next * 64)  * angle cos. 
+          t addMomY: (r next * 64)  * angle sin. 
+          t addMomZ: r next * .3 + .5 . 
           ^0
         ] .
       ]
     ]
   ] .
 
-1  ^ 1
+  ^ 1

@@ -29,26 +29,27 @@ update ->* |
   ].
 
   (tongue hasClass: CFrogTongue) ifTrue: [
-    tongue update ifFalse: [      
+    tongue update ifFalse: [
       tongue _ 0 
     ]
     ^ 1 
+  ]  ifFalse: [
+    state = 'Angry' ifTrue: [
+      'Try to eat the player' .
+      speed _ 64 / 30 * 3.5 .
+      (random_generator next  < ( 2 / 10 ) and: (self canSeeThing: target)) ifTrue: [
+        tongue _ CFrogTongue new .
+        'eat 'show .
+        tongue eatTarget: target fromFrog: self .
+        'Populate with values' .
+        animation_start_tS _ CFrogTime now asSeconds .
+        animation_no_repeat _ 1 .
+        template _ #world getThingTemplate: 'CFrogNPC/TONGUE' .
+        tongue update.
+        ^ 1 
+      ]
+    ].
   ] .
-
-  state = 'Angry' ifTrue: [
-    'Try to eat the player' .
-    speed _ 64 / 30 * 3.5 .
-    random_generator next < ( 2 / 10 ) ifTrue: [
-      tongue _ CFrogTongue new .
-      tongue eatTarget: target fromFrog: self .
-      'Populate with values' .
-      animation_start_tS _ CFrogTime now asSeconds .
-      animation_no_repeat _ 1 .
-      template _ #world getThingTemplate: 'CFrogNPC/TONGUE' .
-      tongue update.
-      ^ 1 
-    ]
-  ].
 
   state = 'Normal' ifTrue: [
      speed _ 64 / 30  * 2 . 

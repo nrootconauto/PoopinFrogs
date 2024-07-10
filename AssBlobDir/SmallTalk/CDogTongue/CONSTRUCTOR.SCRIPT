@@ -1,0 +1,4 @@
+init | |
+  speed _ 3 .
+  going_back _ 0 .
+ ^ self

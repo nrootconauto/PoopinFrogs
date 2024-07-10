@@ -1,0 +1,8 @@
+animate ->* |
+|
+  (tongue hasClass: CDogTongue) ifTrue: [
+    tongue update ifFalse: [
+      tongue _ 0 .
+      state _ 'Normal' .
+    ].
+  ] .

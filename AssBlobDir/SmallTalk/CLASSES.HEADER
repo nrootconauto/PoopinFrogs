@@ -284,7 +284,7 @@ class CElizaReasm:CFrogThing {
   CFrogStr *goto_text;
   CFrogArray *parts;
 
-//Used for not repeating responses(See CPlayer.quest_seen_responses)
+//Used for not repeating responses(See CPlayer.quest_seen_responses)
   CFrogStr *global_response_name;
 
   CFrogStr *first_result;
@@ -348,11 +348,16 @@ class CShootgunPickup:CPickup {
 
 class CFrogTongue:CFrogThing {
   C3DThing *from no_serialize 1;
-  F64 start_tS;
+  F64 start_tS,speed;
   F64 x,y,z;
   F64 target_x,target_y,target_z;
+//if going_back is set,target_x/y/z is the hit location
+  I64 going_back;
+  CFrogArray *hit no_serialize 1;
 };
 
+class CDogTongue:CFrogTongue {
+};
 
 class CGun1:CHandItem {
 };
@@ -362,7 +367,7 @@ class CTalker:CHandItem {
   C3DThing *talking_to;
 };
 class CFrogNPC:C3DThing {
-  CFrogRandom *random_generator no_serialize 1;
+  CFrogRandom *random_generator;
   F64 speed;
   CFrogTongue *tongue;
 //Who are we chasing/attacking
@@ -373,6 +378,16 @@ class CFrogNPC:C3DThing {
   F64 state_duration;
   I64 just_jumped;
   CFrogStr *state;
+};
+class CPorky:C3DThing {
+  CFrogRandom *random_generator;
+  F64 state_start_tS;
+  F64 state_duration;
+  I64 just_jumped;
+  CFrogStr *state;
+  C3DThing *target no_serialize 1;
+  CFrogTongue *tongue;
+  I64 licked;
 };
 class CPooka:C3DThing {
 };

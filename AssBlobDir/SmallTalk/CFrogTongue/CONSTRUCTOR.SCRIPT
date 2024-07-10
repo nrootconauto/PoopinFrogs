@@ -1,2 +1,3 @@
 init | |
+  speed _ 2 .
  ^ self
