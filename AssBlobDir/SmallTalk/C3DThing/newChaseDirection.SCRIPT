@@ -5,19 +5,23 @@ newChaseDirection: dist=CFrogNum withTarget: target=C3DThing ->CFrogNum
   hit_wall=CFrogNum
   omx2=CFrogNum
   omy2=CFrogNum
+  in_rad=CFrogArray
 |
+  rand _ CFrogRandom new .
   omx2 _ momx2 .
   omy2 _ momy2 .
   angle _ self pathFinderAngleTowardsThing: target withJump: 2.1 .
-  (rand next < .5  and: (target hasClass: C3DThing )) ifTrue: [
-    hit_wall _ self move: dist * 3.5 atAngle: angle .
+  (target hasClass: C3DThing ) ifTrue: [
+    hit_wall _ self move: dist  atAngle: angle .
     ((self moveGoesOverEdge: dist atAngle: angle) not and: hit_wall not) ifTrue: [
       momx2 _ omx2 .
       momy2 _ omy2 .
       ^ angle .
     ] .
   ] .
-  'self newDirection: dist' .
+  momx2 _ omx2 .
+  momy2 _ omy2 .
+  self newDirection: dist .
   momx2 _ omx2 .
   momy2 _ omy2 .
   ^ angle .

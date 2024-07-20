@@ -838,6 +838,7 @@ Bool AdjustRadiusThing(C3DWorld *w,C3DThing *self,C3DThing *other,F64 angle) {
 again:
   dist=Sqrt(Sqr(other->x-self->x)+Sqr(other->y-self->y));
   if(dist<or+sr) {
+    ret=TRUE;
     push_back=(sr+or-dist)*.1*1.4;
     C3DWorldMoveWithCollision(w,angle+pi,push_back,
 	&self->x,
@@ -925,7 +926,8 @@ explode:
     set=in_radius->items;
     for(idx=0;idx!=set->cnt;idx++) {
       if(set->body[idx]!=t)
-        AdjustRadiusThing(w,t,set->body[idx],angle);
+        if(AdjustRadiusThing(w,t,set->body[idx],angle))
+	  t->hit_thing=TRUE;
     }  
   }
   CallScript("updateThingPos:",wm,FrogIncRefCnt(t));

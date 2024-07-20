@@ -117,7 +117,7 @@ class CUILabel:CUIElem {
   I64 color;
   CFrogStr *label;
 };
-class CUIButton:CUIElem {
+class CUIButton:CUIElem {
   U8 *draw_it dft "UIButtonDraw";
   U8 *constructor dft "UIButtonInit";  
   I64 fg_color;
@@ -203,7 +203,8 @@ class C3DThing:CFrogThing {
   CFrogStr *chat_bot_name;
   Bool no_fall_off_edge;
   Bool floating;
-};
+  Bool hit_thing; //Set by physics when we hit a thing
+};
 class C3DWorldManager:CFrogThing {
   U8 *world_handle;
   CFrogArray *things recur_serialize 1;

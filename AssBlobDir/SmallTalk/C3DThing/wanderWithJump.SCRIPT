@@ -8,6 +8,11 @@ wander: dist=CFrogNum
   momx2 _ 0 .
   momy2 _ 0 .
   rand _ CFrogRandom new .
+  hit_thing ifTrue: [
+    hit_thing _ 0 .
+    self newDirection: dist .
+    ^ (self move: dist atAngle: angle ) not.
+  ].
   (self moveGoesOverEdge: dist atAngle: angle) not ifTrue: [
     hit_wall _ self move: dist atAngle: angle .
     (hit_wall and: self isOnGround ) ifTrue: [

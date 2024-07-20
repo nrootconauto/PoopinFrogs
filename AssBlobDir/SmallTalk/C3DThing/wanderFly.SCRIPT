@@ -6,6 +6,11 @@ wanderFly: speed=CFrogNum withTarget: target=C3DThing ->* |
 |
   momx2 _ 0 .
   momy2 _ 0 .
+  hit_thing ifTrue: [
+    self newDirection: speed . 
+    hit_thing _ 0 .
+    ^ 1 .
+  ] .
   self newChaseDirection: speed withTarget: target .
   momz _ (( 1.5 + target->z) -z) * .1 .
 'Dont go too fast up or down'.

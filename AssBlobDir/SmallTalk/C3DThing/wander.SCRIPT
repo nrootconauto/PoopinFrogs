@@ -4,7 +4,7 @@ wander:speed=CFrogNum ->*
 |
   momx2 _ 0 .
   momy2 _ 0 .
-  (self move: speed atAngle: angle) ifTrue: [
+  ((self move: speed atAngle: angle) or: hit_thing) ifTrue: [
     'Hit wall' .
     self newDirection: speed .
     self move: speed atAngle: angle .
@@ -14,3 +14,4 @@ wander:speed=CFrogNum ->*
       self newDirection: speed .     
     ] .
   ] .
+  hit_thing _ 0 .
