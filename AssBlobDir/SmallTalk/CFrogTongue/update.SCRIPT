@@ -43,16 +43,15 @@ update ->CFrogNum |
      ^ 0 .
   ] .
 
-  things _ #world thingsInDist: dist atAngle: ((x - fx) arg: (y - fy)) fromThing: from .
+  things _ #world thingsInDist: dist + 32 atAngle: ((x - fx) arg: (y - fy)) fromThing: from .
 
   'check if our angle with with 5 degrees of poo poo'.
-
   things do: [:t=C3DThing | 
     (t ~= from and: (hit has: t) not ) ifTrue: [
       angle _ (t angleBetween: from ) .
       angle < (3.14 / 180 * 15) ifTrue: [
         dist2 _ ((t ->x - fx) squared + (t ->y - fy) squared ) sqrt .
-        dist > dist2 ifTrue:[
+        (dist + 32) > dist2 ifTrue:[
           hit add: t .
           going_back ifFalse: [
             going_back _ 1 .

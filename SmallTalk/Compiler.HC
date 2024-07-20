@@ -483,37 +483,44 @@ Bool IsF64ExprNode(CLocals *l,CAST *ast) {
   switch(ast->type) {
     case AST_NUM:
       return ast->is_f64=TRUE;
-   case AST_VAR:
+    case AST_VAR:
       if(STIsRawMember(l,ast->name)) {
-	return ast->is_f64=TRUE;
+        return ast->is_f64=TRUE;
       }
       return FALSE;
-   case AST_MEMBER:
+    case AST_MEMBER:
       a=ast->args.next;
       if(a->type==AST_VAR&&StrLen(a->var_class_name)) {
-	if(RawAccessType(a->var_class_name,ast->name))
+        if(RawAccessType(a->var_class_name,ast->name))
 	  return ast->is_f64=TRUE;
       }
       return FALSE;
-   case AST_UNOP:
-     a=ast->args.next;
-     if(IsF64ExprNode(l,a)) {
-       return ast->is_f64=ToBool(ClassHasMethod("CFrogNum",ast->op_name));
+    case AST_UNOP:
+      a=ast->args.next;
+      if(IsF64ExprNode(l,a)) {
+        if(ToBool(ClassHasMethod("CFrogNum",ast->op_name)))
+	  if(cn=MethodReturnClass("CFrogNum",ast->op_name)) {
+	    return ast->is_f64=!StrCmp(cn,"CFrogNum");
+          }
       }
-     return FALSE;
-   case AST_BINOP:
-     a=ast->args.next;
-     b=ast->args.last;
-     if(IsF64ExprNode(l,a)&&IsF64ExprNode(l,b)) {
-       return ast->is_f64=ToBool(ClassHasMethod("CFrogNum",ast->op_name));
-     }
-     return FALSE;
-   case AST_KEYWORD:
-     a=&ast->args;
-     for(b=a->next;a!=b;b=b->next) {
-       if(!IsF64ExprNode(l,b)) return FALSE;
-     }
-     return ast->is_f64=ToBool(ClassHasMethod("CFrogNum",ast->op_name));
+      return FALSE;
+    case AST_BINOP:
+      a=ast->args.next;
+      b=ast->args.last;
+      if(IsF64ExprNode(l,a)&&IsF64ExprNode(l,b)) {
+        if(ToBool(ClassHasMethod("CFrogNum",ast->op_name)))
+	  if(cn=MethodReturnClass("CFrogNum",ast->op_name))
+	    return ast->is_f64=!StrCmp(cn,"CFrogNum");
+      }
+      return FALSE;
+    case AST_KEYWORD:
+      a=&ast->args;
+      for(b=a->next;a!=b;b=b->next) {
+        if(!IsF64ExprNode(l,b)) return FALSE;
+      }
+      if(ToBool(ClassHasMethod("CFrogNum",ast->op_name)))
+        if(cn=MethodReturnClass("CFrogNum",ast->op_name))
+	  return ast->is_f64=!StrCmp(cn,"CFrogNum");
   }
   return FALSE;
 }
@@ -787,19 +794,21 @@ pass:
 
         cur=ast->args.next;
 
-        if(!has_non_f64) {
-	  for(idx=0;idx<cnt+1;idx++) { //+1 includes self
-	    if(!IsF64ExprNode(locals,cur)) {
-	      cur->type=AST_STACK_TEMPORARY;
-	      cur->stk_idx=stack_depth+idx;
-	      cur->is_f64=TRUE;
+        if(raw_class_name=MethodReturnClass("CFrogNum",ast->op_name))
+	  if(!StrCmp(raw_class_name,"CFrogName"))
+	    if(!has_non_f64) {
+	      for(idx=0;idx<cnt+1;idx++) { //+1 includes self
+	        if(!IsF64ExprNode(locals,cur)) {
+		  cur->type=AST_STACK_TEMPORARY;
+		  cur->stk_idx=stack_depth+idx;
+		  cur->is_f64=TRUE;
+	        }
+	        cur=cur->next;
+	      }
+	      wants_end_paren=TRUE;
+	      DocPrint(doc,"%s=FrogNumNew(",StackFrame2Var(stack_depth));
+	      goto force_f64;
 	    }
-	    cur=cur->next;
-	  }
-	  wants_end_paren=TRUE;
-	  DocPrint(doc,"%s=FrogNumNew(",StackFrame2Var(stack_depth));
-	  goto force_f64;
-        }
 
         for(idx=0;idx<cnt+1;idx++) { //+1 includes self
 	  if(IsF64ExprNode(locals,cur)) {

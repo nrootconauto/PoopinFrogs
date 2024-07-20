@@ -1,3 +1,5 @@
 init | |
   speed _ 2 .
+  hit _ #() .
+  going_back _ 0 .
  ^ self

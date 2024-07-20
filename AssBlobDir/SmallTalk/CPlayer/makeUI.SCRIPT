@@ -1,4 +1,12 @@
-makeUI ->* | w=CFrogNum h=CFrogNum label*|
+makeUI ->*
+|
+  w=CFrogNum
+  h=CFrogNum
+  label*
+  make_save_game_menu=CFrogBlock
+  button=CUIButton
+  load_game=C3DWorldManager
+|
   w _ 640 .
   h _ 480 - 16 .
   #ui_root _ CUIElem new .
@@ -10,7 +18,20 @@ makeUI ->* | w=CFrogNum h=CFrogNum label*|
   open_inventory_button setBackgroundColor: #color_YELLOW .
   open_inventory_button setHeight: 10 ; setLabel: label .
   open_inventory_button setY: 10 ; setX : ( w / 2 ).
- 
+
+  load_game_button _ CUIButton new .
+  label _ 'Load Game' .
+  load_game_button setBackgroundColor: #color_YELLOW .
+  load_game_button setHeight: 10 ; setLabel: label .
+  load_game_button setY: 10 ; setX : ( w / 3 ).
+
+  save_game_button _ CUIButton new .
+  label _ 'Save Game' .
+  save_game_button setBackgroundColor: #color_YELLOW .
+  save_game_button setHeight: 10 ; setLabel: label .
+  save_game_button setY: 10 ; setX : ( w * (2 /3) ).
+
+
   main_inventory _ CUIGrid new .
   main_inventory setWidth: 10 withHeight: 6 .
   main_inventory setX: (w / 2) - ( main_inventory getWidth / 2 ) .
@@ -54,8 +75,89 @@ makeUI ->* | w=CFrogNum h=CFrogNum label*|
   #ui_root addChild: quick_inventory .
   #ui_root addChild: health_meter .
   #ui_root addChild: ammo_meter .
+  #ui_root addChild: load_game_button .
+  #ui_root addChild: save_game_button .
+  #ui_root addChild: ammo_meter .
  
   main_inventory_active _ 0 .
+
+  make_save_game_menu _ [:is_load_game=CFrogNum|
+    save_load_menu _ CUIBackground new .
+    save_load_menu->bg_color _ #color_DKGRAY .
+    save_load_menu->sz_x _ w / 2.5 .
+    save_load_menu->sz_y _ 300 .
+    save_load_menu->y _ 25 .
+    save_load_menu->x _  320 - (save_load_menu->sz_x / 2 ) .
+    
+    label _ CUILabel new .
+    label->color _ #color_LTCYAN .
+    label->y _ 4 .
+    label->x _ save_load_menu->sz_x / 2 .
+    save_load_menu addChild: label .
+
+    is_load_game ifTrue: [
+      label setLabel: 'Load Game' .
+    ] ifFalse: [
+      label setLabel: 'Save the Fucking Game' .
+    ] .
+
+    'TODO test is available' show.
+    0 to: 10 do: [:slot=CFrogNum |
+      button _ CUIButton new .
+      button->bg_color _ #color_YELLOW .
+      button->fg_color _ #color_BLACK .
+      button->label _ 'Slot ' , slot printString .
+      button->sz_x _ save_load_menu->sz_x  - 32 .
+      button->sz_y _ 10 .
+      button->x _ 16 .
+      button->y _ 12 + (10 * slot ) .
+      button onLeftClick: [:s=CUIButton|
+'ilg' show .
+is_load_game show .
+        is_load_game ifTrue: [
+'ilg2' show .
+s->label show .
+          load_game _ s->label restoreThingFromSaveFile .
+          load_game show .
+          (load_game hasClass: C3DWorldManager) ifTrue: [
+'poop show' show . 
+            #world _ load_game .
+          ] .
+        ] ifFalse: [
+          s->label show .
+          #world saveThingToSaveFile: s->label .
+        ] .
+      ].
+      save_load_menu addChild: button .
+    ] .
+
+    #ui_root addChild: save_load_menu .
+  ] .
+
+  'Save Load menu' .
+  load_game_button onLeftClick: [
+    load_menu_active _ load_menu_active not .
+    load_menu_active ifTrue: [
+      load_game_button setBackgroundColor: #color_RED .
+      make_save_game_menu value: 1 .
+    ] ifFalse: [
+      load_game_button setBackgroundColor: #color_YELLOW .
+      #ui_root removeChild: save_load_menu .
+      save_load_menu _ 0 .
+    ] . 
+  ] .
+
+  save_game_button onLeftClick: [
+    load_menu_active _ load_menu_active not .
+    load_menu_active ifTrue: [
+      save_game_button setBackgroundColor: #color_RED .
+      make_save_game_menu value: 0 .
+    ] ifFalse: [
+      save_game_button setBackgroundColor: #color_YELLOW .
+      #ui_root removeChild: save_load_menu .
+      save_load_menu _ 0 .
+    ] . 
+  ] .
 
   'Open/Close big inventroy' .
   

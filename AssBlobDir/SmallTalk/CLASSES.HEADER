@@ -117,7 +117,7 @@ class CUILabel:CUIElem {
   I64 color;
   CFrogStr *label;
 };
-class CUIButton:CUIElem {
+class CUIButton:CUIElem {
   U8 *draw_it dft "UIButtonDraw";
   U8 *constructor dft "UIButtonInit";  
   I64 fg_color;
@@ -353,7 +353,7 @@ class CFrogTongue:CFrogThing {
   F64 target_x,target_y,target_z;
 //if going_back is set,target_x/y/z is the hit location
   I64 going_back;
-  CFrogArray *hit no_serialize 1;
+  CFrogArray *hit no_serialize 1;
 };
 
 class CDogTongue:CFrogTongue {
@@ -402,9 +402,16 @@ class CPlayer:C3DThing {
   CUIChatLog *chat_log no_serialize 1;
   CUITextBar *chat_log_input no_serialize 1;
   CUILabel *message no_serialize 1;
+  CUIBackground *save_load_menu no_serialize 1;
+  CUIButton *load_game_button no_serialize 1;
+  CUIButton *save_game_button no_serialize 1;
   F64 message_start_tS;
   I64 main_inventory_active;
   I64 chatting_active;
+  union {
+    I64 save_menu_active;
+    I64 load_menu_active;
+  };
   CPissStream *piss_stream recur_serialize 1;
   F64 last_x,last_y;
   CFrogArray *quest_flags recur_serialize 1;

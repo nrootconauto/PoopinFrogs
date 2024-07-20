@@ -134,20 +134,47 @@ nil:
   } 
 }
 CFrogStr *SaveThing(CFrogThing *t,...) {
-  CDoc *doc=DocNew("/STDebug.DD");
+  CDoc *doc=DocNew();
   doc->flags|=DOCF_NO_CURSOR;
   U8 *as_txt;
   SaveDefacto0(doc,"",t);
-  DocWrite(doc); //For debugging purposes
   as_txt=DocSave(doc);
   t=FrogStrNew(as_txt);
   Free(as_txt);
   DocDel(doc);
   return t;
 }
+CFrogStr *SaveThingToSaveFile(CFrogThing *t,...) {
+  U8 *name=AsString(argv[0]);
+  if(!name) return FROG_SMALL_NIL;
+  U8 *in_dir=MStrPrint("/FrogSaves/%s.DD",name);
+  if(!FileFind("/FrogSaves")) DirMk("/FrogSaves");
+  CDoc *doc=DocNew(in_dir);
+  Free(in_dir);
+  doc->flags|=DOCF_NO_CURSOR;
+  SaveDefacto0(doc,"",t);
+  DocWrite(doc);
+  DocDel(doc);
+  Free(name);
+  return FROG_SMALL_NIL;
+}
+CFrogThing *RestoreThingFromSaveFile(CFrogStr *t,...) {
+  U8 *name=AsString(t);
+  if(!name) return FROG_SMALL_NIL;
+  CFrogThing *ret=FROG_SMALL_NIL;
+  U8 *in_dir=MStrPrint("/FrogSaves/%s.DD",name),*data,*d2;
+  data=FileRead(in_dir);
+  Free(name);
+  Free(in_dir);
+  if(data) {
+    d2=data;
+    ret=LoadThing0(&d2);
+  }
+  Free(data);
+  return ret;
+}
+AddMethod("CFrogThing","saveThingToSaveFile:",&SaveThingToSaveFile);
+AddMethod("CFrogStr","restoreThingFromSaveFile",&RestoreThingFromSaveFile);
 AddMethod("CFrogThing","saveThing",&SaveThing);
 AddMethod("CFrogThing","basicSaveThing",&SaveThing);
 AddMethod("CFrogStr","restoreThing",&RestoreThing);
-//STRunStmt("#a _ #(0 1 2 3 'abdef' ) saveThing. #a show . #a restoreThing printString show . ");
-//STRunStmt("#r _ CRocket new . #r->x _ 100 . #r->name _ 'Rocket'. #a _ #( #r #r 1 2 3 #r)  saveThing. #a show . #r _ #a restoreThing. #r printString show  . ");
-

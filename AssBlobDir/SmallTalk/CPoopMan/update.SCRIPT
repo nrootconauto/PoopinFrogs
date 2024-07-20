@@ -31,7 +31,7 @@ update->* |
   ] .
 
   state = 'Normal' ifTrue: [
-    speed _ 64 / 30 * 3.4 .
+    speed _ 70 / 10 *  3.4 .
     template _ w getThingTemplate: 'CPoopMan' .
     animation_no_repeat _ 0 .
     old_x _ x .

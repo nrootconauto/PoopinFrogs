@@ -359,7 +359,7 @@ U0 UIElemInit(CUIElem *log)  {
 }
 U0 UIBackgroundDraw(CDC *dc,I64 xoff,I64 yoff,CUIBackground *bg) {
   dc->color=bg->bg_color;
-  GrRect(dc,xoff,xoff,bg->sz_x,bg->sz_y);
+  GrRect(dc,xoff,yoff,bg->sz_x,bg->sz_y);
 }
 
 //

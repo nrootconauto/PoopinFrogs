@@ -4,7 +4,12 @@ afterRestore->* |
   gy=CFrogNum
   col=CFrogArray
   old_doors=CFrogArray
+  old=C3DWorldManager
 |
+  old _ #world .
+  thing_templates _ old->thing_templates .
+  tile_templates _ old->tile_templates .
+
   'Re-initialize the grid'. 
   gx _ (self width + 15 ) / 16 .
   gy _ (self height + 15 ) / 16 .

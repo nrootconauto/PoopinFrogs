@@ -3,6 +3,7 @@
 #include "SmallTalk/Load.HC"
 #include "Intersect.HC"
 #include "QuestEditor.HC";
+#include "PathFinder.HC";
 #define TEST_3D
 #ifndef ENGINE_3D
 F64 Frog_tS() {
@@ -507,9 +508,9 @@ Bool HeightImpossible(C3DWorld *w,I64 ix,I64 iy,F64 above,Bool allow_ceil,F64 ta
 	return TRUE;
       c=w->ceilmap[idx];
       if(c!=I8_MAX)
-        if(c<above<c+w->ceilmap2[idx]) {
+//Check if ranges overlap
+        if(Max(c,above)<=Min(above+tallness,c+w->ceilmap2[idx]))
 	  return TRUE;
-      }
     }
   return FALSE;
 }
@@ -645,6 +646,28 @@ C3DThing *BumpsIntoThing(C3DThing *self,...) {
   return FrogNumNew(0);
 } 
 AddMethod("C3DThing","hitsThing:",&BumpsIntoThing);
+I64 WorldPlatformHeight(I64 x,I64 y) {
+  I64 t=y*w->world_width+x;
+  if(0<=t<w->world_width*w->world_height) {
+    return w->heightmap[t];
+  }
+  return I32_MAX;
+}
+CFrogNum *C3DThingPathFindWalkTowardsThing(C3DThing *self,...) {
+  C3DThing *thing=argv[0];
+  CPFPoint pt;
+  if(!ThingHasClass(thing,"C3DThing")) return FROG_SMALL_NIL;
+  CI64Set *path=PathFinder(self->x/128,self->y/128,thing->x/128,thing->y/128,&WorldPlatformHeight,AsF64(argv[1]));
+  if(path->cnt<2) {
+    I64SetDel(path);
+    return FrogNumNew(Arg(thing->x-self->x,thing->y-self->y));
+  }
+//TODO account for large same direction
+  pt=path->body[1];
+  I64SetDel(path);
+  return FrogNumNew(Arg(pt.x+.5-self->x/128,pt.y+.5-self->y/128));
+}
+AddMethod("C3DThing","pathFinderAngleTowardsThing:withJump:",&C3DThingPathFindWalkTowardsThing);
 #define RADF_CEIL 1
 #define RADF_FLOOR 2
 #define RADF_DOOR 4
@@ -744,14 +767,15 @@ Bool C3DWorldMoveZWithCollision(C3DWorld *w,F64 dist,F64 x,F64 y,F64 *_height,F6
   F64 h_offset=0;
   F64 h;
   I64 cnt=0,tile,best,ch,cr;
+  F64 oz=z;
   z+=dist;
   tile=ToI64(x/GRID_SZ)+ToI64(y/GRID_SZ)*w->world_width;
   if(0<=tile<w->world_width*w->world_height) {
-    if(HeightImpossible(w,x/GRID_SZ,y/GRID_SZ,z,TRUE,.8,)) {
-      h=GetPlatformHeight(w,x/GRID_SZ,y/GRID_SZ);
-      ch=w->ceilmap[tile];
-      cr=w->ceilmap2[tile];
-     if(ch<=z) {
+    if(HeightImpossible(w,x/GRID_SZ,y/GRID_SZ,z,TRUE,tallness,)) {
+     h=GetPlatformHeight(w,x/GRID_SZ,y/GRID_SZ);
+     ch=w->ceilmap[tile];
+     cr=w->ceilmap2[tile];
+     if(ch<=oz) {
         o=z;
         z=Max(z,ch+cr);
         hit|=o!=z;
@@ -1335,7 +1359,7 @@ F64 ScreenCordsToDist(C3DWorld *w,I64 x,I64 y,F64 max=GRID_SZ*128,F64 *height=NU
 	      tile,
 	      TRUE, //Far side of tile
 	      TRUE //allow ceil
-	      );
+ 	      );
 	FindRayWall(w,
 	      tan_lookup_table[x],
 	      cos_lookup_table[x],
@@ -2622,7 +2646,6 @@ U0 DrawIt(CTask *t,CDC *dc) {
   GrBlot(dc,0,0,w->to_dc);
 }
 U0 WalkAround(U8 *save_string=NULL) {
-  Del("/STDebug.DD");
   I64 c,ch=0,sc=0,m1,m2,msg,jump=FALSE;
   I64 msx=GR_WIDTH/2,msy=GR_HEIGHT/2;
   F64 mouse_angle;
@@ -2632,19 +2655,6 @@ U0 WalkAround(U8 *save_string=NULL) {
   CShellCasing *shellc;
   C3DWorldManager *wm=man->value,*load_game;
   I64 every=0;
-  if(save_string) {
-     load_game=CallScript("restoreThing",FrogStrNew(save_string));
-     if(ThingHasClass(load_game,"C3DWorldManager")) {
-       man->value=load_game;
-///Insherit old dictionaries
-       load_game->thing_templates=wm->thing_templates;
-       load_game->tile_templates=wm->tile_templates;
-       wm=load_game;
-       w->_2d_things=wm->things->items;
-       w->_wall_stains=wm->wall_stains->items;
-       w->_floor_stains=wm->floor_stains->items;
-     }
-  }
   CPlayer *player=CallScript("getPlayer",man->value);
   CUIElem *ui_root=FrogSymbol("ui_root")->value;
   WinMax;
@@ -2658,6 +2668,14 @@ U0 WalkAround(U8 *save_string=NULL) {
   I64 idx;
   try while (cont) {
      every++;
+//In case the #world was changed(Loaded a saved game?)
+     wm=man->value;
+     player=CallScript("getPlayer",man->value);
+     ui_root=FrogSymbol("ui_root")->value;
+     w->_2d_things=wm->things->items;
+     w->_wall_stains=wm->wall_stains->items;
+     w->_floor_stains=wm->floor_stains->items;
+//
      if(every%3==0) QueCallScript("update",man->value);
      QueCallScript("handlePowerups",man->value);
      body=wm->doors->items->body;
