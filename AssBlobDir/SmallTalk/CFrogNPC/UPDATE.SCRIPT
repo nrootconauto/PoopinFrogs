@@ -75,7 +75,7 @@ update ->* |
   old_y _ y .
   old_z _ z .
 
-  self wander: speed withJumpVelocity: #world gravity * 3 withTarget: target .
+  self wander: speed withJumpVelocity: .6 withTarget: target .
 
   'Jump Randomly' .
 

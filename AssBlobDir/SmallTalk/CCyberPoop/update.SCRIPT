@@ -100,5 +100,5 @@ update ->*
       ^ 1 .
     ] .
   
-    self wander: 10 withJumpVelocity: .65 withTarget: target .
+    self wander: 10 withJumpVelocity: .60 withTarget: target .
   ] .

@@ -8,6 +8,7 @@ update->* |
   tS=CFrogNum 
   rocket=CPoopRocket
   dist=CFrogNum
+  pickup=CShitItemPickup
 |
   tS _ CFrogTime now asSeconds.
   momx2 _ 0 .
@@ -19,14 +20,19 @@ update->* |
       w sweepSoundForTime: 500 withMin: 50 withMax: 30 .
       momx2 _ 0 .
       momy2 _ 0 .
-      template _ w getThingTemplate: 'CPoopMan/Dead' .
+      pickup _ CShitItemPickup new .
+      pickup -> x _ x .
+      pickup -> y _ y .
+      pickup -> z _ z .
+      pickup -> template _ w getThingTemplate: 'CPoopMan/Dead' .
       state _ 'Dead' .
-      animation_no_repeat _ 1 .
-      animation_start_tS _ tS .
+      pickup -> animation_no_repeat _ 1 .
+      pickup -> animation_start_tS _ tS .
     ]
   ] .
 
   state = 'Dead' ifTrue: [
+    w removeThing: self .
     ^ 1
   ] .
 
@@ -54,7 +60,7 @@ update->* |
 
     'Only walk around if target is defined'.
     (target hasClass:C3DThing) ifTrue: [
-      self wander: speed withJumpVelocity: .75 withTarget: target .
+      self wander: speed withJumpVelocity: .55 withTarget: target .
       (random_generator next < ( .3 / 10 ) and: (self canSeeThing: target)) ifTrue: [
         state _ 'Throw' .
         template _ w getThingTemplate: 'CPoopMan/Throw' .

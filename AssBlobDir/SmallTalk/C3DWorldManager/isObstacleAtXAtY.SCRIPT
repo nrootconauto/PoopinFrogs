@@ -1,0 +1,26 @@
+isObstacleForThing: thing=C3DThing atX: x=CFrogNum atY: y=CFrogNum
+  withRadius: r=CFrogNum
+  ->CFrogNum
+|
+  tt=C3DThing
+|
+  x _ (x / 128) floor .
+  y _ (y / 128) floor .
+  r _ r * r.
+  -1 to: 2 do:[:xo=CFrogNum|
+    -1 to: 2 do:[:yo=CFrogNum|
+      ((grid at: x + xo ) at: y + yo) do:[:t*|
+        (t ~= thing) ifTrue: [
+          (t hasClass: C3DThing) ifTrue:[
+            tt _ t .
+            ((x * 128 - tt->x) squared + (y * 128 - tt->y) squared ) < r ifTrue: [
+              tt->health > 0. ifTrue: [
+                ^ 1 .
+              ] .
+            ].
+          ].
+        ]
+      ].
+    ] .
+  ] .
+  ^ 0 .

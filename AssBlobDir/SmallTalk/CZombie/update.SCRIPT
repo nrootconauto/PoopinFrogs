@@ -101,7 +101,7 @@ update -> * |
   template _ #world getThingTemplate: 'CZombie' .
   animation_no_repeat _ 0 .
 
-  self wander: speed withJumpVelocity: .65 withTarget: target .
+  self wander: speed withJumpVelocity: .55 withTarget: target .
 
   'Jump Randomly' .
 

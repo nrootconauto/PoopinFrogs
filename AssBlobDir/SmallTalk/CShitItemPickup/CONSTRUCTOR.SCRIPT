@@ -1,0 +1,9 @@
+init | |
+  count _ 5  .
+  #world addThing: self .
+  item_class _ CShitItem .
+'Use Dead CPoopMan as template'.
+  animation_no_repeat _ 1 .
+  animation_start_tS _ CFrogTime now asSeconds  .
+  template _ #world getThingTemplate: 'CPoopMan' .
+  ^ self

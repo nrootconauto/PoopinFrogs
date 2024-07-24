@@ -45,7 +45,7 @@ update ->*
     'Only walk around if target is defined'.
     (target hasClass: C3DThing) ifTrue: [
       dist _ ((target->x - x) squared + (target->y - y) squared ) sqrt .
-      self wander: 16. withJumpVelocity: .75 withTarget: target .
+      self wander: 16. withJumpVelocity: .60 withTarget: target .
       ((r < ( 2 / 10 ) and: (self canSeeThing: target)) 
         and: dist < (16 * 128) ) ifTrue: [
         licked _ 0 .

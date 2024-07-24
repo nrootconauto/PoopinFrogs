@@ -1,0 +1,55 @@
+fire ->CFrogNum |
+ cur_ts=CFrogNum
+ player=CPlayer
+ best=C3DThing 
+ canidates=CFrogArray 
+ sz=CFrogNum
+ hit=CFrogNum
+ dist=CFrogNum
+ best_dist=CFrogNum 
+ rocket=CRocket
+ angle=CFrogNum
+ targetz=CFrogNum
+ |
+  player _ #world getPlayer .
+  ammo >= 1 ifTrue: [
+    cur_ts _ CFrogTime now asSeconds .
+    timeout < cur_ts ifTrue: [
+      anim_start_tS _ cur_ts .
+      timeout _ cur_ts + (.25 * 3.5) .
+      #world sweepSoundForTime: 300 withMin: 50 withMax: 30 .
+      self setGraphics: 'GR/ShitItem/Throw' .
+      ammo _ ammo - 1 max: 0 .
+      inventory_item setCount: ammo .
+      canidates _ #world thingsInDist: 128 * 64 atAngle: player getAngle fromThing: player .
+      hit _ 0 .
+      best_dist _ 16000 .
+      canidates do: [:t=C3DThing |
+        (player ~= t and: t ->health > 0. ) ifTrue: [
+          dist _ (t ->x - player ->x ) squared + (t ->y - player ->y ) squared .
+          dist < best_dist ifTrue: [
+            best_dist _ dist .
+            best _ t          
+          ]
+        ]
+      ] .
+      rocket _ CPoopRocket new .
+      (best hasClass: C3DThing ) ifTrue: [
+        angle _ best ->x - player ->x arg: best ->y - player ->y .
+        targetz _ best ->z + .5 .
+      ] ifFalse: [
+        angle _ player getAngle  .
+        targetz _ player ->z + .5 .
+      ] .
+      rocket ->from _  player .
+      rocket ->x _ player ->x + (32* angle cos).
+      rocket ->y _ player ->y + (32* angle sin).
+      rocket ->z _  player ->z + .5  .
+      rocket ->angle _ angle .
+      rocket addMomX: 75 * angle cos .
+      rocket addMomY: 75 * angle sin .
+      rocket addMomZ: (targetz  - rocket ->z ) / best_dist sqrt .
+    ] .
+  ] .
+
+  ^ 1 .

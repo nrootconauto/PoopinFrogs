@@ -508,8 +508,8 @@ Bool HeightImpossible(C3DWorld *w,I64 ix,I64 iy,F64 above,Bool allow_ceil,F64 ta
 	return TRUE;
       c=w->ceilmap[idx];
       if(c!=I8_MAX)
-//Check if ranges overlap
-        if(Max(c,above)<=Min(above+tallness,c+w->ceilmap2[idx]))
+//Check if ranges overlap
+        if(Max(c,above)<Min(above+tallness,c+w->ceilmap2[idx]))
 	  return TRUE;
     }
   return FALSE;
