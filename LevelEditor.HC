@@ -749,7 +749,7 @@ U0 DrawSegmentThings(CTask *t,CDC *dc) {
     segment=segment->next;
   }
 }
-//https://stackoverflow.com/questions/40051279/affine-transform-given-4-points
+//https://stackoverflow.com/questions/40051279/affine-transform-given-4-points
 U0 Persp(F64 *matrix,F64 *x,F64 *y,Bool inverse=FALSE) {
   I64 idx;
   F64 x1=x[0];

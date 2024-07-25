@@ -37,10 +37,14 @@ CLumpHeader *BlobFileGetLumpInfo(CBlobFileHeader *hd,U8 *blob) {
 U8 *GetBlobFileData(U8 *filename,I64 *len=NULL) {
   CDirEntry de;
   U8 *data=NULL;
+//Dumb hack,seth_task(on differnt core) has different Fs->cur_dir so use the cached one.
+  if(Gs->num) goto force_cache;
+
   if(FileFind(filename,&de)) {
     if(blob_file_cache.filename&&de.datetime<=blob_file_cache.datetime) {
       if(!StrCmp(blob_file_cache.filename,de.full_name)) {
         Free(de.full_name);
+force_cache:;
 	if(len) *len=blob_file_cache.sz;
         return blob_file_cache.data;
       }
@@ -353,7 +357,14 @@ BlobFileDeleteLump("ASS2","abd");
 "%s\n",BlobFileSelect("ASS2");
 "%s\n",BlobFileGetLump("ASS2","abc");
 "%s\n",BlobFileGetLump("ASS2","ab/d");*/
-#ifdef DEVELOPMENT_MODE
+
+
+//
+//$BK,1$Cache the ass blob$BK,0$
+//
+GetBlobFileData("ASS.BLOB");
+
+#ifdef DEVELOPMENT_MODE
 Del("ASS.BLOB*");
 //DumpBlobFile("ASS.BLOB","AssBlobDir");
 UndumpBlobFile(#exe {StreamPrint("\"%Q\"",__DIR__);} "/ASS.BLOB",DEVELOPMENT_DIR);

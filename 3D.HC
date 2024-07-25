@@ -13,41 +13,62 @@ extern I64 *GetTilesInPath(U8 *w,F64 angle,F64 dist);
 #define ENGINE_3D 1
 #define SCRN_TURN_MARGIN 100
 #define SCRN_TURN_RATE (pi/30.)
-I64 cpu_job_cnts_lock=0;
-I64 cpu_job_cnts[mp_cnt];
-MemSetI64(cpu_job_cnts,0,mp_cnt);
+//This will delegate calls to other cores
 class CCSPair {
   U8 *name;
   CFrogThing *thing;
   CHashTable *ht;
 };
+I64 call_script_cnt=0;
+I64 call_script_lock=0;
 U0 JobCallScript(CCSPair *p) {
+  //Only 1 core running at a time
+  while(LBts(&call_script_lock,0))
+    Sleep(1);
   CHashTable *t=Fs->hash_table;
   Fs->hash_table=p->ht;
-  CallScript(p->name,p->thing);
+  try 
+    CallScript(p->name,p->thing);
+  catch
+    PutExcept(TRUE);
+  --call_script_cnt;
+  Free(p->name);
   Free(p);
-  while(LBts(&cpu_job_cnts_lock,Gs->num))
-    Yield;
-  cpu_job_cnts[Gs->num]--;
-  LBtr(&cpu_job_cnts_lock,Gs->num);
   Fs->hash_table=t;
+  LBtr(&call_script_lock,0);
 }
-U0 QueCallScript(U8 *name,CFrogThing *t) {
-  CallScript(name,t);
-}
-U0 WaitForJobsFinish() {
-  I64 c=mp_cnt-1;
-  while(c>=0) {
-    while(LBts(&cpu_job_cnts_lock,c)) {
-      Sleep(1);
+U0 CallScriptOnBestCore(U8 *name,CFrogThing *t) {
+  I64 who;
+  CCSPair *p=CAlloc(sizeof(CCSPair),frog_mem_task);
+  p->name=StrNew(name,frog_mem_task);
+  p->ht=Fs->hash_table;
+  p->thing=t;
+  CCPU *best=Gs;
+  for(who=0;who!=mp_cnt;who++) {
+    if(cpu_structs[who].idle_factor>best->idle_factor)
+      best=&cpu_structs[who];
     }
-    if(!cpu_job_cnts[c]) {
-      LBtr(&cpu_job_cnts_lock,c);
-      c--;
-    } else
-      LBtr(&cpu_job_cnts_lock,c);
+  while(LBts(&call_script_lock,0))
+    Sleep(1);
+  ++call_script_cnt;
+  LBtr(&call_script_lock,0);
+  if(best==Gs) {
+    JobCallScript(p);
+  } else  {
+    JobQue(&JobCallScript,p,best->num);
   }
 }
+U0 WaitForJobsFinish() {
+  Bool cont=TRUE;
+  while(cont) {
+    while(LBts(&call_script_lock,0))
+      Sleep(3);
+    if(call_script_cnt==0)
+      cont=FALSE;
+    LBtr(&call_script_lock,0);
+  }
+}
+
 //
 // From LevelEditor.HC
 //
@@ -508,7 +529,7 @@ Bool HeightImpossible(C3DWorld *w,I64 ix,I64 iy,F64 above,Bool allow_ceil,F64 ta
 	return TRUE;
       c=w->ceilmap[idx];
       if(c!=I8_MAX)
-//Check if ranges overlap
+//Check if ranges overlap
         if(Max(c,above)<Min(above+tallness,c+w->ceilmap2[idx]))
 	  return TRUE;
     }
@@ -2647,6 +2668,7 @@ U0 DrawIt(CTask *t,CDC *dc) {
   w->to_dc->flags|=DCF_NO_TRANSPARENTS;
   GrBlot(dc,0,0,w->to_dc);
 }
+
 U0 WalkAround(U8 *save_string=NULL) {
   I64 c,ch=0,sc=0,m1,m2,msg,jump=FALSE;
   I64 msx=GR_WIDTH/2,msy=GR_HEIGHT/2;
@@ -2669,36 +2691,41 @@ U0 WalkAround(U8 *save_string=NULL) {
   CFrogThing **body;
   I64 idx;
   try while (cont) {
-     every++;
+      every++;
 //In case the #world was changed(Loaded a saved game?)
-     wm=man->value;
-     player=CallScript("getPlayer",man->value);
-     ui_root=FrogSymbol("ui_root")->value;
-     w->_2d_things=wm->things->items;
-     w->_wall_stains=wm->wall_stains->items;
-     w->_floor_stains=wm->floor_stains->items;
+      wm=man->value;
+      player=CallScript("getPlayer",man->value);
+      ui_root=FrogSymbol("ui_root")->value;
+      w->_2d_things=wm->things->items;
+      w->_wall_stains=wm->wall_stains->items;
+      w->_floor_stains=wm->floor_stains->items;
 //
-     if(every%3==0) QueCallScript("update",man->value);
-     QueCallScript("handlePowerups",man->value);
-     body=wm->doors->items->body;
-     c=wm->doors->items->cnt;
-     for(idx=0;idx<c;idx++)
-       CallScript("update",body[idx]);
+      if(every%3==0) CallScriptOnBestCore("update",man->value);
+      body=wm->doors->items->body;
+      c=wm->doors->items->cnt;
+      for(idx=0;idx<c;idx++)
+        CallScriptOnBestCore("update",body[idx]);
 // Do physics after update
-     c=w->_2d_things->cnt;
-     body=w->_2d_things->body;
-     for(idx=0;idx<c;idx++) {
-       PhysicsOnThing(w,body[idx],wm);
-       if(body[idx]==player) {
+      c=w->_2d_things->cnt;
+      body=w->_2d_things->body;
+      for(idx=0;idx<c;idx++) {
+        CallScriptOnBestCore("animate",body[idx]);
+      }
+      WaitForJobsFinish;
+//Handle after we run everything else
+      CallScript("handlePowerups",man->value);
+      body=w->_2d_things->body;
+      for(idx=0;idx<c;idx++) {
+        PhysicsOnThing(w,body[idx],wm);
+        if(body[idx]==player) {
 	  player->momx2=0;
 	  player->momy2=0;
-       }
-       CallScript("animate",body[idx]);
-     }
+        }
+      }
 //if (ThingHasClass(player,"CPlayer")) {
       // set vars for multikey input
       while(msg=ScanMsg(&m1,&m2)) {        
-	if(ThingHasClass(ui_root,"CUIElem"))
+        if(ThingHasClass(ui_root,"CUIElem"))
 	  if(UpdateUI(ui_root,msg,m1,m2)) {
 //Dont move during UI
 	    up=FALSE;
@@ -2709,9 +2736,9 @@ U0 WalkAround(U8 *save_string=NULL) {
 	  }
         switch (msg) {
 	    break;case MSG_MS_L_DOWN:
-	      msx=m1,msy=m2;
+	    msx=m1,msy=m2;
 	    break;case MSG_MS_MOVE:
-	      msx=m1,msy=m2;
+	    msx=m1,msy=m2;
 	    break;case MSG_KEY_DOWN:
 	    ch=m1,sc=m2;
 	    if (!ch) switch (sc.u8[0]) {
@@ -2722,21 +2749,21 @@ U0 WalkAround(U8 *save_string=NULL) {
 	      } else switch (ToUpper(ch)) {
 	        case CH_ESC:
 	        case CH_SHIFT_ESC: {
-		  //No jumping out of try block
+//No jumping out of try block
 		  //goto en;
 		  cont=FALSE;
 		  break;
-		}
-		case ' ': jump=TRUE; break;
+	        }
+	        case ' ': jump=TRUE; break;
 	        case 'W': up=TRUE; break;
 	        case 'A': left=TRUE; break;
 	        case 'S': down=TRUE; break;
 	        case 'D': right=TRUE; break;
-		case '1' ... '9':
+	        case '1' ... '9':
 		  CallScript("selectQuickItemByNum:",player,FrogNumNew(ch-'1'));
 		  break;
 //On american keybaords,0 is the last key
-		case '0':
+	        case '0':
 		  CallScript("selectQuickItemByNum:",player,FrogNumNew(9));
 		  break;
 	      }
@@ -2760,26 +2787,26 @@ next:;
       }
       if(!player->main_inventory_active) {
         if (jump) {
-           QueCallScript("jump",player);
-           jump=FALSE;
+	  CallScript("jump",player);
+	  jump=FALSE;
         }
         if (up)
-          C3DThingMoveAtAngle(player,
-	      FrogNumNew(GRID_SZ/4),
-	      FrogNumNew(player->angle));
+	  C3DThingMoveAtAngle(player,
+	        FrogNumNew(GRID_SZ/4),
+	        FrogNumNew(player->angle));
         if (down)
-          C3DThingMoveAtAngle(player,
-	      FrogNumNew(-GRID_SZ/4),
-	      FrogNumNew(player->angle));
+	  C3DThingMoveAtAngle(player,
+	        FrogNumNew(-GRID_SZ/4),
+	        FrogNumNew(player->angle));
         if (left) {
-          C3DThingMoveAtAngle(player,
-	      FrogNumNew(GRID_SZ/4),
-	      FrogNumNew(player->angle-pi/2));
-        }
+	  C3DThingMoveAtAngle(player,
+	        FrogNumNew(GRID_SZ/4),
+	        FrogNumNew(player->angle-pi/2));
+        }
         if (right)
-          C3DThingMoveAtAngle(player,
-	      FrogNumNew(GRID_SZ/4),
-	      FrogNumNew(player->angle+pi/2));
+	  C3DThingMoveAtAngle(player,
+	        FrogNumNew(GRID_SZ/4),
+	        FrogNumNew(player->angle+pi/2));
         if(msx<SCRN_TURN_MARGIN) {
 	  player->angle-=ToF64(SCRN_TURN_MARGIN-msx)/SCRN_TURN_MARGIN*SCRN_TURN_RATE;
         } else if(msx>GR_WIDTH-SCRN_TURN_MARGIN) {
@@ -2788,7 +2815,7 @@ next:;
         if (ms.lb&&20<msy<GR_HEIGHT-75) { // mouse input is best handled with ms, not ScanMsg
 	  mouse_angle=(ms.pos.x-GR_WIDTH/2)*(w->fov/GR_WIDTH);
 	  player->angle+=mouse_angle;
-          QueCallScript("fire",FrogSymbol("hand_item")->value);
+	  CallScript("fire",FrogSymbol("hand_item")->value);
 	  player->angle-=mouse_angle;
         }
       }
@@ -2805,13 +2832,13 @@ next:;
         body=player->shell_casings->items->body;
         idx=player->shell_casings->items->cnt;
         while(--idx>=0) {
-          shellc=body[idx];
+	  shellc=body[idx];
 	  if(ThingHasClass(shellc,"CShellCasing")) {
-	    QueCallScript("update",shellc);
+	    CallScript("update",shellc);
 	  }
         }
-     }
-      QueCallScript("animate",FrogSymbol("hand_item")->value);
+      }
+      CallScript("animate",FrogSymbol("hand_item")->value);
       UpdateDrawBuffer;
       ClearPlatformCache; //Clear the cache becuase of changeing doors
       Refresh;
@@ -2819,13 +2846,12 @@ next:;
     } catch {PutExcept(TRUE);}
 en:
   WaitForJobsFinish;
-  CallScript("saveThing",wm);
   FlushMsgs;
   Fs->draw_it=NULL;
   Refresh;
 /*  FrogNullifySymbols;
-  FrogGarbageCollect;
-  HeapWho(Fs);*/
+FrogGarbageCollect;
+HeapWho(Fs);*/
 }
 if(FileFind("/STDebug.DD")) {
   WalkAround(FileRead("/STDebug.DD"));
