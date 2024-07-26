@@ -114,7 +114,7 @@ class CFileWorld {
   I64 startx,starty;
   I16 *data;
   CFilePtrLen textures_where;
-  CFilePtrLen thing_templates_where;
+  CFilePtrLen thing_templates_where;
   CFilePtrLen things_where;
   CFilePtrLen heightmap;
   CFilePtrLen ceilmap;
@@ -2802,7 +2802,7 @@ next:;
 	  C3DThingMoveAtAngle(player,
 	        FrogNumNew(GRID_SZ/4),
 	        FrogNumNew(player->angle-pi/2));
-        }
+        }
         if (right)
 	  C3DThingMoveAtAngle(player,
 	        FrogNumNew(GRID_SZ/4),

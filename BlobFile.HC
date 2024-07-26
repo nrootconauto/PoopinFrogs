@@ -364,7 +364,7 @@ BlobFileDeleteLump("ASS2","abd");
 //
 GetBlobFileData("ASS.BLOB");
 
-#ifdef DEVELOPMENT_MODE
+#ifdef DEVELOPMENT_MODE
 Del("ASS.BLOB*");
 //DumpBlobFile("ASS.BLOB","AssBlobDir");
 UndumpBlobFile(#exe {StreamPrint("\"%Q\"",__DIR__);} "/ASS.BLOB",DEVELOPMENT_DIR);

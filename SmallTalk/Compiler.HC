@@ -306,7 +306,7 @@ Bool STHasLocal(CLocals *who,U8 *name) {
   return ToBool(who);
 }
 Bool STIsRawMember(CLocals *who,U8 *name) {
-  CHashGeneric *g;
+  CHashGeneric *g=NULL;
   while(who&&!(g=HashSingleTableFind(name,who->vars,HTT_FRAME_PTR))) {
     who=who->next;
   }
@@ -316,7 +316,7 @@ Bool STIsRawMember(CLocals *who,U8 *name) {
   return FALSE;
 }
 Bool STIsSelfMember(CLocals *who,U8 *name) {
-  CHashGeneric *g;
+  CHashGeneric *g=NULL;
   while(who&&!(g=HashSingleTableFind(name,who->vars,HTT_FRAME_PTR))) {
     who=who->next;
   }
@@ -530,6 +530,12 @@ U0 AssignTypeToNode(CLocals *l,CAST *ast) {
   if(*ast->var_class_name) return;
   CAST *a;
   switch(ast->type) {
+   case AST_VAR:
+     if(!ast->var_class_name[0]) {
+       if(HashFind(ast->name,Fs->hash_table,HTT_CLASS))
+	 StrCpy(ast->var_class_name,ast->name);
+     }
+     break;
    case AST_UNOP:
    case AST_BINOP:
    case AST_KEYWORD:

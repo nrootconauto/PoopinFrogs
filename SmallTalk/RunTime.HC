@@ -34,7 +34,7 @@ I64 class CFrogSmallChr {
   I16 pad;
   U32 ch;
 };
-CTask *frog_mem_task=Fs;
+CTask *frog_mem_task=Fs;
 CQue allocs_head;
 QueInit(&allocs_head);
 
