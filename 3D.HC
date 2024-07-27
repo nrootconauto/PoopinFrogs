@@ -6,6 +6,7 @@
 #include "PathFinder.HC";
 #define TEST_3D
 #ifndef ENGINE_3D
+#define mp_cnt 1
 F64 Frog_tS() {
   return tS+frog_time_offset;
 }
@@ -114,7 +115,7 @@ class CFileWorld {
   I64 startx,starty;
   I16 *data;
   CFilePtrLen textures_where;
-  CFilePtrLen thing_templates_where;
+  CFilePtrLen thing_templates_where;
   CFilePtrLen things_where;
   CFilePtrLen heightmap;
   CFilePtrLen ceilmap;
@@ -899,6 +900,14 @@ U0 PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm) {
     if(!rocket) {
       t->momx*=29/30.;
       t->momy*=29/30.;
+      if(t->momx<0.&&t->momx2>0.) {
+         t->momx=Min(0,t->momx+t->momx2);
+      } else if(t->momx>0.&&t->momx2<0.)
+         t->momx=Max(0,t->momx+t->momx2);
+      if(t->momy<0.&&t->momx2>0.) {
+         t->momy=Min(0,t->momy+t->momy2);
+      } else if(t->momy>0.&&t->momy2<0.)
+         t->momy=Max(0,t->momx+t->momy2);
     }
     if(Abs(t->momx)<2) t->momx=0;
     if(Abs(t->momy)<2) t->momy=0;
@@ -1324,8 +1333,7 @@ dy_type:
       for(ix=old_tx;TRUE;ix+=dirx) {
         idx=ix+iy*w->world_width;
         if(t->body[t->cnt-1]!=idx) {
-	  if(PassesThoughBlock(w,slope,ix,iy,&res_dist,cos,sin)) {
-	    if(res_dist<dist)
+	  if(PassesThoughBlock(w,slope,ix,iy,NULL,cos,sin)) {
 	    I64SetAdd(t,idx);
 	  }
         }
@@ -1518,6 +1526,8 @@ ent:
       h=DIST_SCALE/(dist+1.);
       dist2*=cos2_lookup_table[x];
       h2=DIST_SCALE/(dist2+1);
+      if(DrawIsBlocked(w,x,0,GR_HEIGHT,dist))
+	goto fin;
 //Dont straight lines on blocks with same height(hidden)
       if(last_height>w->cam_height)
         if(last_height>height_cap)
@@ -1714,6 +1724,10 @@ Bool CanSee2DThing(C3DWorld *w,C3DThing *t) {
   I64 at_tile=ToI64(w->x/GRID_SZ)+ToI64(w->y/GRID_SZ)*w->world_width;
   for(idx=0;ti[idx]!=-1;idx++) {
     if(ti[idx]==at_tile) {
+      if(at_tile==ToI64(t->x/GRID_SZ)+ToI64(t->y/GRID_SZ)*w->world_width) {
+	ret=TRUE;
+	break;
+      }
     } else {
       FindRayWall(w,
 	    Tan(angle),
@@ -2052,6 +2066,8 @@ draw:
     if(0>col||col>=use_dc->width)
      goto skip2;
     iy=ToI64(cy)&~1;
+    if(DrawIsBlocked(w,ix,iy,to_y,dist))
+     goto skip2;
     dst=dc->body+ToI64(iy)*dc->width_internal+ToI64(ix);
     I32 *depth_dst=dc->depth_buf+ToI64(iy)*dc->width_internal+ToI64(ix);
     for(;cy-4<=iy<=to_y-3;iy+=3) {
@@ -2083,8 +2099,8 @@ draw:
 	}
 skip:;
       }
-skip2:;
     }
+skip2:;
   }
 fin:
   if(ThingHasClass(thing,"CPorky")) {
@@ -2684,6 +2700,7 @@ U0 WalkAround(U8 *save_string=NULL) {
   WinMax;
   WinBorder;
   AutoComplete;
+ Prof(10);
   Fs->draw_it=&DrawIt;
   w->x=x,w->y=y;
   w->cam_height=.8;
@@ -2715,6 +2732,7 @@ U0 WalkAround(U8 *save_string=NULL) {
 //Handle after we run everything else
       CallScript("handlePowerups",man->value);
       body=w->_2d_things->body;
+      c=w->_2d_things->cnt;
       for(idx=0;idx<c;idx++) {
         PhysicsOnThing(w,body[idx],wm);
         if(body[idx]==player) {
@@ -2785,7 +2803,7 @@ U0 WalkAround(U8 *save_string=NULL) {
         }
 next:;
       }
-      if(!player->main_inventory_active) {
+      if(!player->main_inventory_active&&!player->load_menu_active) {
         if (jump) {
 	  CallScript("jump",player);
 	  jump=FALSE;
@@ -2849,14 +2867,12 @@ en:
   FlushMsgs;
   Fs->draw_it=NULL;
   Refresh;
+//  ProfRep;
 /*  FrogNullifySymbols;
 FrogGarbageCollect;
 HeapWho(Fs);*/
 }
-if(FileFind("/STDebug.DD")) {
-  WalkAround(FileRead("/STDebug.DD"));
-} else
-  WalkAround;
+WalkAround;
 #endif
 #endif        i               8      8   ßÿÿÿ   Ýÿÿÿ      	'   öÿÿÿ?   áÿÿÿ
 

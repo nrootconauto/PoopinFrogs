@@ -6,6 +6,7 @@ makeUI ->*
   make_save_game_menu=CFrogBlock
   button=CUIButton
   load_game=C3DWorldManager
+  end_load_save_menu=CFrogBlock
 |
   w _ 640 .
   h _ 480 - 16 .
@@ -92,7 +93,6 @@ makeUI ->*
     label _ CUILabel new .
     label->color _ #color_LTCYAN .
     label->y _ 4 .
-    label->x _ save_load_menu->sz_x / 2 .
     save_load_menu addChild: label .
 
     is_load_game ifTrue: [
@@ -100,6 +100,7 @@ makeUI ->*
     ] ifFalse: [
       label setLabel: 'Save the Fucking Game' .
     ] .
+    label->x _ (save_load_menu->sz_x / 2 ) - (label->label size * 8 / 2).
 
     'TODO test is available' show.
     0 to: 10 do: [:slot=CFrogNum |
@@ -112,21 +113,17 @@ makeUI ->*
       button->x _ 16 .
       button->y _ 12 + (10 * slot ) .
       button onLeftClick: [:s=CUIButton|
-'ilg' show .
-is_load_game show .
         is_load_game ifTrue: [
-'ilg2' show .
-s->label show .
           load_game _ s->label restoreThingFromSaveFile .
           load_game show .
           (load_game hasClass: C3DWorldManager) ifTrue: [
-'poop show' show . 
             #world _ load_game .
           ] .
         ] ifFalse: [
           s->label show .
           #world saveThingToSaveFile: s->label .
         ] .
+        end_load_save_menu value .
       ].
       save_load_menu addChild: button .
     ] .
@@ -135,27 +132,37 @@ s->label show .
   ] .
 
   'Save Load menu' .
+
+  end_load_save_menu _ [
+    load_menu_active _ 0 .
+    load_game_button setBackgroundColor: #color_YELLOW .
+    save_game_button setBackgroundColor: #color_YELLOW .
+    #ui_root removeChild: save_load_menu .
+    save_load_menu _ 0 .
+  ] .
+
+
   load_game_button onLeftClick: [
+    'Defactivate save button' .
+    save_game_button setBackgroundColor: #color_YELLOW .
     load_menu_active _ load_menu_active not .
     load_menu_active ifTrue: [
       load_game_button setBackgroundColor: #color_RED .
       make_save_game_menu value: 1 .
     ] ifFalse: [
-      load_game_button setBackgroundColor: #color_YELLOW .
-      #ui_root removeChild: save_load_menu .
-      save_load_menu _ 0 .
+      end_load_save_menu value 
     ] . 
   ] .
 
   save_game_button onLeftClick: [
+    'Defactivate load button' .
+    load_game_button setBackgroundColor: #color_YELLOW .
     load_menu_active _ load_menu_active not .
     load_menu_active ifTrue: [
       save_game_button setBackgroundColor: #color_RED .
       make_save_game_menu value: 0 .
     ] ifFalse: [
-      save_game_button setBackgroundColor: #color_YELLOW .
-      #ui_root removeChild: save_load_menu .
-      save_load_menu _ 0 .
+      end_load_save_menu value 
     ] . 
   ] .
 

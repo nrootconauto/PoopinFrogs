@@ -14,7 +14,7 @@ fireProjectile: type* withSpeed: speed=CFrogNum
   best_dist _ 16000 squared .
   best _ 0 .
   canidates do: [:t=C3DThing |
-    (self ~= t and: t ->health > 0. ) ifTrue: [
+    ((self ~= t and: t ->health > 0. ) and: (self canSeeThing: t )) ifTrue: [
       dist _ (t ->x - x ) squared + (t ->y - y ) squared .
       dist < best_dist ifTrue: [
         best_dist _ dist .
@@ -26,7 +26,7 @@ fireProjectile: type* withSpeed: speed=CFrogNum
   targetz _ z +.5 .
   (best hasClass: C3DThing) ifTrue: [
     angle2 _ best->x - x arg: best->y - y .
-    targetz _ best->z .
+    targetz _ best->z +.5 .
   ] .
 
   rocket _ type new .

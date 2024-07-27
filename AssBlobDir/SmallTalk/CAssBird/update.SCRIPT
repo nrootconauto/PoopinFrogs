@@ -13,7 +13,7 @@ update->*
 'The AssBird will also not attack if not provoked' .
   now _ CFrogTime now asSeconds.
   w _ #world .
-
+  state show .
 
   health <= 0 ifTrue: [
     floating _ 0 .
@@ -36,37 +36,60 @@ update->*
 
   floating _ 1 .
 
+  steps_to_walk _ steps_to_walk - 1 .
+
   
-  'Provoked via damage:from:' .
-  'Attack for 5 seconds then return to healing dead assholes'.
+  'Attack for 3 seconds then return to healing dead assholes'.
   (state = 'Chase0') ifTrue: [
-     now < (state_start_tS + 5) ifTrue: [
-       speed _ 15 .
+     now < (state_start_tS + 3) ifTrue: [
+       speed _ 50 .
        'rise above target  before attack' .
        self wanderFly: speed withTarget: target .
-       momz _ (target->z + 2.5 - z) * .1 .
-       'Wait at least .75 seconds before attempting attack'.
-       (state_start_tS + .75) < now ifTrue:  [
+       momz _ (target->z + 1.5 - z) * .1 .
+       'Wait at least .4 seconds before attempting attack'.
+       (state_start_tS + 1) < now ifTrue:  [
          dist _ (target->x - x ) squared + (target->y - y ) squared  .
+         dist < (2.5 * 128 ) squared ifTrue: [
+           w sweepNoiseForTime: 500 withMin: 30 withMax: 70 .
+           lightning_bolt shootAtX: target->x atY: target->y atZ: target->z + .1 .
+           state _ 'Wander' .
+           state_start_tS _ now .
+           target damage: random_generator next * 30 + 20  from: self .
+           ^ 1 .
+         ] .
          dist < (32  *128) squared ifTrue: [
-           (random_generator next < (.25 / 10)) ifTrue: [
+           (steps_to_walk <= 0) ifTrue: [
+             steps_to_walk _ 10 * .25 .
              'TODO angry graphics'.
              state_start_tS _ now .
              state _ 'Chase1' .
              angle _ target->x - x arg: target->y - y .
-             speed _ 15 .
              momx2 _ 0 .
              momy2 _ 0 .
              momx _ speed * angle cos .
              momy _ speed * angle sin .
-             momz _ (target->z - z) * speed / dist .
+             momz _ (target->z - z) / dist sqrt * speed .
            ] .
          ] .
-       ]
+       ] .
      ] ifFalse: [
       state _ 'Wander' .
      ] .
   ] .
+
+  steps_to_walk < 0 ifTrue: [
+    steps_to_walk _ random_generator next * 10 * 1 . 
+    (target hasClass: C3DThing) ifFalse: [
+       target _ p .
+    ] .
+    ((target hasClass: C3DThing) and: (self canSeeThing: target)) ifTrue: [
+      target->health > 0. ifTrue: [
+        state _ 'Chase0' .
+        state_start_tS _ now .
+      ]
+    ] .
+  ] .
+
 
   state = 'Chase1' ifTrue: [
     now > (state_start_tS + 5. ) ifTrue: [
@@ -117,7 +140,7 @@ update->*
 
   'Get close to entity to heal it'.
   state = 'Heal0' ifTrue: [
-    speed _ 10 .
+    speed _ 20 .
     self wanderFly: speed withTarget: target .
     dist _ (target->x - x ) squared + (target->y - y) squared .
     dist < (6 * 128) squared ifTrue: [

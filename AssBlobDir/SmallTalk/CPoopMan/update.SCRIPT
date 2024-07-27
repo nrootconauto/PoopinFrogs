@@ -37,6 +37,7 @@ update->* |
   ] .
 
   state = 'Normal' ifTrue: [
+    steps_to_walk _  steps_to_walk - 1 .
     speed _ 70 / 10 *  3.4 .
     template _ w getThingTemplate: 'CPoopMan' .
     animation_no_repeat _ 0 .
@@ -61,7 +62,7 @@ update->* |
     'Only walk around if target is defined'.
     (target hasClass:C3DThing) ifTrue: [
       self wander: speed withJumpVelocity: .55 withTarget: target .
-      (random_generator next < ( .3 / 10 ) and: (self canSeeThing: target)) ifTrue: [
+      ((steps_to_walk <= 0 or: random_generator next < .2 ) and: (self canSeeThing: target)) ifTrue: [
         state _ 'Throw' .
         template _ w getThingTemplate: 'CPoopMan/Throw' .
         animation_no_repeat _ 1 .
@@ -71,6 +72,9 @@ update->* |
         angle _ (target->x - x) arg: (target->y - y) .
         threw _ 0 .
       ] .
+    ] .
+    steps_to_walk < 0 ifTrue: [
+      steps_to_walk _ random_generator next * 10 * 3 .
     ] .
   ] .
 
@@ -93,5 +97,6 @@ update->* |
     ] .
     (tS - state_start_tS) > state_duration ifTrue: [
       state _ 'Normal' .
+      steps_to_walk _ random_generator next * 10 * 3 .
     ] .    
   ] .

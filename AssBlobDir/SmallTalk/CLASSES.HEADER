@@ -231,7 +231,7 @@ class CHandItem:CFrogThing {
   I64 ammo,max_ammo;
   F64 timeout;
   F64 anim_start_tS;
-  I64 anim_no_repeat;
+  I64 anim_no_repeat;
   CUIGridItem *inventory_item no_serialize 1;
   CFrogBlock *on_click;
 //Private
@@ -426,6 +426,7 @@ class CPoopMan:C3DThing {
   CFrogStr *state;
   F64 state_start_tS,speed;
   F64 state_duration;
+  I64 steps_to_walk; //Before attack
   I64 just_jumped;
   I64 threw;
   C3DThing *target no_serialize 1;
@@ -446,6 +447,7 @@ class CAssBird:C3DThing {
   F64 speed;
   F64 state_start_tS;
   F64 state_duration;
+  I64 steps_to_walk; //Before attack
   CFrogStr *state;
   C3DThing *target no_serialize 1;
   CLightningBolt *lightning_bolt recur_serialize 1;
