@@ -8,6 +8,7 @@ wanderFly: speed=CFrogNum withTarget: target=C3DThing ->* |
   momy2 _ 0 .
   hit_thing ifTrue: [
     self newDirection: speed . 
+    self move: speed atAngle: angle .
     hit_thing _ 0 .
     ^ 1 .
   ] .
@@ -17,6 +18,6 @@ wanderFly: speed=CFrogNum withTarget: target=C3DThing ->* |
   momz > .5 ifTrue: [ momz _ .5 ].
   momz < .5 negated ifTrue: [ momz _ .5 negated ].
 
-  self move: speed withAngle: angle .
+  self move: speed atAngle: angle .
   ^ 1 .
   

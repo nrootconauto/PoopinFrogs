@@ -6,7 +6,7 @@
 #include "PathFinder.HC";
 #define TEST_3D
 #ifndef ENGINE_3D
-#define mp_cnt 1
+#define mp_cnt 1
 F64 Frog_tS() {
   return tS+frog_time_offset;
 }
@@ -871,12 +871,14 @@ again:
   }
   return ret;
 }
-U0 PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm) {
+U0 PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm,F64 last_tS) {
   I64 wx=t->x/GRID_SZ,wy=t->y/GRID_SZ;
   if(!(0<=wx<w->world_width))
     return;
   if(!(0<=wy<w->world_height))
     return;
+//Iget about 20 fps on my aspire 5920(add 5 fps)
+  F64 weight=(tS-last_tS)/(1/25.);
   F64 angle,dist,ox,oy;
   I64 tile=wx+wy*w->world_width;
   I64 floor=w->heightmap[tile];
@@ -890,7 +892,7 @@ U0 PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm) {
   if(ThingHasClass(t,"CRocket"))
     rocket=t;
   CallScript("removeFromGrid:",wm,FrogIncRefCnt(t));
-  if(C3DWorldMoveZWithCollision(w,t->momz,t->x,t->y,&t->z)) {
+  if(C3DWorldMoveZWithCollision(w,t->momz*weight,t->x,t->y,&t->z)) {
     t->momz=0;
   } else if(!rocket&&!t->floating)
       t->momz-=wm->gravity;
@@ -898,8 +900,8 @@ U0 PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm) {
   oy=t->y;
   if(t->momy+t->momy2||t->momx+t->momx2) {
     if(!rocket) {
-      t->momx*=29/30.;
-      t->momy*=29/30.;
+      t->momx*=29/30.*weight;
+      t->momy*=29/30.*weight;
       if(t->momx<0.&&t->momx2>0.) {
          t->momx=Min(0,t->momx+t->momx2);
       } else if(t->momx>0.&&t->momx2<0.)
@@ -915,7 +917,7 @@ U0 PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm) {
     i_am_moving=TRUE;
     dist=Sqrt(Sqr(t->momx+t->momx2)+Sqr(t->momy+t->momy2));
     on_ground=AsF64(CallScript("isOnGround",t));
-    if(C3DWorldMoveWithCollision(w,angle,dist,
+    if(C3DWorldMoveWithCollision(w,angle,dist*weight,
 	&t->x,
 	&t->y,
 	TRUE,
@@ -2707,6 +2709,7 @@ U0 WalkAround(U8 *save_string=NULL) {
   w->angle=0;
   CFrogThing **body;
   I64 idx;
+  F64 last_tS=tS;
   try while (cont) {
       every++;
 //In case the #world was changed(Loaded a saved game?)
@@ -2734,12 +2737,13 @@ U0 WalkAround(U8 *save_string=NULL) {
       body=w->_2d_things->body;
       c=w->_2d_things->cnt;
       for(idx=0;idx<c;idx++) {
-        PhysicsOnThing(w,body[idx],wm);
+        PhysicsOnThing(w,body[idx],wm,last_tS);
         if(body[idx]==player) {
 	  player->momx2=0;
 	  player->momy2=0;
         }
       }
+     last_tS=tS;
 //if (ThingHasClass(player,"CPlayer")) {
       // set vars for multikey input
       while(msg=ScanMsg(&m1,&m2)) {        
