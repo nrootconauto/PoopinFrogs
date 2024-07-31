@@ -116,6 +116,7 @@ class C3DWorld {
    CDC *wall_textures[0x10000/2],*to_dc;
    CDC *floor_textures[0x10000/2];
    CDC *ceil_textures[0x10000/2];
+   CDoor **door_mat;
    I64 mp_done,dc_lock;
    CQue _2d_thing_templates; 
    CI64Set *_2d_things;
@@ -189,6 +190,18 @@ U0 C3DThingTemplateDel(C3DThingTemplate *t) {
 U0 C3DWorldSetFov(C3DWorld *w,F64 fov=pi/4) {
   w->fov=fov;
 }
+//Call on level load
+U0 WorldUpdateDoorMat(C3DWorldManager *man,...) {
+  I64 idx;
+  CDoor *door,**doors;
+  MemSetI64(w->door_mat,NULL,w->world_height*w->world_width);
+  doors=man->doors->items->body;
+  for(idx=0;idx!=man->doors->items->cnt;idx++) {
+    door=doors[idx];
+    w->door_mat[door->x+door->y*w->world_width]=door;
+  }
+}
+AddMethod("C3DWorldManager","updateDoorMatrix",&WorldUpdateDoorMat);
 C3DWorld *LoadWorldFromFile(U8 *blob_file="ASS",U8 *filename,F64 fov=pi/4) {
   C3DWorld *ret=CAlloc(sizeof(C3DWorld));
   CFileWorld *world=BlobFileGetLump(blob_file,filename);
@@ -212,6 +225,7 @@ C3DWorld *LoadWorldFromFile(U8 *blob_file="ASS",U8 *filename,F64 fov=pi/4) {
   ret->heightmap=MAlloc(world->h*world->w);
   ret->ceilmap=MAlloc(world->h*world->w);
   ret->ceilmap2=MAlloc(world->h*world->w);
+  ret->door_mat=MAlloc(world->h*world->w*8);
   w=ret;
   xoff=GRID_SZ*world->startx;
   yoff=GRID_SZ*world->starty;
@@ -320,6 +334,7 @@ C3DWorld *LoadWorldFromFile(U8 *blob_file="ASS",U8 *filename,F64 fov=pi/4) {
   }
   Free(world);
   Free(templates);
+  WorldUpdateDoorMat(man);
   return ret;
 }
 
@@ -1427,7 +1442,7 @@ F64 ScreenCordsToDist(C3DWorld *w,I64 x,I64 y,F64 max=GRID_SZ*128,F64 *height=NU
 U0 MPCastCol(C3DWorld *w) {
   F64 angle=w->angle-w->fov/2;
   I64 wall_segment_start,wall_segment_end;
-  F64 dist,h,y,y2,dist2,h2;
+  F64 dist,h,y,y2,dist2,h2,top;
   F64 s_angle1,s_angle2;
   I64 segment=0,idx,idx2,ptr,x=0,cap,side,side2,segment2,x0,y0,old_d,idx3,xoff,yoff;
   I64 height_cap,adj_height,last_height,floor_y,ceily,ceil,last_ceil;
@@ -1435,6 +1450,7 @@ U0 MPCastCol(C3DWorld *w) {
   I64 *tiles;
   I64 standing_at;
   I64 other,tile2; 
+  CDoor *door;
   Bool computed;
   idx=0;
   cap=GR_WIDTH;
@@ -1482,6 +1498,18 @@ ent:
       h2=DIST_SCALE/(dist2+1);
       if(DrawIsBlocked(w,x,0,GR_HEIGHT,dist))
 	goto fin;
+      if(door=w->door_mat[idx]) {
+        if(door->percent>.03)
+          top=door->height*door->percent+w->heightmap[idx];
+        else
+          top=door->height*.03+w->heightmap[idx];
+        y0=GR_HEIGHT/2-h*(top-w->cam_height);
+        if(top<w->cam_height)
+          ColorFloor(w,x,top,y0,GR_HEIGHT/2-h2*(height_cap-w->cam_height),w->wall_textures[door->act_as_wall]);
+        DrawWallSegment(w,segment,x,y0,w->wall_textures[door->act_as_wall],h*door->percent*door->height,dist,w->heightmap[idx]-1+door->height,idx,side);
+        AddWallCommand(w,x,y0,I16_MAX,dist);
+      }
+draw_floor:
 //Dont straight lines on blocks with same height(hidden)
       if(last_height>w->cam_height)
         if(last_height>height_cap)
@@ -2470,74 +2498,6 @@ AddMethod("C3DWorldManager","screenCoordIsOnFloor",&ScreenCoordOnFloor);
 #include "UI.HC"
 LoadWorldFromFile(,"Untitled.WORLD");
 I64 mp_thing_done=0;
-U0 DrawDoor(CDoor *d) {
-  CD3 points[4];
-  F64 dist,h,y0,dist2,top,y1,h2;
-  I64 segment;
-  Bool in_view=FALSE;
-  I64 xcords[4];
-  I64 tile=d->y*w->world_width+d->x;
-  I64 idx,minx=GR_WIDTH,maxx=0,idx2,side,ptr;
-  points[0].x=d->x*GRID_SZ;
-  points[0].y=d->y*GRID_SZ;
-  points[1].x=(d->x+1)*GRID_SZ;
-  points[1].y=d->y*GRID_SZ;
-  points[2].x=(d->x+1)*GRID_SZ;
-  points[2].y=(d->y+1)*GRID_SZ;
-  points[3].x=d->x*GRID_SZ;
-  points[3].y=(d->y+1)*GRID_SZ;
-  in_view|=ClipLineToCamera(w,&points[0],&points[1]);
-  in_view|=ClipLineToCamera(w,&points[2],&points[3]);
-  if(!in_view)
-    return;
-  for(idx=0;idx!=4;idx++) {
-//z isnt used
-    PointToScrn(w,points[idx].x,points[idx].y,128,&points[idx]);
-    maxx=MaxI64(points[idx].x,maxx);
-    minx=MinI64(points[idx].x,minx);
-  }
-  minx=ClampI64(minx,0,GR_WIDTH-w->step_width);
-  maxx=ClampI64(maxx,0,GR_WIDTH-w->step_width);
-  while(minx<maxx) {
-      if(-1==FindRayWall(w,
-	    tan_lookup_table[minx],
-	    cos_lookup_table[minx],
-	    sin_lookup_table[minx],
-	    &segment,
-	    &dist,
-	    &side,
-	    I8_MIN,
-	    tile
-	    ))
-	goto next;
-      FindRayWall(w,
-	    tan_lookup_table[minx],
-	    cos_lookup_table[minx],
-	    sin_lookup_table[minx],
-	    NULL,
-	    &dist2,
-	    NULL,
-	    I8_MIN,
-	    tile,
-	    TRUE
-	    );
-      if(d->percent>.03)
-        top=d->height*d->percent+w->heightmap[tile];
-      else
-        top=d->height*.03+w->heightmap[tile];
-      dist*=cos2_lookup_table[minx];
-      h=DIST_SCALE/(1+dist);
-      y0=GR_HEIGHT/2-h*(top-w->cam_height);
-      h2=DIST_SCALE/(1+dist2);
-      y1=GR_HEIGHT/2-h2*(top-w->cam_height);
-//Horizon check
-      if(top<w->cam_height)
-        ColorFloor(w,minx,top,y0,y1,w->wall_textures[d->act_as_wall]);
-      DrawWallSegment(w,segment,minx,y0,w->wall_textures[d->act_as_wall],h*d->percent*d->height,dist,w->heightmap[tile]-1+d->height,tile,side);
-next:;
-      minx+=w->step_width;
-  }
-}
 U0 UpdateDrawBuffer() {
   C3DWorldManager *man=FrogSymbol("world")->value;
   CDoor **doors;
@@ -2586,10 +2546,6 @@ U0 UpdateDrawBuffer() {
   doors=man->doors->items->body;
   c=man->doors->items->cnt;
 //Rely on wall commands to choose what part of door to draw
-//Floors z-distance doesnt account for height
-  while(--c>=0) {
-    DrawDoor(doors[c]);
-  }
   w->to_dc->depth_buf=NULL;
 
   
@@ -2648,7 +2604,6 @@ U0 WalkAround(U8 *save_string=NULL) {
   WinMax;
   WinBorder;
   AutoComplete;
- Prof(10);
   Fs->draw_it=&DrawIt;
   w->x=x,w->y=y;
   w->cam_height=.8;

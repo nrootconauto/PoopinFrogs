@@ -44,7 +44,8 @@ class CLevelSegmentEditDoor:CQue {
   I64 type;
   I64 x,y,act_as_tile;
   F64 ceil_rise;
-  I64 flags;
+  I32 flags;
+  I32 tag; //Used when opening doors when an enemy is killed
 };
 class CLevelSegment:CQue {
   CLevelSegment *top,*bottom,*left,*right;
@@ -63,7 +64,7 @@ class CLevelSegment:CQue {
 class CFileThingData {
   U8 chat_bot_name[32];
   U8 drop_item_name[32];
-  U8 pad[32];
+  U8 activate_tag[32];
   U8 pad[32];
 };
 
