@@ -39,3 +39,4 @@ afterRestore->* |
   ] .
 
   CFrogTime setTime: game_load_tS .
+  self updateDoorMatrix .
