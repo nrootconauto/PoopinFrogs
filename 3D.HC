@@ -6,7 +6,6 @@
 #include "PathFinder.HC";
 #define TEST_3D
 #ifndef ENGINE_3D
-#define mp_cnt 1
 F64 Frog_tS() {
   return tS+frog_time_offset;
 }
@@ -20,56 +19,6 @@ class CCSPair {
   CFrogThing *thing;
   CHashTable *ht;
 };
-I64 call_script_cnt=0;
-I64 call_script_lock=0;
-U0 JobCallScript(CCSPair *p) {
-  //Only 1 core running at a time
-  while(LBts(&call_script_lock,0))
-    Sleep(1);
-  CHashTable *t=Fs->hash_table;
-  Fs->hash_table=p->ht;
-  try 
-    CallScript(p->name,p->thing);
-  catch
-    PutExcept(TRUE);
-  --call_script_cnt;
-  Free(p->name);
-  Free(p);
-  Fs->hash_table=t;
-  LBtr(&call_script_lock,0);
-}
-U0 CallScriptOnBestCore(U8 *name,CFrogThing *t) {
-  I64 who;
-  CCSPair *p=CAlloc(sizeof(CCSPair),frog_mem_task);
-  p->name=StrNew(name,frog_mem_task);
-  p->ht=Fs->hash_table;
-  p->thing=t;
-  CCPU *best=Gs;
-  for(who=0;who!=mp_cnt;who++) {
-    if(cpu_structs[who].idle_factor>best->idle_factor)
-      best=&cpu_structs[who];
-    }
-  while(LBts(&call_script_lock,0))
-    Sleep(1);
-  ++call_script_cnt;
-  LBtr(&call_script_lock,0);
-  if(best==Gs) {
-    JobCallScript(p);
-  } else  {
-    JobQue(&JobCallScript,p,best->num);
-  }
-}
-U0 WaitForJobsFinish() {
-  Bool cont=TRUE;
-  while(cont) {
-    while(LBts(&call_script_lock,0))
-      Sleep(3);
-    if(call_script_cnt==0)
-      cont=FALSE;
-    LBtr(&call_script_lock,0);
-  }
-}
-
 //
 // From LevelEditor.HC
 //
@@ -97,7 +46,7 @@ class CFileThing {
 //x/y are in tiles 
   F64 x,y,rot;
   U8 chat_bot_name[32];
-  U8 pad[32];
+  U8 drop_item_name[32];
   U8 pad[32];
   U8 pad[32];
 };
@@ -341,6 +290,9 @@ C3DWorld *LoadWorldFromFile(U8 *blob_file="ASS",U8 *filename,F64 fov=pi/4) {
 	  thing->y=fptr(CFileThing*)->y*GRID_SZ-yoff;
 	  thing->angle=fptr(CFileThing*)->rot;
 	  thing->chat_bot_name=FrogStrNew(fptr(CFileThing*)->chat_bot_name);
+	  if(fptr(CFileThing*)->drop_item_name[0]) {
+            thing->drop_thing=FrogClassNew(NameToUniverseNumber(fptr(CFileThing*)->drop_item_name));
+          }
 	  CallScript("init",thing);
 //Things add themselves to the world
 //	  I64SetAdd(ret->_2d_things,thing);
@@ -1484,8 +1436,8 @@ U0 MPCastCol(C3DWorld *w) {
   I64 standing_at;
   I64 other,tile2; 
   Bool computed;
-  idx=GR_WIDTH/mp_cnt*Gs->num;
-  cap=GR_WIDTH/mp_cnt*(Gs->num+1);
+  idx=0;
+  cap=GR_WIDTH;
   angle+=(w->fov/GR_WIDTH)*w->step_width*idx/w->step_width;
   for(x=idx;x<cap;angle+=(w->fov/GR_WIDTH)*w->step_width,x+=w->step_width) {
     idx2=0;
@@ -1494,7 +1446,7 @@ U0 MPCastCol(C3DWorld *w) {
     ceily=0;
     last_height=I64_MIN;
     last_ceil=I64_MAX;
-    tiles=GetTilesInPath(w,angle,48*GRID_SZ);
+    tiles=GetTilesInPath(w,angle,32*GRID_SZ);
     if(tiles[0]==-1)
       goto fin;
 ent:
@@ -1690,20 +1642,10 @@ ceil2:
 fin:
     Free(tiles);
   }
-  LBts(&mp_done,Gs->num);
 }
 U0 C3DWorldCastRays(C3DWorld *w) {
-  I64 idx;
-  lock mp_done=0;
   MemSetI64(w->wall_command_cnts,0,GR_WIDTH);
-  for(idx=mp_cnt-1;idx>=1;idx--) {
-    JobQue(&MPCastCol,w,idx);
-  }
   MPCastCol(w);
-  for(idx=mp_cnt-1;idx>=1;idx--) {
-    while(!Bt(&mp_done,idx))
-      __Sleep(1);
-  }
 }
 F64 AngleBetween(F64 a,F64 b) {
 //https://stackoverflow.com/questions/1878907/how-can-i-find-the-smallest-difference-between-two-angles-around-a-point
@@ -1724,9 +1666,10 @@ Bool CanSee2DThing(C3DWorld *w,C3DThing *t) {
   F64 angle=Arg(t->x-w->x,t->y-w->y);
   I64 *ti=GetTilesInPath(w,angle,dist),idx;
   I64 at_tile=ToI64(w->x/GRID_SZ)+ToI64(w->y/GRID_SZ)*w->world_width;
+  I64 t_at_tile=ToI64(t->x/GRID_SZ)+ToI64(t->y/GRID_SZ)*w->world_width;
   for(idx=0;ti[idx]!=-1;idx++) {
     if(ti[idx]==at_tile) {
-      if(at_tile==ToI64(t->x/GRID_SZ)+ToI64(t->y/GRID_SZ)*w->world_width) {
+      if(at_tile==t_at_tile) {
 	ret=TRUE;
 	break;
       }
@@ -1765,6 +1708,9 @@ Bool CanSee2DThing(C3DWorld *w,C3DThing *t) {
          ret=FALSE;
          break;
       }
+//Perhaps we got an extra block
+      if(ti[idx]==t_at_tile)
+	break;
     }
   }
   Free(ti);
@@ -2052,6 +1998,7 @@ draw:
   w->angle=NormalizeAngle(w->angle);
 //Eeriler i scaled by 1.5,so do opositie
   x0=GR_WIDTH/2+Wrap(angle-w->angle)/((w->fov/GR_WIDTH))-width/1.5/2;
+  x0=ToI64(x0)&~w->step_width;
 //clamp'ed x
   cx=ClampI64(x0,0,GR_WIDTH);
 //ditto
@@ -2592,7 +2539,6 @@ next:;
   }
 }
 U0 UpdateDrawBuffer() {
-  WaitForJobsFinish; //MAke sure there world data is all ours all not belong to anyone else
   C3DWorldManager *man=FrogSymbol("world")->value;
   CDoor **doors;
   CPlayer *player=CallScript("getPlayer",man);
@@ -2720,18 +2666,17 @@ U0 WalkAround(U8 *save_string=NULL) {
       w->_wall_stains=wm->wall_stains->items;
       w->_floor_stains=wm->floor_stains->items;
 //
-      if(every%3==0) CallScriptOnBestCore("update",man->value);
+      if(every%3==0) CallScript("update",man->value);
       body=wm->doors->items->body;
       c=wm->doors->items->cnt;
       for(idx=0;idx<c;idx++)
-        CallScriptOnBestCore("update",body[idx]);
+        CallScript("update",body[idx]);
 // Do physics after update
       c=w->_2d_things->cnt;
       body=w->_2d_things->body;
       for(idx=0;idx<c;idx++) {
-        CallScriptOnBestCore("animate",body[idx]);
+        CallScript("animate",body[idx]);
       }
-      WaitForJobsFinish;
 //Handle after we run everything else
       CallScript("handlePowerups",man->value);
       body=w->_2d_things->body;
@@ -2743,7 +2688,7 @@ U0 WalkAround(U8 *save_string=NULL) {
 	  player->momy2=0;
         }
       }
-     last_tS=tS;
+     last_tS=tS;
 //if (ThingHasClass(player,"CPlayer")) {
       // set vars for multikey input
       while(msg=ScanMsg(&m1,&m2)) {        
@@ -2867,7 +2812,6 @@ next:;
       if(every&15==0) FrogGarbageCollect;
     } catch {PutExcept(TRUE);}
 en:
-  WaitForJobsFinish;
   FlushMsgs;
   Fs->draw_it=NULL;
   Refresh;

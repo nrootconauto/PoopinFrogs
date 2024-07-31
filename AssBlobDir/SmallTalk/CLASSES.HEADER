@@ -191,6 +191,7 @@ class C3DThingTemplate:CFrogThing {
 };
 extern class CEliza;
 class C3DThing:CFrogThing {
+  CFrogClass *drop_thing;
   C3DThingTemplate *template no_serialize 1;
   F64 x,y,z,angle,health;
   F64 momx,momy,momz,animation_start_tS;
@@ -335,6 +336,7 @@ class CLightningBolt:CFrogThing {
   CFrogRandom *random_generator;
 //CLighningLink
   CFrogArray *links recur_serialize 1;
+  F64 next_remove_link_tS;
 };
 class CPissStream:CFrogThing {
   C3DThing *from no_serialize 1;
@@ -431,6 +433,15 @@ class CPoopMan:C3DThing {
   I64 threw;
   C3DThing *target no_serialize 1;
 };
+class CAlien:C3DThing {
+  CFrogRandom *random_generator;
+  CFrogStr *state;
+  F64 state_start_tS;
+  F64 state_duration;
+  I64 steps_to_walk; //BEfore attack
+  I64 just_jumped;
+  C3DThing *target no_serialize 1;
+};
 class CZombie:C3DThing {
   CFrogRandom *random_generator;
   F64 speed;
@@ -447,10 +458,11 @@ class CAssBird:C3DThing {
   F64 speed;
   F64 state_start_tS;
   F64 state_duration;
-  I64 steps_to_walk; //Before attack
+  I64 steps_to_walk; //Before attack
   CFrogStr *state;
   C3DThing *target no_serialize 1;
   CLightningBolt *lightning_bolt recur_serialize 1;
+  I64 made_sound;
 };
 class CCyberPoop:C3DThing {
   CFrogRandom *random_generator;
@@ -465,6 +477,8 @@ class CRocket:C3DThing {
   C3DThing *from  no_serialize 1;
 };
 class CPoopRocket:CRocket {
+};
+class CEnergyBall:CRocket {
 };
 class CRocketLauncher:CHandItem {
 };

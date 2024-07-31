@@ -1,0 +1,9 @@
+lookForTarget -> C3DThing
+|
+  p=CPlayer
+|
+  p _ #world getPlayer.
+  ((self canSeeThing: p) and: p->health > 0) ifTrue: [
+    ^ p 
+  ] .
+  ^ 0 .

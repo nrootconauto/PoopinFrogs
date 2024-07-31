@@ -1,0 +1,12 @@
+dropItem -> CFrogNum
+|
+item*
+|
+  (drop_thing hasClass: CFrogClass) ifTrue: [
+    item _ drop_thing new .
+    item->x _ x .
+    item->y _ y .
+    item->z _ z .
+    ^ 1
+  ] .
+  ^ 0 .

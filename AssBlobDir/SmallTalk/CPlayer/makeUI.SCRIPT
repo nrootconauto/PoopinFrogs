@@ -121,6 +121,8 @@ makeUI ->*
           ] .
         ] ifFalse: [
           s->label show .
+          'Prevent loading with save_load_menu set' .
+          save_load_menu _ 0 .
           #world saveThingToSaveFile: s->label .
         ] .
         end_load_save_menu value .

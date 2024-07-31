@@ -51,7 +51,7 @@ CI64Set *PathFinder(I64 x,I64 y,I64 to_x,I64 to_y,I64(*get_tile_h)(I64,I64),I64 
       for(oy=-1;oy!=2;oy++) {
         pt2.x=pt.x+ox;
         pt2.y=pt.y+oy;
-        if(ox||oy) {
+        if(ox^^oy) {
 	  if(!I64SetHas(visited,pt2)) {
 	    I64SetAdd(visited,pt2);
 	    h=(*get_tile_h)(pt.x+ox,pt.y+oy);

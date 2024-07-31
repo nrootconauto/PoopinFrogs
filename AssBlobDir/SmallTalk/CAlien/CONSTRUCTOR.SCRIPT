@@ -1,0 +1,9 @@
+init->CPoopMan | |
+  #world addThing: self .
+  template _ #world getThingTemplate: 'CAlien' .
+  state_start_tS _ CFrogTime now asSeconds .
+  state _ 'Normal' .
+  random_generator _ CFrogRandom new .
+  health _ 75 .
+  no_fall_off_edge _ 1 .
+  ^ self

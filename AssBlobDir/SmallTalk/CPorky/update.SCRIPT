@@ -18,6 +18,7 @@ update ->*
       momy2 _ 0 .
       template _ w getThingTemplate: 'CPorky/Dead' .
       state _ 'Dead' .
+      self dropItem .
       animation_no_repeat _ 1 .
       animation_start_tS _ tS .
     ] .

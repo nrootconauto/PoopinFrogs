@@ -23,7 +23,7 @@ shootAtX: x=CFrogNum atY: y=CFrogNum atZ: z=CFrogNum ->*
   link->color _ 14 + (random_generator next * 2) floor .
   links add: link .
   last_link _ link .
-  1 to: (dist / 48) floor do: [:seg=CFrogNum|
+  1 to: (dist / 16) floor do: [:seg=CFrogNum|
     link _ CLightningLink new . 
     tx _ from->x + (angle cos * seg * (dist/48)) .
     ty _ from->y + (angle sin * seg * (dist/48)) .
@@ -41,3 +41,5 @@ shootAtX: x=CFrogNum atY: y=CFrogNum atZ: z=CFrogNum ->*
   link->z _ z + .1 .
   'YELLOW/WHITE' .
   link->color _ 14 + (random_generator next * 2) floor .  
+
+  next_remove_link_tS _ CFrogTime now asSeconds .

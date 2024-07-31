@@ -1346,6 +1346,7 @@ U0 STRepl(U8 *dft="",Bool interactive=TRUE) {
   while(TRUE) {
     try {
       br=FALSE;
+      ast=NULL;
       if(!Lex(lex)&&!interactive)
         br=TRUE;
       if(!br)

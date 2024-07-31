@@ -33,7 +33,6 @@ update->* |
   ] .
 
   state = 'Dead' ifTrue: [
-    w removeThing: self .
     ^ 1
   ] .
 

@@ -6,7 +6,6 @@ update ->*
   now=CFrogNum
   rocket=CRocket
   hit_wall=CFrogNum
-  key=CBigKeyPickup
 |
 'Ask nroot to get off his ass and do this autoamticaly'. 
   momx2 _ 0 .
@@ -21,12 +20,9 @@ update ->*
     w sweepSoundForTime: 1000 withMin: 30 withMax: 20 .
     animation_start_tS _ CFrogTime now asSeconds .
     animation_no_repeat _ 1 .
-    template _ w getThingTemplate: 'CCyberPoop/Dead'.
-    key _ CBigKeyPickup new.
-    key->x _ x .
-    key->y _ y .
-    key->z _ z .
+      template _ w getThingTemplate: 'CCyberPoop/Dead'.
     state _ 'Dead' .
+    self dropItem .
     ^ 0 
   ] .
 

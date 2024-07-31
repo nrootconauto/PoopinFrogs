@@ -7,8 +7,7 @@ THIS IS A WIP FILE!!!
 #include "QuestEditor.HC";
 extern U0 SexyCeiling(I64 x,I64 y);
 F64 Lerp(F64 per,F64 min,F64 max) {
-F64 t;
-return Clamp(min+(max-min)*per,Min(min,max),Max(max,min));
+  return Clamp(min+(max-min)*per,Min(min,max),Max(max,min));
 }
 #define GRID_SZ 16
 #define DIST_SCALE (GRID_SZ*GR_WIDTH)
@@ -63,7 +62,7 @@ class CLevelSegment:CQue {
 
 class CFileThingData {
   U8 chat_bot_name[32];
-  U8 pad[32];
+  U8 drop_item_name[32];
   U8 pad[32];
   U8 pad[32];
 };
@@ -693,7 +692,28 @@ U0 DrawThingBar(CDC *dc,CTask *task) {
   GrPutS(dc,x,y,str);
   Free(str);
 }
-U0 DrawThingSexy(CDC *dc,I64 dispx,I64 dispy,F64 x,F64 y,CDC *thing,U8 *subtitle=NULL) {
+//Centers for you
+U0 DrawSubtitleForThing(CDC *dc,I64 x,I64 y,CLevelThing *thing) {
+  U8 *str;
+  I64 idx;
+  if(Blink)
+    dc->color=YELLOW;
+  else dc->color=RED;
+  for(idx=0;idx!=4;idx++) {
+    str=NULL;
+    if(thing->data.chat_bot_name[0]&&idx==0) {
+      str=MStrPrint("Quest:%s",thing->data.chat_bot_name);
+    } else if(idx==1&&thing->data.drop_item_name[0]) {
+      str=MStrPrint("Drop:%s",thing->data.drop_item_name);
+    }
+    if(str) {
+      GrPutS(dc,x-StrLen(str)*4,y,str);
+      y+=8;
+    }
+    Free(str);
+  }
+}
+U0 DrawThingSexy(CDC *dc,I64 dispx,I64 dispy,F64 x,F64 y,CDC *thing,U8 *who=NULL) {
   CLevelSegment *segment=GetSegmentForPos(x/GRID_SZ,y/GRID_SZ);
   if(!segment) return;
   I64 height=segment->heights[ToI64(x/GRID_SZ)-segment->xoff][ToI64(y/GRID_SZ)-segment->yoff];
@@ -703,24 +723,16 @@ U0 DrawThingSexy(CDC *dc,I64 dispx,I64 dispy,F64 x,F64 y,CDC *thing,U8 *subtitle
   x=(x-GR_WIDTH/2+dispx)*width/16+GR_WIDTH/2;
   y=(y-GR_HEIGHT/2+dispy)*width/16+GR_HEIGHT/2;
   GrBlot(dc,x-thing->width/2,y-thing->height/2,thing); 
-  if(subtitle) {
-    if(Blink)
-      dc->color=YELLOW;
-    else dc->color=RED;
-    l=StrLen(subtitle)*8;
-    GrPutS(dc,x-l/2,y+thing->height/2,subtitle);
-  }
+  y+=thing->height/2;
+  if(who) DrawSubtitleForThing(dc,x,y,who);
 }
-U0 DrawThingDumb(CDC *dc,I64 dispx,I64 dispy,I64 x,I64 y,CDC *thing,U8 *subtitle=NULL) {
+U0 DrawThingDumb(CDC *dc,I64 dispx,I64 dispy,I64 x,I64 y,CDC *thing,U8 *who=NULL) {
   I64 l;
-  GrBlot(dc,x-thing->width/2+dispx,y-thing->height/2+dispy,thing); 
-  if(subtitle) {
-    if(Blink)
-      dc->color=YELLOW;
-    else dc->color=RED;
-    l=StrLen(subtitle)*8;
-    GrPutS(dc,dispx+x-l/2,y+thing->height/2+dispy,subtitle);
-  }
+  x=x-thing->width/2+dispx;
+  y=y-thing->height/2+dispy;
+  GrBlot(dc,x,y,thing); 
+  y+=thing->height;
+  if(who) DrawSubtitleForThing(dc,x,y,who);
 }
 U0 DrawSegmentThings(CTask *t,CDC *dc) {
   CLevelSegment *segment=world_edit.segments.next;
@@ -728,19 +740,15 @@ U0 DrawSegmentThings(CTask *t,CDC *dc) {
   CLevelThingTemplate *template;
   I64 x,y,xspan,yspan;
   I64 tx=world_edit.base_x/GRID_SZ,ty=world_edit.base_y/GRID_SZ;
-  U8 *subtitle;
   while(segment!=&world_edit.segments) {
     thing=segment->things.next;
     while(thing!=&segment->things) {
       template=world_edit.thing_templates[thing->thing_template_idx];
-      subtitle=NULL;
-      if(thing->data.chat_bot_name[0])
-	subtitle=thing->data.chat_bot_name;
       if(template->front_dc) {
         if(world_edit.flat_mode) {
-	  DrawThingDumb(dc,world_edit.base_x,world_edit.base_y,thing->x*GRID_SZ,thing->y*GRID_SZ,template->front_dc,subtitle);
+	  DrawThingDumb(dc,world_edit.base_x,world_edit.base_y,thing->x*GRID_SZ,thing->y*GRID_SZ,template->front_dc,thing);
         } else 
-	  DrawThingSexy(dc,world_edit.base_x,world_edit.base_y,thing->x*GRID_SZ,thing->y*GRID_SZ,template->front_dc,subtitle);
+	  DrawThingSexy(dc,world_edit.base_x,world_edit.base_y,thing->x*GRID_SZ,thing->y*GRID_SZ,template->front_dc,thing);
       }
       dc->color=WHITE;
 //	  GrPutS(dc,x-StrLen(template->name)*8/2,y+16-4,template->name);
@@ -2120,6 +2128,30 @@ save:
       tx=FloorI64(tx,GRID_SZ)/16;
       ty=FloorI64(ty,GRID_SZ)/16;
       SexyCeiling(tx,ty);
+    } else if(Bt(kbd.down_bitmap,Char2ScanCode('i'))) {
+      MouseToPos(world_edit.ms_x,world_edit.ms_y,&tx,&ty);
+      tx=FloorI64(tx,GRID_SZ)/16;
+      ty=FloorI64(ty,GRID_SZ)/16;
+      segment=GetSegmentForPos(tx,ty);
+      if(segment) {
+        for(thing=segment->things.next;thing!=&segment->things;thing=thing->next) {
+	  if(ToI64(thing->x)-1.5<=tx<ToI64(thing->x)+1.5)
+	    if(ToI64(thing->y)-1.5<=ty<ToI64(thing->y)+1.5) {
+//TODO undo
+	      old_flat=world_edit.flat_mode;
+	      world_edit.flat_mode=TRUE;
+	      if(!thing->data.drop_item_name[0]) {
+		str=PopUpGetStr("Drop Item class name:");
+		if(str)
+	          StrCpy(thing->data.drop_item_name,str);
+		Free(str);
+	      } else if(PopUpNoYes("Remove item for thing?")){
+	        StrCpy(thing->data.drop_item_name,"");
+	      }
+	      world_edit.flat_mode=old_flat;
+	    }
+        }
+      }
     } else if(Bt(kbd.down_bitmap,Char2ScanCode('d'))) {
       MouseToPos(world_edit.ms_x,world_edit.ms_y,&tx,&ty);
       tx=FloorI64(tx,GRID_SZ)/16;

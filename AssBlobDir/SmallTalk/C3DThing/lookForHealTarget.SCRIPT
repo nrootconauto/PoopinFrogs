@@ -1,0 +1,18 @@
+lookForHealTarget ->C3DThing
+|
+  things=CFrogArray
+  p=CPlayer
+|
+  p _ #world getPlayer .
+  things _ #world getThingsInRadiusFromX: x fromY: y withRadius: 16 * 128 .
+  things do: [:t=C3DThing |
+    'Make sure not a door'.
+    ((t hasClass: C3DThing) and: p ~= t) ifTrue: [
+      ((t hasClass: CRocket) not and: t->health <= 0. ) ifTrue: [
+        ((self canSeeThing: t) and: t ~= self) ifTrue: [
+          ^ t
+        ] .
+      ]
+    ].
+  ] .
+  ^ 0.

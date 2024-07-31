@@ -18,7 +18,7 @@ update->*
   health <= 0 ifTrue: [
     floating _ 0 .
     (state ~= 'Dead') ifTrue: [
-       w sweepNoiseForTime: 500 withMin: 40 withMax: 17 .
+       w sweepSoundForTime: 500 withMin: 40 withMax: 17 .
        momz _ 0 .
        momx2 _ 0 .
        momy2 _ 0 .
@@ -28,6 +28,7 @@ update->*
        animation_start_tS _ now .
        template _ w getThingTemplate: 'CAssBird/Dead' .
        state _ 'Dead' .
+       self dropItem .
     ].
     ^ 1
   ] .
@@ -39,18 +40,22 @@ update->*
   steps_to_walk _ steps_to_walk - 1 .
 
   
-  'Attack for 3 seconds then return to healing dead assholes'.
+  'Attack for 5 seconds then return to healing dead assholes'.
   (state = 'Chase0') ifTrue: [
-     now < (state_start_tS + 3) ifTrue: [
+     made_sound ifFalse: [
+        made_sound _ 1 .
+        w sweepSoundForTime: 1500 withMin: 30 withMax: 70 .
+     ] .
+     now < (state_start_tS + 5) ifTrue: [
        speed _ 50 .
        'rise above target  before attack' .
        self wanderFly: speed withTarget: target .
        momz _ (target->z + 1.5 - z) * .1 .
-       'Wait at least .4 seconds before attempting attack'.
-       (state_start_tS + 1) < now ifTrue:  [
+       'Wait at least 2 seconds before attempting attack'.
+       (state_start_tS + 2) < now ifTrue:  [
          dist _ (target->x - x ) squared + (target->y - y ) squared  .
          dist < (2.5 * 128 ) squared ifTrue: [
-           w sweepNoiseForTime: 500 withMin: 30 withMax: 70 .
+           w sweepSoundForTime: 500 withMin: 30 withMax: 70 .
            lightning_bolt shootAtX: target->x atY: target->y atZ: target->z + .1 .
            state _ 'Wander' .
            state_start_tS _ now .
@@ -63,6 +68,7 @@ update->*
              'TODO angry graphics'.
              state_start_tS _ now .
              state _ 'Chase1' .
+             made_sound _ 0 .
              angle _ target->x - x arg: target->y - y .
              momx2 _ 0 .
              momy2 _ 0 .
@@ -73,7 +79,8 @@ update->*
          ] .
        ] .
      ] ifFalse: [
-      state _ 'Wander' .
+       state _ 'Wander' .
+       made_sound _ 0 .
      ] .
   ] .
 
@@ -85,6 +92,7 @@ update->*
     ((target hasClass: C3DThing) and: (self canSeeThing: target)) ifTrue: [
       target->health > 0. ifTrue: [
         state _ 'Chase0' .
+        made_sound _ 0 .
         state_start_tS _ now .
       ]
     ] .
@@ -94,6 +102,7 @@ update->*
   state = 'Chase1' ifTrue: [
     now > (state_start_tS + 5. ) ifTrue: [
       state _ 'Wander' .  
+      made_sound _ 0 .
     ] . 
     'Throw shit towards at the player' .
     random_generator next < (5 / 10) ifTrue: [
@@ -111,14 +120,15 @@ update->*
     ] .
     self isOnGround ifTrue: [
       state _ 'Wander' .
+      made_sound _ 0 .
     ] .
     ^ 1 .
   ] .
 
   (state = 'Wander' ) ifTrue:[
-    speed _ 5 .
+    speed _ 25 .
     'Look for dead things to ressurect '.
-    things _ w getThingsInRadiusFromX: x fromY: y withRadius: 28 * 128 .
+    things _ w getThingsInRadiusFromX: x fromY: y withRadius: 10 * 128 .
     things _ things select: [:t=C3DThing| t ->health <= 0 and: (t hasClass: CPickup) not ] .
     best_dist _ 16000 * 16000 .
     things do: [:t=C3DThing|
@@ -129,22 +139,27 @@ update->*
            best_dist _ dist .
            state _ 'Heal0' .
            target _ t .
+           made_sound _ 0 .
          ]
        ] .
     ] .
 
     (target hasClass: C3DThing) ifFalse: [
       self wander: speed .
+    ] ifFalse: [
+      self wanderFly: speed withTarget: target .
     ] .
   ].
 
   'Get close to entity to heal it'.
   state = 'Heal0' ifTrue: [
-    speed _ 20 .
+    speed _ 25 .
     self wanderFly: speed withTarget: target .
     dist _ (target->x - x ) squared + (target->y - y) squared .
+    dist sqrt show .
     dist < (6 * 128) squared ifTrue: [
       state _ 'Heal1' .
+      made_sound _ 0 .
       state_start_tS _ now .
     ] .
   ] .
@@ -158,15 +173,17 @@ update->*
        w newParticleAtX: x atY: y atZ: z +.5 withSpread: 128 withColor: #color_YELLOW .
      ] .
      'Bring back to life(remove/init)' .
-     w sweepNoiseForTime: 500 withMin: 30 withMax: 70 .
+     w sweepSoundForTime: 500 withMin: 30 withMax: 70 .
      w removeThing: target .
      target init .
      lightning_bolt shootAtX: target->x atY: target->y atZ: target->z + .1 .
      state _ 'Wander' .
+     made_sound _ 0 .
      target _ 0 .
    ] ifFalse:  [
      'Look for new target if havent found homie in 4 seconds' .
      now > (state_start_tS + 4 )  ifTrue: [
+       made_sound _ 0 .
        state _ 'Wander' .
        target _ 0 . 
      ] .
