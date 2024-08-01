@@ -26,7 +26,7 @@ update->* |
       pickup -> z _ z .
       pickup -> template _ w getThingTemplate: 'CPoopMan/Dead' .
       state _ 'Dead' .
-      self dropItem .
+      self die .
       pickup -> animation_no_repeat _ 1 .
       pickup -> animation_start_tS _ tS .
     ]
@@ -103,3 +103,4 @@ update->* |
       steps_to_walk _ random_generator next * 10 * 3 .
     ] .    
   ] .
+ 

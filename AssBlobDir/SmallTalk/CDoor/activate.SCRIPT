@@ -10,6 +10,11 @@ activate->CFrogNum |
     world->doors do:[:d=CDoor|
       ((d->x - x) abs < 1.1 or: (d->y - y) abs < 1.1 ) ifTrue: [
         d->activated ifFalse: [
+'Inherit LOCKed properites of the adjacent door' .
+'This is used when update-ing doors to avoid having adjacent doors open again' .
+          d->small_key _ small_key .
+          d->big_key _ big_key .
+          d->tag _ tag .
           d activate
         ] .
       ] .

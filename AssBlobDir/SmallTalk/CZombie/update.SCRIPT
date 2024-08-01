@@ -14,7 +14,7 @@ update -> * |
       template  _ #world getThingTemplate: 'CZombie/Dead' .
       w sweepSoundForTime: 300 withMin: 30 withMax: 20 .
       state _ 'Dead' .
-      self dropItem .
+      self die .
       animation_start_tS _ CFrogTime now asSeconds .
       animation_no_repeat _ 1 .
     ] .

@@ -28,7 +28,7 @@ update->*
        animation_start_tS _ now .
        template _ w getThingTemplate: 'CAssBird/Dead' .
        state _ 'Dead' .
-       self dropItem .
+       self die .
     ].
     ^ 1
   ] .

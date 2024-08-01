@@ -47,7 +47,7 @@ class CFileThing {
   F64 x,y,rot;
   U8 chat_bot_name[32];
   U8 drop_item_name[32];
-  U8 pad[32];
+  U8 activate_tag[32];
   U8 pad[32];
 };
 #define DOORF_SMALL_KEY 1
@@ -57,7 +57,8 @@ class CFileThing {
 class CFileDoor {
   I64 x,y,act_as_wall;
   F64 height;
-  I64 flags;
+  I32 flags;
+  I32 tag;
 };
 class CFileWorld {
    I64 w,h;
@@ -300,6 +301,10 @@ C3DWorld *LoadWorldFromFile(U8 *blob_file="ASS",U8 *filename,F64 fov=pi/4) {
       tmp=AsString(template->name);
       if(thing=ConstructThing(tmp)) {
         if(ThingHasClass(thing,"C3DThing")) {
+	  if(fptr(CFileThing*)->activate_tag[0])
+	    thing->activate_tag=Str2I64(fptr(CFileThing*)->activate_tag);
+	  else
+	    thing->activate_tag=0;
 	  thing->x=fptr(CFileThing*)->x*GRID_SZ-xoff;
 	  thing->y=fptr(CFileThing*)->y*GRID_SZ-yoff;
 	  thing->angle=fptr(CFileThing*)->rot;
@@ -329,6 +334,7 @@ C3DWorld *LoadWorldFromFile(U8 *blob_file="ASS",U8 *filename,F64 fov=pi/4) {
     door->big_key=fptr(CFileDoor*)->flags&DOORF_BIG_KEY;
     door->rise_to_ceiling=fptr(CFileDoor*)->flags&DOORF_TO_CEILING;
     door->side_door=fptr(CFileDoor*)->flags&DOORF_SIDE_DOOR;
+    door->tag=fptr(CFileDoor*)->tag;
     fptr(CFileDoor*)++;
     CallScript("addDoor:",man,door);
   }
@@ -1498,17 +1504,6 @@ ent:
       h2=DIST_SCALE/(dist2+1);
       if(DrawIsBlocked(w,x,0,GR_HEIGHT,dist))
 	goto fin;
-      if(door=w->door_mat[idx]) {
-        if(door->percent>.03)
-          top=door->height*door->percent+w->heightmap[idx];
-        else
-          top=door->height*.03+w->heightmap[idx];
-        y0=GR_HEIGHT/2-h*(top-w->cam_height);
-        if(top<w->cam_height)
-          ColorFloor(w,x,top,y0,GR_HEIGHT/2-h2*(height_cap-w->cam_height),w->wall_textures[door->act_as_wall]);
-        DrawWallSegment(w,segment,x,y0,w->wall_textures[door->act_as_wall],h*door->percent*door->height,dist,w->heightmap[idx]-1+door->height,idx,side);
-        AddWallCommand(w,x,y0,I16_MAX,dist);
-      }
 draw_floor:
 //Dont straight lines on blocks with same height(hidden)
       if(last_height>w->cam_height)
@@ -1581,6 +1576,18 @@ draw_floor:
         AddWallCommand(w,x,y0,I16_MAX,dist);
       }
 ceil2:      
+//Draw the Door after the floor(adds wall command)
+      if(door=w->door_mat[idx]) {
+        if(door->percent>.03)
+          top=door->height*door->percent+w->heightmap[idx];
+        else
+          top=door->height*.03+w->heightmap[idx];
+        y0=GR_HEIGHT/2-h*(top-w->cam_height);
+        if(top<w->cam_height)
+          ColorFloor(w,x,top,y0,GR_HEIGHT/2-h2*(height_cap-w->cam_height),w->wall_textures[door->act_as_wall]);
+        DrawWallSegment(w,segment,x,y0,w->wall_textures[door->act_as_wall],h*door->percent*door->height,dist,w->heightmap[idx]-1+door->height,idx,side);
+        AddWallCommand(w,x,y0,I16_MAX,dist);
+      }
       if(dist2<2.||dist<2.)
 	goto ent;
       ceil=w->ceilmap[idx];
@@ -2494,7 +2501,7 @@ AddMethod("C3DWorldManager","screenCoordIsOnFloor",&ScreenCoordOnFloor);
 // Test section
 //
 #ifdef TEST_3D
-  DocClear;
+ DocClear;
 #include "UI.HC"
 LoadWorldFromFile(,"Untitled.WORLD");
 I64 mp_thing_done=0;
@@ -2770,10 +2777,6 @@ en:
   FlushMsgs;
   Fs->draw_it=NULL;
   Refresh;
-//  ProfRep;
-/*  FrogNullifySymbols;
-FrogGarbageCollect;
-HeapWho(Fs);*/
 }
 WalkAround;
 #endif

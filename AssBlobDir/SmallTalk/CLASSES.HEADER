@@ -191,7 +191,7 @@ class C3DThingTemplate:CFrogThing {
 };
 extern class CEliza;
 class C3DThing:CFrogThing {
-  CFrogClass *drop_thing;
+  CFrogClass *drop_thing;
   C3DThingTemplate *template no_serialize 1;
   F64 x,y,z,angle,health;
   F64 momx,momy,momz,animation_start_tS;
@@ -202,9 +202,11 @@ class C3DThing:CFrogThing {
   CFrogStr *template_name;
   CEliza *chat_bot no_serialize 1;
   CFrogStr *chat_bot_name;
+  I64 activate_tag;
   Bool no_fall_off_edge;
   Bool floating;
   Bool hit_thing; //Set by physics when we hit a thing
+  Bool pad[8-3];
 };
 class C3DWorldManager:CFrogThing {
   U8 *world_handle;
@@ -496,6 +498,7 @@ class CDoor:CFrogThing {
   F64 speed;
   F64 open_duration;
   I64 x,y,act_as_wall;
+  I64 tag;
   Bool activated;
   Bool side_door,small_key,big_key,rise_to_ceiling;
 };

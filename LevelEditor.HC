@@ -98,7 +98,8 @@ class CLevelThing:CQue {
 class CLevelDoor:CQue {
   I64 x,y,act_as_tile;
   F64 ceil_rise;
-  I64 flags;
+  I32 flags;
+  I32 tag;
 };
 class CLevelSegmentAddThing:CQue {
   I64 type;
@@ -237,7 +238,8 @@ class CFileThingTemplate {
 class CFileDoor {
   I64 x,y,act_as_tile;
   F64 ceil_rise;
-  I64 flags;
+  I32 flags;
+  I32 tag;
 };
 class CFileThing {
   U16 thing_template_idx;
@@ -425,6 +427,7 @@ U0 LevelEditorExport(U8 *blob,U8 *filename) {
       fptr(CFileDoor*)->act_as_tile=door->act_as_tile;
       fptr(CFileDoor*)->ceil_rise=door->ceil_rise;
       fptr(CFileDoor*)->flags=door->flags;
+      fptr(CFileDoor*)->tag=door->tag;
       fptr(CFileDoor*)++;
       door=door->next;
     }
@@ -706,6 +709,8 @@ U0 DrawSubtitleForThing(CDC *dc,I64 x,I64 y,CLevelThing *thing) {
       str=MStrPrint("Quest:%s",thing->data.chat_bot_name);
     } else if(idx==1&&thing->data.drop_item_name[0]) {
       str=MStrPrint("Drop:%s",thing->data.drop_item_name);
+    } else if(idx==2&&thing->data.activate_tag[0]) {
+      str=MStrPrint("Trigger:%s",thing->data.activate_tag);
     }
     if(str) {
       GrPutS(dc,x-StrLen(str)*4,y,str);
@@ -1047,8 +1052,28 @@ U0 MouseToPos(I64 ms_x,I64 ms_y,I64 *_x,I64 *_y) {
   if(_x) *_x=x*16;
   if(_y) *_y=y*16;
 }
+U0 DrawTitleForDoor(CDC *dc,I64 x,I64 y,CLevelDoor *door) {
+  U8 *str=CAlloc(STR_LEN);
+  StrCpy(str,"Door ");
+  I64 idx;
+  if(Blink)
+    dc->color=YELLOW;
+  else dc->color=RED;
+  if(door->flags&DOORF_SMALL_KEY)
+    CatPrint(str,"SmallKey");
+  else if(door->flags&DOORF_BIG_KEY)
+    CatPrint(str,"BigKey");
+  else if(door->flags&DOORF_SIDE_DOOR)
+    CatPrint(str,"Side");
+  else if(door->tag)
+    CatPrint(str,"Tag(%d)",door->tag);
 
-U0 DrawDoorSexy(CDC *dc,I64 dispx,I64 dispy,CDC *top,CDC *side,I64 tx,I64 ty,F64 rise,Bool highlight=FALSE) {
+  StrUtil(str,SUF_REM_SPACES);
+  GrPutS(dc,x-StrLen(str)*4,y,str);
+  Free(str);
+}
+
+U0 DrawDoorSexy(CDC *dc,I64 dispx,I64 dispy,CDC *top,CDC *side,I64 tx,I64 ty,F64 rise,Bool highlight=FALSE,CLevelDoor *door) {
   CLevelSegment *s=GetSegmentForPos(tx,ty);
   F64 height=s->heights[tx-s->xoff][ty-s->yoff];
   height+=rise;
@@ -1104,11 +1129,7 @@ U0 DrawDoorSexy(CDC *dc,I64 dispx,I64 dispy,CDC *top,CDC *side,I64 tx,I64 ty,F64
       dc->color=(TRANSPARENT<<16)|LTCYAN|ROPF_DITHER;
     GrRect(dc,sx,sy,ex-sx+2,ey-sy+2);
   }
-  if(Blink)
-    dc->color=BLUE;
-  else
-    dc->color=RED;
-  GrPutS(dc,x-16,y-4,"Door");
+  DrawTitleForDoor(dc,x,y-4,door);
   if(side)
     for(xoff=-1;xoff<2;xoff++)
       for(yoff=-1;yoff<2;yoff++)
@@ -1135,7 +1156,8 @@ U0 DrawSegmentDoors(CTask *t,CDC *dc) {
 	  DrawDoorSexy(dc,world_edit.base_x,world_edit.base_y,
 	        txr->dc,
 	        txr->wall_dc,
-	        door->x,door->y,door->ceil_rise,door->x==atx&&door->y==aty);
+	        door->x,door->y,door->ceil_rise,door->x==atx&&door->y==aty,
+		door);
         }
       }
       door=door->next;
@@ -1261,8 +1283,9 @@ class CDoorFlags {
   Bool big_key format "$$CB,\"Big Key\"$$\n";
   Bool side_door format "$$CB,\"Side Door(opened w/ other doors)\"$$\n";
   Bool to_ceiling format "$$CB,\"Rise to ceiling\"$$\n";
+  I64 tag format "$$DA-TRM,A=\"Tag Number:%12d\"$$\n";
 };
-I64 DoorFlagsForm() {
+U0 DoorFlagsForm(CLevelDoor *door) {
   I64 ret=0;
   CDoorFlags df;
   MemSet(&df,0,sizeof CDoorFlags);
@@ -1271,8 +1294,11 @@ I64 DoorFlagsForm() {
   if(df.big_key)  ret|=DOORF_BIG_KEY;
   if(df.side_door)  ret|=DOORF_SIDE_DOOR;
   if(df.to_ceiling)  ret|=DOORF_TO_CEILING;
-  return ret;
+  door->flags=ret;
+  door->tag=df.tag;
 }
+
+
 CLevelDoor *InsertDoor(I64 tx,I64 ty,Bool ask=FALSE,Bool undo=TRUE) {
   CLevelSegment *seg=GetSegmentForPos(tx,ty);
   CLevelDoor *d;
@@ -1300,7 +1326,7 @@ CLevelDoor *InsertDoor(I64 tx,I64 ty,Bool ask=FALSE,Bool undo=TRUE) {
     old=world_edit.flat_mode;
     world_edit.flat_mode=TRUE;
     d->ceil_rise=PopUpRangeI64(1,16,,"Door Height");
-    d->flags=DoorFlagsForm;
+    DoorFlagsForm(d);
     world_edit.flat_mode=old;
   } else
     d->ceil_rise=1;
@@ -1312,6 +1338,7 @@ CLevelDoor *InsertDoor(I64 tx,I64 ty,Bool ask=FALSE,Bool undo=TRUE) {
     edit_door->flags=d->flags;
     edit_door->ceil_rise=d->ceil_rise;
     edit_door->act_as_tile=d->act_as_tile;
+    edit_door->tag=d->tag;
     QueIns(edit_door,world_edit.edits.last);
   }
   QueIns(d,seg->doors.last);
@@ -1595,6 +1622,7 @@ U0 LoadWorld(U8 *blob,U8 *filename) {
     door=InsertDoor(doors[cap].x,doors[cap].y,,FALSE);
     door->ceil_rise=doors[cap].ceil_rise;
     door->flags=doors[cap].flags;
+    door->tag=doors[cap].tag;
   }
   f_texture=textures;
   cap=w->textures_where.len;
@@ -1913,6 +1941,7 @@ U0 WorldEdit(U8 *blob,U8 *filename=NULL) {
   I64 m1,m2;
   I64 tx,ty;
   I64 ch2,old;
+  I64 activate;
   I64 idx;
   I64 tile; //i32[0]==x,.i32[1]==y
   I64 last_wheel=ms.pos.z;
@@ -2097,7 +2126,33 @@ save:
     }
     world_edit.at_x=world_edit.base_x+world_edit.ms_x;
     world_edit.at_y=world_edit.base_y+world_edit.ms_y;
-    if(Bt(kbd.down_bitmap,Char2ScanCode('q'))) {
+    if(Bt(kbd.down_bitmap,Char2ScanCode('t'))) {
+      MouseToPos(world_edit.ms_x,world_edit.ms_y,&tx,&ty);
+//Right click will decrease/increase ceil2 height or make/erase a ceiling
+      tx=FloorI64(tx,16)/16;
+      ty=FloorI64(ty,16)/16;
+      tile.i32[0]=tx;
+      tile.i32[1]=ty;
+      segment=GetSegmentForPos(tx,ty);
+      if(segment) {
+        for(thing=segment->things.next;thing!=&segment->things;thing=thing->next) {
+	  if(ToI64(thing->x)-1.5<=tx<ToI64(thing->x)+1.5)
+	    if(ToI64(thing->y)-1.5<=ty<ToI64(thing->y)+1.5) {
+//TODO undo
+	      old_flat=world_edit.flat_mode;
+	      world_edit.flat_mode=TRUE;
+	      activate=PopUpGetI64("Activate tag on death:",INVALID_PTR,I32_MIN,I32_MAX);
+	      if(activate==INVALID_PTR)
+	        StrCpy(thing->data.activate_tag,"");
+	      else
+	        StrPrint(thing->data.activate_tag,"%d",activate);
+	      world_edit.flat_mode=old_flat;
+	      break;
+	    }
+        }
+      } 
+
+    } else if(Bt(kbd.down_bitmap,Char2ScanCode('q'))) {
       MouseToPos(world_edit.ms_x,world_edit.ms_y,&tx,&ty);
 //Right click will decrease/increase ceil2 height or make/erase a ceiling
       tx=FloorI64(tx,16)/16;
@@ -2121,6 +2176,7 @@ save:
 	        QuestEditor(,thing->data.chat_bot_name);
 	      }
 	      world_edit.flat_mode=old_flat;
+	      break;
 	    }
         }
       } 
@@ -2150,6 +2206,7 @@ save:
 	        StrCpy(thing->data.drop_item_name,"");
 	      }
 	      world_edit.flat_mode=old_flat;
+	      break;
 	    }
         }
       }

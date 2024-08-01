@@ -1,0 +1,16 @@
+activateByTag: what=CFrogNum  ->CFrogNum
+|
+  player=CPlayer
+|
+  activated ifTrue: [^ 0 . ] .
+  player _ #world getPlayer .
+  'tagh/what' show .
+  tag show .
+  what show .
+  tag = what ifTrue: [
+'opendoortag' show .
+    player displayMessage: 'A Door jit fuckin opened' .
+    self activate .
+    ^ 1 .
+  ] .
+  ^ 0

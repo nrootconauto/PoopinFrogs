@@ -22,7 +22,7 @@ update ->*
     animation_no_repeat _ 1 .
       template _ w getThingTemplate: 'CCyberPoop/Dead'.
     state _ 'Dead' .
-    self dropItem .
+    self die .
     ^ 0 
   ] .
 

@@ -11,7 +11,7 @@ update ->* |
   health <= 0 ifTrue: [
     new_t _ #world getThingTemplate: 'CFrogNPC/DEAD' .
     new_t ~= template ifTrue: [
-      self dropItem .
+      self die .
       animation_start_tS _ CFrogTime now asSeconds .
       animation_no_repeat _ 1 .
       template _  new_t .

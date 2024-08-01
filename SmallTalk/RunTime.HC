@@ -1270,24 +1270,24 @@ CFrogThing *FrogThingShow(CFrogStr *self,...) {
       FrogThingShow(msg);
       break;
     } else if(ThingHasClass(self,"CFrogNum",FROG_SMALL_NUM)) {
-      "%n\n",AsF64(self);
+      DbgPrint("%n\n",AsF64(self));
       break;
     } else if(ThingHasClass(self,"CFrogChr")) {
-      "%c\n",AsChar(self);
+      DbgPrint("%c\n",AsChar(self));
       break;
     } else if(ThingHasClass(self,"CFrogStr")) {
       idx=0;
       items_str=self(CFrogStr*)->items;
-      "'";
+      DbgPrint("'");
       for(idx=0;idx<items_str->cnt;idx++)
-        "%c",items_str->body[idx];
-      "'\n";
+        DbgPrint("%c",items_str->body[idx]);
+      DbgPrint("'\n");
       break;
     } else  {
       if(!(self&1))
-        "<%s.%x>\n",self->class_name,self;
+        DbgPrint("<%s.%x>\n",self->class_name,self);
       else
-        "???\n";
+        DbgPrint("???\n");
       break;
     }
   }

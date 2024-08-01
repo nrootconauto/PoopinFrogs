@@ -5,6 +5,7 @@ activateBy: t=C3DThing  ->CFrogNum
   key=CHandItem
   locked=CFrogNum
 |
+  tag ifTrue: [^ 0. ] .
   activated ifTrue: [^ 0 . ] .
   player _ #world getPlayer .
   key _ 0 .
