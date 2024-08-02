@@ -1,4 +1,32 @@
-addWallStain: s=CWallStain ->* | new=CWallStain |
+addWallStain: s=CWallStain ->* 
+|
+  new=CWallStain
+  color=CFrogNum
+  type=CFrogNum
+|
+
+  (self floorIsLiquidAtX: s->tile->x atY: s->tile->y) ifTrue: [
+    'HACK alert; spawn colored particles on impact.' .
+    type _ self floorAtX: s->tile->x atY: s->tile->y .
+    type = 6 ifTrue: [
+      'water' .
+      color _ #color_LTBLUE .
+    ].
+    type = 10 ifTrue: [
+      'lava' .
+      color _ #color_LTRED .
+    ] .
+    0 to: 5 do: [
+      self newParticleAtX: s->tile->x * 128 + 64
+        atY: s->tile->y * 128 + 64 
+        atZ: (self tileHeightAtX: s->tile->x atY: s->tile->y)+ .3
+        withSpread: 32
+        withColor:  color .
+    ] .
+    ^ 0 .
+  ] .
+
+
   wall_stains do: [:s2=CWallStain |
     (s->tile->x = s2->tile->x and: s->tile->y = s2->tile->y) ifTrue: [
       s getSide = s2 getSide ifTrue: [

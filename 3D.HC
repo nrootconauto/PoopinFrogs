@@ -63,7 +63,14 @@ U64 Fog(I64 color,I64 dist) {
   return fog2_table[color];
 }
 
-
+Bool IsLiquidTile(I64 t) {
+  switch(t) {
+    case 6: //water
+    case 10: //lava
+      return TRUE;
+  }
+  return FALSE;
+}
 
 F64 Frog_tS() {
   return tS+frog_time_offset;
@@ -903,6 +910,32 @@ again:
   }
   return ret;
 }
+
+Bool IsOnWaterTile(C3DThing *t) {
+  I64 tx=t->x/GRID_SZ,ty=t->y/GRID_SZ,idx;
+  if(0<=tx<w->world_width)
+    if(0<=ty<w->world_height) {
+      idx=tx+ty*w->world_width;
+      if(w->heightmap[idx]+.001>=t->z) {
+	if(w->world_mat[idx].u8[0]==5)
+	  return TRUE;
+      }
+    }
+  return FALSE;
+}
+Bool IsOnLavaTile(C3DThing *t) {
+  I64 tx=t->x/GRID_SZ,ty=t->y/GRID_SZ,idx;
+  if(0<=tx<w->world_width)
+    if(0<=ty<w->world_height) {
+      idx=tx+ty*w->world_width;
+      if(w->heightmap[idx]+.001>=t->z) {
+	if(w->world_mat[idx].u8[0]==10)
+	  return TRUE;
+      }
+    }
+  return FALSE;
+
+}
 U0 PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm,F64 last_tS) {
   I64 wx=t->x/GRID_SZ,wy=t->y/GRID_SZ;
   if(!(0<=wx<w->world_width))
@@ -943,11 +976,20 @@ U0 PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm,F64 last_tS) {
       } else if(t->momy>0.&&t->momy2<0.)
          t->momy=Max(0,t->momx+t->momy2);
     }
+//Handle slow
+    if(ThingHasClass(t,"CPlayer")) {
+      t->friction=0.;
+      if(IsOnWaterTile(t)) {
+        t->friction=.25;
+      } else if(IsOnLavaTile(t)) {
+        t->friction=.5;
+      } 
+    }
     if(Abs(t->momx)<2) t->momx=0;
     if(Abs(t->momy)<2) t->momy=0;
     angle=Arg(t->momx+t->momx2,t->momy+t->momy2);
     i_am_moving=TRUE;
-    dist=Sqrt(Sqr(t->momx+t->momx2)+Sqr(t->momy+t->momy2));
+    dist=Sqrt(Sqr(t->momx+t->momx2)+Sqr(t->momy+t->momy2))*(1.-t->friction);
     on_ground=AsF64(CallScript("isOnGround",t));
     if(C3DWorldMoveWithCollision(w,angle,dist*weight,
 	&t->x,
@@ -2313,6 +2355,7 @@ CFrogThing *WorldManagerNewParticle(C3DWorldManager *man,...) {
   NewParticle(w,color,16,x,y,z,spread*(Rand-.5),spread*(Rand-.5),man->gravity*3);
   return FROG_SMALL_NIL;
 }
+
 AddMethod("C3DWorldManager","newParticleAtX:atY:atZ:withSpread:withColor:",&WorldManagerNewParticle);
 CFrogThing *WorldManagerNewSweepSound(C3DWorldManager *man,...) {
   if(man->sound_task) Kill(man->sound_task,FALSE);
@@ -2341,6 +2384,16 @@ CFrogThing *WorldManagerGetQuestChatBot(C3DWorldManager *man,...) {
   return e;
 }
 AddMethod("C3DWorldManager","getQuestChatBot:",&WorldManagerGetQuestChatBot);
+Bool WorldManagerFloorIsLiquid(C3DWorldManager *man,...) {
+  I64 x=AsF64(argv[0]);
+  I64 y=AsF64(argv[1]);
+  I64 tile=x+y*w->world_width;
+  if(0<=tile<w->world_width*w->world_height) {
+    return FrogNumNew(IsLiquidTile(w->world_mat[tile].u8[0]));
+  }
+  return FrogNumNew(0);
+}
+AddMethod("C3DWorldManager","floorIsLiquidAtX:atY:",&WorldManagerFloorIsLiquid);
 
 //Returns 1. if COLLISION,else 0
 CFrogThing *C3DThingMoveAtAngle(C3DThing *self,...) {
@@ -2532,6 +2585,20 @@ CFrogThing *HandItemSetGr(CHandItem *self,...) {
   return FROG_SMALL_NIL;
 }
 AddMethod("CHandItem","setGraphics:",&HandItemSetGr);
+
+AddMethod("C3DWorldManager","tileHeightAtX:atY:",&WorldManagerTileHeightAtXAtY);
+CFrogThing *WorldManagerFloorAtXAtY(C3DWorldManager *self,...) {
+  I64 x=AsF64(argv[0]);
+  I64 y=AsF64(argv[1]);
+  if(0<=x<w->world_width)
+    if(0<=y<w->world_height) {
+      return FrogNumNew(w->world_mat[x+y*w->world_width].u8[0]);
+    }
+  return FrogNumNew(-1);
+}
+AddMethod("C3DWorldManager","floorAtX:atY:",&WorldManagerFloorAtXAtY);
+
+
 U0 HandItemDel(CHandItem *i) {
   if(i->gr) AnimDCDel(i->gr);
   Free(i);

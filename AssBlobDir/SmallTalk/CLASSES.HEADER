@@ -196,6 +196,8 @@ class C3DThing:CFrogThing {
   F64 x,y,z,angle,health;
   F64 momx,momy,momz,animation_start_tS;
   F64 momx2,momy2;
+//0->1 0 is full speed. 1 is completely stopped
+  F64 friction; 
   CFrogStr *name; //Like Jimmy Crooks
   Bool no_draw,animation_no_repeat,pad[6];
 //Private

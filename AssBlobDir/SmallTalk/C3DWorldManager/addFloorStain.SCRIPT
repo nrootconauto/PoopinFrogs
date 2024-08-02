@@ -1,5 +1,28 @@
-addFloorStain: s=CFloorStain ->* | other=CFloorStain add=CFloorStain new_set=CFrogArray |
+addFloorStain: s=CFloorStain ->* | other=CFloorStain add=CFloorStain new_set=CFrogArray type=CFrogNum color=CFrogNum |
   add _ s .
+
+  (self floorIsLiquidAtX: s->tile_x atY: s->tile_y) ifTrue: [
+    'HACK alert; spawn colored particles on impact.' .
+    type _ self floorAtX: s->tile_x atY: s->tile_y .
+    type = 6 ifTrue: [
+      'water'.
+      color _ #color_LTBLUE .
+    ].
+    type = 10 ifTrue: [
+      'lava' show .
+      color _ #color_LTRED .
+    ] .
+    0 to: 5 do: [
+      self newParticleAtX: s->tile_x * 128 + 64
+        atY: s->tile_y * 128 + 64 
+        atZ: (self tileHeightAtX: s->tile_x atY: s->tile_y)+ .3
+        withSpread: 32
+        withColor:  color .
+   ]
+    ^ 0.
+   ].
+
+
 'Make a new set to avoid modifying the set while we work on it'.
   new_set _floor_stains copy .
   new_set do: [:s2=CFloorStain |
