@@ -8,7 +8,7 @@ activate->CFrogNum |
   activated_at < 0. ifTrue: [
     activated_at _ CFrogTime now asSeconds .
     world->doors do:[:d=CDoor|
-      ((d->x - x) abs < 1.1 or: (d->y - y) abs < 1.1 ) ifTrue: [
+      ((d->x - x) abs < 1.1 and: (d->y - y) abs < 1.1 ) ifTrue: [
         d->activated ifFalse: [
 'Inherit LOCKed properites of the adjacent door' .
 'This is used when update-ing doors to avoid having adjacent doors open again' .

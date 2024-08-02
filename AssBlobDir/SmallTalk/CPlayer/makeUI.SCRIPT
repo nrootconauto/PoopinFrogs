@@ -102,6 +102,13 @@ makeUI ->*
     ] .
     label->x _ (save_load_menu->sz_x / 2 ) - (label->label size * 8 / 2).
 
+    end_load_save_menu _ [
+      load_menu_active _ 0 .
+      load_game_button setBackgroundColor: #color_YELLOW .
+      save_game_button setBackgroundColor: #color_YELLOW .
+      #ui_root removeChild: save_load_menu .
+      save_load_menu _ 0 .
+    ] .
     'TODO test is available' show.
     0 to: 10 do: [:slot=CFrogNum |
       button _ CUIButton new .
@@ -113,6 +120,7 @@ makeUI ->*
       button->x _ 16 .
       button->y _ 12 + (10 * slot ) .
       button onLeftClick: [:s=CUIButton|
+        end_load_save_menu value .
         is_load_game ifTrue: [
           load_game _ s->label restoreThingFromSaveFile .
           load_game show .
@@ -125,7 +133,6 @@ makeUI ->*
           save_load_menu _ 0 .
           #world saveThingToSaveFile: s->label .
         ] .
-        end_load_save_menu value .
       ].
       save_load_menu addChild: button .
     ] .
@@ -135,13 +142,6 @@ makeUI ->*
 
   'Save Load menu' .
 
-  end_load_save_menu _ [
-    load_menu_active _ 0 .
-    load_game_button setBackgroundColor: #color_YELLOW .
-    save_game_button setBackgroundColor: #color_YELLOW .
-    #ui_root removeChild: save_load_menu .
-    save_load_menu _ 0 .
-  ] .
 
 
   load_game_button onLeftClick: [

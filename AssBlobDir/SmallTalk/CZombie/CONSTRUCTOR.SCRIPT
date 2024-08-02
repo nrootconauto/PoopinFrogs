@@ -7,5 +7,6 @@ init | |
   animation_start_tS _ 0 .
   state _ 'Normal' . 
   piss_stream _ CPissStream new .
+  no_fall_off_edge _ 1 .
   piss_stream ->from _ self .
   ^ self

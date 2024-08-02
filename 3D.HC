@@ -7,6 +7,7 @@
 #define TEST_3D
 #ifndef ENGINE_3D
 
+#define VIEW_DIST 32
 #define FOG0_DIST 8
 #define FOG1_DIST 16
 #define FOG2_DIST 20
@@ -582,7 +583,7 @@ I64 FindRayWall(C3DWorld *w,F64 slope,F64 cos,F64 sin,I64 *segment=NULL,F64 *dis
   Bool found_hit=FALSE;
   I64 ix=x/GRID_SZ,iy=y/GRID_SZ,iy2,seg,ix2;
   F64 smallest=1e100;
-  F64 hit_x=-1,hit_y=-12345,dist2=32*GRID_SZ,check_dist=0,t1,t2,wall_x,wall_y,res_dist;
+  F64 hit_x=-1,hit_y=-12345,dist2=VIEW_DIST*GRID_SZ,check_dist=0,t1,t2,wall_x,wall_y,res_dist;
   I64 sign_c=Sign(cos),sign_s=Sign(sin);
   static F64 step=GRID_SZ-1;
   if(dist) *dist=-1;
@@ -1698,7 +1699,7 @@ draw_floor:
         }
         AddWallCommand(w,x,y0,I16_MAX,dist);
       }
-ceil2:      
+ceil2: 
 //Draw the Door after the floor(adds wall command)
       if(door=w->door_mat[idx]) {
         if(door->percent>.03)
@@ -2770,6 +2771,7 @@ U0 WalkAround(U8 *save_string=NULL) {
   w->cam_height=.8;
   w->angle=0;
   CFrogThing **body;
+  C3DThing *thing;
   I64 idx;
   F64 last_tS=tS;
   try while (cont) {
@@ -2781,7 +2783,6 @@ U0 WalkAround(U8 *save_string=NULL) {
       w->_2d_things=wm->things->items;
       w->_wall_stains=wm->wall_stains->items;
       w->_floor_stains=wm->floor_stains->items;
-//
       if(every%3==0) CallScript("update",man->value);
       body=wm->doors->items->body;
       c=wm->doors->items->cnt;
@@ -2791,19 +2792,29 @@ U0 WalkAround(U8 *save_string=NULL) {
       c=w->_2d_things->cnt;
       body=w->_2d_things->body;
       for(idx=0;idx<c;idx++) {
-        CallScript("animate",body[idx]);
+	thing=body[idx];
+//Only update when in view
+	if(Sqr(VIEW_DIST*GRID_SZ)>
+	  Sqr(thing->y-player->y)+Sqr(thing->x-player->x))
+          CallScript("animate",thing);
       }
 //Handle after we run everything else
       CallScript("handlePowerups",man->value);
-      body=w->_2d_things->body;
+      body=MAllocIdent(w->_2d_things->body);
       c=w->_2d_things->cnt;
       for(idx=0;idx<c;idx++) {
-        PhysicsOnThing(w,body[idx],wm,last_tS);
-        if(body[idx]==player) {
-	  player->momx2=0;
-	  player->momy2=0;
+	thing=body[idx];
+//Only update when in view
+	if(Sqr(VIEW_DIST*GRID_SZ)
+		>Sqr(thing->y-player->y)+Sqr(thing->x-player->x)) {
+          PhysicsOnThing(w,thing,wm,last_tS);
+          if(body[idx]==player) {
+	    player->momx2=0;
+	    player->momy2=0;
+          }
         }
       }
+     Free(body);
      last_tS=tS;
 //if (ThingHasClass(player,"CPlayer")) {
       // set vars for multikey input

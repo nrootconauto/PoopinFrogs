@@ -133,12 +133,12 @@ class CWorldEditor {
   CQue thing_templates_que;
 //TEXTURE SCROLLS AREMULTIPLES OF 3 Dude
   I64 wall_texture_scroll;
-  I64 floor_texture_scroll;
+  I64 ceil_texture_scroll;
 //This isnt a multiple of 3 Dude
   I64 thingbar_scroll;
 //Currently selected
   I64 wall_texture;
-  I64 floor_texture;
+  I64 ceil_texture;
   I64 cur_thing_template_idx;
   I64 ms_x,ms_y,ms_scroll_delta;
   U8 *tooltip_text;
@@ -509,7 +509,7 @@ F64 SidebarScroll(I64 direction,Bool wall=TRUE) {
   if(wall)
     cur_scroll=&world_edit.wall_texture_scroll;
   else
-    cur_scroll=&world_edit.floor_texture_scroll;
+    cur_scroll=&world_edit.ceil_texture_scroll;
   if(*cur_scroll-direction<0) {
     *cur_scroll=0;
   } else if(*cur_scroll+direction>=cnt) {
@@ -566,7 +566,7 @@ paint_selected:
 	  GrRect(dc,x-4,y-4,GRID_SZ+8,GRID_SZ+8);
         }
       } else {
-        if(idx==world_edit.floor_texture) {
+        if(idx==world_edit.ceil_texture) {
 	  goto paint_selected;
         }
       }
@@ -579,7 +579,7 @@ paint_selected:
 	      if(!right_side)
 	        world_edit.wall_texture=idx;
 	      else
-	        world_edit.floor_texture=idx;
+	        world_edit.ceil_texture=idx;
 	    }
         if(world_edit.ms_right_down)
 	  if(x<=world_edit.ms_x<x+8+GRID_SZ)
@@ -1696,8 +1696,25 @@ I8 *GetHeightPtrAt(I64 at_x,I64 at_y) {
   if(!seg) return NULL;
   return &seg->heights[at_x-seg->xoff][at_y-seg->yoff];
 }
-U0 FloodFillFloor(I64 at_x,I64 at_y,I64 with,I64 target_tile=I64_MAX,I64 height=0,F64 ts=-1,Bool add_undo=TRUE) {
-  CLevelSegment *segment=GetSegmentForPos(at_x,at_y);
+I8 *GetCeilPtrAt(I64 at_x,I64 at_y) {
+  CLevelSegment *seg=GetSegmentForPos(at_x,at_y);
+  if(!seg) return NULL;
+  return &seg->data[at_x-seg->xoff][at_y-seg->yoff].i8[1];
+}
+I8 *GetCeilHeightPtrAt(I64 at_x,I64 at_y) {
+  CLevelSegment *seg=GetSegmentForPos(at_x,at_y);
+  if(!seg) return NULL;
+  return &seg->ceil_heights[at_x-seg->xoff][at_y-seg->yoff];
+}
+I8 *GetCeilHeight2PtrAt(I64 at_x,I64 at_y) {
+  CLevelSegment *seg=GetSegmentForPos(at_x,at_y);
+  if(!seg) return NULL;
+  return &seg->ceil_heights2[at_x-seg->xoff][at_y-seg->yoff];
+}
+//target_height==I64_MAX for ignore height
+U0 FloodFill(I64 at_x,I64 at_y,I64 with,I64 target_tile=I16_MAX,I64 target_height=I64_MAX,I64 height=0,F64 ts=-1,Bool add_undo=TRUE,Bool ceil=FALSE) {
+  CI64Set *done_segments=I64SetNew;
+  CLevelSegment *segment=GetSegmentForPos(at_x,at_y),*other_segment;
   if(!segment) return;
   I64 stk_sz=0x100000,stk_ptr=0,x,y,xo,yo;
   I16 *ptr;
@@ -1729,22 +1746,32 @@ U0 FloodFillFloor(I64 at_x,I64 at_y,I64 with,I64 target_tile=I64_MAX,I64 height=
     at_x=stk[stk_ptr].at_x;
     at_y=stk[stk_ptr].at_y;
     if(GetTilePtrAt(at_x,at_y)) {
-      *GetTilePtrAt(at_x,at_y)=with;
-      *GetHeightPtrAt(at_x,at_y)=height;
+      if(!ceil) {
+        *GetTilePtrAt(at_x,at_y)=with;
+        *GetHeightPtrAt(at_x,at_y)=height;
+      } else {
+        *GetCeilPtrAt(at_x,at_y)=with;
+        *GetCeilHeightPtrAt(at_x,at_y)=height;
+        *GetCeilHeight2PtrAt(at_x,at_y)=world_edit.ceil_height2;
+      }
       if(stk_sz<=stk_ptr+4) {
-        FloodFillFloor(at_x+1,at_y,with,target_tile,height,ts,add_undo);
-        FloodFillFloor(at_x-1,at_y,with,target_tile,height,ts,add_undo);
-        FloodFillFloor(at_x,at_y-1,with,target_tile,height,ts,add_undo);
-        FloodFillFloor(at_x,at_y+1,with,target_tile,height,ts,add_undo);
+        FloodFill(at_x+1,at_y,with,target_tile,target_height,height,ts,add_undo,ceil);
+        FloodFill(at_x-1,at_y,with,target_tile,target_height,height,ts,add_undo,ceil);
+        FloodFill(at_x,at_y-1,with,target_tile,target_height,height,ts,add_undo,ceil);
+        FloodFill(at_x,at_y+1,with,target_tile,target_height,height,ts,add_undo,ceil);
         goto next;
       }
       for(xo=-1;xo!=2;xo++)
         for(yo=-1;yo!=2;yo++) {
 	  if(xo^^yo) {
 	    if(ptr=GetTilePtrAt(at_x+xo,at_y+yo)) {
-	      if(*ptr==target_tile) {
-	        if(GetSegmentForPos(at_x,at_y)!=segment) {
-		  FloodFillFloor(at_x+xo,at_y+yo,with,target_tile,height,ts);
+	      if(*ptr==target_tile&&
+		(target_height==*GetHeightPtrAt(at_x+xo,at_y+yo)
+		  ||target_height==I64_MAX)) {
+		other_segment=GetSegmentForPos(at_x+xo,at_y+yo);
+	        if(other_segment!=segment&&!I64SetHas(done_segments,other_segment)) {
+		  I64SetAdd(done_segments,other_segment);
+		  FloodFill(at_x+xo,at_y+yo,with,target_tile,target_height,height,ts,add_undo,ceil);
 	        } else {
 		  stk[stk_ptr].at_x=at_x+xo;
 		  stk[stk_ptr].at_y=at_y+yo;
@@ -1759,6 +1786,7 @@ U0 FloodFillFloor(I64 at_x,I64 at_y,I64 with,I64 target_tile=I64_MAX,I64 height=
 next:
   }
 fin:
+  I64SetDel(done_segments);
   Free(stk);
 }
 U0 HelpMenu() {
@@ -1937,14 +1965,19 @@ Bool I64SetHas(CI64Set *set,I64 s) {
   while(--i>=0) if(set->body[i]==s) return TRUE;
   return FALSE;
 }
+class CFillOpts {
+  Bool same_height format "$$CB,\"Same Height\"$$\n";
+  Bool ceil format "$$CB,\"Fill Ceiling\"$$\n";
+};
 U0 WorldEdit(U8 *blob,U8 *filename=NULL) {
   I64 m1,m2;
   I64 tx,ty;
   I64 ch2,old;
   I64 activate;
-  I64 idx;
+  I64 idx,idx2;
   I64 tile; //i32[0]==x,.i32[1]==y
   I64 last_wheel=ms.pos.z;
+  CFillOpts fill_opts;
   CLevelSegmentEditDoor *edit_door;
   CLevelTexture *texture;
   CLevelSegment *segment;
@@ -2242,16 +2275,40 @@ door_pass:;
       } else {
         if(world_edit.ms_y<Fs->pix_height-THING_BAR_HEIGHT-8)
 	  if(SIDEBAR_WIDTH<=world_edit.ms_x<Fs->pix_width-SIDEBAR_WIDTH) {
+	    MemSet(&fill_opts,FALSE,sizeof fill_opts);
+	    old=world_edit.flat_mode;
+	    PopUpForm(&fill_opts);
+	    world_edit.flat_mode=old;
 	    MouseToPos(world_edit.ms_x,world_edit.ms_y,&tx,&ty);
 	    tx=FloorI64(tx,GRID_SZ)/16;
 	    ty=FloorI64(ty,GRID_SZ)/16;
-	    FloodFillFloor(tx,
+	    idx=world_edit.floor_height;
+	    idx2=world_edit.wall_texture;
+	    if(fill_opts.ceil) {
+	      idx=world_edit.ceil_height;
+	      idx2=world_edit.ceil_texture;
+	    }
+	    if(fill_opts.same_height) {
+	      FloodFill(tx,
 		  ty,
-		  world_edit.wall_texture,
+		  idx2,
+		  I64_MAX,
+		  WorldGetHeightAt(tx,ty),
+		  idx,
 		  ,
-		  world_edit.floor_height,
+		  TRUE,
+		  fill_opts.ceil);
+	    } else {
+	      FloodFill(tx,
+		  ty,
+		  idx2,
+		  I64_MAX,
+		  I64_MAX,
+		  idx,
 		  ,
-		  TRUE);
+		  TRUE,
+		  fill_opts.ceil);
+	    }
 	    floor_fill=FALSE;
 	  }
       }
@@ -2343,13 +2400,13 @@ door_pass:;
 		  WorldInsertTileAt(
 		        tx,
 		        ty,
-		        world_edit.floor_texture,
+		        world_edit.ceil_texture,
 		        1
 		        );
 //Set Ceil-height2
 		  WorldInsertTileAt(
 		        tx,ty,
-		        world_edit.floor_texture,
+		        world_edit.ceil_texture,
 		        2
 		        );
 	        } else {
@@ -2386,12 +2443,12 @@ door_pass:;
 		  world_edit.ceil_height=I8_MAX;
 		  WorldInsertTileAt(
 		        tx,ty,
-		        world_edit.floor_texture,
+		        world_edit.ceil_texture,
 		        1
 		        );
 		  WorldInsertTileAt(
 		        tx,ty,
-		        world_edit.floor_texture,
+		        world_edit.ceil_texture,
 		        2
 		        );
 		  world_edit.ceil_height2=ch2;
