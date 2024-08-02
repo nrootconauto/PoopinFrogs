@@ -202,7 +202,7 @@ class C3DThing:CFrogThing {
   CFrogStr *template_name;
   CEliza *chat_bot no_serialize 1;
   CFrogStr *chat_bot_name;
-  I64 activate_tag;
+  I64 activate_tag;
   Bool no_fall_off_edge;
   Bool floating;
   Bool hit_thing; //Set by physics when we hit a thing

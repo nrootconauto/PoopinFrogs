@@ -1,0 +1,13 @@
+explode->* 
+|
+  things=CFrogArray
+  dist=CFrogNum
+|
+ things _ #world getThingsInRadiusFromX: x fromY: y withRadius:  32 .
+  things do:[:t*|
+    t ~= from ifTrue: [
+      dist _ ((t ->x - x) squared + (t ->y - y ) squared) sqrt .
+      t damage: (32 - dist)/ 32 * 15 from: from . 
+    ] 
+  ] .
+  #world removeThing: self .

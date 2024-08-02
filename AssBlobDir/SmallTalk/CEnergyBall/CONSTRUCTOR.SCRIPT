@@ -1,2 +1,4 @@
-init | |
- ^ self
+init ->CEnergyBall | |
+  #world addThing: self .
+  template _ #world getThingTemplate: 'CEnergyBall' .
+  ^ self

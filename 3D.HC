@@ -6,6 +6,65 @@
 #include "PathFinder.HC";
 #define TEST_3D
 #ifndef ENGINE_3D
+
+#define FOG0_DIST 8
+#define FOG1_DIST 16
+#define FOG2_DIST 20
+
+U64 fog0_table[0x10];
+U64 fog1_table[0x10];
+U64 fog2_table[0x10];
+U0 ErectFogTable(U64 *table,I64 fog_color,F64 ratio) {
+  CBGR48 palette[COLORS_NUM];
+  I64 idx,which;
+  F64 r,g,b,dist,best_dist;
+  F64 r2,g2,b2;
+  U16 best_color,dither;
+  GrPaletteGet(palette);
+  for(idx=0;idx!=COLORS_NUM;idx++) {
+    r=palette[idx].r*ratio+palette[fog_color].r*(1.-ratio);
+    g=palette[idx].g*ratio+palette[fog_color].g*(1.-ratio);
+    b=palette[idx].b*ratio+palette[fog_color].b*(1.-ratio);
+    best_dist=1e100;
+    for(dither=0;dither!=0xff;dither++) {
+      r2=(palette[dither&0xf].r+palette[dither>>4].r)/2.;
+      g2=(palette[dither&0xf].g+palette[dither>>4].g)/2.;
+      b2=(palette[dither&0xf].b+palette[dither>>4].b)/2.;
+      dist=Sqrt(Sqr(r-r2)+Sqr(g-g2)+Sqr(b-b2));
+      if(dist<best_dist) {
+	best_color=dither;
+	best_dist=dist;
+      }
+    }
+    table[idx].u8[0]=best_color&0xf;
+    table[idx].u8[2]=best_color&0xf;
+    table[idx].u8[4]=best_color&0xf;
+    table[idx].u8[6]=best_color&0xf;
+
+    table[idx].u8[1]=best_color>>4;
+    table[idx].u8[3]=best_color>>4;
+    table[idx].u8[5]=best_color>>4;
+    table[idx].u8[7]=best_color>>4;
+  }
+}
+
+ErectFogTable(fog0_table,BLACK,.75);
+ErectFogTable(fog1_table,BLACK,.5);
+ErectFogTable(fog2_table,BLACK,.25);
+
+U64 Fog(I64 color,I64 dist) {
+  dist>>=7; //GRID_SZ is 128(7 bits)
+  if(dist<=FOG0_DIST)
+    return gr.to_8_colors[color];
+  if(dist<=FOG1_DIST)
+    return fog0_table[color];
+  if(dist<=FOG2_DIST)
+    return fog1_table[color];
+  return fog2_table[color];
+}
+
+
+
 F64 Frog_tS() {
   return tS+frog_time_offset;
 }
@@ -993,7 +1052,7 @@ U0 DrawWallSegment(C3DWorld *w,I64 segment,I64 x,I64 start_y,CDC *texture,I64 he
   CDC *stain=WallStain(w,tile_idx,z,side,&offx,&offy);
   if(!texture||!height) return;
   U8 *dst=w->to_dc->body;
-  I32 *depth_dst,idist;
+  I32 *depth_dst,idist=dist;
   I64 tmp,i,segment_y,width=w->to_dc->width_internal,anim_frame=ToI64(Frog_tS/ANIM_DELAY)%AnimDCCnt(texture),xp;
   dst+=x+MaxI64(start_y,0)*width;
   if(w->to_dc->depth_buf)
@@ -1014,14 +1073,14 @@ ent:
     if(0<=i+start_y<GR_HEIGHT-w->step_width) {
       segment_y=height/(DIST_SCALE/(dist+1))*(i/ToF64(height))*texture->height;
       segment_y=AbsI64(segment_y);
-      tmp=gr.to_8_colors[GrPeek0(
+      tmp=Fog(GrPeek0(
 	    texture+anim_frame,
 	    xp,
-	    segment_y%(texture->height))];
+	    segment_y%(texture->height)),idist);
       if(stain) {
 	if(0<=(stain_color=GrPeek(stain,xp-offx,segment_y-offy))) {
 	  if(stain_color!=TRANSPARENT)
-	    tmp=gr.to_8_colors[stain_color];
+	    tmp=Fog(stain_color,idist);
         }
       }
       idist=dist;
@@ -1029,7 +1088,7 @@ ent:
         if(depth_dst[0]>=idist) {
           dst(U16*)[0]=tmp;
           dst+=width;
-          dst(U16*)[0]=tmp;
+          dst(U16*)[0]=tmp>>8; //Dither
           dst+=width;
           if(depth_dst) {
 	    depth_dst[0]=idist;
@@ -1047,11 +1106,11 @@ ent:
         if(depth_dst[0]>=idist) {
           dst(U32*)[0]=tmp;
           dst+=width;
-          dst(U32*)[0]=tmp;
+          dst(U32*)[0]=tmp>>8; //Dither
           dst+=width;
           dst(U32*)[0]=tmp;
           dst+=width;
-          dst(U32*)[0]=tmp;
+          dst(U32*)[0]=tmp>>8; //Dither
           dst+=width;
           if(depth_dst) {
 	    depth_dst[0]=idist;
@@ -1167,14 +1226,15 @@ ent:
     } else
       stain=NULL;
     if(texture) { 
-        colors=gr.to_8_colors[GrPeek0(
+	idist=dist;
+        colors=Fog(GrPeek0(
 	      texture+anim_frame,
 	      (fx&(GRID_SZ-1))/ToF64(GRID_SZ)*texture->width,
-	      (fy&(GRID_SZ-1))/ToF64(GRID_SZ)*texture->height)];
+	      (fy&(GRID_SZ-1))/ToF64(GRID_SZ)*texture->height),idist);
 	if(stain) {
 	  which=GrPeek(stain,fx&(GRID_SZ-1)-poopx,fy&(GRID_SZ-1)-poopy);
 	  if(TRANSPARENT!=which&&which>=0)
-	    colors=gr.to_8_colors[which];
+	    colors=Fog(which,idist);
         }
         if(0<=y<dc->height-w->step_width) {
 	  dst=dc->body+(dc->height-y-w->step_width)*width+view_x;
@@ -1191,7 +1251,7 @@ ent:
 	      dst+=width;
 	      db_z+=width;
 	      if(*db_z>=idist32) {
-	        dst(U16*)[0]=colors;
+	        dst(U16*)[0]=colors>>8; //Dither
 	        db_z[0](U64)=idist;
 	      }
 	    } else if(w->step_width==4) {
@@ -1203,7 +1263,7 @@ ent:
 	      dst+=width;
 	      db_z+=width;
 	      if(*db_z>=idist32) {
-	        dst(U32*)[0]=colors;
+	        dst(U32*)[0]=colors>>8; //Dither
 	        db_z[0](U64)=idist;
 	        db_z[2](U64)=idist;
 	      }
@@ -1217,7 +1277,7 @@ ent:
 	      dst+=width;
 	      db_z+=width;
 	      if(*db_z>=idist32) {
-	        dst(U32*)[0]=colors;
+	        dst(U32*)[0]=colors>>8; //Dither
 	        db_z[0](U64)=idist;
 	        db_z[2](U64)=idist;
 	      }
@@ -1468,7 +1528,28 @@ U0 MPCastCol(C3DWorld *w) {
     ceily=0;
     last_height=I64_MIN;
     last_ceil=I64_MAX;
-    tiles=GetTilesInPath(w,angle,32*GRID_SZ);
+// divide by cos2_lookup_table to get 32 blocks from the camera
+$SP,"<2>",BI=2$;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    tiles=GetTilesInPath(w,angle,32*GRID_SZ/cos2_lookup_table[x]);
     if(tiles[0]==-1)
       goto fin;
 ent:
@@ -1971,6 +2052,7 @@ U0 Draw2DThing(C3DWorld *w,C3DThing *thing) {
   F64 wall_height_ratio;
   U8 *src_ptr,*y_line;
   U16 *dst;
+  U64 color;
 
   Bool flip=FALSE;
   off=off%(2*pi);
@@ -2074,13 +2156,18 @@ draw:
 	  iy=MaxI64(Lerp(ToF64(line)/use_dc->height,cy,to_y)-3,iy);
 	  goto skip;
 	}
+	color=Fog(*src_ptr,dist);
 	for(cnt=3;--cnt>=0;) {
-          *dst=gr.to_8_colors[*src_ptr];
+	  //Dither on odd
+	  if((cnt+iy)&1)
+            *dst=color>>8;
+	  else
+            *dst=color;
 	  depth_dst[0]=dist;
 	  depth_dst[1]=dist;
 	  dst=dst(U8*)+dc->width_internal;
 	  depth_dst+=dc->width_internal;
-	}
+        }
 skip:;
       }
     }
@@ -2783,4 +2870,8 @@ WalkAround;
 #endif        i               8      8   ßÿÿÿ   Ýÿÿÿ      	'   öÿÿÿ?   áÿÿÿ
 
 '   ÷ÿÿÿ5   ÷ÿÿÿ
-'   ÷ÿÿÿ(   ßÿÿÿ 
+'   ÷ÿÿÿ(   ßÿÿÿ               
+   
+*   ]   g   3   
+)   _   l   ‚   #   '   i   '   !   ‰   k   ‹   '   _   j   [         32 Away from camera    ^      
+m   ”   j   "    

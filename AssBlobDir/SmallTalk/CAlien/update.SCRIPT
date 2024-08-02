@@ -6,7 +6,7 @@ update->* |
   old_z=CFrogNum 
   hit_wall=CFrogNum
   tS=CFrogNum 
-  rocket=CPoopRocket
+  rocket=CEnergyBall
   dist=CFrogNum
   pickup=CShitItemPickup
 |
@@ -17,19 +17,13 @@ update->* |
 
   health <= 0 ifTrue: [
     state ~= 'Dead' ifTrue: [
-      w sweepSoundForTime: 500 withMin: 50 withMax: 30 .
-      momx2 _ 0 .
-      momy2 _ 0 .
-      pickup _ CShitItemPickup new .
-      pickup -> x _ x .
-      pickup -> y _ y .
-      pickup -> z _ z .
-      pickup -> template _ w getThingTemplate: 'CPoopMan/Dead' .
-      state _ 'Dead' .
+      w sweepSoundForTime: 500 withMin: 40 withMax: 30 .
+      template _ w getThingTemplate: 'CAlien/Dead' .
+      animation_start_tS _ tS .
+      animation_no_repeat _ 1 .
       self die .
-      pickup -> animation_no_repeat _ 1 .
-      pickup -> animation_start_tS _ tS .
-    ]
+    ] .
+    state _ 'Dead' .
   ] .
 
   state = 'Dead' ifTrue: [
@@ -38,41 +32,28 @@ update->* |
 
   state = 'Normal' ifTrue: [
     steps_to_walk _  steps_to_walk - 1 .
-    speed _ 70 / 10 *  3.4 .
-    template _ w getThingTemplate: 'CPoopMan' .
+    template _ w getThingTemplate: 'CAlien' .
     animation_no_repeat _ 0 .
     old_x _ x .
     old_y _ y .
     old_z _ z .
-
-    (target hasClass: C3DThing) ifTrue: [
-      (target->health <= 0) ifTrue: [
-        p _ w getPlayer .
-        (self canSeeThing: p) ifTrue: [
-'see' show .
-          target _ p.
-        ]
-      ] .
-    ] ifFalse: [
-      p _ w getPlayer .
-      (self canSeeThing: p) ifTrue: [
-'see2' show .
-        target _ p.
-      ]
+    
+    (target hasClass: C3DThing) ifFalse: [
+      target _ self lookForTarget .
     ] .
 
     'Only walk around if target is defined'.
     (target hasClass:C3DThing) ifTrue: [
-      self wander: speed withJumpVelocity: .55 withTarget: target .
-      ((steps_to_walk <= 0 or: random_generator next < .2 ) and: (self canSeeThing: target)) ifTrue: [
-        state _ 'Throw' .
-        template _ w getThingTemplate: 'CPoopMan/Throw' .
-        animation_no_repeat _ 1 .
+      self wander: 40 / 10 *  3.4 withJumpVelocity: .55 withTarget: target .
+      ((steps_to_walk <= 0 or: random_generator next < .15 ) and: (self canSeeThing: target)) ifTrue: [
+        state _ 'Shoot' .
+        template _ w getThingTemplate: 'CAlien/Shoot' .
+        animation_no_repeat _ 0 .
         animation_start_tS _ tS.
         state_start_tS _  tS.
-        state_duration _ 8 / 4 .
         angle _ (target->x - x) arg: (target->y - y) .
-        threw _ 0 .
+        'Used for how many shots to shoot too' .
+        steps_to_walk _ (random_generator next * 3) + 2.5 .
       ] .
     ] .
     steps_to_walk < 0 ifTrue: [
@@ -80,25 +61,28 @@ update->* |
     ] .
   ] .
 
-  state = 'Throw' ifTrue: [
-    ((tS - state_start_tS) > (6 / 4) and: threw not )ifTrue: [
-      threw _ 1 .
-      w noiseSoundForTime: 100 withMin: 30 withMax: 40 .
-      rocket _ CPoopRocket new .
+  state = 'Shoot' ifTrue: [
+    template _ w getThingTemplate: 'CAlien/Shoot' .
+    (tS - state_start_tS) > (175 / 1000.) ifTrue: [
+      state_start_tS _ tS .
+'See above note' .
+      steps_to_walk _ steps_to_walk - 1 .
+      w noiseSoundForTime: 100 withMin: 50 withMax: 70 .
+      rocket _ CEnergyBall new .
       rocket->from _ self . 
       rocket->x _ x . 
       rocket->y _ y . 
       rocket->z _ z + .5 .
       rocket -> angle _ (target->x - x arg: target->y - y ).
       angle _ rocket->angle .
-      rocket->momx _ rocket->angle cos * 64 .
-      rocket->momy _ rocket->angle sin * 64 .
+      rocket->momx _ rocket->angle cos * 75 .
+      rocket->momy _ rocket->angle sin * 75 .
       dist _ ((target->x - rocket->x) squared +(target->y - rocket->y)) sqrt .
-      '64 is the throw force' .
-      rocket->momz _ (target->z +.5 - rocket->z + ((random_generator next - .5 ) / 2 ) ) / dist * 64 .
+      '75 is the shoot force' .
+      rocket->momz _ (target->z +.5 - rocket->z + ((random_generator next - .5 ) / 2 ) ) / dist * 75 .
     ] .
-    (tS - state_start_tS) > state_duration ifTrue: [
-      state _ 'Normal' .
+    ((self  canSeeThing: target) and: steps_to_walk > 0) ifFalse: [
       steps_to_walk _ random_generator next * 10 * 3 .
-    ] .    
+      state _ 'Normal' . 
+    ]
   ] .
