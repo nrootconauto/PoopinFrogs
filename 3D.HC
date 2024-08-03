@@ -939,7 +939,79 @@ Bool IsOnLavaTile(C3DThing *t) {
     }
   return FALSE;
 
-}
+}
+CFrogNum *WorldManagerRemoveFromGrid(C3DWorldManager *wm,...) {
+  C3DThing *t=argv[0];
+  if(!ThingHasClass(t,"C3DThing")) return FROG_SMALL_NIL;
+  CFrogArray *arr=wm->grid;
+  I64 atx=t->x/GRID_SZ/16.;
+  I64 aty=t->y/GRID_SZ/16.;
+  if(atx<0||aty<0) return FROG_SMALL_NIL;
+  if(atx>=w->world_width/16+1) return FROG_SMALL_NIL;
+  if(aty>=w->world_height/16+1) return FROG_SMALL_NIL;
+  arr=arr->items->body[atx];
+  arr=arr->items->body[aty];
+  if(I64SetHas(arr->items,t)) {
+    I64SetRem(arr->items,t);
+  } else {
+    for(atx=0;atx<w->world_width/16+1;atx++) {
+      for(aty=0;aty<w->world_height/16+1;aty++) {
+        arr=wm->grid;
+        arr=arr->items->body[atx];
+        arr=arr->items->body[aty];
+        I64SetRem(arr->items,t);
+      }
+    }
+  }
+  return FROG_SMALL_NIL;
+}
+AddMethod("C3DWorldManager","removeFromGrid:",&WorldManagerRemoveFromGrid);
+CFrogNum *WorldManagerUpdateThingPos(C3DWorldManager *wm,...) {
+  C3DThing *t=argv[0];
+  if(!ThingHasClass(t,"C3DThing")) return FROG_SMALL_NIL;
+  CFrogArray *arr=wm->grid;
+  I64 atx=t->x/GRID_SZ/16.;
+  I64 aty=t->y/GRID_SZ/16.;
+  if(atx<0||aty<0) return FROG_SMALL_NIL;
+  if(atx>=w->world_width/16+1) return FROG_SMALL_NIL;
+  if(aty>=w->world_height/16+1) return FROG_SMALL_NIL;
+  arr=arr->items->body[atx];
+  arr=arr->items->body[aty];
+  if(!I64SetHas(arr->items,t))
+    I64SetAdd(arr->items,t);
+  return FROG_SMALL_NIL;
+}
+AddMethod("C3DWorldManager","updateThingPos:",&WorldManagerUpdateThingPos);
+CFrogArray *WorldManagerThingsInRadius(C3DWorldManager *wm,...) {
+  CFrogArray *arr=wm->grid,*ret=FrogArrayNew;
+  C3DThing *t,**body;
+  F64 x=AsF64(argv[0]),y=AsF64(argv[1]);
+  I64 b_atx=x/GRID_SZ/16.,atx;
+  I64 b_aty=y/GRID_SZ/16.,aty;
+  I64 ox,oy,cnt;
+  F64 r=AsF64(argv[2]);
+  for(ox=-1;ox!=2;ox++)
+    for(oy=-1;oy!=2;oy++) {
+      atx=ox+b_atx;
+      aty=oy+b_aty;
+      if(atx<0||aty<0) goto next;
+      if(atx>=w->world_width/16+1) goto next;
+      if(aty>=w->world_height/16+1) goto next;
+      arr=wm->grid;
+      arr=arr->items->body[atx];
+      arr=arr->items->body[aty];
+      cnt=arr->items->cnt;
+      body=arr->items->body;
+      while(--cnt>=0) {
+	t=body[cnt];
+	  if(r*r>=Sqr(t->x-x)+Sqr(t->y-y))
+            I64SetAdd(ret->items,t);
+      }
+next:;
+    }
+  return ret;
+}
+AddMethod("C3DWorldManager","getThingsInRadiusFromX:fromY:withRadius:",&WorldManagerThingsInRadius);
 U0 PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm,F64 last_tS) {
   I64 wx=t->x/GRID_SZ,wy=t->y/GRID_SZ;
   if(!(0<=wx<w->world_width))
@@ -961,7 +1033,7 @@ U0 PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm,F64 last_tS) {
   CI64Set *set;
   if(ThingHasClass(t,"CRocket"))
     rocket=t;
-  CallScript("removeFromGrid:",wm,FrogIncRefCnt(t));
+  WorldManagerRemoveFromGrid(wm,t);
   if(C3DWorldMoveZWithCollision(w,t->momz*weight,t->x,t->y,&t->z)) {
     t->momz=0;
   } else if(!rocket&&!t->floating)
@@ -1043,7 +1115,7 @@ explode:
 	  t->hit_thing=TRUE;
     }  
   }
-  CallScript("updateThingPos:",wm,FrogIncRefCnt(t));
+  WorldManagerUpdateThingPos(wm,t);
 }
 F64 Lerp(F64 per,F64 min,F64 max) {
   if(min<max)

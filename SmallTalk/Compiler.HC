@@ -785,58 +785,7 @@ U0 CompileAST(CDoc *doc,CAST *ast,CLocals *locals,I64 stack_depth,I64 jump_to=IN
 pass:
 //Skip past object we are calling to
       cur=ast->args.next->next;
-      if(!StrCmp(ast->op_name,"do:")) {
-	if(cur->var_class_name) {
-	  if(!StrCmp(cur->var_class_name,"CFrogArray")) {
-            idx=ast_case_num;
-            ast->switch_num=ast_case_num++;
-            DocPrint(doc,"L%d:\n",ast->switch_num);
-            CompileAST(doc,cur,locals,stack_depth,,TRUE);
-	    cur=cur->next;
-            DocPrint(doc,"CFrogArray *array%d=%s;I64 idx%d=0",idx,StackFrame2Var(stack_depth),idx);
-            DocPrint(doc,"for(idx%d=0;idx%d<array%d->items->cnt;idx$ER$%d++) {\n",idx,idx,idx,idx);
-	    DocPrint(doc,"%s=array->items->body[idx%d];\n",StackFrame2Var(stack_depth),idx);
-            UnrollBlock(doc,locals,stack_depth,ast->args.last);
-            DocPrint(doc,"}\n");
-	    return;
-	  }
-        }
-      }
-/*      if(!StrCmp(ast->op_name,"to:do:by:")) {
-        idx=ast_case_num;
-        ast->switch_num=ast_case_num++;
-        DocPrint(doc,"L%d:\n",ast->switch_num);
-	DocPrint(doc,"F64 from%d,to%d,by%d;\n",idx,idx,idx);
-	DocPrint(doc,"from%d=\n",idx);
-        CompileAST(doc,cur,locals,stack_depth,,TRUE);
-	cur=cur->next;
-	DocPrint(doc,"to%d=\n",idx);
-        CompileAST(doc,cur,locals,stack_depth,,TRUE);
-	cur=cur->next;
-	DocPrint(doc,"by%d=\n",idx);
-        CompileAST(doc,cur,locals,stack_depth,,TRUE);
-	cur=cur->next;
-	goto todoby;
-      }
-      if(!StrCmp(ast->op_name,"to:do:")) {
-        idx=ast_case_num;
-        ast->switch_num=ast_case_num++;
-        DocPrint(doc,"L%d:\n",ast->switch_num);
-	DocPrint(doc,"F64 from%d,to%d,by%d;\n",idx,idx,idx);
-	DocPrint(doc,"from%d=\n",idx);
-        CompileAST(doc,cur,locals,stack_depth,,TRUE);
-	cur=cur->next;
-	DocPrint(doc,"to%d=\n",idx);
-        CompileAST(doc,cur,locals,stack_depth,,TRUE);
-	cur=cur->next;
-	DocPrint(doc,"by%d=Sign(to%d-from%d)",idx,idx,idx);
-todoby:
-	DocPrint(doc,"if(by%d) for(;Sign(to%d-from%d)==Sign(by%d);from%d+=by%d) {\n",idx,idx,idx,idx,idx,idx);
-        UnrollBlock(doc,locals,stack_depth,ast->args.last);
-        DocPrint(doc,"}\n",StackFrame2Var(stack_depth));
-        return;
-      }*/
-      if(!StrCmp(ast->op_name,"whileTrue:")) {
+      if(!StrCmp(ast->op_name,"whileTrue:")) {
         idx=ast_case_num;
         UnrollBlock(doc,locals,stack_depth,ast->args.next);
         ast->switch_num=ast_case_num++;
