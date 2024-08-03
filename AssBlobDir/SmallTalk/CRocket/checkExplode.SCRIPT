@@ -6,6 +6,7 @@ checkExplode ->CFrogNum |
     (t->z - z ) abs < 1.5 ifTrue: [
       t ~= from ifTrue: [
         t ->health > 0 ifTrue: [
+          t damage: 25 from: from .
           self explode .
           ^ 1 .
         ]

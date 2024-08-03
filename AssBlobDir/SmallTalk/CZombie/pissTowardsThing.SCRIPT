@@ -51,7 +51,7 @@ pissTowardsThing: who=C3DThing ->*
     launch_angle _ .35 arctan .
     targetd _  ((who ->x -  x ) squared + (who ->y -  y ) squared ) sqrt . 
     targetd _ targetd - 8 max: 0 .
-    force _ targetd * .275 / 8.6 min: 24 .
+    force _ targetd / 5 min: 24 .
     best_force _ force .
     best_force_d _ 10000. .
 
@@ -59,10 +59,12 @@ pissTowardsThing: who=C3DThing ->*
     a _  base_a + (3.14 / 100 * rand next ) .
 
     0 to: 5 do: [:m=CFrogNum|
-      approx value: (m + 5 ) / 5 .
+      approx value: (m + 5) / 5 .
     ] .
 
-    force _ best_force .
+'Graduall piss towards target  ' .
+    force _ (((cur_ts - state_start_tS) * 3.14 / 2  min: 3.14) sin + .2 min: 1)
+       * best_force min: 24 .
 
     0 to: 3 do: [:v=CFrogNum |
         piss _ CPissLink new .

@@ -939,7 +939,7 @@ Bool IsOnLavaTile(C3DThing *t) {
     }
   return FALSE;
 
-}
+}
 U0 PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm,F64 last_tS) {
   I64 wx=t->x/GRID_SZ,wy=t->y/GRID_SZ;
   if(!(0<=wx<w->world_width))
@@ -1029,7 +1029,8 @@ explode:
       goto explode;
     if(!(0.<=t->y<w->world_height*128))
       goto explode;
-    CallScript("checkExplode",rocket);
+    if(AsF64(CallScript("checkExplode",rocket)))
+      return;
   }
 //Only check for thing collision if we are the ones movin
   if(i_am_moving&&!rocket) {
@@ -1713,7 +1714,7 @@ ceil2:
           top=door->height*.03+w->heightmap[idx];
         y0=GR_HEIGHT/2-h*(top-w->cam_height);
         if(top<w->cam_height)
-          ColorFloor(w,x,top,y0,GR_HEIGHT/2-h2*(height_cap-w->cam_height),w->wall_textures[door->act_as_wall]);
+          ColorFloor(w,x,top,y0,GR_HEIGHT/2-h2*(top-w->cam_height),w->floor_textures[door->act_as_wall]);
         DrawWallSegment(w,segment,x,y0,w->wall_textures[door->act_as_wall],h*door->percent*door->height,dist,w->heightmap[idx]-1+door->height,idx,side);
         AddWallCommand(w,x,y0,I16_MAX,dist);
       }

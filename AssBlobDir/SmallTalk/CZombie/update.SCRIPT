@@ -70,9 +70,9 @@ update -> * |
       w sweepSoundForTime: 600 withMin: 50 withMax: 57 .
       state _ 'Piss' .
       template _ #world getThingTemplate: 'CZombie/Piss' .
-      self pissTowardsThing: target .
       state_start_tS _ cur_tS .
-      state_duration _ .6 . 
+      state_duration _ 2 . 
+      self pissTowardsThing: target .
       ^ 1 .
     ] .
 

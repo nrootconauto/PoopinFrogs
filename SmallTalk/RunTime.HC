@@ -717,7 +717,7 @@ CFrogThing *CallScriptUniverse(I64 who,CFrogThing *self,...) {
   if(ThingHasClass(self,"CFrogClass")) {
     id=NameToUniverseNumber(self(CFrogClass*)->name);
     fptr=UniverseGetClassMethodForClassByIdx(who,id);   
-    if(fptr) {
+    if(fptr) {
       ret=CallVaArgs(fptr,argc,argv,self);
     }
     goto fin;
@@ -1443,6 +1443,7 @@ CFrogUndefined *FrogNil() {
 
 U0 FrogGarbageCollectThing(CFrogThing *root,Bool debug=FALSE) {
   if(!root||root&1) return; //bit 0 is set for special "small" values
+  if(ChkOnStk(root)) return;
   static I64 depth=0;
   I64 idx;
   CLocalsGeneric *g,*p;

@@ -56,7 +56,7 @@ class CLocals {
 //HTT_FRAME_PTR with offset
   CLocals *next;
   CHashTable *vars;
-  I64 raw_mask;
+  I64 raw_mask,cnt;
   U8 name[STR_LEN];
 };
 U0 LocalsDel(CLocals *l) {
@@ -93,7 +93,17 @@ CLocalsGeneric *STNewBlockFrame(U8 *frame_title,CLocalsGeneric *parent) {
   fr->return_flag=parent->return_flag;
   return fr;
 }
-
+U0 MakeAnonBlockFrame(CLocalsGeneric *fr,I64 sz,CLocalsGeneric *parent, U64 type='Block') {
+  fr->item_cnt=sz;
+  fr->thing_flags=THINGF_FRAME_TYPE;
+  fr->parent=parent;
+  fr->type=type;
+  fr->next=Fs->user_data;
+  fr->ref_cnt=1;
+  Fs->user_data=fr;
+  if(parent) fr->return_flag=parent->return_flag;
+  MemSetI64(fr->body,FROG_SMALL_NIL,sz);
+}
 U0 STSetReturnFlags(I64 *who) {
   CLocalsGeneric *g=Fs->user_data;
   while(g) {
@@ -231,6 +241,7 @@ CLocals *GenerateLocalsFromMethod(CMethod *method,U8 *for_class) {
         }
         gen->user_data2=TRUE; //Is a SELF member
         gen->str=StrNew(mlst->str);
+//	ret->cnt++;
         HashAdd(gen,ret->vars);
       }
     cls=cls->base_class;
@@ -256,6 +267,7 @@ CLocals *GenerateLocalsFromMethod(CMethod *method,U8 *for_class) {
       }
       gen->user_data0=off++;
       gen->str=StrNew(name->name);
+      ret->cnt++;
       HashAdd(gen,ret->vars);
     }
   }
@@ -291,6 +303,7 @@ CLocals *GenerateLocalsFromThunk(CAST *thunk) {
     gen->type=HTT_FRAME_PTR;
     gen->user_data0=off++;
     gen->str=StrNew(name->name);
+    ret->cnt++;
     HashAdd(gen,ret->vars);
   }
   DocPrint(dummy,"};\n");
@@ -305,6 +318,68 @@ Bool STHasLocal(CLocals *who,U8 *name) {
   }
   return ToBool(who);
 }
+Bool LocalsIsEscaped(CLocals *locals) {
+  CHashGeneric3 *g;
+  CHashTable *t;
+  I64 idx;
+  Bool ret=FALSE;
+//Heres the deal,any escaped parents need to have a (non-stack) chain the the parent.
+
+$SP,"<1>",BI=1$;
+
+
+
+
+
+
+
+
+
+
+
+
+
+  for(;locals;locals=locals->next) {
+    t=locals->vars;
+    for(idx=0;idx<=t->mask;idx++)
+      for(g=t->body[idx];g;g=g->next) 
+        if(g->is_escaped)
+         ret=TRUE;
+  }
+  return ret;
+}
+//Used with escape anaylsis
+Bool STEscapeMarkLocal(CLocals *who,U8 *name) {
+//Dont mark a local in the current scope
+  CHashGeneric3 *got;
+  if(HashSingleTableFind(name,who->vars,HTT_FRAME_PTR))
+    return FALSE;
+
+  while(who&&!(got=HashSingleTableFind(name,who->vars,HTT_FRAME_PTR)))
+    who=who->next;
+  if(got&&!got->user_data2)
+    got->is_escaped=TRUE;
+  return ToBool(got);
+}
+U0 Escape(CLocals *l,CAST *ast) {
+  if(ast->type==AST_VAR) {
+    STEscapeMarkLocal(l,ast->name);
+    return;
+  }
+  CAST *head=&ast->args,*cur;
+  if(ast->type==AST_BLOCK) {
+    head=&ast->body;
+    for(cur=head->next;cur!=head;cur=cur->next)
+      Escape(l,cur);
+  } else {
+    if(head->next) {
+      for(cur=head->next;cur!=head;cur=cur->next)
+        Escape(l,cur);
+    
+    }
+  }
+}
+
 Bool STIsRawMember(CLocals *who,U8 *name) {
   CHashGeneric *g=NULL;
   while(who&&!(g=HashSingleTableFind(name,who->vars,HTT_FRAME_PTR))) {
@@ -376,7 +451,7 @@ U8 *CompileThunk(CAST *block,CLocals *parent=NULL) {
 #else
   CDoc *doc=DocNew;
 #endif
-  CDocEntry *replace;
+  CDocEntry *replace,*frame;
   CLocals *locals=GenerateLocalsFromThunk(block);
   locals->next=parent;
   CAST *var,*head;
@@ -385,7 +460,7 @@ U8 *CompileThunk(CAST *block,CLocals *parent=NULL) {
   replace=DocPrint(doc,"  CFrogThing *stk[$$LK,\"replace_me\"$$],*retval=FROG_SMALL_NIL,**tmp;\n");
   DocPrint(doc,"CFrogThing *stk0,*stk1,*stk2,*stk3,*stk4,*stk5;\n");
   DocPrint(doc,"  Bool false=FALSE;\n");
-  DocPrint(doc,"  Bool *return_flag=STNewBlockFrame(\"%Q\",parent_frame)->return_flag;\n",locals->name,block);
+  frame=DocPrint(doc,"  $$LK,\"replaxe_me\"$$");
   DocPrint(doc,"  if(!return_flag) return_flag=&false;\n");
   DocPrint(doc,"  parent_frame=Fs->user_data;\n");
   DocPrint(doc,"  parent_frame->_raw_mask=%d;\n",locals->raw_mask);
@@ -405,6 +480,8 @@ U8 *CompileThunk(CAST *block,CLocals *parent=NULL) {
 
   head=&block->body;
   DocPrint(doc,"FrogThingLock(self);\n");
+  for(var=head->next;var!=head;var=var->next)
+    Escape(locals,var);
   for(var=head->next;var!=head;var=var->next) {
     if(var->type!=AST_STR) {
       CompileASTFinal(doc,var,locals,0);
@@ -415,10 +492,14 @@ U8 *CompileThunk(CAST *block,CLocals *parent=NULL) {
   idx=0;
   DocPrint(doc,"ret:\n");
   DocPrint(doc,"  FrogThingUnlock(self);\n");
-  DocPrint(doc,"  STFrameDel;\n");
+  DocPrint(doc,"  STFrameDel;\n"); //Does not Free(frame data may be on stack)
   DocPrint(doc,"  return stk0;\n");
   DocPrint(doc,"};");
   ReplaceElem(doc,replace,"%d",MaxI64(FramePtr("ST@@stk_depth")-6,0));
+  if(LocalsIsEscaped(locals)) 
+    ReplaceElem(doc,frame,"Bool *return_flag=STNewBlockFrame(\"%Q\",parent_frame)->return_flag;\n",locals->name);
+  else
+    ReplaceElem(doc,frame,"%Q stk_frame;MakeAnonBlockFrame(&stk_frame,%d,parent_frame); Bool *return_flag=parent_frame->_return_flag;\n",locals->name,locals->cnt);
   ret=DocSave(doc);//Saves to string
 #ifdef DEBUG
   DocWrite(doc);
@@ -427,6 +508,7 @@ U8 *CompileThunk(CAST *block,CLocals *parent=NULL) {
   Free(ret);
   DocDel(doc);
   FramePtrDel("ST@@stk_depth");
+  LocalsDel(locals);
   return MStrPrint("Thunk@@%d",thunk_idx);
 }
 U0 DftCall(CDoc *doc,CLocals *l,CAST *ast,I64 stack_depth,U8 *op,I64 cnt=2) {
@@ -703,6 +785,57 @@ U0 CompileAST(CDoc *doc,CAST *ast,CLocals *locals,I64 stack_depth,I64 jump_to=IN
 pass:
 //Skip past object we are calling to
       cur=ast->args.next->next;
+      if(!StrCmp(ast->op_name,"do:")) {
+	if(cur->var_class_name) {
+	  if(!StrCmp(cur->var_class_name,"CFrogArray")) {
+            idx=ast_case_num;
+            ast->switch_num=ast_case_num++;
+            DocPrint(doc,"L%d:\n",ast->switch_num);
+            CompileAST(doc,cur,locals,stack_depth,,TRUE);
+	    cur=cur->next;
+            DocPrint(doc,"CFrogArray *array%d=%s;I64 idx%d=0",idx,StackFrame2Var(stack_depth),idx);
+            DocPrint(doc,"for(idx%d=0;idx%d<array%d->items->cnt;idx$ER$%d++) {\n",idx,idx,idx,idx);
+	    DocPrint(doc,"%s=array->items->body[idx%d];\n",StackFrame2Var(stack_depth),idx);
+            UnrollBlock(doc,locals,stack_depth,ast->args.last);
+            DocPrint(doc,"}\n");
+	    return;
+	  }
+        }
+      }
+/*      if(!StrCmp(ast->op_name,"to:do:by:")) {
+        idx=ast_case_num;
+        ast->switch_num=ast_case_num++;
+        DocPrint(doc,"L%d:\n",ast->switch_num);
+	DocPrint(doc,"F64 from%d,to%d,by%d;\n",idx,idx,idx);
+	DocPrint(doc,"from%d=\n",idx);
+        CompileAST(doc,cur,locals,stack_depth,,TRUE);
+	cur=cur->next;
+	DocPrint(doc,"to%d=\n",idx);
+        CompileAST(doc,cur,locals,stack_depth,,TRUE);
+	cur=cur->next;
+	DocPrint(doc,"by%d=\n",idx);
+        CompileAST(doc,cur,locals,stack_depth,,TRUE);
+	cur=cur->next;
+	goto todoby;
+      }
+      if(!StrCmp(ast->op_name,"to:do:")) {
+        idx=ast_case_num;
+        ast->switch_num=ast_case_num++;
+        DocPrint(doc,"L%d:\n",ast->switch_num);
+	DocPrint(doc,"F64 from%d,to%d,by%d;\n",idx,idx,idx);
+	DocPrint(doc,"from%d=\n",idx);
+        CompileAST(doc,cur,locals,stack_depth,,TRUE);
+	cur=cur->next;
+	DocPrint(doc,"to%d=\n",idx);
+        CompileAST(doc,cur,locals,stack_depth,,TRUE);
+	cur=cur->next;
+	DocPrint(doc,"by%d=Sign(to%d-from%d)",idx,idx,idx);
+todoby:
+	DocPrint(doc,"if(by%d) for(;Sign(to%d-from%d)==Sign(by%d);from%d+=by%d) {\n",idx,idx,idx,idx,idx,idx);
+        UnrollBlock(doc,locals,stack_depth,ast->args.last);
+        DocPrint(doc,"}\n",StackFrame2Var(stack_depth));
+        return;
+      }*/
       if(!StrCmp(ast->op_name,"whileTrue:")) {
         idx=ast_case_num;
         UnrollBlock(doc,locals,stack_depth,ast->args.next);
@@ -1234,7 +1367,7 @@ U0 CompileToHolyC(U8 *src,U8 *class_name,U8 *src_path=NULL,Bool class_method=FAL
   Bool old=Option(OPTf_WARN_UNUSED_VAR,FALSE);
   U8 *ret,*fun_name,*tmp;
   static I64 fun_num=0;
-  CDocEntry *replace;
+  CDocEntry *replace,*frame;
   I64 idx;
   CAST *var,*head;
   CLexer *lex=LexerNew(src,src_path);
@@ -1267,12 +1400,17 @@ U0 CompileToHolyC(U8 *src,U8 *class_name,U8 *src_path=NULL,Bool class_method=FAL
     return;
   }
   CLocals *locals=GenerateLocalsFromMethod(m,class_name);
+  head=&m->body;
+  for(var=head->next;var!=head;var=var->next) {
+    Escape(locals,var);
+  }
 //MUST SET THIS
   fun_name=MStrPrint("%s@%d",class_name,fun_num++);
   DocPrint(doc,"CFrogThing *%s(CFrogThing *self,...) {\n",fun_name);
   replace=DocPrint(doc,"  CFrogThing *stk[$$LK,\"replace\"$$],*retval=FROG_SMALL_NIL,**tmp;\n");
   DocPrint(doc,"CFrogThing *stk0,*stk1,*stk2,*stk3,*stk4,*stk5;\n");
-  DocPrint(doc,"  Bool *return_flag=STAddMethodFrame(%d,\"%Q\",\"%Q\")->return_flag;\n",m,locals->name,class_name);
+  DocPrint(doc,"  Bool false=FALSE;\n");
+  frame=DocPrint(doc,"  $$LK,\"dasds\"$$");
   DocPrint(doc,"  CLocalsGeneric0 *parent_frame=Fs->user_data;\n");
   DocPrint(doc,"  parent_frame->_raw_mask=%d;\n",locals->raw_mask);
   DocPrint(doc,"  I64 unwind=0,next_case=%d;\n",ast_case_num);
@@ -1302,7 +1440,7 @@ U0 CompileToHolyC(U8 *src,U8 *class_name,U8 *src_path=NULL,Bool class_method=FAL
   DocPrint(doc,"ret:\n");
   DocPrint(doc,"  FrogThingUnlock(self);\n");
   DocPrint(doc,"  *return_flag=0;\n"); //Allow blocks made in the method to be called agian
-  DocPrint(doc,"  STFrameDel;\n");
+  DocPrint(doc,"  STFrameDel;\n"); //Does not Free(frame data may be on stack)
   if(*m->return_class) {
      DocPrint(doc,"if(!ThingHasClass2(retval,%d)) {retval=FROG_SMALL_NIL;}",UniverseAddClass(m->return_class));
   }
@@ -1315,6 +1453,10 @@ U0 CompileToHolyC(U8 *src,U8 *class_name,U8 *src_path=NULL,Bool class_method=FAL
     DocPrint(doc,"AddClassMethod(\"%Q\",\"%Q\",&%s);;",class_name,m->name,fun_name);
   }
   ReplaceElem(doc,replace,"%d",MaxI64(FramePtr("ST@@stk_depth")-6,0));
+  if(LocalsIsEscaped(locals))
+    ReplaceElem(doc,frame,"Bool *return_flag=STAddMethodFrame(%d,\"%Q\",\"%Q\")->return_flag;\n",m,locals->name,class_name);
+  else
+    ReplaceElem(doc,frame,"%Q stk_frame;MakeAnonBlockFrame(&stk_frame,%d,Fs->user_data,'Method');stk_frame._return_flag=&false;Bool *return_flag=&false;\n",locals->name,locals->cnt);
   #ifdef DEBUG
   DocWrite(doc);
   #endif
@@ -1400,3 +1542,4 @@ STRunStmt(
 );
 #endif
 #endif
+        Â         n   h   _   X   M   K   ;   7   1   *         	)   ,   9   E   P   E   ]   b      ÿÿÿÿ      5             	C   /      $I’$Iú¿oþ>ýÛô}Û·}ß¾Û¾mÚö	   	   a P   J   a  
