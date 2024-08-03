@@ -470,6 +470,7 @@ class CAssBird:C3DThing {
 };
 class CCyberPoop:C3DThing {
   CFrogRandom *random_generator;
+  I64 steps_to_walk;
   F64 speed;
   F64 state_start_tS;
   F64 state_duration;
@@ -500,7 +501,7 @@ class CDoor:CFrogThing {
   F64 speed;
   F64 open_duration;
   I64 x,y,act_as_wall;
-  I64 tag;
+  I64 tag;
   Bool activated;
   Bool side_door,small_key,big_key,rise_to_ceiling;
 };

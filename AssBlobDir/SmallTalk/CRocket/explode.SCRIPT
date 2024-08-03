@@ -7,9 +7,11 @@ explode ->CFrogNum
   things do:[:t*|
     dist _ ((t ->x - x) squared + (t ->y - y ) squared) sqrt .
 'Dont damage through walls(Cant see)' .
-    (self canSeeThing:  t) ifTrue: [
-      t damage: (5 * 128 - dist) / ( 5 * 128 ) * 50  from: from . 
-    ] .
+    (t->z - z)abs < 5 ifTrue: [
+      (self canSeeThing:  t) ifTrue: [
+        t damage: (5 * 128 - dist) / ( 5 * 128 ) * 50  from: from . 
+      ] .
+    ]
   ] .
 'TODOexplosion' .
   0 to: 20 do: [

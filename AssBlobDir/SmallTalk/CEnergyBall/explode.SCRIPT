@@ -5,9 +5,11 @@ explode->*
 |
  things _ #world getThingsInRadiusFromX: x fromY: y withRadius:  32 .
   things do:[:t*|
-    t ~= from ifTrue: [
-      dist _ ((t ->x - x) squared + (t ->y - y ) squared) sqrt .
-      t damage: (32 - dist)/ 32 * 15 from: from . 
-    ] 
+    (t->z - z) abs < 1.5 ifTrue: [
+      t ~= from ifTrue: [
+        dist _ ((t ->x - x) squared + (t ->y - y ) squared) sqrt .
+        t damage: (32 - dist)/ 32 * 15 from: from . 
+      ] 
+    ]
   ] .
   #world removeThing: self .

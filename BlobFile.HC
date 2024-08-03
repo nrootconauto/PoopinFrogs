@@ -35,6 +35,7 @@ CLumpHeader *BlobFileGetLumpInfo(CBlobFileHeader *hd,U8 *blob) {
 //This consults the cache
 //DO NOT FREE
 U8 *GetBlobFileData(U8 *filename,I64 *len=NULL) {
+  filename=ExtDft(filename,"BLOB");
   CDirEntry de;
   U8 *data=NULL;
 //Dumb hack,seth_task(on differnt core) has different Fs->cur_dir so use the cached one.
@@ -46,6 +47,7 @@ U8 *GetBlobFileData(U8 *filename,I64 *len=NULL) {
         Free(de.full_name);
 force_cache:;
 	if(len) *len=blob_file_cache.sz;
+	Free(filename);
         return blob_file_cache.data;
       }
     }
@@ -60,6 +62,7 @@ regen:
     Free(data);
     data=blob_file_cache.data;
   }
+  Free(filename);
   return data;
 }
 U8 *BlobFileGetLump(U8 *filename,U8 *name,I64 *len=NULL,U64 *type=NULL) {
@@ -152,9 +155,6 @@ U0 BlobFileAddLump(U8 *filename,U8 *name,U8 *data,I64 dlen,U64 type='DATA') {
   }
   QSort(ret->lump_table,ret->lump_cnt,sizeof(CLumpHeader),&BlobLumpSort);
   FileWrite(filename,ret,want_sz);
-#ifdef DEVELOPMENT_MODE
-  DumpBlobFile(filename,DEVELOPMENT_DIR);
-#endif
   Free(ret);
   if(blob_file_cache.filename) {
     ret=FileNameAbs(filename);
@@ -163,6 +163,15 @@ U0 BlobFileAddLump(U8 *filename,U8 *name,U8 *data,I64 dlen,U64 type='DATA') {
     }
     Free(ret);
   }
+#ifdef DEVELOPMENT_MODE
+  U8 *dump_path=MStrPrint(DEVELOPMENT_DIR"/%s.%c",name,type);
+  FileWrite(dump_path,data,dlen);
+PrintI(filename,0);
+PrintI(dump_path,dlen);
+  Free(dump_path);
+//Regenerate
+  UndumpBlobFile(filename,DEVELOPMENT_DIR);
+#endif
   Free(filename);
 }
 U0 BlobFileDeleteLump(U8 *blob_file,U8 *path) {
@@ -342,6 +351,8 @@ U0 UndumpBlobFile(U8 *filename,U8 *dir="/Tmp",Bool delete=FALSE) {
   final->lump_cnt=cnt;
   FileWrite(filename,final,total);
   Free(final);
+  blob_file_cache.datetime=0;
+  GetBlobFileData(filename); //Update cache
   DirTreeDel(finds);
   Free(filename); 
 }
@@ -362,11 +373,12 @@ BlobFileDeleteLump("ASS2","abd");
 //
 //$BK,1$Cache the ass blob$BK,0$
 //
-GetBlobFileData("ASS.BLOB");
 
 #ifdef DEVELOPMENT_MODE
 Del("ASS.BLOB*");
 //DumpBlobFile("ASS.BLOB","AssBlobDir");
 UndumpBlobFile(#exe {StreamPrint("\"%Q\"",__DIR__);} "/ASS.BLOB",DEVELOPMENT_DIR);
 #endif
+GetBlobFileData("ASS.BLOB");
+
 #endif

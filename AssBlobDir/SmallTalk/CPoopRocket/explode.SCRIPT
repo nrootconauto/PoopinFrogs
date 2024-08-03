@@ -9,10 +9,12 @@ explode ->CFrogNum
 |
   things _ #world getThingsInRadiusFromX: x fromY: y withRadius:  128 .
   things do:[:t*|
-    t ~= from ifTrue: [
-      dist _ ((t ->x - x) squared + (t ->y - y ) squared) sqrt .
-      t damage: (128 - dist)/ 128 * 15 from: from  . 
-    ] 
+    (t->z - z ) abs < 1.5 ifTrue: [
+      t ~= from ifTrue: [
+        dist _ ((t ->x - x) squared + (t ->y - y ) squared) sqrt .
+        t damage: (128 - dist)/ 128 * 15 from: from  . 
+      ] 
+    ]
   ] .
   'Check if wall is in radiuys' .
   hit_wall _ self move: 40 atAngle: angle .

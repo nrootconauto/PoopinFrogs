@@ -12,6 +12,9 @@ F64 Lerp(F64 per,F64 min,F64 max) {
 #define GRID_SZ 16
 #define DIST_SCALE (GRID_SZ*GR_WIDTH)
 
+#define BLOB_THINGS_ROOT "Level/Things"
+#define BLOB_TILES_ROOT "Level/Tiles"
+
 #define SEGMENT_SZ 32
 #define GRID_SZ 16
 #define THING_WIDTH (16*8)
@@ -1344,6 +1347,18 @@ CLevelDoor *InsertDoor(I64 tx,I64 ty,Bool ask=FALSE,Bool undo=TRUE) {
   QueIns(d,seg->doors.last);
   return d;
 } 
+U0 AddLevelThingTemplateToBlob(U8 *blob,CLevelThingTemplate *thing) {
+  U8 *path=MStrPrint("%s/NO_EDIT%d",BLOB_THINGS_ROOT,thing->idx);
+  CFileThingTemplate dummy;
+  MemSet(&dummy,0,sizeof CFileThingTemplate);
+  dummy.idx=thing->idx;
+  StrCpy(dummy.name,thing->name);
+  StrCpy(dummy.blob_side_name,thing->blob_side_name);
+  StrCpy(dummy.blob_front_name,thing->blob_front_name);
+  StrCpy(dummy.blob_back_name,thing->blob_back_name);
+  BlobFileAddLump(blob,path,&dummy,sizeof(CFileThingTemplate),'THING');
+  Free(path);
+}
 U0 EditThingTemplate(U8 *blob,CLevelThingTemplate *template) {
 enter:;
   CDoc *what=DocNew(blkdev.tmp_filename);
@@ -1463,6 +1478,7 @@ enter:;
       }
       break;
   }
+  AddLevelThingTemplateToBlob(blob,template);
   DocDel(what);
   world_edit.flat_mode=old_flat;
 }
@@ -1558,7 +1574,36 @@ I64 WorldGetCeilRiseAt(I64 x,I64 y) {
   y-=seg->yoff;
   return seg->ceil_heights2[x][y];
 }
-
+U0 LoadLevelThingTemplatesFromBlob(U8 *blob) {
+  CBlobFileHeader *data=GetBlobFileData(blob); //Dont Free
+  CLumpHeader *lump=data->lump_table;
+  CFileThingTemplate *f_template;
+  CLevelThingTemplate *template;
+  I64 idx=data->lump_cnt;
+  while(--idx>=0) {
+    if(!StrNCmp(lump->name,BLOB_THINGS_ROOT,StrLen(BLOB_THINGS_ROOT))) {
+      f_template=data(U8*)+lump->offset;
+      template=CreateNewThingTemplate(f_template->idx);
+      template->front_orig_dc=LoadGr(blob,f_template->blob_front_name);
+      template->back_orig_dc=LoadGr(blob,f_template->blob_back_name);
+      template->side_orig_dc=LoadGr(blob,f_template->blob_side_name);
+      StrCpy(template->blob_side_name,f_template->blob_side_name);
+      StrCpy(template->blob_front_name,f_template->blob_front_name);
+      StrCpy(template->blob_back_name,f_template->blob_back_name);
+      template->side_dc=ScaleDC(template->side_orig_dc,
+	  THING_WIDTH_SCALED,
+	  THING_HEIGHT_SCALED,world_edit.mem_task);
+      template->back_dc=ScaleDC(template->back_orig_dc,
+	  THING_WIDTH_SCALED,
+	  THING_HEIGHT_SCALED,world_edit.mem_task);
+      template->front_dc=ScaleDC(template->front_orig_dc,
+	  THING_WIDTH_SCALED,
+	  THING_HEIGHT_SCALED,world_edit.mem_task);
+      StrCpy(template->name,f_template->name);
+    }
+    lump++;
+  }
+}
 U0 LoadWorld(U8 *blob,U8 *filename) {
   U8 *str;
   U8 *textures;
@@ -1642,26 +1687,7 @@ U0 LoadWorld(U8 *blob,U8 *filename) {
   }
   f_template=templates;
   cap=w->thing_templates_where.len;
-  while(f_template<templates(U8*)+cap) {
-    template=CreateNewThingTemplate(f_template->idx);
-    template->front_orig_dc=LoadGr(blob,f_template->blob_front_name);
-    template->back_orig_dc=LoadGr(blob,f_template->blob_back_name);
-    template->side_orig_dc=LoadGr(blob,f_template->blob_side_name);
-    StrCpy(template->blob_side_name,f_template->blob_side_name);
-    StrCpy(template->blob_front_name,f_template->blob_front_name);
-    StrCpy(template->blob_back_name,f_template->blob_back_name);
-    template->side_dc=ScaleDC(template->side_orig_dc,
-	  THING_WIDTH_SCALED,
-	  THING_HEIGHT_SCALED,world_edit.mem_task);
-    template->back_dc=ScaleDC(template->back_orig_dc,
-	  THING_WIDTH_SCALED,
-	  THING_HEIGHT_SCALED,world_edit.mem_task);
-    template->front_dc=ScaleDC(template->front_orig_dc,
-	  THING_WIDTH_SCALED,
-	  THING_HEIGHT_SCALED,world_edit.mem_task);
-    StrCpy(template->name,f_template->name);
-    f_template++;
-  }
+  //Now unused
   things=f_thing=w->things_where.ptr+w(U8*);
   cap=w->things_where.len;
   while(f_thing<things(U8*)+cap) {
@@ -1974,6 +2000,7 @@ U0 WorldEdit(U8 *blob,U8 *filename=NULL) {
   I64 tx,ty;
   I64 ch2,old;
   I64 activate;
+  U64 type;
   I64 idx,idx2;
   I64 tile; //i32[0]==x,.i32[1]==y
   I64 last_wheel=ms.pos.z;
@@ -2005,6 +2032,7 @@ U0 WorldEdit(U8 *blob,U8 *filename=NULL) {
   DocClear;
   if(filename)
     world_edit.filename=StrNew(filename);
+  LoadLevelThingTemplatesFromBlob(blob);
   world_edit.scrn=DCNew(GR_WIDTH,GR_HEIGHT);
   Fs->draw_it=&LevelEditorDraw;
 //See WinQueIPMsgs,needed to avoid waiting for dbl click
@@ -2112,7 +2140,10 @@ save:
 	  } else if(m1==CH_CTRLA) { //Save as
 	    old_flat=world_edit.flat_mode;
 	    world_edit.flat_mode=TRUE;
-	    world_edit.filename=PopUpPickFile();
+	    if(str=BlobFileSelect(blob)) {
+	      Free(world_edit.filename);
+	      world_edit.filename=str;
+	    }
 	    LevelEditorExport(blob,world_edit.filename);
 	    world_edit.flat_mode=old_flat;
 	  } else if(m1==CH_ESC) { //Quit and save
@@ -2121,6 +2152,8 @@ save:
 	    goto save;
 	  } else if(m1==CH_SHIFT_ESC) { //Quit no save
 	    continue=FALSE;  
+	  } else if(m1==CH_CTRLS) {
+	    LevelEditorExport(blob,world_edit.filename);
 	  } else if(m1==CH_CTRLO) { //Load texture
 //Load wall texture
 	    old_flat=world_edit.flat_mode;

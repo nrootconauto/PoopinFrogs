@@ -172,6 +172,7 @@ I64 class CWallCommand {
 
 #define GRID_SZ 128
 #define THING_RADIUS (GRID_SZ/3)
+#define THING_HEIGHT 1.
 #define DIST_SCALE (GR_HEIGHT*GRID_SZ)
 #define EMPTY_SPACE 0
 class C3DWorld {
@@ -703,8 +704,10 @@ C3DThing *BumpsIntoThing(C3DThing *self,...) {
   F64 x,y;
   x=who->x-self->x;
   y=who->y-self->y;
-  if(radius>=x*x+y*y)
-    return FrogNumNew(1);
+  if(Max(self->z,who->z)
+     <=Min(self->z+THING_HEIGHT,who->z+THING_HEIGHT))
+      if(radius>=x*x+y*y)
+       return FrogNumNew(1);
   return FrogNumNew(0);
 } 
 AddMethod("C3DThing","hitsThing:",&BumpsIntoThing);
@@ -954,6 +957,7 @@ U0 PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm,F64 last_tS) {
   CRocket *rocket=NULL;
   CFrogArray *in_radius;
   CDoor *to_open;
+  C3DThing *other;
   CI64Set *set;
   if(ThingHasClass(t,"CRocket"))
     rocket=t;
@@ -1032,8 +1036,9 @@ explode:
     in_radius=CallScript("getObstaclesInRadiusForThing:inRadius:",wm,t,FrogNumNew(2*THING_RADIUS));
     set=in_radius->items;
     for(idx=0;idx!=set->cnt;idx++) {
-      if(set->body[idx]!=t)
-        if(AdjustRadiusThing(w,t,set->body[idx],angle))
+      other=set->body[idx];
+      if(other!=t&&Max(other->z,t->z)<=Min(other->z+THING_HEIGHT,t->z+THING_HEIGHT))
+        if(AdjustRadiusThing(w,t,other,angle))
 	  t->hit_thing=TRUE;
     }  
   }
@@ -2087,7 +2092,7 @@ U0 Draw2DThing(C3DWorld *w,C3DThing *thing) {
   F64 y0,h,width,x0,cx,cy,vis_h;
   I32 dist=Sqrt(Sqr(x)+Sqr(y));
   if(dist<2) return;
-  CDC *use_dc;
+  CDC *use_dc=NULL;
   I64 dc_w=dc->width,frame=ToI64((Frog_tS-thing->animation_start_tS)/ANIM_DELAY);
   I64 to_x,to_y;
   I64 line,col,face,cnt;
@@ -2129,6 +2134,7 @@ U0 Draw2DThing(C3DWorld *w,C3DThing *thing) {
   }
   if(!use_dc) return;
 draw:
+  frame=MaxI64(frame,0); //Prevent poo poo suace
   if(thing->animation_no_repeat) 
      use_dc+=MinI64(frame,AnimDCCnt(use_dc)-1);
   else
@@ -2172,7 +2178,7 @@ draw:
     } else {
       col=(width-(ix-x0)-2)/width*use_dc->width;
     }
-    if(0>col||col>=use_dc->width)
+    if(0>col||col>use_dc->width-2)
      goto skip2;
     iy=ToI64(cy)&~1;
     if(DrawIsBlocked(w,ix,iy,to_y,dist))
@@ -2678,10 +2684,11 @@ U0 UpdateDrawBuffer() {
   InitTables(w->angle,w->fov);
   C3DWorldCastRays(w);   
   mp_thing_done=0;
-  CFrogThing ***body=w->_2d_things->body;
+  CFrogThing ***body=MAllocIdent(w->_2d_things->body);
   I64 idx=w->_2d_things->cnt;
   while(--idx>=0)
     Draw2DThing(w,body[idx]);
+  Free(body);
   
   head=&w->particles;
   for(p=head->next;head!=p;p=n) {
