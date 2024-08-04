@@ -133,7 +133,7 @@ Bool SynView(CDoc *doc) {
 Bool STStudioRegisterNewClasses(U8 *blob_file) {
   if(!FileFind(blob_file)) return;
   CHashTable *new=HashTableNew(0x100);
-  CHashClass *cls;
+  CHashClass *cls;
   Bool ret=FALSE;
   U8 buf[STR_LEN],*dummy;
   I64 idx;

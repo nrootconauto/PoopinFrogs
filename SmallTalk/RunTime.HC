@@ -717,7 +717,7 @@ CFrogThing *CallScriptUniverse(I64 who,CFrogThing *self,...) {
   if(ThingHasClass(self,"CFrogClass")) {
     id=NameToUniverseNumber(self(CFrogClass*)->name);
     fptr=UniverseGetClassMethodForClassByIdx(who,id);   
-    if(fptr) {
+    if(fptr) {
       ret=CallVaArgs(fptr,argc,argv,self);
     }
     goto fin;
@@ -1155,8 +1155,21 @@ CFrogThing *_FrogBlockValue(CFrogBlock *self,I64 argc,I64 *argv) {
   CFrogThing *ret;
   I64 return_flag;
   CLocalsGeneric *old_frame=Fs->user_data,*cur=self->frame,*cur2,dummy;
-  Fs->user_data=cur;
+  if(ChkOnStk(cur)) {
+//Make sure cur is a valid frame,otherwise use a dummy;
+    cur2=old_frame;
+    while(cur2) {
+      if(cur2==cur)
+	goto fin;
+      cur2=cur2->next;
+    }
+    MemSet(&dummy,0,sizeof CLocalsGeneric);
+    dummy.type='Block';
+    dummy.return_flag=&dummy.ret_flag;
+    cur=&dummy;
+  }
 fin:
+  Fs->user_data=cur;
   ret=CallVaArgs(self->fun_ptr,argc,argv,self->self,cur);
   if(*cur->return_flag) {
 //Propigate the return upwards

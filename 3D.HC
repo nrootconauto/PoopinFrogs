@@ -1005,7 +1005,7 @@ CFrogArray *WorldManagerThingsInRadius(C3DWorldManager *wm,...) {
       while(--cnt>=0) {
 	t=body[cnt];
 	  if(r*r>=Sqr(t->x-x)+Sqr(t->y-y))
-            I64SetAdd(ret->items,t);
+            I64SetAdd(ret->items,t);
       }
 next:;
     }
