@@ -40,7 +40,7 @@ update ->*
   ].
 
   state = 'Fire' ifTrue: [
-    now > (state_start_tS + .333) ifTrue: [
+    now > (state_start_tS + .4) ifTrue: [
       w noiseSoundForTime: 300 withMin: 30 withMax: 40 .
       state_start_tS _ now .
       angle _ (target->x - x) arg: (target->y - y) .
@@ -52,9 +52,9 @@ update ->*
         rocket->y _ y .
         rocket->z _ z + .5 .
         rocket->angle _ angle + (o * 3.14 / 3) .
-        rocket->momx _ 10 * rocket->angle cos .
-        rocket->momy _ 10 * rocket->angle sin .
-        rocket->momz _ (target->z +.5 - rocket->z ) / dist * 10 . 
+        rocket->momx _ 20 * rocket->angle cos .
+        rocket->momy _ 20 * rocket->angle sin .
+        rocket->momz _ (target->z +.5 - rocket->z ) / dist * 20 . 
       ] .
       r _ random_generator next .  
       ((self canSeeThing: target) and: (r > .333))  ifTrue: [

@@ -836,7 +836,7 @@ Bool C3DWorldMoveZWithCollision(C3DWorld *w,F64 dist,F64 x,F64 y,F64 *_height,F6
   z+=dist;
   tile=ToI64(x/GRID_SZ)+ToI64(y/GRID_SZ)*w->world_width;
   if(0<=tile<w->world_width*w->world_height) {
-    if(HeightImpossible(w,x/GRID_SZ,y/GRID_SZ,z,TRUE,tallness,)) {
+    if(HeightImpossible(w,x/GRID_SZ,y/GRID_SZ,z,TRUE,tallness)) {
      h=GetPlatformHeight(w,x/GRID_SZ,y/GRID_SZ);
      ch=w->ceilmap[tile];
      cr=w->ceilmap2[tile];
@@ -1035,7 +1035,8 @@ U0 PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm,F64 last_tS) {
     rocket=t;
   WorldManagerRemoveFromGrid(wm,t);
   if(C3DWorldMoveZWithCollision(w,t->momz*weight,t->x,t->y,&t->z)) {
-    t->momz=0;
+    if(!rocket)  //Explode later(computer hitting floor after we move x/y)
+      t->momz=0;
   } else if(!rocket&&!t->floating)
       t->momz-=wm->gravity;
   ox=t->x;
@@ -1114,6 +1115,10 @@ explode:
         if(AdjustRadiusThing(w,t,other,angle))
 	  t->hit_thing=TRUE;
     }  
+  }
+  if(rocket) {
+    if(HeightImpossible(w,t->x/GRID_SZ,t->y/GRID_SZ,t->z,TRUE,1.))
+      goto explode;
   }
   WorldManagerUpdateThingPos(wm,t);
 }
