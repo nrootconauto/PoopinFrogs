@@ -46,4 +46,8 @@ fire ->* |
     (timeout < cur_ts and: state = 'Puff') ifTrue: [
       heal value .
     ] .
+  ] .
+
+  ammo = 0 ifTrue: [
+    player removeItem: inventory_item .
   ]

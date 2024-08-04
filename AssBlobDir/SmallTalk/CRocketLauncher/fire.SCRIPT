@@ -22,6 +22,10 @@ fire ->CFrogNum |
       ammo _ ammo - 1 max: 0 .
       inventory_item setCount: ammo .
       player fireProjectile: CRocket withSpeed: 75 .
+      ammo = 0 ifTrue: [
+        #hand_item _ 0 .
+        player removeItem: inventory_item .
+      ] .
     ] .
   ] .
 

@@ -24,5 +24,8 @@ fire ->CFrogNum |
       player fireProjectile: CPoopRocket withSpeed: 50 .
     ] .
   ] .
+  ammo = 0 ifTrue: [
+    player removeItem: inventory_item .
+  ] .
 
   ^ 1 .

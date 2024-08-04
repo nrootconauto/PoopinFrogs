@@ -225,7 +225,7 @@ pass:
           FramePtrDel(UI_GRID_DRAG_FPTR);
       if(ThingHasClass(update->drag_end,"CFrogBlock")) {
         if(m1!=drag_start_x||m2!=drag_start_y) {
-	  if(drag) {
+	  if(drag&&update!=drag) {
 	    FrogBlockValue(update->drag_end,
 		  FrogIncRefCnt(update),
 		  FrogNumNew(m1-x),

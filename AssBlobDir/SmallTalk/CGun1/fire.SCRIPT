@@ -45,4 +45,8 @@ fire ->* |
       best_thing _ player bestTargetAtAngle: player->angle .
       best_thing damage: 10 * CFrogRandom new next + 5 from: player 
     ] .
-  ]
+  ] .
+
+  ammo = 0 ifTrue: [
+    player removeItem: inventory_item .
+  ] .

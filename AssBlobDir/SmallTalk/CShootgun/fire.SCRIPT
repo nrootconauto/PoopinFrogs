@@ -58,5 +58,7 @@ fire ->CFrogNum |
       ]
     ].
   ] .
-
+  ammo = 0 ifTrue: [
+    player removeItem: inventory_item .
+  ] .
 ^ 1 .

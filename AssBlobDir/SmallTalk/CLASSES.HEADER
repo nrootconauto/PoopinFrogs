@@ -233,7 +233,7 @@ class CHandItem:CFrogThing {
   U8  *destroy dft "HandItemDel";
   I64 x,y;
   I64 xoff,yoff;
-  I64 ammo,max_ammo;
+  I64 ammo,max_ammo;
   F64 timeout;
   F64 anim_start_tS;
   I64 anim_no_repeat;
@@ -470,7 +470,7 @@ class CAssBird:C3DThing {
 };
 class CCyberPoop:C3DThing {
   CFrogRandom *random_generator;
-  I64 steps_to_walk;
+  I64 steps_to_walk;
   F64 speed;
   F64 state_start_tS;
   F64 state_duration;

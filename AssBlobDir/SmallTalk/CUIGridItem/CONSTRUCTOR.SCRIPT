@@ -1,5 +1,24 @@
-init | |
+init |
+  item2*
+  generic*
+|
   cnt _ 1 .
   sz_x _ 24 .
   sz_y _ 24 .
- ^ self
+  'Handle merges' .
+  drag_end _ [:s=CUIGridItem :x* :y* :what=CUIGridItem|
+    item2 _ what->item .
+    generic _ item .
+    (item2 hasClass: generic class) ifTrue: [
+      generic->max_ammo >= (generic->ammo + item2->ammo) ifTrue: [
+         what->parent removeItem: what .
+         generic->ammo _ generic->ammo + item2->ammo .
+      ] ifFalse: [
+         item2->ammo _ item2->ammo - (generic->max_ammo - generic->ammo) .
+         what->cnt _ item2->ammo .
+         generic->ammo _ generic->max_ammo.
+      ] .
+      cnt _ generic->ammo .
+    ] .
+  ] .
+  ^ self
