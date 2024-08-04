@@ -948,12 +948,16 @@ U0 FrogStrDel(CFrogArray *self) {
 }
 //Example
 //
-//  ConstructBuiltin("FrogNumNew(AsF64(a)+AsF64(self))","CFrogNum","+","CFrogNum","a");
+//  ConstructBuiltin("FrogNumNew(AsF64(a)+AsF64(self))","CFrogNum","CFrogNum","+","CFrogNum","a");
 //
-U0 ConstructBuiltin(U8 *code,U8 *type,U8 *name,...) { 
+U0 ConstructBuiltin(U8 *code,U8 *type,U8 *return_type,U8 *name,...) { 
+  if(argc&1) {//Odd
+    "%s\n",name;
+    throw('Builtin');
+  }
   I64 idx;
   static I64 cnt=0;
-  U8 uniq[STR_LEN],*class_name;
+  U8 uniq[STR_LEN],*class_name,*rt;
   I64 small_type_code;
   StrPrint(uniq,"%s@Prim%d",type,cnt++);
   StreamPrint("CFrogThing *%s(%s *self,...) {\n",uniq,type);
@@ -980,6 +984,10 @@ U0 ConstructBuiltin(U8 *code,U8 *type,U8 *name,...) {
   StreamPrint("return ret;\n");
   StreamPrint("};\n");
   StreamPrint("AddMethod(\"%Q\",\"%Q\",&%s);\n",type,name,uniq);
+  rt=MStrPrint("RET_TYPE_%s.%s",type,name);
+  if(return_type)
+    FramePtrAdd(rt,StrNew(return_type));
+  Free(rt);
 };
 CFrogThing *FrogChrIsAlNum(CFrogChr *self,...) {
   return FrogNumNew(Bt(char_bmp_alpha_numeric,AsChar(self)));
@@ -1063,85 +1071,86 @@ CFrogThing *FrogThingCopy(CFrogThing *t) {
 }
 #exe {
 //Char
-  ConstructBuiltin("FrogChrIsAlNum(self)","CFrogChr","isAlphaNumeric");
-  ConstructBuiltin("FrogChrIsWhitespace(self)","CFrogChr","isWhitespace");
-  ConstructBuiltin("FrogChrIsDisplayable(self)","CFrogChr","isDisplayable");
-  ConstructBuiltin("FrogChrIsNumber(self)","CFrogChr","isNumber");
-  ConstructBuiltin("FrogChrUppercase(self)","CFrogChr","uppercase");
+  ConstructBuiltin("FrogChrIsAlNum(self)","CFrogChr","CFrogNum","isAlphaNumeric");
+  ConstructBuiltin("FrogChrIsWhitespace(self)","CFrogChr","CFrogNum","isWhitespace");
+  ConstructBuiltin("FrogChrIsDisplayable(self)","CFrogChr","CFrogNum","isDisplayable");
+  ConstructBuiltin("FrogChrIsNumber(self)","CFrogChr","CFrogNum","isNumber");
+  ConstructBuiltin("FrogChrUppercase(self)","CFrogChr","CFrogChr","uppercase");
 }
 #exe {
 //Object
-  ConstructBuiltin("FrogThingClass(self)","CFrogThing","class");
-  ConstructBuiltin("FrogThingIsNil(self)","CFrogThing","isNil");
-  ConstructBuiltin("FrogNumNew(self==a)","CFrogThing","=","CFrogThing","a");
-  ConstructBuiltin("FrogNumNew(self!=a)","CFrogThing","~=","CFrogThing","a");
+  ConstructBuiltin("FrogThingClass(self)","CFrogThing","CFrogClass","class");
+  ConstructBuiltin("FrogThingIsNil(self)","CFrogThing","CFrogNum","isNil");
+  ConstructBuiltin("FrogNumNew(self==a)","CFrogThing","CFrogNum","=","CFrogThing","a");
+  ConstructBuiltin("FrogNumNew(self!=a)","CFrogThing","CFrogNum","~=","CFrogThing","a");
 }
 #exe {
 //Set
-  ConstructBuiltin("FrogArrayRemove(self,thing)","CFrogArray","remove:","CFrogThing","thing");
-  ConstructBuiltin("FROG_SMALL_NIL;I64SetAdd(self->items,FrogIncRefCnt(thing));","CFrogArray","add:","CFrogThing","thing");
-  ConstructBuiltin("FrogArrayAtPut(self,AsF64(idx),thing)","CFrogArray","at:put:","CFrogNum","idx","CFrogThing","thing");
-  ConstructBuiltin("FrogArrayAt(self,AsF64(idx))","CFrogArray","at:","CFrogNum","idx");
-  ConstructBuiltin("FrogArrayRemAt(self,AsF64(thing))","CFrogArray","removeAt:","CFrogNum","thing");
-  ConstructBuiltin("FrogNumNew(self->items->cnt)","CFrogArray","size");
-  ConstructBuiltin("FrogArrayCopy(self)","CFrogArray","copy");
-  ConstructBuiltin("FrogArrayEqual(self,other)","CFrogArray","=","CFrogArray","other");
-  ConstructBuiltin("FrogArrayNotEqual(self,other)","CFrogArray","~=","CFrogArray","other");
+  ConstructBuiltin("FrogArrayRemove(self,thing)","CFrogArray",NULL,"remove:","CFrogThing","thing");
+  ConstructBuiltin("FROG_SMALL_NIL;I64SetAdd(self->items,FrogIncRefCnt(thing));","CFrogArray",NULL,"add:","CFrogThing","thing");
+  ConstructBuiltin("FrogArrayAtPut(self,AsF64(idx),thing)","CFrogArray",NULL,"at:put:","CFrogNum","idx","CFrogThing","thing");
+  ConstructBuiltin("FrogArrayAt(self,AsF64(idx))","CFrogArray","CFrogThing","at:","CFrogNum","idx");
+  ConstructBuiltin("FrogArrayRemAt(self,AsF64(thing))","CFrogArray",NULL,"removeAt:","CFrogNum","thing");
+  ConstructBuiltin("FrogNumNew(self->items->cnt)","CFrogArray","CFrogNum","size");
+  ConstructBuiltin("FrogArrayCopy(self)","CFrogArray","CFrogArray","copy");
+  ConstructBuiltin("FrogArrayEqual(self,other)","CFrogArray","CFrogNum","=","CFrogArray","other");
+  ConstructBuiltin("FrogArrayNotEqual(self,other)","CFrogArray","CFrogNum","~=","CFrogArray","other");
 }
 #exe {
 //String
-  ConstructBuiltin("FrogArrayRemove(self,thing)","CFrogStr","remove:","CFrogThing","thing");
-  ConstructBuiltin("FROG_SMALL_NIL;U8SetAdd(self->items,AsChar(thing));","CFrogStr","add:","CFrogChr","thing");
-  ConstructBuiltin("FrogStrAtPut(self,AsF64(idx),thing)","CFrogStr","at:put:","CFrogNum","idx","CFrogChr","thing");
-  ConstructBuiltin("FrogStrAt(self,AsF64(idx))","CFrogStr","at:","CFrogNum","idx");
-  ConstructBuiltin("FrogStrRemAt(self,AsF64(thing))","CFrogStr","removeAt:","CFrogNum","thing");
-  ConstructBuiltin("FrogNumNew(self->items->cnt)","CFrogStr","size");
-  ConstructBuiltin("FrogStrCopy(self)","CFrogStr","copy");
-  ConstructBuiltin("FrogStrNotEqual(self,other)","CFrogStr","~=","CFrogStr","other");
-  ConstructBuiltin("FrogStrEqual(self,other)","CFrogStr","=","CFrogStr","other");
+  ConstructBuiltin("FrogArrayRemove(self,thing)","CFrogStr",NULL,"remove:","CFrogThing","thing");
+  ConstructBuiltin("FROG_SMALL_NIL;U8SetAdd(self->items,AsChar(thing));","CFrogStr",NULL,"add:","CFrogChr","thing");
+  ConstructBuiltin("FrogStrAtPut(self,AsF64(idx),thing)","CFrogStr",NULL,"at:put:","CFrogNum","idx","CFrogChr","thing");
+  ConstructBuiltin("FrogStrAt(self,AsF64(idx))","CFrogStr","CFrogChr","at:","CFrogNum","idx");
+  ConstructBuiltin("FrogStrRemAt(self,AsF64(thing))","CFrogStr",NULL,"removeAt:","CFrogNum","thing");
+  ConstructBuiltin("FrogNumNew(self->items->cnt)","CFrogStr","CFrogNum","size");
+  ConstructBuiltin("FrogStrCopy(self)","CFrogStr","CFrogStr","copy");
+  ConstructBuiltin("FrogStrNotEqual(self,other)","CFrogStr","CFrogNum","~=","CFrogStr","other");
+  ConstructBuiltin("FrogStrEqual(self,other)","CFrogStr","CFrogNum","=","CFrogStr","other");
 }
 #exe {
 //Arithmetic
-  ConstructBuiltin("FrogNumNew(AsF64(self)<AsF64(a))","CFrogNum","<","CFrogNum","a");
-  ConstructBuiltin("FrogNumNew(AsF64(self)>AsF64(a))","CFrogNum",">","CFrogNum","a");
-  ConstructBuiltin("FrogNumNew(AsF64(self)<=AsF64(a))","CFrogNum","<=","CFrogNum","a");
-  ConstructBuiltin("FrogNumNew(AsF64(self)>=AsF64(a))","CFrogNum",">=","CFrogNum","a");
-  ConstructBuiltin("FrogNumNew(AsF64(self)==AsF64(a))","CFrogNum","=","CFrogNum","a");
-  ConstructBuiltin("FrogNumNew(AsF64(self)!=AsF64(a))","CFrogNum","~=","CFrogNum","a");
+  ConstructBuiltin("FrogNumNew(AsF64(self)<AsF64(a))","CFrogNum","CFrogNum","<","CFrogNum","a");
+  ConstructBuiltin("FrogNumNew(AsF64(self)>AsF64(a))","CFrogNum","CFrogNum",">","CFrogNum","a");
+  ConstructBuiltin("FrogNumNew(AsF64(self)<=AsF64(a))","CFrogNum","CFrogNum","<=","CFrogNum","a");
+  ConstructBuiltin("FrogNumNew(AsF64(self)>=AsF64(a))","CFrogNum","CFrogNum",">=","CFrogNum","a");
+  ConstructBuiltin("FrogNumNew(AsF64(self)==AsF64(a))","CFrogNum","CFrogNum","=","CFrogNum","a");
+  ConstructBuiltin("FrogNumNew(AsF64(self)!=AsF64(a))","CFrogNum","CFrogNum","~=","CFrogNum","a");
 
-  ConstructBuiltin("FrogNumNew(AsF64(self)+AsF64(a))","CFrogNum","+","CFrogNum","a");
-  ConstructBuiltin("FrogNumNew(AsF64(self)-AsF64(a))","CFrogNum","-","CFrogNum","a");
-  ConstructBuiltin("FrogNumNew(AsF64(self)*AsF64(a))","CFrogNum","*","CFrogNum","a");
-  ConstructBuiltin("FrogNumNew(AsF64(self)/AsF64(a))","CFrogNum","basicDiv:","CFrogNum","a");
-  ConstructBuiltin("FrogNumNew(AsF64(self)%AsF64(a))","CFrogNum","basicRem:","CFrogNum","a");
-  ConstructBuiltin("FrogNumNew(ToI64(AsF64(self))/ToI64(AsF64(a)))","CFrogNum","basicIntDiv:","CFrogNum","a");
-  ConstructBuiltin("FrogNumNew(-AsF64(self))","CFrogNum","negated");
-  ConstructBuiltin("FrogNumNew(AsF64(self)`AsF64(a))","CFrogNum","raisedTo:","CFrogNum","a");
-  ConstructBuiltin("FrogNumNew(Floor(AsF64(self)))","CFrogNum","floor");
-  ConstructBuiltin("FrogNumNew(Round(AsF64(self)))","CFrogNum","round");
-  ConstructBuiltin("FrogNumNew(Ceil(AsF64(self)))","CFrogNum","ceil");
-  ConstructBuiltin("FrogNumNew(Log10(AsF64(self)))","CFrogNum","log");
-  ConstructBuiltin("FrogNumNew(Sin(AsF64(self)))","CFrogNum","sin");
-  ConstructBuiltin("FrogNumNew(Cos(AsF64(self)))","CFrogNum","cos");
-  ConstructBuiltin("FrogNumNew(Tan(AsF64(self)))","CFrogNum","tan");
-  ConstructBuiltin("FrogNumNew(ASin(AsF64(self)))","CFrogNum","arcsin");
-  ConstructBuiltin("FrogNumNew(ACos(AsF64(self)))","CFrogNum","arccos");
-  ConstructBuiltin("FrogNumNew(ATan(AsF64(self)))","CFrogNum","arctan");
-  ConstructBuiltin("FrogNumNew(Sqrt(AsF64(self)))","CFrogNum","sqrt");
+  ConstructBuiltin("FrogNumNew(AsF64(self)+AsF64(a))","CFrogNum","CFrogNum","+","CFrogNum","a");
+  ConstructBuiltin("FrogNumNew(AsF64(self)-AsF64(a))","CFrogNum","CFrogNum","-","CFrogNum","a");
+  ConstructBuiltin("FrogNumNew(AsF64(self)*AsF64(a))","CFrogNum","CFrogNum","*","CFrogNum","a");
+  ConstructBuiltin("FrogNumNew(AsF64(self)/AsF64(a))","CFrogNum","CFrogNum","basicDiv:","CFrogNum","a");
+  ConstructBuiltin("FrogNumNew(AsF64(self)/AsF64(a))","CFrogNum","CFrogNum","/","CFrogNum","a");
+  ConstructBuiltin("FrogNumNew(AsF64(self)%AsF64(a))","CFrogNum","CFrogNum","basicRem:","CFrogNum","a");
+  ConstructBuiltin("FrogNumNew(ToI64(AsF64(self))/ToI64(AsF64(a)))","CFrogNum","CFrogNum","basicIntDiv:","CFrogNum","a");
+  ConstructBuiltin("FrogNumNew(-AsF64(self))","CFrogNum","CFrogNum","negated");
+  ConstructBuiltin("FrogNumNew(AsF64(self)`AsF64(a))","CFrogNum","CFrogNum","raisedTo:","CFrogNum","a");
+  ConstructBuiltin("FrogNumNew(Floor(AsF64(self)))","CFrogNum","CFrogNum","floor");
+  ConstructBuiltin("FrogNumNew(Round(AsF64(self)))","CFrogNum","CFrogNum","round");
+  ConstructBuiltin("FrogNumNew(Ceil(AsF64(self)))","CFrogNum","CFrogNum","ceil");
+  ConstructBuiltin("FrogNumNew(Log10(AsF64(self)))","CFrogNum","CFrogNum","log");
+  ConstructBuiltin("FrogNumNew(Sin(AsF64(self)))","CFrogNum","CFrogNum","sin");
+  ConstructBuiltin("FrogNumNew(Cos(AsF64(self)))","CFrogNum","CFrogNum","cos");
+  ConstructBuiltin("FrogNumNew(Tan(AsF64(self)))","CFrogNum","CFrogNum","tan");
+  ConstructBuiltin("FrogNumNew(ASin(AsF64(self)))","CFrogNum","CFrogNum","arcsin");
+  ConstructBuiltin("FrogNumNew(ACos(AsF64(self)))","CFrogNum","CFrogNum","arccos");
+  ConstructBuiltin("FrogNumNew(ATan(AsF64(self)))","CFrogNum","CFrogNum","arctan");
+  ConstructBuiltin("FrogNumNew(Sqrt(AsF64(self)))","CFrogNum","CFrogNum","sqrt");
 }
 #exe {
 //Bits
-  ConstructBuiltin("FrogNumNew(~ToI64(AsF64(self)))","CFrogNum","bitInvert");
-  ConstructBuiltin("FrogNumNew(ToI64(AsF64(self))&ToI64(AsF64(a)))","CFrogNum","&","CFrogNum","a");
-  ConstructBuiltin("FrogNumNew(ToI64(AsF64(self))|ToI64(AsF64(a)))","CFrogNum","|","CFrogNum","a");
-  ConstructBuiltin("FrogNumNew(ToI64(AsF64(self))^ToI64(AsF64(a)))","CFrogNum","^","CFrogNum","a");
-  ConstructBuiltin("FrogNumNew(ToI64(AsF64(self))&(1<<ToI64(AsF64(a))))","CFrogNum","bitAt:","CFrogNum","a");
+  ConstructBuiltin("FrogNumNew(~ToI64(AsF64(self)))","CFrogNum","CFrogNum","bitInvert");
+  ConstructBuiltin("FrogNumNew(ToI64(AsF64(self))&ToI64(AsF64(a)))","CFrogNum","CFrogNum","&","CFrogNum","a");
+  ConstructBuiltin("FrogNumNew(ToI64(AsF64(self))|ToI64(AsF64(a)))","CFrogNum","CFrogNum","|","CFrogNum","a");
+  ConstructBuiltin("FrogNumNew(ToI64(AsF64(self))^ToI64(AsF64(a)))","CFrogNum","CFrogNum","^","CFrogNum","a");
+  ConstructBuiltin("FrogNumNew(ToI64(AsF64(self))&(1<<ToI64(AsF64(a))))","CFrogNum","CFrogNum","bitAt:","CFrogNum","a");
 }
 #exe {
 //Conversion
-  ConstructBuiltin("FrogNumNew(ToI64(AsF64(self)))","CFrogNum","asInteger");
-  ConstructBuiltin("FrogChrNew(AsF64(self))","CFrogNum","asCharactor");
-  ConstructBuiltin("FrogNumNew(AsChar(self))","CFrogChr","asciiValue");
+  ConstructBuiltin("FrogNumNew(ToI64(AsF64(self)))","CFrogNum","CFrogNum","asInteger");
+  ConstructBuiltin("FrogChrNew(AsF64(self))","CFrogNum","CFrogChr","asCharactor");
+  ConstructBuiltin("FrogNumNew(AsChar(self))","CFrogChr","CFrogNum","asciiValue");
 };;
 Bool ValidateFrame(CLocalsGeneric *g) {
   CLocalsGeneric *cur=Fs->user_data;
