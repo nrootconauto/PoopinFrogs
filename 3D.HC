@@ -2208,8 +2208,8 @@ U0 Draw2DThing(C3DWorld *w,C3DThing *thing) {
       use_dc=template->side;
       break;
   }
-  if(!use_dc) return;
 draw:
+  if(!use_dc||!AnimDCCnt(use_dc)) return;
   frame=MaxI64(frame,0); //Prevent poo poo suace
   if(thing->animation_no_repeat) 
      use_dc+=MinI64(frame,AnimDCCnt(use_dc)-1);

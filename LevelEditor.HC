@@ -1518,6 +1518,9 @@ U0 FreeEditorData() {
   QueInit(&world_edit.segments);
   QueInit(&world_edit.edits);
   QueInit(&world_edit.textures_que);
+  QueInit(&world_edit.thing_templates_que);
+ MemSetI64(world_edit.textures,NULL,0x10000);
+  MemSetI64(world_edit.thing_templates,NULL,0x10000);
 }
 U0 WorldInsertTileAt(I64 x,I64 y,I64 thing,I64 floor_ceil_ceil2=0) {
   CLevelSegment *seg=GetSegmentForPos(x,y);
@@ -1639,6 +1642,7 @@ U0 LoadWorld(U8 *blob,U8 *filename) {
   }
   world_edit.flat_mode=old_flat;
   FreeEditorData;
+  LoadLevelThingTemplatesFromBlob(blob);
   world_edit.filename=StrNew(filename);
   width=w->w;
   height=w->h;
