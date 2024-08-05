@@ -8,10 +8,7 @@ eatTarget: thing=C3DThing  fromFrog: f=C3DThing ->* |
   xx _ thing ->x - from ->x.
   yy _ thing ->y - from ->y.
   angle _ xx arg: yy .
-  dist _ (xx squared + yy squared ) sqrt max: 128 * 8 .
-  dist > 32 ifTrue: [
-     dist _ dist - 32 .
-  ] .
+  dist _ (xx squared + yy squared ) sqrt + 32 max: 128 * 8 .
   target_x _ from ->x + (dist * angle cos ).
   target_y _ from ->y + (dist * angle sin ).
   target_z _ thing ->z + .5 .

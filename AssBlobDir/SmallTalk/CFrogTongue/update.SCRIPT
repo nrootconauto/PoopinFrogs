@@ -8,9 +8,11 @@ update ->CFrogNum |
   things=CFrogArray
   fx=CFrogNum
   fy=CFrogNum
+  force=CFrogNum
   r*
   dist2=CFrogNum
   angle=CFrogNum
+  from_tongue=CFrogNum
  |
   going_back ifTrue: [
     t _ ((CFrogTime now asSeconds - start_tS)   )  * speed + (3.14 / 2 ) .
@@ -43,18 +45,18 @@ update ->CFrogNum |
      ^ 0 .
   ] .
 
-  things _ #world thingsInDist: dist + 32 atAngle: ((x - fx) arg: (y - fy)) fromThing: from .
+  things _ #world thingsInDist: dist + 64 atAngle: angle fromThing: from .
 
-  'check if our angle with with 5 degrees of poo poo'.
   things do: [:t=C3DThing | 
     (t ~= from and: (hit has: t) not ) ifTrue: [
-      angle _ (t angleBetween: from ) .
-      angle < (3.14 / 180 * 15) ifTrue: [
-        dist2 _ ((t ->x - fx) squared + (t ->y - fy) squared ) sqrt .
-        (dist + 32) > dist2 ifTrue:[
+      dist2 _ ((t ->x - fx) squared + (t ->y - fy) squared ) sqrt .
+      (dist + 64) > dist2 ifTrue:[
+        from_tongue _ ((angle cos * dist2 - x + fx ) squared +
+          (angle sin * dist2 - y + fy ) squared ) sqrt .
+        from_tongue <= 64  ifTrue: [
           hit add: t .
           going_back ifFalse: [
-            going_back _ 1 .
+          going_back _ 1 .
             target_x _ t->x .
             target_y _ t->y .
             target_z _ z .
@@ -62,14 +64,16 @@ update ->CFrogNum |
           ] .
           angle _ x -  t->x arg: y - t->y .
           r _ CFrogRandom new .
-          t damage: 20 + (r next * 7 ) .
-          t addMomX: (r next * 64)  * angle cos. 
-          t addMomY: (r next * 64)  * angle sin. 
-          t addMomZ: r next * .3 + .5 . 
-          ^0
-        ] .
-      ]
+'Throw the target towards the frog' .
+          t damage: 10 + (r next * 7 ) .
+          force _ r next * 10 + dist2 / 30 .
+          t addMomX: force * angle cos. 
+          t addMomY: force * angle sin. 
+          t addMomZ: .45 . 
+          ^0 .
+        ]
+      ] .
     ]
-  ] .
+  ].
 
   ^ 1

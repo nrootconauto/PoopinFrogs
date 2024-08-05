@@ -1045,14 +1045,12 @@ U0 PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm,F64 last_tS) {
     if(!rocket) {
       t->momx*=29/30.*weight;
       t->momy*=29/30.*weight;
-      if(t->momx<0.&&t->momx2>0.) {
-         t->momx=Min(0,t->momx+t->momx2);
-      } else if(t->momx>0.&&t->momx2<0.)
-         t->momx=Max(0,t->momx+t->momx2);
-      if(t->momy<0.&&t->momx2>0.) {
-         t->momy=Min(0,t->momy+t->momy2);
-      } else if(t->momy>0.&&t->momy2<0.)
-         t->momy=Max(0,t->momx+t->momy2);
+      if(Sign(t->momx)==-Sign(t->momx2))
+	t->momx+=t->momx2*weight;
+      if(Sign(t->momy)==-Sign(t->momy2))
+	t->momy+=t->momy2*weight;
+      if(Abs(t->momx)<2) t->momx=0;
+      if(Abs(t->momy)<2) t->momy=0;
     }
 //Handle slow
     if(ThingHasClass(t,"CPlayer")) {
@@ -1063,8 +1061,6 @@ U0 PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm,F64 last_tS) {
         t->friction=.5;
       } 
     }
-    if(Abs(t->momx)<2) t->momx=0;
-    if(Abs(t->momy)<2) t->momy=0;
     angle=Arg(t->momx+t->momx2,t->momy+t->momy2);
     i_am_moving=TRUE;
     dist=Sqrt(Sqr(t->momx+t->momx2)+Sqr(t->momy+t->momy2))*(1.-t->friction);
@@ -1076,6 +1072,8 @@ U0 PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm,F64 last_tS) {
 	t->z)) {
 	
 hit:
+      t->momx=0.;
+      t->momy=0.;
       if(rocket) {
 explode:
         CallScript("explode",rocket);

@@ -1,4 +1,7 @@
 getPlayer -> CPlayer | |
-  things do : [:t* |
-    (t hasClass: CPlayer) ifTrue: [ ^ t ]
-  ] .
+  (player hasClass: CPlayer) ifFalse: [
+    things do : [:t* |
+      (t hasClass: CPlayer) ifTrue: [player _ t ] .
+    ] .
+  ].
+  ^ player 

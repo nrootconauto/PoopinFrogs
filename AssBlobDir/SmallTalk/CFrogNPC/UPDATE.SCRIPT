@@ -21,23 +21,16 @@ update ->* |
   ] .
 
   ts _ CFrogTime now asSeconds .
-  (ts - state_start_tS ) > state_duration ifTrue: [
-    'stay angry until the target is out of view' .
-    (state = 'Angry' and: (self canSeeThing: target )) ifTrue: [
-      ^ 1 .
-    ] .
-    state _ 'Normal' .
-  ].
 
   (tongue hasClass: CFrogTongue) ifTrue: [
     tongue update ifFalse: [
       tongue _ 0 
     ]
-    ^ 1 
+    ^ 1  .
   ]  ifFalse: [
     state = 'Angry' ifTrue: [
       'Try to eat the player' .
-      speed _ 64 / 30 * 3.5 .
+      speed _ 128 / 30 * 3.5 .
       (random_generator next  < ( 2 / 10 ) and: (self canSeeThing: target)) ifTrue: [
         tongue _ CFrogTongue new .
         'eat 'show .
@@ -53,7 +46,7 @@ update ->* |
   ] .
 
   state = 'Normal' ifTrue: [
-     speed _ 64 / 30  * 2 . 
+     speed _ 128 / 30  * 2 . 
   ] .  
 
   state = 'Flee' ifTrue: [
@@ -76,6 +69,17 @@ update ->* |
   old_y _ y .
   old_z _ z .
 
+  (target hasClass: C3DThing) ifFalse: [
+    target _ self lookForTarget .
+  ].
+
+
+  ((target hasClass: C3DThing) and: target->health > 0) ifFalse: [
+    'Cant see anyone worth attacking' .
+    state _ 'Normal' .
+    ^ 1 .
+  ].
+  state _ 'Angry' .
   self wander: speed withJumpVelocity: .6 withTarget: target .
 
   'Jump Randomly' .

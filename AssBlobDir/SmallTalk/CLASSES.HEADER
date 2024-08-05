@@ -226,6 +226,7 @@ class C3DWorldManager:CFrogThing {
   CTask *sound_task no_serialize 1;
 //Private
   F64 game_load_tS;  //The CFrogTime now asSeconds that the game world is at when loaded
+  CFrogThing *player no_serialize 1;
 };
 
 class CHandItem:CFrogThing {
@@ -233,7 +234,7 @@ class CHandItem:CFrogThing {
   U8  *destroy dft "HandItemDel";
   I64 x,y;
   I64 xoff,yoff;
-  I64 ammo,max_ammo;
+  I64 ammo,max_ammo;
   F64 timeout;
   F64 anim_start_tS;
   I64 anim_no_repeat;
