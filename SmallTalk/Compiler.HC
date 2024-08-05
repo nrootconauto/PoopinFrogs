@@ -363,32 +363,124 @@ Bool STEscapeMarkLocal(CLocals *who,U8 *name) {
   CHashGeneric3 *got;
   if(HashSingleTableFind(name,who->vars,HTT_FRAME_PTR))
     return FALSE;
-
   while(who&&!(got=HashSingleTableFind(name,who->vars,HTT_FRAME_PTR)))
     who=who->next;
   if(got&&!got->user_data2)
     got->is_escaped=TRUE;
   return ToBool(got);
 }
-U0 Escape(CLocals *l,CAST *ast) {
+U0 VarCheck(CLocals *l,CAST *ast) {
   if(ast->type==AST_VAR) {
     STEscapeMarkLocal(l,ast->name);
     return;
   }
   CAST *head=&ast->args,*cur;
-  if(ast->type==AST_BLOCK) {
+  if(ast->type==AST_BLOCK||ast->type==AST_ARRAY) {
     head=&ast->body;
     for(cur=head->next;cur!=head;cur=cur->next)
-      Escape(l,cur);
+      VarCheck(l,cur);
   } else {
     if(head->next) {
       for(cur=head->next;cur!=head;cur=cur->next)
-        Escape(l,cur);
-    
+        VarCheck(l,cur);
     }
   }
 }
+extern U0 AssignTypeToNode(CLocals *l,CAST *ast);
+Bool BlockEscapesFromMethod(CLocals *l,CAST *ast) {
+  CAST *head=&ast->args,*cur=head->next,*first;
+  switch(ast->type) {
+    case AST_RETURN:
+     if(cur->type==AST_BLOCK);
+       return TRUE;
+     return BlockEscapesFromMethod(l,cur);
+    case AST_ASSIGN:
+      first=head->next;
+      cur=head->last;
+//Assign into a block allows for escape
+      if(cur->type==AST_BLOCK)
+	return TRUE;
+      if(BlockEscapesFromMethod(l,cur))
+	return TRUE;
+      break;
+    case AST_CASCADE:
+	return TRUE;
+    case AST_KEYWORD:
+    case AST_UNOP:
+    case AST_BINOP:
+//DUMB alert,uses list of "Safe" methods
+      AssignTypeToNode(l,cur);
+      if(BlockEscapesFromMethod(l,cur))
+	 return TRUE;
+      if(!StrCmp(cur->var_class_name,"CFrogNum")) {
+        if(!StrCmp(ast->name,"to:do:"))
+	  goto pass;
+        if(!StrCmp(ast->name,"to:by:do:"))
+	  goto pass;
+      }
+      if(!StrCmp(ast->name,"ifTrue:")) {
+	goto pass;
+      }
+      if(!StrCmp(ast->name,"ifFalse:")) {
+	goto pass;
+      }
+      if(!StrCmp(ast->name,"ifTrue:ifFalse:"))
+	goto pass;
+      if(cur->type==AST_BLOCK) {
+        if(!StrCmp(ast->name,"whileTrue:"))
+	  goto pass;
+        if(!StrCmp(ast->name,"whileFalse:"))
+	  goto pass;
+      }
+      if(!StrCmp(cur->var_class_name,"CFrogArray")) {
+        if(!StrCmp(ast->name,"detect:"))
+	  goto pass;
+        if(!StrCmp(ast->name,"collect:"))
+	  goto pass;
+        if(!StrCmp(ast->name,"reject:"))
+	  goto pass;
+        if(!StrCmp(ast->name,"select:"))
+	  goto pass;
+        if(!StrCmp(ast->name,"do:"))  {
+pass:
+          for(;cur!=head;cur=cur->next)
+	    if(BlockEscapesFromMethod(l,cur))
+	     return TRUE;
+          return FALSE;
+        }
+      }
+      first=cur;
+      for(;cur!=head;cur=cur->next) {
+//Ignore [block] value: stuff
+	if(BlockEscapesFromMethod(l,cur))
+	  return TRUE;
 
+//Block is an argument to a method and presubly escapes
+	if(cur!=first&&cur->type==AST_BLOCK) {
+	  return TRUE;
+        }
+      }
+      return FALSE;
+    case AST_ARRAY:
+    case AST_BLOCK:
+      head=&ast->body;
+      for(cur=head->next;cur!=head;cur=cur->next) {
+	  if(BlockEscapesFromMethod(l,cur))
+	    return TRUE;
+	if(cur->type==AST_BLOCK)
+	  return TRUE;
+      }
+      break;
+    default:
+      if(cur) 
+        for(;cur!=head;cur=cur->next) {
+	  if(BlockEscapesFromMethod(l,cur))
+	    return TRUE;
+        }
+      break;
+  }
+  return FALSE;
+}
 Bool STIsRawMember(CLocals *who,U8 *name) {
   CHashGeneric *g=NULL;
   while(who&&!(g=HashSingleTableFind(name,who->vars,HTT_FRAME_PTR))) {
@@ -453,13 +545,13 @@ U8 *CompileThunk(CAST *block,CLocals *parent=NULL) {
   DocPrint(doc,"#if 0\n");
   DocPrint(doc,"/*This is a generated file,DON'T FUCKIN EDIT*/\n");
   Fs->put_doc=doc;
-  DumpAst(block);
   Fs->put_doc=old_put;
   Free(tmp);
   DocPrint(doc,"\n#endif\n");
 #else
   CDoc *doc=DocNew;
 #endif
+  Bool escapes=FramePtr("Escapes");
   CDocEntry *replace,*frame;
   CLocals *locals=GenerateLocalsFromThunk(block);
   locals->next=parent;
@@ -490,8 +582,9 @@ U8 *CompileThunk(CAST *block,CLocals *parent=NULL) {
 
   head=&block->body;
   DocPrint(doc,"FrogThingLock(self);\n");
-  for(var=head->next;var!=head;var=var->next)
-    Escape(locals,var);
+  for(var=head->next;var!=head;var=var->next) {
+    VarCheck(locals,var);
+  }
   for(var=head->next;var!=head;var=var->next) {
     if(var->type!=AST_STR) {
       CompileASTFinal(doc,var,locals,0);
@@ -506,10 +599,15 @@ U8 *CompileThunk(CAST *block,CLocals *parent=NULL) {
   DocPrint(doc,"  return stk0;\n");
   DocPrint(doc,"};");
   ReplaceElem(doc,replace,"%d",MaxI64(FramePtr("ST@@stk_depth")-6,0));
-  if(LocalsIsEscaped(locals)) 
+static I64 pass=0,fail=0;
+  if(escapes&&LocalsIsEscaped(locals))  {
     ReplaceElem(doc,frame,"Bool *return_flag=STNewBlockFrame(\"%Q\",parent_frame)->return_flag;\n",locals->name);
-  else
+    fail++;
+  } else {
     ReplaceElem(doc,frame,"%Q stk_frame;MakeAnonBlockFrame(&stk_frame,%d,parent_frame); Bool *return_flag=parent_frame->_return_flag;\n",locals->name,locals->cnt);
+    pass++;
+  }
+  DbgPrint("p:%d,f:%d\n",pass,fail);
   ret=DocSave(doc);//Saves to string
 #ifdef DEBUG
   DocWrite(doc);
@@ -623,6 +721,15 @@ U0 AssignTypeToNode(CLocals *l,CAST *ast) {
   if(*ast->var_class_name) return;
   CAST *a;
   switch(ast->type) {
+   case AST_BLOCK:
+     StrCpy(ast->var_class_name,"CFrogBlock");
+     break;
+   case AST_ARRAY:
+     StrCpy(ast->var_class_name,"CFrogArray");
+     break;
+   case AST_STR:
+     StrCpy(ast->var_class_name,"CFrogStr");
+     break;
    case AST_VAR:
      if(!ast->var_class_name[0]) {
        if(HashFind(ast->name,Fs->hash_table,HTT_CLASS))
@@ -1370,8 +1477,10 @@ fin:
 U0 CompileToHolyC(U8 *src,U8 *class_name,U8 *src_path=NULL,Bool class_method=FALSE,Bool register_method=FALSE) {
 //Make a dummy hash table for the parser(may liter with dumb FramePtrs on throw)
   FramePtrAdd("MethodClass",class_name);
+  FramePtrAdd("Escapes",0);
   try {
   Bool old=Option(OPTf_WARN_UNUSED_VAR,FALSE);
+  Bool escapes=FALSE;
   U8 *ret,*fun_name,*tmp;
   static I64 fun_num=0;
   CDocEntry *replace,*frame;
@@ -1409,8 +1518,10 @@ U0 CompileToHolyC(U8 *src,U8 *class_name,U8 *src_path=NULL,Bool class_method=FAL
   CLocals *locals=GenerateLocalsFromMethod(m,class_name);
   head=&m->body;
   for(var=head->next;var!=head;var=var->next) {
-    Escape(locals,var);
-  }
+    VarCheck(locals,var);
+    escapes|=BlockEscapesFromMethod(locals,var);
+ }
+FramePtrSet("Escapes",escapes);
 //MUST SET THIS
   fun_name=MStrPrint("%s@%d",class_name,fun_num++);
   DocPrint(doc,"CFrogThing *%s(CFrogThing *self,...) {\n",fun_name);
@@ -1461,7 +1572,7 @@ U0 CompileToHolyC(U8 *src,U8 *class_name,U8 *src_path=NULL,Bool class_method=FAL
     DocPrint(doc,"AddClassMethod(\"%Q\",\"%Q\",&%s);;",class_name,m->name,fun_name);
   }
   ReplaceElem(doc,replace,"%d",MaxI64(FramePtr("ST@@stk_depth")-6,0));
-  if(LocalsIsEscaped(locals))
+  if(escapes)
     ReplaceElem(doc,frame,"Bool *return_flag=STAddMethodFrame(%d,\"%Q\",\"%Q\")->return_flag;\n",m,locals->name,class_name);
   else
     ReplaceElem(doc,frame,"%Q stk_frame;MakeAnonBlockFrame(&stk_frame,%d,Fs->user_data,'Method');stk_frame._return_flag=&false;Bool *return_flag=&false;\n",locals->name,locals->cnt);
@@ -1476,10 +1587,12 @@ U0 CompileToHolyC(U8 *src,U8 *class_name,U8 *src_path=NULL,Bool class_method=FAL
 //DONE WITH IT
 fin:
   FramePtrDel("ST@@stk_depth");
+  FramePtrDel("Escapes");
   FramePtrDel("MethodClass");
   MethodDel(m);
   } catch {
     FramePtrDel("MethodClass");
+    FramePtrDel("Escapes");
   }
 }
 
@@ -1491,6 +1604,7 @@ U0 STRepl(U8 *dft="",Bool interactive=TRUE) {
   CDoc *doc;
   CDocEntry *replace;
   lex=LexerNew(dft);
+  FramePtrAdd("Escapes",TRUE);
   if(interactive)
     lex->flags|=LEXF_CMD_LINE|LEXF_WANTS_INPUT;
   while(TRUE) {
@@ -1539,6 +1653,7 @@ U0 STRepl(U8 *dft="",Bool interactive=TRUE) {
     }
 skip:;
   }
+  FramePtrDel("Escapes");
 }
 U0 STRunStmt(U8 *str) {
   STRepl(str,FALSE);

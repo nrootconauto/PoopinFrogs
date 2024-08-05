@@ -25,7 +25,7 @@ U0 ErectFogTable(U64 *table,I64 fog_color,F64 ratio) {
   for(idx=0;idx!=COLORS_NUM;idx++) {
     r=palette[idx].r*ratio+palette[fog_color].r*(1.-ratio);
     g=palette[idx].g*ratio+palette[fog_color].g*(1.-ratio);
-    b=palette[idx].b*ratio+palette[fog_color].b*(1.-ratio);
+    b=palette[idx].b*ratio+palette[fog_color].b*(1.-ratio);
     best_dist=1e100;
     for(dither=0;dither!=0xff;dither++) {
       r2=(palette[dither&0xf].r+palette[dither>>4].r)/2.;
