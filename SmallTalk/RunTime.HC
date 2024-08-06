@@ -681,6 +681,9 @@ CFrogThing *CallPtr2(U8 *fun_ptr,I64 universe_class,CFrogThing *self,...) {
     ret=FROG_SMALL_NIL;
   return ret;
 }
+CFrogThing *Useless(CFrogThing *, ...) {
+  return FROG_SMALL_NIL;
+}
 
 
 CFrogThing *CallScript(U8 *name,CFrogThing *self,...) {
@@ -688,10 +691,10 @@ CFrogThing *CallScript(U8 *name,CFrogThing *self,...) {
   CFrogThing *ret=NULL;
   if(ThingHasClass(self,"CFrogClass")) {
     fptr=UniverseGetClassMethodForClassByIdx(NameToUniverseNumber(self(CFrogClass*)->name),self->id);   
-    if(fptr)  {
+    if(fptr&&fptr!=&Useless)  { //Dumb hack
       ret=CallVaArgs(fptr,argc,argv,self);
+      goto fin;
     }
-    goto fin;
   }
   if(!(self&1)) {
     fptr=UniverseGetMethodForClassByIdx(NameToUniverseNumber(name),self->id);   
@@ -715,12 +718,12 @@ CFrogThing *CallScriptUniverse(I64 who,CFrogThing *self,...) {
   I64 id;
   CFrogThing *ret=NULL;
   if(ThingHasClass(self,"CFrogClass")) {
-    id=NameToUniverseNumber(self(CFrogClass*)->name);
+    id=self(CFrogClass*)->class_id;
     fptr=UniverseGetClassMethodForClassByIdx(who,id);   
-    if(fptr) {
+    if(fptr&&fptr!=&Useless) { //Dumb hack
       ret=CallVaArgs(fptr,argc,argv,self);
+      goto fin;
     }
-    goto fin;
   }
   if(!(self&1)) {
     fptr=UniverseGetMethodForClassByIdx(who,self->id);   
@@ -1293,6 +1296,9 @@ CFrogThing *FrogThingShow(CFrogStr *self,...) {
       break;
     } else if(ThingHasClass(self,"CFrogNum",FROG_SMALL_NUM)) {
       DbgPrint("%n\n",AsF64(self));
+      break;
+    } else if(ThingHasClass(self,"CFrogClass")) {
+      DbgPrint("<CLASS:%s>\n",self(CFrogClass*)->name,self);
       break;
     } else if(ThingHasClass(self,"CFrogChr")) {
       DbgPrint("%c\n",AsChar(self));

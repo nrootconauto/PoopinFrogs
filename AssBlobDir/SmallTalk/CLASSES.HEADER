@@ -191,7 +191,7 @@ class C3DThingTemplate:CFrogThing {
 };
 extern class CEliza;
 class C3DThing:CFrogThing {
-  CFrogClass *drop_thing;
+  CFrogClass *drop_thing; //CFrogClass
   C3DThingTemplate *template no_serialize 1;
   F64 x,y,z,angle,health;
   F64 momx,momy,momz,animation_start_tS;
@@ -351,6 +351,9 @@ class CPissStream:CFrogThing {
 
 class CGun1Pickup:CPickup {
 };
+class CHealthPickup:CPickup {
+  //See CMarkerDrug(the thing you get from this pickup)
+};
 class CShootgunPickup:CPickup {
 };
 
@@ -370,6 +373,10 @@ class CDogTongue:CFrogTongue {
 class CGun1:CHandItem {
 };
 class CShootgun:CHandItem {
+};
+class CEnergyGun:CHandItem {
+};
+class CEnergyGunPickup:CPickup {
 };
 class CTalker:CHandItem {
   C3DThing *talking_to;

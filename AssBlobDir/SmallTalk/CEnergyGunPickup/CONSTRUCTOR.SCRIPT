@@ -1,0 +1,6 @@
+init | |
+  count _ 12  .
+  #world addThing: self .
+  item_class _ CEnergyGun .
+  template _ #world getThingTemplate: 'CEnergyGunPickup' .
+  ^ self

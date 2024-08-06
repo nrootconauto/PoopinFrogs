@@ -62,10 +62,10 @@ update ->CFrogNum |
             target_z _ z .
             start_tS _ CFrogTime now asSeconds .
           ] .
-          angle _ x -  t->x arg: y - t->y .
+          angle _ from->x -  t->x arg: from->y - t->y .
           r _ CFrogRandom new .
 'Throw the target towards the frog' .
-          t damage: 10 + (r next * 7 ) .
+          t damage: 10 + (r next * 7 ) from: from .
           force _ r next * 10 + dist2 / 30 .
           t addMomX: force * angle cos. 
           t addMomY: force * angle sin. 

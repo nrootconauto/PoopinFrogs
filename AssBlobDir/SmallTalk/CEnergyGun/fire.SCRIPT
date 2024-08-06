@@ -1,0 +1,25 @@
+fire ->* |
+ cur_ts=CFrogNum
+ player=CPlayer
+ w=C3DWorldManager
+ |
+  w _ #world .
+  player _ w getPlayer .
+  ammo ifTrue: [
+    cur_ts _ CFrogTime now asSeconds .
+    timeout < cur_ts ifTrue: [
+      anim_no_repeat _ 0 .
+      w sweepSoundForTime: 100 withMin: 60 withMax: 70 .
+
+      timeout _ cur_ts + .2 .
+      self setGraphics: 'GR/EnergyGun/Fire' .
+      ammo _ ammo - 1 max: 0 .
+      inventory_item setCount: ammo .
+    
+      player fireProjectile: CEnergyBall withSpeed: 25 .
+    ] .
+  ] .
+
+  ammo = 0 ifTrue: [
+    player removeItem: inventory_item .
+  ] .
