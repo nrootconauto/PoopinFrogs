@@ -25,7 +25,7 @@ U0 ErectFogTable(U64 *table,I64 fog_color,F64 ratio) {
   for(idx=0;idx!=COLORS_NUM;idx++) {
     r=palette[idx].r*ratio+palette[fog_color].r*(1.-ratio);
     g=palette[idx].g*ratio+palette[fog_color].g*(1.-ratio);
-    b=palette[idx].b*ratio+palette[fog_color].b*(1.-ratio);
+    b=palette[idx].b*ratio+palette[fog_color].b*(1.-ratio);
     best_dist=1e100;
     for(dither=0;dither!=0xff;dither++) {
       r2=(palette[dither&0xf].r+palette[dither>>4].r)/2.;
@@ -2855,7 +2855,7 @@ U0 WalkAround(U8 *save_string=NULL) {
   w->angle=0;
   CFrogThing **body;
   C3DThing *thing;
-  I64 idx;
+  I64 idx,old_msz=ms.pos.z;
   F64 last_tS=tS;
   try while (cont) {
       every++;
@@ -2871,6 +2871,11 @@ U0 WalkAround(U8 *save_string=NULL) {
       c=wm->doors->items->cnt;
       for(idx=0;idx<c;idx++)
         CallScript("update",body[idx]);
+//Pick item based on mouse wheel.
+      if(ms.pos.z!=old_msz) {
+        CallScript("selectNextItemByOffset:",player,FrogNumNew(ms.pos.z-old_msz));
+	old_msz=ms.pos.z;
+      }
 // Do physics after update
       c=w->_2d_things->cnt;
       body=w->_2d_things->body;

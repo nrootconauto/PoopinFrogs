@@ -1,4 +1,4 @@
-selectQuickItemByNum: idx=CFrogNum ->*
+selectQuickItemByNum: idx=CFrogNum ->CHandItem
 |
   mat=CFrogArray
   gi=CUIGridItem
@@ -10,4 +10,6 @@ selectQuickItemByNum: idx=CFrogNum ->*
     'Update properties' .
     self animate .
     #hand_item animate .
+    ^ #hand_item
   ] .
+  ^ 0 .

@@ -1,0 +1,42 @@
+selectNextItemByOffset: offset=CFrogNum ->CHandItem
+|
+  cur=CHandItem
+  idx=CFrogNum
+|
+  cur _ #hand_item .
+  idx _ 0 .
+  'x/y' .
+  quick_inventory -> mat do: [:col=CFrogArray|
+    ((col at: 0) = cur->inventory_item and: (cur hasClass: CHandItem))
+    ifTrue: [
+      [offset abs > 0 ] whileTrue: [
+        offset > 0 ifTrue: [
+          idx _ idx + 1 .
+        ] ifFalse: [
+          idx _ idx - 1 .
+        ] .
+        idx _ idx rem: 10 .
+        idx < 0 ifTrue: [
+          idx _ 10 + idx .
+        ] .
+        cur _  self selectQuickItemByNum: idx .
+        (cur hasClass: CHandItem) ifTrue: [
+          offset > 0 ifTrue: [
+            offset _ offset - 1 .
+          ] ifFalse: [
+            offset _ offset + 1 .
+          ] .
+          offset = 0 ifTrue: [
+            ^ cur .
+          ] .
+        ] .
+      ]
+    ].
+    idx _ idx + 1 .
+  ] .
+  'Nothing found?' .
+  0 to: 10 do: [:idx2=CFrogNum |
+    cur _  self selectQuickItemByNum: idx2 .
+    (cur hasClass: CHandItem) ifTrue: [ ^ cur ] .
+  ] .
+  ^ 0.
