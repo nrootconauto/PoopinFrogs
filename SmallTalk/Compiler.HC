@@ -188,26 +188,39 @@ U8 *VarHasMethod(CLocals *l,U8 *var,U8 *method) {
 }
 U0 GenerateMethodCall(CDoc *doc,U8 *into=NULL,U8 *class_name,U8 *method_name,I64 stk_index,I64 argc,Bool check=TRUE) {
   CHashGeneric *gen;
-  I64 idx;
+  CHashFun *fun;
+  I64 idx,off;
 //See AddMethod
   U8 *canon=MStrPrint("METHOD_%s.%s",class_name,method_name),*rc;
+  U8 *call_str=StrNew("(*fun_ptr)(");
   if(!FramePtr(canon)) {
     FramePtrAdd(canon,&Useless);
   }
   gen=HashFind(canon,Fs->hash_table,HTT_FRAME_PTR);
 //Checking numbers will be too tiresome
-    if(gen->user_data0!=&Useless)
-      DocPrint(doc,"fun_ptr=%d; /* %s */ \n",gen->user_data0,method_name);
-    else
-      DocPrint(doc,"fun_ptr=%d(I64**)[0]; /* %s */ \n",&gen->user_data0,method_name);
+  if(gen->user_data0!=&Useless) {
+    if(fun=FunSegFind(gen->user_data0,&off)) {
+      //Check for function name
+      if(!off) {
+	Free(call_str);
+	call_str=MStrPrint("%s(",fun->str);
+        goto enter;
+      }
+    }
+    DocPrint(doc,"fun_ptr=%d; /* %s */ \n",gen->user_data0,method_name);
+  } else
+    DocPrint(doc,"fun_ptr=%d(I64**)[0]; /* %s */ \n",&gen->user_data0,method_name);
+  
+enter:
   if(StrCmp("CFrogNum",class_name)||check) {
-    DocPrint(doc,"if(!ThingHasClass2(%s,%d)) %s=FROG_SMALL_NIL; else %s=(*fun_ptr)(",
+    DocPrint(doc,"if(!ThingHasClass2(%s,%d)) %s=FROG_SMALL_NIL; else %s=%s",
 	StackFrame2Var(stk_index),
 	UniverseAddClass(class_name),
 	into,
-	into);
+	into,
+	call_str);
   } else {
-    DocPrint(doc,"%s=(*fun_ptr)(",into);
+    DocPrint(doc,"%s=%s",into,call_str);
   }
   Free(canon);
   for(idx=0;idx!=argc;idx++)
@@ -216,6 +229,7 @@ U0 GenerateMethodCall(CDoc *doc,U8 *into=NULL,U8 *class_name,U8 *method_name,I64
     else
       DocPrint(doc,",%s",StackFrame2Var(stk_index+idx));
   DocPrint(doc,");\n");
+  Free(call_str);
 }
 CLocals *GenerateLocalsFromMethod(CMethod *method,U8 *for_class) {
   CLocals *ret=CAlloc(sizeof CLocals);

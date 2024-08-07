@@ -1288,6 +1288,7 @@ CFrogThing *FrogThingShow(CFrogStr *self,...) {
   CFrogStr *msg;
   CI64Set *items;
   CU8Set *items_str;
+  DbgPrint("(%X)\n",self);
   for(attempt=0;attempt!=2;attempt++) {
     if(ThingHasClass(self,"CFrogError",FROG_SMALL_ERROR)) {
       "Error:";
@@ -1689,17 +1690,3 @@ U0 FrogBinDel(CFrogBin *bin) {
   Free(bin);
 }
 Fs->user_data=0;
-CFrogThing *FrogArrayDo(CFrogArray *self,...) {
-  CFrogBlock *t=argv[0];
-  I64 *clone=MAllocIdent(self->items->body);
-  CLocalsGeneric *g=Fs->user_data;
-  I64 cnt=self->items->cnt,idx;
-  CFrogThing *ret=FROG_SMALL_NIL;
-  for(idx=0;idx!=cnt;idx++) {
-    ret=FrogBlockValue(t,clone[idx]);
-    if(g->return_flag[0]||g->ret_flag) break;
-  }
-  Free(clone);
-  return ret;
-}
-AddMethod("CFrogArray","do:",&FrogArrayDo);

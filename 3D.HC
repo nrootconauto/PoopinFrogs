@@ -184,6 +184,7 @@ class C3DWorld {
    I8 *heightmap,*ceilmap,*ceilmap2;
    CDC *wall_textures[0x10000/2],*to_dc;
    CDC *floor_textures[0x10000/2];
+   CDC *floor_textures1616[0x10000/2];
    CDC *ceil_textures[0x10000/2];
    CDoor **door_mat;
    I64 mp_done,dc_lock;
@@ -318,6 +319,10 @@ C3DWorld *LoadWorldFromFile(U8 *blob_file="ASS",U8 *filename,F64 fov=pi/4) {
       ret->floor_textures[idx]=ScaleDC(unscaled,GRID_SZ,GRID_SZ);
     else
       ret->floor_textures[-idx]=ScaleDC(unscaled,GRID_SZ,GRID_SZ);
+    if(idx>0)
+      ret->floor_textures1616[idx]=ScaleDC(unscaled,16,16);
+    else
+      ret->floor_textures1616[-idx]=ScaleDC(unscaled,16,16);
     AnimDCDel(unscaled);
     Free(tmp);
     tmp=BlobFileGetLump(blob_file,fptr(CFileTexture*)->wall_blob_name);
@@ -1004,8 +1009,9 @@ CFrogArray *WorldManagerThingsInRadius(C3DWorldManager *wm,...) {
       body=arr->items->body;
       while(--cnt>=0) {
 	t=body[cnt];
-	  if(r*r>=Sqr(t->x-x)+Sqr(t->y-y))
+	  if(r*r>=Sqr(t->x-x)+Sqr(t->y-y)) {
             I64SetAdd(ret->items,t);
+	  }
       }
 next:;
     }
@@ -1019,7 +1025,7 @@ U0 PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm,F64 last_tS) {
   if(!(0<=wy<w->world_height))
     return;
 //Iget about 20 fps on my aspire 5920(add 5 fps)
-  F64 weight=(tS-last_tS)/(1/25.);
+  F64 weight=1.;
   F64 angle,dist,ox,oy;
   I64 tile=wx+wy*w->world_width;
   I64 floor=w->heightmap[tile];
@@ -1038,7 +1044,7 @@ U0 PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm,F64 last_tS) {
     if(!rocket)  //Explode later(computer hitting floor after we move x/y)
       t->momz=0;
   } else if(!rocket&&!t->floating)
-      t->momz-=wm->gravity;
+      t->momz-=wm->gravity*weight;
   ox=t->x;
   oy=t->y;
   if(t->momy+t->momy2||t->momx+t->momx2) {
@@ -2742,11 +2748,12 @@ AddMethod("C3DWorldManager","screenCoordIsOnFloor",&ScreenCoordOnFloor);
 #include "UI.HC"
 LoadWorldFromFile(,"Untitled.WORLD");
 I64 mp_thing_done=0;
+extern CDC *MakeMinimap1(C3DWorld *w,F64 x,F64 y,F64 angle,I64 radius);
 U0 UpdateDrawBuffer() {
   C3DWorldManager *man=FrogSymbol("world")->value;
   CDoor **doors;
   CPlayer *player=CallScript("getPlayer",man);
-  CDC *hand_gr;
+  CDC *hand_gr,*minimap;
   I32 *odepth_buf;
   I64 tx,ty,c,f;
   CI64Set *s;
@@ -2826,12 +2833,93 @@ U0 UpdateDrawBuffer() {
     }
   }
 fin:
+  minimap=MakeMinimap1(w,player->x,player->y,player->angle,64);
   DrawUIRoot(Fs,dc);
+  GrBlot(dc,GR_WIDTH-100,30,minimap);
+  DCDel(minimap);
   dc->depth_buf=odepth_buf;
 }
 U0 DrawIt(CTask *t,CDC *dc) {
   w->to_dc->flags|=DCF_NO_TRANSPARENTS;
   GrBlot(dc,0,0,w->to_dc);
+}
+CDC *MakeMinimap0(C3DWorld *w,F64 x,F64 y,F64 angle,F64 radius) {
+  CDC *ret=DCNew(radius*2,radius*2);
+  radius=Ceil(radius/16)*2;
+  x/=GRID_SZ;
+  y/=GRID_SZ;
+  CDC *blot;
+  I64 tx,ty,tox,toy,tile;
+  I64 x2,y2;
+  I64 mask1=x%1.*16.,mask2=y%1.*16.;
+  tox=Ceil(radius/2+x);
+  toy=Ceil(radius/2+y);
+  x2=0;
+  for(tx=Floor(-radius/2+x);tx<tox;tx++) {
+    y2=0;
+    for(ty=Floor(-radius/2+y);ty<toy;ty++) {
+      if(0<=tx<w->world_width)
+        if(0<=ty<w->world_height) {
+	  tile=tx+ty*w->world_width;
+	  if(blot=w->floor_textures1616[w->world_mat[tile].u8[0]]) {
+	    blot->flags|=DCF_NO_TRANSPARENTS; //Faster
+	    GrBlot(ret,x2*16-mask1,y2*16-mask2,blot);
+	  }
+      }
+      y2++;
+    }
+    x2++;
+  }
+  return ret;
+}
+CDC *MakeMinimap1(C3DWorld *w,F64 x,F64 y,F64 angle,I64 radius) {
+  CDC *mask=DCNew(radius*2,radius*2),*tile_dc;
+  CDC *res=DCNew(radius*2,radius*2);
+  I64 px,py;
+  I64 x2,y2;
+  I64 wx,wy,wz=0,I6;
+  I64 mat[16],mat2[16];
+  U8 *ptr,*mask_ptr,color;
+  Mat4x4IdentEqu(mat2);
+  Mat4x4RotZ(mat2,angle);
+  Mat4x4Scale(mat2,12.);
+  Mat4x4TranslationEqu(mat2,x,y,0);
+//  Mat4x4TranslationAdd(mat,-radius,-radius,0);
+  DCFill(res,TRANSPARENT);
+  mask->color=WHITE;
+  GrFillCircle(mask,radius,radius,0,radius*2);
+  for(py=0;py!=res->height;py++) {
+    ptr=res->body+py*res->width_internal;
+    mask_ptr=mask->body+py*mask->width_internal;
+    for(px=0;px!=res->width;px++)  {
+      x2=px;
+      y2=py;
+      if(*mask_ptr) {
+        wx=x2-radius;
+        wy=y2-radius;
+	wz=0;
+        Mat4x4MulXYZ(mat2,&wx,&wy,&wz);
+        color=BLACK;
+	x2=wx%128/128.*16;
+	y2=wy%128/128.*16;
+	wx/=128;
+	wy/=128;
+	if(0<=wx<w->world_width)
+	  if(0<=wy<w->world_height) {
+            tile_dc=w->floor_textures1616[w->world_mat[
+		wx+wy*w->world_width].u8[0]];
+	    if(tile_dc) {
+	      color=GrPeek0(tile_dc,x2,y2);
+	    }
+	  }
+        *ptr=color;
+      }
+      mask_ptr++;
+      ptr++;
+    }
+  }
+  DCDel(mask);
+  return res;
 }
 
 U0 WalkAround(U8 *save_string=NULL) {
@@ -2844,6 +2932,7 @@ U0 WalkAround(U8 *save_string=NULL) {
   CShellCasing *shellc;
   C3DWorldManager *wm=man->value,*load_game;
   I64 every=0;
+  CDC *minimap;
   CPlayer *player=CallScript("getPlayer",man->value);
   CUIElem *ui_root=FrogSymbol("ui_root")->value;
   WinMax;
