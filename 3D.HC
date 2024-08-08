@@ -2833,9 +2833,9 @@ U0 UpdateDrawBuffer() {
     }
   }
 fin:
-  minimap=MakeMinimap1(w,player->x,player->y,player->angle,64);
+  minimap=MakeMinimap1(man,player->x,player->y,player->angle,64);
   DrawUIRoot(Fs,dc);
-  GrBlot(dc,GR_WIDTH-100,30,minimap);
+  GrBlot(dc,GR_WIDTH-128-16,30,minimap);
   DCDel(minimap);
   dc->depth_buf=odepth_buf;
 }
@@ -2843,48 +2843,24 @@ U0 DrawIt(CTask *t,CDC *dc) {
   w->to_dc->flags|=DCF_NO_TRANSPARENTS;
   GrBlot(dc,0,0,w->to_dc);
 }
-CDC *MakeMinimap0(C3DWorld *w,F64 x,F64 y,F64 angle,F64 radius) {
-  CDC *ret=DCNew(radius*2,radius*2);
-  radius=Ceil(radius/16)*2;
-  x/=GRID_SZ;
-  y/=GRID_SZ;
-  CDC *blot;
-  I64 tx,ty,tox,toy,tile;
-  I64 x2,y2;
-  I64 mask1=x%1.*16.,mask2=y%1.*16.;
-  tox=Ceil(radius/2+x);
-  toy=Ceil(radius/2+y);
-  x2=0;
-  for(tx=Floor(-radius/2+x);tx<tox;tx++) {
-    y2=0;
-    for(ty=Floor(-radius/2+y);ty<toy;ty++) {
-      if(0<=tx<w->world_width)
-        if(0<=ty<w->world_height) {
-	  tile=tx+ty*w->world_width;
-	  if(blot=w->floor_textures1616[w->world_mat[tile].u8[0]]) {
-	    blot->flags|=DCF_NO_TRANSPARENTS; //Faster
-	    GrBlot(ret,x2*16-mask1,y2*16-mask2,blot);
-	  }
-      }
-      y2++;
-    }
-    x2++;
-  }
-  return ret;
-}
-CDC *MakeMinimap1(C3DWorld *w,F64 x,F64 y,F64 angle,I64 radius) {
+CDC *MakeMinimap1(C3DWorldManager *wm,F64 x,F64 y,F64 angle,I64 radius) {
   CDC *mask=DCNew(radius*2,radius*2),*tile_dc;
   CDC *res=DCNew(radius*2,radius*2);
   I64 px,py;
   I64 x2,y2;
-  I64 wx,wy,wz=0,I6;
-  I64 mat[16],mat2[16];
+  I64 wx,wy,wz=0,tmp;
+  I64 mat2[16];
+  F64 angle2,dist;
+  CFrogArray *near;
+  C3DThing *thing;
+  CI64Set *near_set;
   U8 *ptr,*mask_ptr,color;
   Mat4x4IdentEqu(mat2);
   Mat4x4RotZ(mat2,angle);
   Mat4x4Scale(mat2,12.);
   Mat4x4TranslationEqu(mat2,x,y,0);
 //  Mat4x4TranslationAdd(mat,-radius,-radius,0);
+
   DCFill(res,TRANSPARENT);
   mask->color=WHITE;
   GrFillCircle(mask,radius,radius,0,radius*2);
@@ -2916,6 +2892,24 @@ CDC *MakeMinimap1(C3DWorld *w,F64 x,F64 y,F64 angle,I64 radius) {
       }
       mask_ptr++;
       ptr++;
+    }
+  }
+  near=WorldManagerThingsInRadius(wm,FrogNumNew(x),FrogNumNew(y),FrogNumNew(radius*128));
+  if(near!=FROG_SMALL_NIL) {
+    near_set=near->items;
+    for(tmp=0;tmp!=near_set->cnt;tmp++) {
+      thing=near_set->body[tmp];
+      if(thing->health>0.||ThingHasClass(thing,"CPickup")) {
+        angle2=Arg(thing->x-x,thing->y-y)-angle;
+        dist=Sqrt(Sqr(thing->x-x)+Sqr(thing->y-y))*(12./128.);
+        res->color=LTPURPLE; //TODO change
+        res->thick=6;
+        GrPlot3(res,
+	  radius+dist*Cos(angle2),
+	  radius+dist*Sin(angle2),
+	  0
+	);
+      }
     }
   }
   DCDel(mask);

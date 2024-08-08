@@ -2,7 +2,6 @@ addItem: i=CUIGridItem atX: x=CFrogNum atY: y=CFrogNum
   ->CFrogNum
 | |
   (((mat at: x) at: y) hasClass: CUIGridItem) ifTrue: [
-'zero' show .
    ^ 0
   ] .
   i setX: (x floor * 32) .
@@ -11,5 +10,4 @@ addItem: i=CUIGridItem atX: x=CFrogNum atY: y=CFrogNum
   i setParent: self .
   (mat at: x) at: y put: i .
   self addChild: i .
-'one 'show.
   ^ 1

@@ -33,7 +33,6 @@ update ->* |
       speed _ 128 / 30 * 3.5 .
       (random_generator next  < ( 2 / 10 ) and: (self canSeeThing: target)) ifTrue: [
         tongue _ CFrogTongue new .
-        'eat 'show .
         tongue eatTarget: target fromFrog: self .
         'Populate with values' .
         animation_start_tS _ CFrogTime now asSeconds .

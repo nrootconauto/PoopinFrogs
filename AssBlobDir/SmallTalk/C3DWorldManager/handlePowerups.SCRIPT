@@ -4,11 +4,11 @@ handlePowerups ->* |
 |
   p _ self getPlayer .
   things _ self getThingsInRadiusFromX: p->x fromY: p->y withRadius: 64 .
-  things do: [:pu=C3DThing|
+  things do: [:pu=C3DThing |
     (pu hasClass: CPickup ) ifTrue: [
       'canSeeThing doesnt acount for angles tahnkfully(we are alreadt in radius)' .
       (pu canSeeThing: p) ifTrue: [
         pu addToPlayer: p .
       ].
-    ]. 
+    ]
   ]

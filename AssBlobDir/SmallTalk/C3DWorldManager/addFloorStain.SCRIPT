@@ -9,7 +9,7 @@ addFloorStain: s=CFloorStain ->* | other=CFloorStain add=CFloorStain new_set=CFr
       color _ #color_LTBLUE .
     ].
     type = 10 ifTrue: [
-      'lava' show .
+      'lava' .
       color _ #color_LTRED .
     ] .
     0 to: 5 do: [

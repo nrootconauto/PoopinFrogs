@@ -4,7 +4,6 @@ item*
 |
   (drop_thing hasClass: CFrogClass) ifTrue: [
     item _ drop_thing new .
-item show .
     item->x _ x .
     item->y _ y .
     item->z _ z .

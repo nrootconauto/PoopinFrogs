@@ -50,14 +50,12 @@ update->* |
       (target->health <= 0) ifTrue: [
         p _ w getPlayer .
         (self canSeeThing: p) ifTrue: [
-'see' show .
           target _ p.
         ]
       ] .
     ] ifFalse: [
       p _ w getPlayer .
       (self canSeeThing: p) ifTrue: [
-'see2' show .
         target _ p.
       ]
     ] .

@@ -16,7 +16,6 @@ update->* |
        percent _ 0 .
        ^ 0
     ] .
-    tag show .
     tS > (rise_time + open_duration) ifTrue: [
       percent _  ((tS- rise_time - open_duration ) / rise_time) .
       percent >= 1. ifTrue: [

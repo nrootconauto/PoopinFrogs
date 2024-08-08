@@ -26,22 +26,10 @@ U8 *StackFrame2Var(I64 stk) {
   if(stk+1>old)
     FramePtrSet("ST@@stk_depth",stk+1);
   switch(stk) {
-   case 0:
-     return "stk0";
-   case 1:
-     return "stk1";
-   case 2:
-     return "stk2";
-   case 3:
-     return "stk3";
-   case 4:
-     return "stk4";
-   case 5:
-     return "stk5";
 #exe {
-   I64 cnt=0x100-6;
+   I64 cnt=0x100;
    while(--cnt>=0) {
-     StreamPrint("case %d:return \"stk[%d]\";\n",cnt+6,cnt);
+     StreamPrint("case %d:return \"stk[%d]\";\n",cnt,cnt);
    }
 };;
   }
@@ -571,7 +559,6 @@ U8 *CompileThunk(CAST *block,CLocals *parent=NULL) {
   DocPrint(doc,"CFrogThing *Thunk@@%d(CFrogThing *self,CLocalsGeneric0 *parent_frame,...) {\n",thunk_idx);
   replace=DocPrint(doc,"  CFrogThing *stk[$$LK,\"replace_me\"$$],*retval=FROG_SMALL_NIL,**tmp;\n");
   DocPrint(doc,"CFrogThing *(*fun_ptr)(CFrogThing *,...);\n");
-  DocPrint(doc,"CFrogThing *stk0,*stk1,*stk2,*stk3,*stk4,*stk5;\n");
   DocPrint(doc,"  Bool false=FALSE;\n");
   frame=DocPrint(doc,"  $$LK,\"replaxe_me\"$$");
   DocPrint(doc,"  if(!return_flag) return_flag=&false;\n");
@@ -607,9 +594,9 @@ U8 *CompileThunk(CAST *block,CLocals *parent=NULL) {
   DocPrint(doc,"ret:\n");
   DocPrint(doc,"  FrogThingUnlock(self);\n");
   DocPrint(doc,"  STFrameDel;\n"); //Does not Free(frame data may be on stack)
-  DocPrint(doc,"  return stk0;\n");
+  DocPrint(doc,"  return stk[0];\n");
   DocPrint(doc,"};");
-  ReplaceElem(doc,replace,"%d",MaxI64(FramePtr("ST@@stk_depth")-6,0));
+  ReplaceElem(doc,replace,"%d",MaxI64(FramePtr("ST@@stk_depth"),0));
 static I64 pass=0,fail=0;
   if(escapes&&LocalsIsEscaped(locals))  {
     ReplaceElem(doc,frame,"Bool *return_flag=STNewBlockFrame(\"%Q\",parent_frame)->return_flag;\n",locals->name);
@@ -1537,7 +1524,6 @@ FramePtrSet("Escapes",escapes);
   fun_name=MStrPrint("%s@%d",class_name,fun_num++);
   DocPrint(doc,"CFrogThing *%s(CFrogThing *self,...) {\n",fun_name);
   replace=DocPrint(doc,"  CFrogThing *stk[$$LK,\"replace\"$$],*retval=FROG_SMALL_NIL,**tmp;\n");
-  DocPrint(doc,"CFrogThing *stk0,*stk1,*stk2,*stk3,*stk4,*stk5;\n");
   DocPrint(doc,"  Bool false=FALSE;\n");
   frame=DocPrint(doc,"  $$LK,\"dasds\"$$");
   DocPrint(doc,"  CLocalsGeneric0 *parent_frame=Fs->user_data;\n");
@@ -1582,7 +1568,7 @@ FramePtrSet("Escapes",escapes);
   } else {
     DocPrint(doc,"AddClassMethod(\"%Q\",\"%Q\",&%s);;",class_name,m->name,fun_name);
   }
-  ReplaceElem(doc,replace,"%d",MaxI64(FramePtr("ST@@stk_depth")-6,0));
+  ReplaceElem(doc,replace,"%d",MaxI64(FramePtr("ST@@stk_depth"),0));
   if(escapes)
     ReplaceElem(doc,frame,"Bool *return_flag=STAddMethodFrame(%d,\"%Q\",\"%Q\")->return_flag;\n",m,locals->name,class_name);
   else
@@ -1635,7 +1621,6 @@ U0 STRepl(U8 *dft="",Bool interactive=TRUE) {
       FramePtrAdd("ST@@stk_depth",0);
       DocPrint(doc,"CFrogThing *REPLFun(CFrogThing *self) {\n");
       replace=DocPrint(doc,"  CFrogThing *stk[$$LK,\"replace\"$$],*retval=FROG_SMALL_NIL;\n");
-      DocPrint(doc,"CFrogThing *stk0,*stk1,*stk2,*stk3,*stk4,*stk5;\n");
       DocPrint(doc,"  static Bool st_return=FALSE;\n");
       DocPrint(doc,"  Bool *return_flag=STNewReplFrame(&st_return)->return_flag;\n");
       DocPrint(doc,"CFrogThing *(*fun_ptr)(CFrogThing *,...);\n");
@@ -1655,7 +1640,7 @@ U0 STRepl(U8 *dft="",Bool interactive=TRUE) {
       DocPrint(doc,"  STFrameDel;\n");
       DocPrint(doc,"  return retval;\n");
       DocPrint(doc,"}REPLFun(FrogNil);\n");
-      ReplaceElem(doc,replace,"%d",MaxI64(FramePtr("ST@@stk_depth")-6,0));
+      ReplaceElem(doc,replace,"%d",MaxI64(FramePtr("ST@@stk_depth"),0));
       FramePtrDel("ST@@stk_depth");
       ExeDoc(doc);
       DocDel(doc);

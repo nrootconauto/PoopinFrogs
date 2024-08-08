@@ -19,12 +19,7 @@ update->* |
     state ~= 'Dead' ifTrue: [
       'Default item to drop is CEnergyGunPickup ' .
       (drop_thing hasClass: CFrogClass) ifFalse: [
-'poo' show.
-drop_thing show .
-CEnergyGunPickup show .
         drop_thing _ CEnergyGunPickup .
-drop_thing show .
-'post 'show.
       ] .
       w sweepSoundForTime: 500 withMin: 40 withMax: 30 .
       template _ w getThingTemplate: 'CAlien/Dead' .

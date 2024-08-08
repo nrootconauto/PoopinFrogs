@@ -1,13 +1,9 @@
 addItem: i=CUIGridItem ->CFrogNum | |
-'ent' show .
   0 to: grid_h do:[:cy=CFrogNum|
     0 to: grid_w do:[:cx=CFrogNum|
      (self addItem: i atX: cx atY: cy) ifTrue: [
-i show .
-'ex2' show .
        ^ 1
      ] .
     ]
   ] .
-'ex' show .
   ^ 0
