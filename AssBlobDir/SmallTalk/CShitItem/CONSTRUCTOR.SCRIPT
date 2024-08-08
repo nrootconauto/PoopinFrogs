@@ -8,7 +8,7 @@ init ->CRocketLauncher | |
   yoff _ 0 .
   timeout _ 0 .
   inventory_item _ CUIGridItem new .
-  inventory_item setGraphics: 'GR/ShitItem/Idle' .
+  inventory_item setGraphics: 'GR/ShitItem/Icon' .
   inventory_item setCount: ammo .
   inventory_item setItem: self .
   inventory_item onLeftUp: [

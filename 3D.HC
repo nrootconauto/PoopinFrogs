@@ -2174,6 +2174,7 @@ U0 Draw2DThing(C3DWorld *w,C3DThing *thing) {
   F64 y0,h,width,x0,cx,cy,vis_h;
   I32 dist=Sqrt(Sqr(x)+Sqr(y));
   if(dist<2) return;
+  if(dist>VIEW_DIST*GRID_SZ) return;
   CDC *use_dc=NULL;
   I64 dc_w=dc->width,frame=ToI64((Frog_tS-thing->animation_start_tS)/ANIM_DELAY);
   I64 to_x,to_y;
@@ -2748,7 +2749,7 @@ AddMethod("C3DWorldManager","screenCoordIsOnFloor",&ScreenCoordOnFloor);
 #include "UI.HC"
 LoadWorldFromFile(,"Untitled.WORLD");
 I64 mp_thing_done=0;
-extern CDC *MakeMinimap1(C3DWorld *w,F64 x,F64 y,F64 angle,I64 radius);
+extern CDC *MakeMinimap1(C3DWorld *w,F64 x,F64 y,F64 angle,I64 radius,F64 height);
 U0 UpdateDrawBuffer() {
   C3DWorldManager *man=FrogSymbol("world")->value;
   CDoor **doors;
@@ -2769,8 +2770,15 @@ U0 UpdateDrawBuffer() {
   mp_thing_done=0;
   CFrogThing ***body=MAllocIdent(w->_2d_things->body);
   I64 idx=w->_2d_things->cnt;
+//Draw normal things first
   while(--idx>=0)
-    Draw2DThing(w,body[idx]);
+    if(!ThingHasClass(body[idx],"CPickup"))
+      Draw2DThing(w,body[idx]);
+//Draw powerups in front
+  idx=w->_2d_things->cnt;
+  while(--idx>=0)
+    if(ThingHasClass(body[idx],"CPickup"))
+      Draw2DThing(w,body[idx]);
   Free(body);
   
   head=&w->particles;
@@ -2833,7 +2841,7 @@ U0 UpdateDrawBuffer() {
     }
   }
 fin:
-  minimap=MakeMinimap1(man,player->x,player->y,player->angle,64);
+  minimap=MakeMinimap1(man,player->x,player->y,player->angle,64,player->z);
   DrawUIRoot(Fs,dc);
   GrBlot(dc,GR_WIDTH-128-16,30,minimap);
   DCDel(minimap);
@@ -2843,7 +2851,7 @@ U0 DrawIt(CTask *t,CDC *dc) {
   w->to_dc->flags|=DCF_NO_TRANSPARENTS;
   GrBlot(dc,0,0,w->to_dc);
 }
-CDC *MakeMinimap1(C3DWorldManager *wm,F64 x,F64 y,F64 angle,I64 radius) {
+CDC *MakeMinimap1(C3DWorldManager *wm,F64 x,F64 y,F64 angle,I64 radius,F64 height) {
   CDC *mask=DCNew(radius*2,radius*2),*tile_dc;
   CDC *res=DCNew(radius*2,radius*2);
   I64 px,py;
@@ -2882,11 +2890,14 @@ CDC *MakeMinimap1(C3DWorldManager *wm,F64 x,F64 y,F64 angle,I64 radius) {
 	wy/=128;
 	if(0<=wx<w->world_width)
 	  if(0<=wy<w->world_height) {
-            tile_dc=w->floor_textures1616[w->world_mat[
-		wx+wy*w->world_width].u8[0]];
-	    if(tile_dc) {
+	    tmp=wx+wy*w->world_width;
+	    tile_dc=NULL;
+	    if(height>=w->ceilmap[tmp])
+              tile_dc=w->floor_textures1616[w->world_mat[tmp].u8[1]];
+	    if(!tile_dc)
+              tile_dc=w->floor_textures1616[w->world_mat[tmp].u8[0]];
+	    if(tile_dc)
 	      color=GrPeek0(tile_dc,x2,y2);
-	    }
 	  }
         *ptr=color;
       }
