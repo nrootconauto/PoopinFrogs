@@ -24,7 +24,7 @@ class CFrogClass:CFrogThing {
 class CFrogChr:CFrogThing {
   U64 ch;
 };
-class CFrogBlock:CFrogThing {
+class CFrogBlock:CFrogThing {
   CFrogThing *self;
   CFrogThing *frame;
   U8 (*fun_ptr)(CFrogThing *self,U8 *);//CSTFrame
@@ -191,7 +191,7 @@ class C3DThingTemplate:CFrogThing {
 };
 extern class CEliza;
 class C3DThing:CFrogThing {
-  CFrogClass *drop_thing; //CFrogClass
+  CFrogClass *drop_thing; //CFrogClass
   C3DThingTemplate *template no_serialize 1;
   F64 x,y,z,angle,health;
   F64 momx,momy,momz,animation_start_tS;

@@ -107,7 +107,6 @@ makeUI ->*
       load_game_button setBackgroundColor: #color_YELLOW .
       save_game_button setBackgroundColor: #color_YELLOW .
       #ui_root removeChild: save_load_menu .
-      save_load_menu _ 0 .
     ] .
     'TODO test is available' show.
     0 to: 10 do: [:slot=CFrogNum |
@@ -130,7 +129,6 @@ makeUI ->*
         ] ifFalse: [
           s->label show .
           'Prevent loading with save_load_menu set' .
-          save_load_menu _ 0 .
           #world saveThingToSaveFile: s->label .
         ] .
       ].
@@ -148,6 +146,7 @@ makeUI ->*
     'Defactivate save button' .
     save_game_button setBackgroundColor: #color_YELLOW .
     load_menu_active _ load_menu_active not .
+load_menu_active show .
     load_menu_active ifTrue: [
       load_game_button setBackgroundColor: #color_RED .
       make_save_game_menu value: 1 .

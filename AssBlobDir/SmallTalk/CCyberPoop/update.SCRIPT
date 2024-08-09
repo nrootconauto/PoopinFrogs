@@ -40,7 +40,7 @@ update ->*
   ].
 
   state = 'Fire' ifTrue: [
-    now > (state_start_tS + .4) ifTrue: [
+    now > (state_start_tS + .5) ifTrue: [
       w noiseSoundForTime: 300 withMin: 30 withMax: 40 .
       state_start_tS _ now .
       angle _ (target->x - x) arg: (target->y - y) .

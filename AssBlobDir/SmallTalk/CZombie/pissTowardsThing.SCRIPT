@@ -63,7 +63,7 @@ pissTowardsThing: who=C3DThing ->*
     ] .
 
 'Graduall piss towards target  ' .
-    force _ (((cur_ts - state_start_tS) * 3.14 / 2  min: 3.14) sin + .2 min: 1)
+    force _ (((cur_ts - state_start_tS) * 3.14 / 1.5  min: 3.14) sin + .2 min: 1)
        * best_force min: 24 .
 
     0 to: 3 do: [:v=CFrogNum |

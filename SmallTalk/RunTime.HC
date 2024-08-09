@@ -1175,6 +1175,7 @@ CFrogThing *_FrogBlockValue(CFrogBlock *self,I64 argc,I64 *argv) {
 	goto fin;
       cur2=cur2->next;
     }
+DbgPrint("invalid block:%P",self->fun_ptr);
     MemSet(&dummy,0,sizeof CLocalsGeneric);
     dummy.type='Block';
     dummy.return_flag=&dummy.ret_flag;
@@ -1421,7 +1422,7 @@ CFrogThing *FrogWhileFalse(CFrogBlock *self,...) {
 }
 AddMethod("CFrogBlock","whileFalse:",&FrogWhileFalse);
 
-extern U0 FrogGarbageCollect(CFrogThing *root);
+extern U0 FrogGarbageCollect(CFrogThing *root,Bool debug=FALSE);
 U0 ThingDel(CFrogThing *thing,Bool recurse=TRUE) {
   U8 *del;
   I64 idx;
@@ -1481,7 +1482,7 @@ U0 FrogGarbageCollectThing(CFrogThing *root,Bool debug=FALSE) {
   CHashClass *cls,*cls2;
   CMemberLst *mlst;
   root->shadow_ref_cnt++;
-  if(debug) "$$ID,2$$%s,%x\n",root->class_name,root;
+  if(debug) "$$ID,2$$%s,%x\n",FrogThingClassName(root),root;
   if(LBts(&root->thing_flags,THINGf_GC_LOCK))
     goto fin;
   LBtr(&root->thing_flags,THINGf_TO_DELETE);
@@ -1489,8 +1490,10 @@ U0 FrogGarbageCollectThing(CFrogThing *root,Bool debug=FALSE) {
     g=root;
     idx=g->item_cnt;
     while(--idx>=0) {
-      if(!(g->raw_mask&(1<<idx)))
+    if(debug) "%d,%d,%c\n",idx,g->item_cnt,g->type;
+      if(!(g->raw_mask&(1<<idx))) {
         FrogGarbageCollectThing(g->body[idx],debug); 
+      }
     }
     if(g->type=='Block')
       FrogGarbageCollectThing(g->parent,debug);
@@ -1549,7 +1552,7 @@ U0 FrogNullifySymbols() {
   FrogEnableScripts;
 }
 //Run this on core 0,it will wait for cores to be done
-U0 FrogGarbageCollect(CFrogThing *root=FROG_SMALL_NIL) {
+U0 FrogGarbageCollect(CFrogThing *root=FROG_SMALL_NIL,Bool debug=FALSE) {
   FrogDisableScripts;
   CFrogThing *head=&allocs_head,*cur,*next;
   for(cur=head->next;cur!=head;cur=cur->next) {
@@ -1562,7 +1565,7 @@ U0 FrogGarbageCollect(CFrogThing *root=FROG_SMALL_NIL) {
   } 
   for(cur=head->next;cur!=head;cur=cur->next) {
     if(ThingHasClass(cur,"CFrogSymbol")) {
-      FrogGarbageCollectThing(cur(CFrogSymbol*)->value);
+      FrogGarbageCollectThing(cur(CFrogSymbol*)->value,debug);
     }
   }
   FrogGarbageCollectThing(root);

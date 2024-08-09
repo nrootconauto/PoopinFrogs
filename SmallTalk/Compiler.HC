@@ -230,7 +230,7 @@ CLocals *GenerateLocalsFromMethod(CMethod *method,U8 *for_class) {
   ret->vars=HashTableNew(0x10);
   CAST *name,*head;
   U8 *var_class_name;
-  I64 idx,off=0,mask;
+  I64 idx,off=0,mask=0;
   DocPrint(dummy,"class %s:CLocalsGeneric0 {\n",ret->name);
 //Account for class members first,THEN account for method locals
   while(cls) {
@@ -544,6 +544,7 @@ U8 *CompileThunk(CAST *block,CLocals *parent=NULL) {
   DocPrint(doc,"#if 0\n");
   DocPrint(doc,"/*This is a generated file,DON'T FUCKIN EDIT*/\n");
   Fs->put_doc=doc;
+  DumpAst(block);
   Fs->put_doc=old_put;
   Free(tmp);
   DocPrint(doc,"\n#endif\n");

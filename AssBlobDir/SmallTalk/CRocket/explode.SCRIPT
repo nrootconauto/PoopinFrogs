@@ -3,13 +3,13 @@ explode ->CFrogNum
   dist=CFrogNum 
   things=CFrogArray
 |
-  things _ #world getThingsInRadiusFromX: x fromY: y withRadius: 3 * 128 .
+  things _ #world getThingsInRadiusFromX: x fromY: y withRadius: 2 * 128 .
   things do:[:t*|
     dist _ ((t ->x - x) squared + (t ->y - y ) squared) sqrt .
 'Dont damage through walls(Cant see)' .
-    (t->z - z)abs < 5 ifTrue: [
+    (t->z - z) abs < 2 ifTrue: [
       (self canSeeThing:  t) ifTrue: [
-        t damage: (5 * 128 - dist) / ( 5 * 128 ) * 50  from: from . 
+        t damage: (2 * 128 - dist) / ( 2 * 128 ) * 50  from: from . 
       ] .
     ]
   ] .
