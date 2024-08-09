@@ -36,6 +36,12 @@ class CLevelSegmentEditFill:CQue {
   I8 ceil_heights[SEGMENT_SZ][SEGMENT_SZ];
   I8 ceil_heights2[SEGMENT_SZ][SEGMENT_SZ];
 };
+class CFileLevelTransition {
+  U8 display_name[STR_LEN];
+  U8 start_screen_blob[STR_LEN];
+  U8 end_screen_blob[STR_LEN];
+  U8 next_level_blob[STR_LEN];
+};
 //Used for 'ThingDel'/'ThingIns'
 class CLevelSegmentEditThing:CQue {
   I64 type;
@@ -153,6 +159,7 @@ class CWorldEditor {
 //Used when holding down a mouse button to not repeat operations
   CI64Set *dont_modify_tiles;
   U8 *filename;
+  CFileLevelTransition level_transition;
   Bool ms_left_down;
   Bool ms_right_down;
   Bool kbd_left_down;
@@ -256,6 +263,12 @@ class CFileTexture {
   U8 wall_blob_name[STR_LEN]; 
   U8 ceil_blob_name[STR_LEN];
 };
+class CFileLevelTransiton {
+  U8 display_name[STR_LEN];
+  U8 next_level_blob[STR_LEN];
+  U8 start_screen_blob[STR_LEN]; //Graphics Lump
+  U8 ending_screen_blob[STR_LEN]; //Graphics Lump
+};
 class CWorld {
   I64 w,h;
   I64 startx,starty;
@@ -277,6 +290,7 @@ class CWorld {
   CFilePtrLen ceilmap2;
   CFilePtrLen world_start;
   CFilePtrLen doors;
+  CFilePtrLen level_transition;
   U0 start;
 }; 
 U0 _DumpSegment(CWorld *world,CLevelSegment *seg) {
@@ -357,7 +371,8 @@ U0 LevelEditorExport(U8 *blob,U8 *filename) {
   }
   textures_sz=sizeof(CFileTexture)*QueCnt(&world_edit.textures_que);
   I64 w=maxx-minx,h=maxy-miny;
-  I64 fsz=(w*h)+(w*h)+(w*h)+2*(w*h)+sizeof(CWorld)+textures_sz+templates_sz+things_sz+doors_sz;
+  I64 fsz=(w*h)+(w*h)+(w*h)+2*(w*h)+sizeof(CWorld)+textures_sz+templates_sz+things_sz+doors_sz
+	+sizeof(CFileLevelTransition);
   CWorld *data=CAlloc(fsz);
   data->startx=minx;
   data->starty=miny;
@@ -434,7 +449,11 @@ U0 LevelEditorExport(U8 *blob,U8 *filename) {
       fptr(CFileDoor*)++;
       door=door->next;
     }
-  }  
+  }
+  data->level_transition.ptr=fptr(U8*)-data(U8*);
+  data->level_transition.len=sizeof(CFileLevelTransition);
+  MemCpy(fptr,&world_edit.level_transition,sizeof (CFileLevelTransition));
+  fptr+=sizeof(CFileLevelTransition);
   data->textures_where.ptr=data->textures(U8*)-data(U8*);
   data->textures_where.len=sizeof(CFileTexture)*QueCnt(&world_edit.textures_que);
   data->thing_templates_where.ptr=data->thing_templates(U8*)-data(U8*);
@@ -1280,6 +1299,39 @@ Bool EditDC(U8 *blob,U8 *name,I64 dft_w,I64 dft_h) {
   world_edit.flat_mode=old_flat;
   return ToBool(StrLen(name));
 }
+U0 EditLevelTransition(U8 *blob,CFileLevelTransition *trans) {
+  Bool old_flat=world_edit.flat_mode;
+  U8 *str;
+  CDoc *doc=DocNew;
+  world_edit.flat_mode=TRUE;
+  DocPrint(doc,"$$TX+CX,\"Level Transition Editor\"$$\n");
+  DocPrint(doc,"$$MU,\"Edit Name\",LE=1$$(%Q)\n",trans->display_name);
+  DocPrint(doc,"$$MU,\"Edit Intro Screen\",LE=2$$(%Q)\n",trans->start_screen_blob);
+  DocPrint(doc,"$$MU,\"Edit Exit Screen\",LE=3$$(%Q)\n",trans->end_screen_blob);
+  DocPrint(doc,"$$MU,\"Choose Next Level\",LE=4$$(%Q)\n",trans->next_level_blob);
+  switch(PopUpMenu(doc)) {
+    case 1:
+      str=PopUpGetStr("Level Display Name:");
+      if(str) StrCpy(trans->display_name,str);
+      Free(str);
+      break;
+    case 2:
+      EditDC(blob,trans->start_screen_blob,GR_WIDTH-64,GR_HEIGHT-8);
+      break;
+    case 3:
+      EditDC(blob,trans->end_screen_blob,GR_WIDTH-64,GR_HEIGHT-8);
+      break;
+    case 4:
+      str=BlobFileSelect(blob);
+      if(str)
+        StrCpy(trans->next_level_blob,str);
+      Free(str);
+      break;
+  }
+  world_edit.flat_mode=old_flat;
+  DocDel(doc);
+}
+
 
 class CDoorFlags {
   Bool small_key format "$$CB,\"Small Key\"$$\n";
@@ -1519,8 +1571,9 @@ U0 FreeEditorData() {
   QueInit(&world_edit.edits);
   QueInit(&world_edit.textures_que);
   QueInit(&world_edit.thing_templates_que);
- MemSetI64(world_edit.textures,NULL,0x10000);
+  MemSetI64(world_edit.textures,NULL,0x10000);
   MemSetI64(world_edit.thing_templates,NULL,0x10000);
+  MemSet(&world_edit.level_transition,0,sizeof(CFileLevelTransition));
 }
 U0 WorldInsertTileAt(I64 x,I64 y,I64 thing,I64 floor_ceil_ceil2=0) {
   CLevelSegment *seg=GetSegmentForPos(x,y);
@@ -1707,6 +1760,8 @@ U0 LoadWorld(U8 *blob,U8 *filename) {
     }
     f_thing++;
   }
+
+  MemCpy(&world_edit.level_transition,w->level_transition.ptr+w(U8*),sizeof (CFileLevelTransition));
 fail: 
   Free(w);
   world_edit.floor_height=oldf;
@@ -2126,7 +2181,9 @@ no_edit_tile:;
 	  default: which_key=NULL;
         }
         case MSG_KEY_DOWN:
-	  if(m2.u8[0]==SC_F1) {
+	  if(m1==CH_CTRLT) {
+            EditLevelTransition(blob,&world_edit.level_transition);
+	  } else if(m2.u8[0]==SC_F1) {
 	    HelpMenu;
 	  } if(m1==CH_CTRLZ) {
 	    WorldEditUndo;

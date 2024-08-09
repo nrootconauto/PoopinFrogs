@@ -128,7 +128,7 @@ class CFileDoor {
   I32 tag;
 };
 class CFileWorld {
-   I64 w,h;
+  I64 w,h;
   I64 startx,starty;
   I16 *data;
   CFilePtrLen textures_where;
@@ -139,6 +139,7 @@ class CFileWorld {
   CFilePtrLen ceilmap2;
   CFilePtrLen wolrd_start;
   CFilePtrLen doors;
+  CFilePtrLen transition;
 }; 
  
 
@@ -1007,7 +1008,7 @@ CFrogArray *WorldManagerThingsInRadius(C3DWorldManager *wm,...) {
       arr=arr->items->body[aty];
       cnt=arr->items->cnt;
       body=arr->items->body;
-      while(--cnt>=0) {
+      while(--cnt>=0) {
 	t=body[cnt];
 	  if(r*r>=Sqr(t->x-x)+Sqr(t->y-y)) {
             I64SetAdd(ret->items,t);
@@ -2864,6 +2865,7 @@ CDC *MakeMinimap1(C3DWorldManager *wm,F64 x,F64 y,F64 angle,I64 radius,F64 heigh
   CI64Set *near_set;
   U8 *ptr,*mask_ptr,color;
   Mat4x4IdentEqu(mat2);
+  angle+=pi/2;
   Mat4x4RotZ(mat2,angle);
   Mat4x4Scale(mat2,12.);
   Mat4x4TranslationEqu(mat2,x,y,0);

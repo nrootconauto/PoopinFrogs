@@ -1,0 +1,28 @@
+animate ->* |
+  tS=CFrogNum
+  period=CFrogNum
+|
+  tS _ CFrogTime now asSeconds .
+  rate > .001 ifTrue: [
+    'Stopped using numchucks so spin down' .
+    tS > (timeout + (1 / 10)) ifTrue: [
+      timeout _ -100 .
+      rate _ rate - (1 / 4 ) max: 0 .
+    ] .
+    xoff _ ((tS - attack_start_tS) *  2 * 6.28) cos * (rate  / 3 + .1)  * 100 .
+    yoff _ ((tS - attack_start_tS) * 4  * 6.28) sin * (rate / 3 + .1) * 20 .
+  ] ifFalse: [
+    'Done Spinning' .
+    'Just move towards the center'.
+    xoff _ xoff sign negated * 9 .
+    xoff abs < 10 ifTrue: [
+      xoff _ 0 .
+    ] .
+    yoff _ yoff sign negated * 3 .
+    yoff abs < 4 ifTrue: [
+      yoff _ 0 .
+    ] .
+    attack_start_tS _ -1 .
+
+    self setGraphics: 'GR/Numchucks/Idle' .
+  ].

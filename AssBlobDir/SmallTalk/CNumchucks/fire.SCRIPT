@@ -1,0 +1,23 @@
+fire ->* |
+  player=CPlayer
+  target*
+  tS=CFrogNum
+  period=CFrogNum
+|
+  player _ #world getPlayer .
+  tS _ CFrogTime now asSeconds .
+  tS > timeout ifTrue: [
+    self setGraphics: 'GR/Numchucks/Attack1' .
+    attack_start_tS < 0 ifTrue: [
+      attack_start_tS _ tS .
+      rate _ 0 .
+    ] .
+
+    rate _  rate + .5  min: 3 .
+    period _ 1 / (2 + rate ).
+    timeout _ period + tS .
+
+    #world sweepSoundForTime: period * .5 * 1000 withMin: 50 withMax: 80 .
+    
+    player meleeAttackWithDamage: 7 .
+  ] .

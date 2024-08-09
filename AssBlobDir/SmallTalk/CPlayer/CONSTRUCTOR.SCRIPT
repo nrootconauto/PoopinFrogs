@@ -14,6 +14,8 @@ init ->CPlayer | |
   CTalker  new .
   CMarkerDrugItem new .
 
+  CNumchucks new .
+
   quest_flags _ #() .
   quest_seen_responses _ #().
 

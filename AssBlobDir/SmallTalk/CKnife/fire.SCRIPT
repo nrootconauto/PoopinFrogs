@@ -8,9 +8,5 @@ fire ->* |
   timeout > tS ifTrue: [^ 0 ]. 
   #world sweepSoundForTime: 300 withMin: 50 withMax: 80 .
   timeout _ tS + (1 / 2.5) .
-  target _ player bestTargetAtAngle: player->angle .
-  (target hasClass: C3DThing) ifTrue: [
-    (((target->x - player->x) squared + (target->y - player->y) squared) sqrt < 256 ) ifTrue: [
-      target damage: 45 from: player .
-    ] .
-  ] .
+
+  player meleeAttackWithDamage: 35 .

@@ -24,7 +24,7 @@ class CFrogClass:CFrogThing {
 class CFrogChr:CFrogThing {
   U64 ch;
 };
-class CFrogBlock:CFrogThing {
+class CFrogBlock:CFrogThing {
   CFrogThing *self;
   CFrogThing *frame;
   U8 (*fun_ptr)(CFrogThing *self,U8 *);//CSTFrame
@@ -319,6 +319,10 @@ class CPickup:C3DThing {
 };
 
 class CFrogDick:CHandItem {};
+class CNumchucks:CHandItem {
+  F64 attack_start_tS;
+  F64 rate;
+};
 
 class CSmallKey:CHandItem {};
 class CSmallKeyPickup:CPickup {};
