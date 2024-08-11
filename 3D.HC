@@ -79,7 +79,7 @@ F64 Frog_tS() {
 extern I64 *GetTilesInPath(U8 *w,F64 angle,F64 dist);
 #define ENGINE_3D 1
 #define SCRN_TURN_MARGIN 100
-#define SCRN_TURN_RATE (pi/30.)
+#define SCRN_TURN_RATE ((pi)/(GR_WIDTH/2))
 //This will delegate calls to other cores
 class CCSPair {
   U8 *name;
@@ -2757,7 +2757,6 @@ U0 UpdateDrawBuffer() {
   c=man->doors->items->cnt;
 //Rely on wall commands to choose what part of door to draw
   w->to_dc->depth_buf=NULL;
-
   
   Fs->user_data=0;
   if(ThingHasClass(player,"CPlayer")) {
@@ -2776,7 +2775,8 @@ U0 UpdateDrawBuffer() {
   } 
 
   if(ThingHasClass(hand,"CHandItem")) {
-    hand->x=ms.pos.x;
+    hand->x=dc->width/2;
+    hand->y=dc->height/2+100;
     if(hand_gr=hand->gr) {
       c=AnimDCCnt(hand_gr);
       f=(Frog_tS-hand->anim_start_tS)/ANIM_DELAY;
@@ -2891,6 +2891,7 @@ U0 WalkAround(U8 *save_string=NULL) {
   CDC *minimap;
   CPlayer *player=CallScript("getPlayer",man->value);
   CUIElem *ui_root=FrogSymbol("ui_root")->value;
+  CFrogSymbol *ui_grabbed=FrogSymbol("ms_grabbed");
   WinMax;
   WinBorder;
   AutoComplete;
@@ -2902,12 +2903,22 @@ U0 WalkAround(U8 *save_string=NULL) {
   C3DThing *thing;
   I64 idx,old_msz=ms.pos.z;
   F64 last_tS=tS;
+  I64 old_msx,old_msy;
+  MsSet(msx=GR_WIDTH/2,msy=GR_HEIGHT/2);
+  old_msx=msx;
+  old_msy=msy;
+  //Transitiory
+  ui_grabbed->value=FrogNumNew(1);
   try while (cont) {
       every++;
 //In case the #world was changed(Loaded a saved game?)
       wm=man->value;
       player=CallScript("getPlayer",man->value);
       ui_root=FrogSymbol("ui_root")->value;
+      if(AsF64(ui_grabbed->value)) {
+        AIWNIOS_SetCaptureMouse(1);
+      } else
+        AIWNIOS_SetCaptureMouse(0);
       w->_2d_things=wm->things->items;
       w->_wall_stains=wm->wall_stains->items;
       w->_floor_stains=wm->floor_stains->items;
@@ -3034,10 +3045,13 @@ next:;
 	  C3DThingMoveAtAngle(player,
 	        FrogNumNew(GRID_SZ/4),
 	        FrogNumNew(player->angle+pi/2));
-        if(msx<SCRN_TURN_MARGIN) {
-	  player->angle-=ToF64(SCRN_TURN_MARGIN-msx)/SCRN_TURN_MARGIN*SCRN_TURN_RATE;
-        } else if(msx>GR_WIDTH-SCRN_TURN_MARGIN) {
-	  player->angle+=ToF64(msx-(GR_WIDTH-SCRN_TURN_MARGIN))/SCRN_TURN_MARGIN*SCRN_TURN_RATE;
+	if(AsF64(ui_grabbed->value)) {
+          if(ms.pos.x-old_msx) {
+	    player->angle+=(ms.pos.x-old_msx)*SCRN_TURN_RATE;
+          }
+	  MsSet(GR_WIDTH/2,GR_HEIGHT/2);
+	  old_msx=ms.pos.x;
+	  old_msy=ms.pos.y;
         }
         if (ms.lb&&20<msy<GR_HEIGHT-75) { // mouse input is best handled with ms, not ScanMsg
 	  mouse_angle=(ms.pos.x-GR_WIDTH/2)*(w->fov/GR_WIDTH);
@@ -3072,6 +3086,7 @@ next:;
       if(every&15==0) FrogGarbageCollect;
     } catch {PutExcept(TRUE);}
 en:
+  AIWNIOS_SetCaptureMouse(0);
   FlushMsgs;
   Fs->draw_it=NULL;
   Refresh;
