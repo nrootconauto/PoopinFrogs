@@ -1008,7 +1008,7 @@ CFrogArray *WorldManagerThingsInRadius(C3DWorldManager *wm,...) {
       arr=arr->items->body[aty];
       cnt=arr->items->cnt;
       body=arr->items->body;
-      while(--cnt>=0) {
+      while(--cnt>=0) {
 	t=body[cnt];
 	  if(r*r>=Sqr(t->x-x)+Sqr(t->y-y)) {
             I64SetAdd(ret->items,t);
@@ -1425,98 +1425,46 @@ F64 FUMod(F64 v,F64 to) {
   return 0;
 }
 //-1 terminated
-//https://en.wikipedia.org/wiki/Digital_differential_analyzer_(graphics_algorithm)
+//-1 terminated
+//https://github.com/cgyurgyik/fast-voxel-traversal-algorithm/blob/master/overview/FastVoxelTraversalOverview.md
 I64 *GetTilesInPath(C3DWorld *w,F64 angle,F64 dist) {
   CI64Set *t=I64SetNew;
-  F64 x=w->x,y=w->y,ex,ey,dx,dy,step,i,by,slope,cos,sin,xdist,ydist;
+  F64 x=w->x/128,y=w->y/128,ex,ey,dx,dy,step,i,by,slope,cos,sin,xdist,ydist;
   F64 res_dist;
-  I64 tx=x/GRID_SZ,ty=y/GRID_SZ,idx,old_tx,old_ty,dirx,diry,ix,iy;
+  I64 tx=x/GRID_SZ,ty=y/GRID_SZ,idx,old_tx,old_ty,dirx,diry,ix,iy,last;
+  I64 cnt=dist/128.;  
   Bool x_type;
   cos=Cos(angle);
   sin=Sin(angle);
-  ex=x+cos*dist;
-  ey=y+sin*dist;
-  slope=Tan(angle);
-  dx=ex-x;
-  dy=ey-y;
-  if(Abs(dx)>Abs(dy)) {
-    step=Abs(dx);
-  } else {
-    step=Abs(dy);
-  }
-  dx/=step;
-  dy/=step;
+  I64 stepx=Sign(cos);
+  I64 stepy=Sign(sin);
+  F64 current_x_index=Max(1,Ceil(x));
+  F64 current_y_index=Max(1,Ceil(y));
+  if(cos<0) current_x_index--;
+  if(sin<0) current_y_index--;
+  F64 tMaxX=(current_x_index-x)/cos;
+  F64 tMaxY=(current_y_index-y)/sin;
+  tx=x;
+  ty=y;
   idx=ty*w->world_width+tx;
   I64SetAdd(t,idx);
-  i=0;
-//
-  // Ask Nroot how this works,it's his algoirthm
-  //
-  while(i<=step) {
-    old_tx=tx;
-    old_ty=ty;
-//
-    //
-    //
-    //
-    //$SP,"<1>",BI=1$
-    //Advance by the closest distance
-    if(cos>0.) {
-      xdist=GRID_SZ-FUMod(x,GRID_SZ)+x;
-      if(xdist-x<1.) xdist+=GRID_SZ;
-    } else if(cos<0.) {
-      xdist=x-(GRID_SZ-FUMod(x,GRID_SZ));
-      if(x-xdist<1.) xdist-=GRID_SZ;
-    } else 
-      xdist=x;
-    if(sin>0.) {
-      ydist=GRID_SZ-FUMod(y,GRID_SZ)+y;
-      if(ydist-y<1.) ydist+=GRID_SZ;
-    } else if(sin<0.) {
-      ydist=y-(GRID_SZ-FUMod(y,GRID_SZ));
-      if(y-ydist<1.) ydist-=GRID_SZ;
-    } else 
-      ydist=y;
-    if(!dx) goto dy_type;
-    if(!dy) goto dx_type;
-    if(xdist-x>ydist-y) {
-dx_type:
-      x_type=TRUE;
-      by=(xdist-x)/dx;
+  while(--cnt>=0) {
+    if(tMaxX<tMaxY) {
+      tMaxX+=1./Abs(cos);
+      tx+=stepx;
     } else {
-dy_type:
-      x_type=FALSE;
-      by=(ydist-y)/dy;
-    }
-    x+=dx*by;
-    y+=dy*by;
-    tx=x/GRID_SZ,ty=y/GRID_SZ;
-    tx=ClampI64(tx,0,w->world_width);
-    ty=ClampI64(ty,0,w->world_height);
-    dirx=SignI64(tx-old_tx);
-    diry=SignI64(ty-old_ty);
-    for(iy=old_ty;TRUE;iy+=diry) {
-      for(ix=old_tx;TRUE;ix+=dirx) {
-        idx=ix+iy*w->world_width;
-        if(t->body[t->cnt-1]!=idx) {
-	  if(PassesThoughBlock(w,slope,ix,iy,NULL,cos,sin)) {
-	    I64SetAdd(t,idx);
-	  }
-        }
-        if(ix==tx)
-	  break;
-      }
-      if(iy==ty)
-        break;
-    }
+      tMaxY+=1./Abs(sin);
+      ty+=stepy;
+    } 
 
-    if(!tx||tx>=w->world_width)
-      goto fin;
-    if(!ty||ty>=w->world_height)
-      goto fin;
-    if(by<3.)
-      by=3.;
-    i+=by;
+    if(0<=tx<w->world_width)
+      if(0<=ty<w->world_height) {
+        idx=ty*w->world_width+tx;
+        I64SetAdd(t,idx);
+	goto pass;
+      }
+    break;
+pass:;
   }
 fin:
   I64SetAdd(t,-1);
@@ -1524,6 +1472,7 @@ fin:
   Free(t);
   return tiles;
 }
+
 I64 mp_done=0;
 F64 ScreenCordsToDist(C3DWorld *w,I64 x,I64 y,F64 max=GRID_SZ*128,F64 *height=NULL,Bool *hit_floor=FALSE) {
   F64 angle=w->angle+w->fov*((x-GR_WIDTH/2)/ToF64(GR_WIDTH));
@@ -1660,7 +1609,7 @@ U0 MPCastCol(C3DWorld *w) {
     last_height=I64_MIN;
     last_ceil=I64_MAX;
 // divide by cos2_lookup_table to get 32 blocks from the camera
-$SP,"<2>",BI=2$;
+$SP,"<1>",BI=1$;
 
 
 
@@ -3129,10 +3078,7 @@ en:
 }
 WalkAround;
 #endif
-#endif        i               8      8   ßÿÿÿ   Ýÿÿÿ      	'   öÿÿÿ?   áÿÿÿ
-
-'   ÷ÿÿÿ5   ÷ÿÿÿ
-'   ÷ÿÿÿ(   ßÿÿÿ               
+#endif               
    
 *   ]   g   3   
 )   _   l   ‚   #   '   i   '   !   ‰   k   ‹   '   _   j   [         32 Away from camera    ^      
