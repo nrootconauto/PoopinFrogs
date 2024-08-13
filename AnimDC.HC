@@ -28,7 +28,7 @@ U8 *AnimDCSave(CDC *dc,I64 *_len=NULL) {
     Free(tmp);
     ptr+=cur_sz;
   }
-  if(_len) *_len=total_sz;
+  if(_len) *_len=total_sz;
   return ret;
 }
 CDC *AnimDCLoad(U8 *ptr,I64 *_len=NULL,CTask *mem_task=NULL) {

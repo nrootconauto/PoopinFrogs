@@ -18,13 +18,12 @@ Check for intersection basically.
  /
 */
   F64 slope1,slope2,off1,off2,x,x2,y,y2;
-  F64 tolerance=.01;
+  F64 tolerance=.0001;
   CD2 dummy;
   if(!dst) dst=&dummy;
 //If the line points straight up,we can check to see if the other
   //line goes through the y position,if so,it is a hit
-  if((ToI64(b->x)==ToI64(a->x))||(ToI64(b2->x)==ToI64(a2->x))) {
-    tolerance=1.;
+  if(Abs(b->x-a->x)<tolerance||Abs(b2->x-a2->x)<tolerance) {
     if(ToI64(a->x)==ToI64(b->x)&&ToI64(a2->x)==ToI64(b2->x)) {
       if(ToI64(a->x)==ToI64(a2->x)) {
         dst->x=a->x;

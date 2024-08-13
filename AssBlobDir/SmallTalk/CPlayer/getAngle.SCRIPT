@@ -1,0 +1,6 @@
+getAngle -> CFrogNum
+|
+  w=C3DWorldManager
+|
+  w _ #world .
+  ^ w screenCoordToX - x arg: w screenCoordToY - y

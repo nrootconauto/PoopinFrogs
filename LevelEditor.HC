@@ -1761,7 +1761,7 @@ U0 LoadWorld(U8 *blob,U8 *filename) {
     f_thing++;
   }
 
-  MemCpy(&world_edit.level_transition,w->level_transition.ptr+w(U8*),sizeof (CFileLevelTransition));
+  MemCpy(&world_edit.level_transition,w->level_transition.ptr+w(U8*),sizeof (CFileLevelTransition));
 fail: 
   Free(w);
   world_edit.floor_height=oldf;

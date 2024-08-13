@@ -361,7 +361,7 @@ BlobFileAddLump("ASS2","abc","abc",3,'TEXT');
 BlobFileAddLump("ASS2","abd","abcd",4,'TEXT');
 BlobFileAddLump("ASS2","ab/d","FILE",4,'TEXT');
 "%s\n",BlobFileGetLump("ASS2","abd");
-"%s\n",BlobFileSelect("ASS2");
+"%s\n",BlobFileSelect("ASS2");
 BlobFileDeleteLump("ASS2","abd");
 "%s\n",BlobFileSelect("ASS2");
 "%s\n",BlobFileGetLump("ASS2","abc");

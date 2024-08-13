@@ -30,9 +30,10 @@ fire ->* |
                     atY: w screenCoordToY .
         w addFloorStain: floor_stain .
       ] ifFalse: [
+'attempt' show .
         wall_hole _ CWallStain new .
         wall_hole
-          placeAtAngle: player getAngle
+          placeAtAngle: player getAngle 
           fromX: player ->x 
           fromY: player ->y
           atHeight: sz .
@@ -42,7 +43,7 @@ fire ->* |
       self setGraphics: 'GR/GUN1/FIRE' .
       ammo _ ammo - 1 max: 0 .
       inventory_item setCount: ammo .
-      best_thing _ player bestTargetAtAngle: player->angle .
+      best_thing _ player bestTargetAtAngle: player getAngle .
       best_thing damage: 10 * CFrogRandom new next + 5 from: player 
     ] .
   ] .

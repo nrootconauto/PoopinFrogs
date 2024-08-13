@@ -188,6 +188,7 @@ class C3DThingTemplate:CFrogThing {
   CDC *side;
   CDC *back;
   U8 *destroy dft "C3DThingTemplateDel";
+//Private,See GetColorForRay/PrepareThingsForDraw
 };
 extern class CEliza;
 class C3DThing:CFrogThing {
@@ -209,6 +210,7 @@ class C3DThing:CFrogThing {
   Bool floating;
   Bool hit_thing; //Set by physics when we hit a thing
   Bool pad[8-3];
+  CD2 scrn_st,scrn_en;
 };
 class C3DWorldManager:CFrogThing {
   U8 *world_handle;
@@ -321,7 +323,7 @@ class CPickup:C3DThing {
 class CFrogDick:CHandItem {};
 class CNumchucks:CHandItem {
   F64 attack_start_tS;
-  F64 rate;
+  F64 rate;
 };
 
 class CSmallKey:CHandItem {};
