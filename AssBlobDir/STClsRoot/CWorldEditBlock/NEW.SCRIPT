@@ -1,0 +1,2 @@
+new: block=CFrogNum -> * | |
+ ^ self basicNew init: block 

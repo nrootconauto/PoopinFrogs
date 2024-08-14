@@ -248,6 +248,14 @@ class CHandItem:CFrogThing {
   Bool in_quick_inventory,is_equiped;
 };
 
+class CWorldEditBlock:CHandItem {
+  I64 tile_idx;
+};
+
+class CWorldEditThing:CHandItem {
+  C3DThingTemplate *template;
+};
+
 
 class CFloorStain:CFrogThing {
   I64 tile_x,tile_y;

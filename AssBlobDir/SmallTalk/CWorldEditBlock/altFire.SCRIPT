@@ -1,0 +1,59 @@
+rightFire ->* |
+ w=C3DWorldManager
+ cur_ts=CFrogNum
+ wz=CFrogNum
+ wx=CFrogNum
+ wy=CFrogNum
+ shift=CFrogNum
+ ch=CFrogNum
+ cr=CFrogNum
+ fh=CFrogNum
+ dist=CFrogNum
+ p=CPlayer
+ angle=CFrogNum
+ |
+  'Destroys a block' .
+  w _ #world .
+  shift _ w getShiftKey .
+  cur_ts _ CFrogTime now asSeconds .
+  p _ w getPlayer .
+  timeout < cur_ts ifTrue: [
+    timeout _ cur_ts + .1 .
+    wz _ w screenCoordToZ .
+    'Slightly beyond hit wall to find target tile' .
+    wx _ w screenCoordtoX / 128 - p->x .
+    wy _ w screenCoordtoY / 128 - p->y .
+    dist _ (wx squared + wy squared) sqrt + .01 .
+    angle _ wx arg: wy .
+    wx _  p->x + (dist * angle cos) .
+    wx _  p->y + (dist * angle sin) .
+  
+    fh _ w tileHeightAtX: wx atY: wy .
+    ch _ w ceilHeightAtX: wx atY: wy .
+    cr _ w ceilRiseAtX: wx atY: wy .
+    shift not ifTrue: [
+      'Floor nor ceiling'.
+      fh > -127 ifTrue: [
+        w setTileHeight: wz floor - 1  atX: wx atY: wy .
+      ] .
+    ] ifFalse: [
+      'Ceiling'.
+      'ch is >=127 if undefiend' . 
+      ch < 127 ifTrue: [
+        ch = wz floor ifTrue: [
+          cr = 1 ifTrue: [
+            w setCeilHeight: 127 atX: wx atY: wy .
+            w setCeilRise: 0 atX: wx atY: wy .
+          ] ifFalse: [
+            'Removed bottom tile' .
+            w setCeilHeight: ch + 1 atX: wx atY: wy .
+            w setCeilRise: cr - 1 atX: wx atY: wy .
+          ]
+        ] ifFalse: [
+          'Removed a mid tile' .
+           w setCeilHeight: cr + ch - wz ceil atX: wx atY: wy .
+           w setCeilRise: wz ceil  atX: wx atY: wy .
+        ]
+      ] 
+    ] .    
+  ] .

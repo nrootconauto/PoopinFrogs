@@ -11,7 +11,6 @@
 #define FOG1_DIST 16
 #define FOG2_DIST 20
 
-
 U64 fog0_table[0x10];
 U64 fog1_table[0x10];
 U64 fog2_table[0x10];
@@ -188,14 +187,13 @@ class C3DWorld {
    CDC *floor_textures[0x10000/2];
    CDC *floor_textures1616[0x10000/2];
    CDC *ceil_textures[0x10000/2];
+   C3DThingTemplate *thing_templates[0x10000];
    CDoor **door_mat;
    I64 mp_done,dc_lock;
    CQue _2d_thing_templates; 
    CI64Set *_2d_things;
    CI64Set *_wall_stains;
    CI64Set *_floor_stains;
-   CWallCommand wall_commands[GR_WIDTH][0x80];
-   I64 wall_command_cnts[GR_WIDTH];
    CTask *mem_task;
    F64 cam_height;
 //Private
@@ -205,32 +203,6 @@ class C3DWorld {
    CI64Set *things_around_camera[VIEW_DIST*2][VIEW_DIST*2];
 };
 C3DWorld *w;
-Bool DrawIsBlocked(C3DWorld *w,I64 x,I64 y0,I64 y1,I16 dist) {
-  I64 c=w->wall_command_cnts[x];
-  CWallCommand *cmds=&w->wall_commands[x];
-  while(--c>=0) {
-    if(cmds[c].dist<dist) {
-      if(cmds[c].start<=y0&&y1<=cmds[c].end) {
-	return TRUE;
-      }
-    }
-  }
-  return FALSE;
-}
-U0 AddWallCommand(C3DWorld *w,I64 x,I64 y0,I64 y1,I64 dist) {
-  I64 c=w->wall_command_cnts[x];
-  CWallCommand cmd;
-  if(c>=0x80) return;
-  if(I16_MIN<=dist<=I16_MAX)
-  if(I16_MIN<=y0<=I16_MAX)
-  if(I16_MIN<=y1<=I16_MAX) {
-    cmd.dist=dist;
-    cmd.start=y0;
-    cmd.end=y1;
-    ++w->wall_command_cnts[x];
-    w->wall_commands[x][c]=cmd;
-  }
-}
 extern U0 Draw2DThing(C3DWorld *w,C3DThing *thing);
 #define MAX_PARTICLES 64
 U0 NewParticle(C3DWorld *w,I64 color,I64 sz,F64 x,F64 y,F64 z,F64 mx,F64 my,F64 mz) {
@@ -283,7 +255,7 @@ C3DWorld *LoadWorldFromFile(U8 *blob_file="ASS",U8 *filename,F64 fov=pi/2) {
   U8 *fptr=world,*to,*tmp;
   I64 idx;
   CDC *unscaled;
-  C3DThingTemplate **templates=CAlloc(0x10000*8),*template;
+  C3DThingTemplate **templates=ret->thing_templates,*template;
   C3DThing *thing;
   C3DWorldManager *man;
   C3DWorldSetFov(ret,fov);
@@ -416,7 +388,6 @@ C3DWorld *LoadWorldFromFile(U8 *blob_file="ASS",U8 *filename,F64 fov=pi/2) {
     CallScript("addDoor:",man,door);
   }
   Free(world);
-  Free(templates);
   WorldUpdateDoorMat(man);
   return ret;
 }
@@ -1413,6 +1384,7 @@ U0 PrepareThingsForDraw(C3DWorldManager *wm,F64 thing_scale=.6) {
 skip:;
   }
 }
+//https://github.com/cgyurgyik/fast-voxel-traversal-algorithm/blob/master/overview/FastVoxelTraversalOverview.md
 I64 GetColorForRay(C3DWorldManager *man,CD3 *ray,F64 dist,F64 *hit_at,CD3 *hit_cords) {  
   C3DWorld *w=man->world_handle;
   CFrogArray *grid=man->grid;
@@ -1781,7 +1753,7 @@ CDC *WhichTexture(C3DWorld *w,I64 tile,F64 h,F64 h2,F64 *hit_h,Bool *hit_wall) {
 
   if(w->ceilmap[tile]!=I8_MAX) {
     have=w->ceilmap[tile];
-    have2=have+w->ceilmap[tile];
+    have2=have+w->ceilmap2[tile];
     if(Max(mn,have)<=Min(mx,have2)) {
      if(h>h2) {
        //Looking  Down
@@ -1948,7 +1920,6 @@ fin:;
 U0 C3DWorldCastRays(C3DWorld *w) {
   I64 c;
   C3DWorldManager *man=FrogSymbol("world")->value;
-  MemSetI64(w->wall_command_cnts,0,GR_WIDTH);
   lock mp_done=0;
   for(c=1;c<mp_cnt;++c) {
     JobQue(&MPCastCol,man,c);
@@ -2430,8 +2401,70 @@ CFrogThing *WorldManagerWidth(C3DWorldManager *self,...) {
 CFrogThing *WorldManagerHeight(C3DWorldManager *self,...) {
   return FrogNumNew(w->world_height);
 }
+
 AddMethod("C3DWorldManager","width",&WorldManagerWidth);
 AddMethod("C3DWorldManager","height",&WorldManagerHeight);
+
+CFrogThing *WorldManagerSetTileHeightAtXAtY(C3DWorldManager *self,...) {
+  I64 th=AsF64(argv[0]);
+  I64 x=AsF64(argv[1]);
+  I64 y=AsF64(argv[2]);
+  if(0<=x<w->world_width)
+    if(0<=y<w->world_height) {
+      return w->heightmap[x+y*w->world_width]=th;
+    }
+  return FROG_SMALL_NIL;
+}
+AddMethod("C3DWorldManager","setTileHeight:atX:atY:",&WorldManagerSetTileHeightAtXAtY);
+CFrogThing *WorldManagerSetTileAtXAtY(C3DWorldManager *self,...) {
+  I8 tile=AsF64(argv[0]);
+  I64 x=AsF64(argv[1]);
+  I64 y=AsF64(argv[2]);
+  if(0<=x<w->world_width)
+    if(0<=y<w->world_height) {
+      return w->heightmap[x+y*w->world_width]=tile;
+    }
+  return FROG_SMALL_NIL;
+}
+AddMethod("C3DWorldManager","setTile:atX:atY:",&WorldManagerSetTileAtXAtY);
+
+
+
+CFrogThing *WorldManagerSetCeilHeightAtXAtY(C3DWorldManager *self,...) {
+  I64 th=AsF64(argv[0]);
+  I64 x=AsF64(argv[1]);
+  I64 y=AsF64(argv[2]);
+  if(0<=x<w->world_width)
+    if(0<=y<w->world_height) {
+      return w->ceilmap[x+y*w->world_width]=th;
+    }
+  return FROG_SMALL_NIL;
+}
+AddMethod("C3DWorldManager","setCeilHeight:atX:atY:",&WorldManagerSetCeilHeightAtXAtY);
+CFrogThing *WorldManagerSetCeilAtXAtY(C3DWorldManager *self,...) {
+  I8 tile=AsF64(argv[0]);
+  I64 x=AsF64(argv[1]);
+  I64 y=AsF64(argv[2]);
+  if(0<=x<w->world_width)
+    if(0<=y<w->world_height) {
+      return w->world_mat[x+y*w->world_width].i8[1]=tile;
+    }
+  return FROG_SMALL_NIL;
+}
+AddMethod("C3DWorldManager","setCeilTile:atX:atY:",&WorldManagerSetCeilAtXAtY);
+
+CFrogThing *WorldManagerSetCeilRiseAtXAtY(C3DWorldManager *self,...) {
+  I8 ch=AsF64(argv[0]);
+  I64 x=AsF64(argv[1]);
+  I64 y=AsF64(argv[2]);
+  if(0<=x<w->world_width)
+    if(0<=y<w->world_height) {
+      return w->ceilmap2[x+y*w->world_width]=ch;
+    }
+  return FROG_SMALL_NIL;
+}
+AddMethod("C3DWorldManager","setCeilRise:atX:atY:",&WorldManagerSetCeilRiseAtXAtY);
+
 CFrogThing *WorldManagerTileHeightAtXAtY(C3DWorldManager *self,...) {
   I64 x=AsF64(argv[0]);
   I64 y=AsF64(argv[1]);
@@ -2860,7 +2893,52 @@ CDC *MakeMinimap1(C3DWorldManager *wm,F64 x,F64 y,F64 angle,I64 radius,F64 heigh
   DCDel(mask);
   return res;
 }
+//
+// World Edit section
+//
+CFrogNum *WorldEditBlockSetIdx(CWorldEditBlock *bl,...) {
+  I64 idx=AsF64(argv[0]);
+  CDC *dc;
+  if(0<=idx<0x10000/2&&dc=w->wall_textures[idx]) {
+    if(bl->gr) AnimDCDel(bl->gr);
+    bl->gr=AnimDCCopy(dc,frog_mem_task);
+    if(bl->inventory_item->graphics)
+      AnimDCDel(bl->inventory_item->graphics);
+    bl->inventory_item->graphics=ScaleDC(dc,24,24,frog_mem_task);
+    bl->tile_idx=idx;
+    return FrogNumNew(1);
+  }
+  return FrogNumNew(0);
+}
+AddMethod("CWorldEditBlock","setBlockIdx",&WorldEditBlockSetIdx);
 
+CFrogNum *WorldEditThingSetIdx(CWorldEditThing *bl,...) {
+  I64 idx=AsF64(argv[0]);
+  CDC *dc;
+  C3DThingTemplate *t;
+  if(0<=idx<0x10000/2&&(t=w->thing_templates[idx])) {
+    if(dc=t->front) {
+      if(bl->gr) AnimDCDel(bl->gr);
+      bl->gr=AnimDCCopy(dc,frog_mem_task);
+      if(bl->inventory_item->graphics)
+        AnimDCDel(bl->inventory_item->graphics);
+      bl->inventory_item->graphics=ScaleDC(dc,24,24,frog_mem_task);
+      bl->template=t;
+      return FrogNumNew(1);
+    }
+  }
+  return FrogNumNew(0);
+}
+AddMethod("CWorldEditThing","setThingIdx",&WorldEditThingSetIdx);
+
+CFrogNum *WorldManagerGetShiftKey(C3DWorldManager *,...) {
+  return FrogNumNew(Bt(kbd.down_bitmap,SC_SHIFT));
+}
+AddMethod("C3DWorldManager","getShiftKey",&WorldManagerGetShiftKey);
+
+//
+//
+//
 U0 WalkAround(U8 *save_string=NULL) {
   I64 c,ch=0,sc=0,m1,m2,msg,jump=FALSE;
   I64 msx=GR_WIDTH/2,msy=GR_HEIGHT/2;
@@ -2974,6 +3052,11 @@ U0 WalkAround(U8 *save_string=NULL) {
 		  cont=FALSE;
 		  break;
 	        }
+	        case '\t': {
+		  CallScript("toggleMenu",player);
+	          MsSet(old_msx=GR_WIDTH/2,old_msy=GR_HEIGHT/2);
+		  goto skip_input;
+		}
 	        case ' ': jump=TRUE; break;
 	        case 'W': up=TRUE; break;
 	        case 'A': left=TRUE; break;
@@ -3005,7 +3088,7 @@ U0 WalkAround(U8 *save_string=NULL) {
         }
 next:;
       }
-      if(!player->main_inventory_active&&!player->load_menu_active) {
+      if(AsF64(ms_grabbed->value)) {
         if (jump) {
 	  CallScript("jump",player);
 	  jump=FALSE;
@@ -3044,6 +3127,7 @@ next:;
 	  player->angle-=mouse_angle;
         }
       }
+skip_input:;
       wm->screen_x=msx;
       wm->screen_y=msy;
       w->x=player->x;

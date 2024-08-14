@@ -1,0 +1,16 @@
+toggleMenu ->*
+|
+|
+  #ms_grabbed _ #ms_grabbed not .
+
+  main_inventory_active _ #ms_grabbed not .
+
+  #ui_root removeChild: main_inventory .
+
+  main_inventory_active ifTrue: [
+    open_inventory_button setBackgroundColor: #color_RED .
+    #ui_root addChild: main_inventory .
+  ] ifFalse: [
+    open_inventory_button setBackgroundColor: #color_YELLOW .
+    #ui_root removeChild: main_inventory .
+  ] . 
