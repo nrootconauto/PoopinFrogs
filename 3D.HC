@@ -2040,19 +2040,12 @@ U0 Mat4x4MulXYZ_F64(I64 *r,F64 *_x,F64 *_y,F64 *_z)
 }
 
 U0 PointToScrn(C3DWorld *w,F64 x,F64 y,F64 z,CD3 *res) {
-  I64 mat[16];
-  Mat4x4IdentEqu(mat);
   F64 dist=Sqrt(Sqr(x-w->x)+Sqr(y-w->y));
   F64 dir=Arg(x-w->x,y-w->y);
-  res->z=dist*Cos(dir-w->angle)/128;
-  res->x=dist*Sin(dir-w->angle)/128;
-  res->y=z-w->cam_height;
-  Mat4x4MulXYZ_F64(mat,&res->x,&res->y,&res->z);
-  x=res->x;
-  y=res->y;
-  z=res->z;
+  F64 xrot=Arg(dist/128,z-w->cam_height)-w->angle2;
+  z=GR_HEIGHT/2-Wrap(xrot)/w->fov*GR_HEIGHT;
   res->x=GR_WIDTH/2+Wrap(dir-w->angle)/((w->fov/GR_WIDTH));
-  res->y=GR_HEIGHT+y*GR_HEIGHT/2;
+  res->y=z;
   res->z=dist; //???
 }
 
@@ -2674,7 +2667,7 @@ $SP,"<3>",BI=3$;
     ty++;
   I64 tile=tx+ty*w->world_width;
   if(0<=tile<w->world_width*w->world_height) {
-    if(Floor(p->z)>=w->heightmap[tile])
+    if(Floor(p->z)>=w->heightmap[tile])
       return FrogNumNew(1);
   }
   return FrogNumNew(0);
