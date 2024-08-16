@@ -1,43 +1,5 @@
-addFloorStain: s=CFloorStain ->* | other=CFloorStain add=CFloorStain new_set=CFrogArray type=CFrogNum color=CFrogNum |
-  add _ s .
-
-  (self floorIsLiquidAtX: s->tile_x atY: s->tile_y) ifTrue: [
-    'HACK alert; spawn colored particles on impact.' .
-    type _ self floorAtX: s->tile_x atY: s->tile_y .
-    type = 6 ifTrue: [
-      'water'.
-      color _ #color_LTBLUE .
-    ].
-    type = 10 ifTrue: [
-      'lava' .
-      color _ #color_LTRED .
-    ] .
-    0 to: 5 do: [
-      self newParticleAtX: s->tile_x * 128 + 64
-        atY: s->tile_y * 128 + 64 
-        atZ: (self tileHeightAtX: s->tile_x atY: s->tile_y)+ .3
-        withSpread: 32
-        withColor:  color .
-   ]
-    ^ 0.
-   ].
-
-
-'Make a new set to avoid modifying the set while we work on it'.
-  new_set _floor_stains copy .
-  new_set do: [:s2=CFloorStain |
-    ((s ->tile_x - s2 ->tile_x) abs <= 1 and: (s ->tile_y - s2 ->tile_y ) abs  <= 1 ) ifTrue: [
-      ((s ->tile_x = s2 ->tile_x ) and:  (s ->tile_y = s2 ->tile_y )) ifTrue: [
-        add _ s2 mergeWith: s .
-        floor_stains remove: s2 .
-      ] ifFalse: [
-        other _ s2 mergeWith: s .
-        floor_stains add: other .
-        floor_stains remove: s2 .
-      ] .
-    ] .
-  ].
-  floor_stains add: add  .
-  floor_stains size > 32 ifTrue: [
-     floor_stains removeAt: 0 
-  ] .
+addFloorStain: s=CFloorStain ->*
+|
+|
+ 'TODO' .
+  ^ 0

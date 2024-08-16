@@ -13,8 +13,9 @@ init: idx=CFrogNum ->* | |
     #hand_item _ self .
   ] .
 
- 'SetBlockIdx sets greaphgics for us'.
+ 'SetBlockIdx sets greaphgics for us' .
   (self setBlockIndex: idx) ifTrue: [
+    tile_idx _ idx .
     #world getPlayer addInventoryItem: inventory_item .
     ^ self
   ] .

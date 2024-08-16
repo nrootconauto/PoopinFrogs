@@ -3,7 +3,7 @@ update ->CFrogNum |
   lerp=CFrogBlock
   tilex=CFrogNum
   tiley=CFrogNum 
-  h=CFrogNum
+  hit=CFrogNum
   dist=CFrogNum
   things=CFrogArray
   fx=CFrogNum
@@ -35,8 +35,8 @@ update ->CFrogNum |
   y _ (dist * angle sin ) + fy .
 
   z _ lerp value: from ->z + .5  value: target_z .
-  h _ #world tileHeightAtX: x / 128 atY: y / 128 .
-  (h >= z and: going_back not) ifTrue: [
+  hit _ #world getTileAtX: x / 128 atY: y / 128 atZ: z .
+  (hit and: going_back not) ifTrue: [
      start_tS _ CFrogTime now asSeconds .
      going_back _ 1 .
      target_x _ x .

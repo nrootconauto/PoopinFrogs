@@ -23,21 +23,6 @@ fire ->* |
       w sweepSoundForTime: 100 withMin: 50 withMax: 60 .
 
       sz _ w screenCoordToZ .
-      w screenCoordIsOnFloor ifTrue: [
-        floor_stain _ CFloorStain new .
-        floor_stain setGraphics: 'GR/GUN1/BULLET_HOLE' atAngle: 0 .
-        floor_stain putAtX: w screenCoordToX 
-                    atY: w screenCoordToY .
-        w addFloorStain: floor_stain .
-      ] ifFalse: [
-'attempt' show .
-        wall_hole _ CWallStain new .
-        wall_hole
-          placeAtAngle: player getAngle 
-          fromX: player ->x 
-          fromY: player ->y
-          atHeight: sz .
-      ] .
 
       timeout _ cur_ts + .25 .
       self setGraphics: 'GR/GUN1/FIRE' .

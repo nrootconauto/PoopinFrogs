@@ -16,8 +16,15 @@ wander: dist=CFrogNum
     self newChaseDirection: dist withTarget: target .
     hit_wall _ self move: dist atAngle: angle .
     (hit_wall and: self isOnGround ) ifTrue: [
-      ((#world tileHeightAtX: (x + (128 * angle cos ))/ 128 atY: (y + (128 * angle sin))/ 128 ) - z ) <= 1.5 ifTrue: [
+      'Check if 1 block jump' .
+      ((#world getTileAtX: (x + (128 * angle cos ))/ 128 atY: (y + (128 * angle sin))/ 128 ) atZ: z + 1) = 0 ifTrue: [
         momz _ jmp_velo .
+        ^ 0 .
+      ] .
+      ^ 0 .
+      'Check if 1 block depress' .
+      ((#world getTileAtX: (x + (128 * angle cos ))/ 128 atY: (y + (128 * angle sin))/ 128 ) atZ: z - 1) = 0 ifTrue: [
+        'Just fall,no jump' .
         ^ 0 .
       ] .
       ^ 0 .

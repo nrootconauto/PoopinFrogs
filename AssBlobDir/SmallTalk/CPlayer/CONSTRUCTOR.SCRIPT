@@ -19,4 +19,8 @@ init ->CPlayer | |
   quest_flags _ #() .
   quest_seen_responses _ #().
 
+  0 to: 16 do: [:idx=CFrogNum|
+    CWorldEditBlock new: idx .
+  ].
+
   ^ self

@@ -83,12 +83,10 @@ update ->* |
 
   'Jump Randomly' .
 
-  z = (#world tileHeightAtX: x / 128 atY: y / 128 ) ifTrue: [
-    (random_generator next < (.9 / 10) and: self isOnGround) ifTrue: [
-      momz _ #world gravity * 3 .
-      just_jumped _ 1 .
-    ]
-  ] .
+  (random_generator next < (.9 / 10) and: self isOnGround) ifTrue: [
+    momz _ #world gravity * 3 .
+    just_jumped _ 1 .
+  ].
   
   self isOnGround ifTrue: [
     just_jumped _ 0

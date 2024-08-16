@@ -16,25 +16,6 @@ explode ->CFrogNum
       ] 
     ]
   ] .
-  'Check if wall is in radiuys' .
-  hit_wall _ self move: 40 atAngle: angle .
-  hit_wall ifTrue: [
-    stain _ CWallStain new .
-    stain setGraphics: 'GR/PoopRocket/Splat' .
-    stain placeAtAngle: angle
-      fromX: x
-      fromY: y
-      atHeight: z .
-  ] ifFalse: [
-    floorh _ #world tileHeightAtX: x atY: y .
-    floorh + .5 >= z ifTrue: [
-      fstain  _ CFloorStain new .
-      fstain setGraphics: 'GR/PoopRocket/Splat' atAngle: angle .
-      fstain putAtX: x atY: y .
-      #world addFloorStain: fstain . 
-   ]
-  ] .
-'TODOsplatter on ceil' .
   0 to: 10 do: [
     #world newParticleAtX: x atY: y atZ: z + .5 withSpread: 128 withColor: #color_BROWN
   ] .

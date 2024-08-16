@@ -4,39 +4,22 @@ fire ->* |
  wz=CFrogNum
  wx=CFrogNum
  wy=CFrogNum
- shift=CFrogNum
- ch=CFrogNum
- fh=CFrogNum
+ dist=CFrogNum
+ a=CFrogNum
+ player=CPlayer
  |
   w _ #world .
-  shift _ w getShiftKey .
   cur_ts _ CFrogTime now asSeconds .
   timeout < cur_ts ifTrue: [
     timeout _ cur_ts + .1 .
     wz _ w screenCoordToZ .
-    wx _ w screenCoordtoX / 128 .
-    wy _ w screenCoordtoY / 128 .
-    fh _ w tileHeightAtX: wx atY: wy .
-    ch _ w ceilHeightAtX: wx atY: wy .
-    shift not ifTrue: [
-      'Fllor nor ceiling'.
-      (wz + 1) <= ch ifTrue: [
-        w setTileAt: tile_idx atX: wx atY: wy .
-        w setTileHeight: wz+1 atX: wx atY: wy .
-      ] .
-    ] ifFalse: [
-      'Ceiling'.
-      wz >= fh ifTrue: [
-        'ch is >=127 if undefiend' . 
-        ch >= 127 ifTrue: [
-          w setCeilTileAt: tile_idx atX: wx atY: wy .
-          w setCeilHeight: wz atX: wx atY: wy .
-          w setCeilRise: 1 atX: wx atY: wy .
-        ] ifFalse: [
-          w setCeilTileAt: tile_idx atX: wx atY: wy .
-          w setCeilRise: wz - ch + 1 atX: wx atY: wy .
-        ] .
-      ] .
-    ] .
-    
+    wx _ w screenCoordToX .
+    wy _ w screenCoordToY .
+'move 1 unit backwards to set closer block' .
+    player _ w getPlayer .
+    dist _ ((wx - player->x) squared + (wy - player->y) squared)sqrt - 1 .
+    a _ wx - player->x arg: wy - player->y .
+    wx _ player->x + (a cos * dist ) . 
+    wy _ player->y + (a sin * dist ) .
+    w setTile: tile_idx atX: wx / 128 atY: wy / 128 atZ: wz .
   ] .

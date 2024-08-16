@@ -10,7 +10,6 @@
 #define FOG0_DIST 8
 #define FOG1_DIST 16
 #define FOG2_DIST 20
-
 U64 fog0_table[0x10];
 U64 fog1_table[0x10];
 U64 fog2_table[0x10];
@@ -181,7 +180,7 @@ class C3DWorld {
    I64 step_width,step_width_y;
    I64 world_width;
    I64 world_height;
-   I16 *world_mat; //0 is for EMPTY_SPACE
+   I8 *world_blocks; //x*y*256
    I8 *heightmap,*ceilmap,*ceilmap2;
    CDC *wall_textures[0x10000/2],*to_dc;
    CDC *floor_textures[0x10000/2];
@@ -248,13 +247,18 @@ U0 WorldUpdateDoorMat(C3DWorldManager *man,...) {
   }
 }
 AddMethod("C3DWorldManager","updateDoorMatrix",&WorldUpdateDoorMat);
-C3DWorld *LoadWorldFromFile(U8 *blob_file="ASS",U8 *filename,F64 fov=pi/2) {
+
+C3DWorld *LoadWorldFromOldFile(U8 *blob_file="ASS",U8 *filename,F64 fov=pi/2) {
   C3DWorld *ret=CAlloc(sizeof(C3DWorld));
   CFileWorld *world=BlobFileGetLump(blob_file,filename);
   F64 xoff,yoff;
   U8 *fptr=world,*to,*tmp;
-  I64 idx;
+  I64 idx,tile,stop_at;
   CDC *unscaled;
+  U8 *heightmap;
+  U8 *ceilmap;
+  U8 *ceilmap2;
+  U16 *world_mat;
   C3DThingTemplate **templates=ret->thing_templates,*template;
   C3DThing *thing;
   C3DWorldManager *man;
@@ -267,19 +271,15 @@ C3DWorld *LoadWorldFromFile(U8 *blob_file="ASS",U8 *filename,F64 fov=pi/2) {
   ret->step_width_y=4;
   ret->world_width=world->w;
   ret->world_height=world->h;
-  ret->world_mat=MAlloc(2*world->h*world->w);
-  ret->heightmap=MAlloc(world->h*world->w);
-  ret->ceilmap=MAlloc(world->h*world->w);
-  ret->ceilmap2=MAlloc(world->h*world->w);
   ret->door_mat=MAlloc(world->h*world->w*8);
+  ret->world_blocks=CAlloc(world->h*world->w*256);
   w=ret;
-  xoff=GRID_SZ*world->startx;
-  yoff=GRID_SZ*world->starty;
   QueInit(&ret->_2d_thing_templates);
-  MemCpy(ret->world_mat,world+1,2*world->h*world->w);
-  MemCpy(ret->heightmap,world(U8*)+world->heightmap.ptr,world->h*world->w);
-  MemCpy(ret->ceilmap,world(U8*)+world->ceilmap.ptr,world->h*world->w);
-  MemCpy(ret->ceilmap2,world(U8*)+world->ceilmap2.ptr,world->h*world->w);
+  world_mat=world+1;
+  heightmap=world(U8*)+world->heightmap.ptr;
+  ceilmap=world(U8*)+world->ceilmap.ptr;
+  ceilmap2=world(U8*)+world->ceilmap2.ptr;
+
   man=ConstructThing("C3DWorldManager","world_handle",ret);
   CallScript("init",man);
   ret->_wall_stains=man->wall_stains->items;
@@ -321,6 +321,24 @@ C3DWorld *LoadWorldFromFile(U8 *blob_file="ASS",U8 *filename,F64 fov=pi/2) {
     }
     fptr(CFileTexture*)++;
   }
+  for(xoff=0;xoff!=ret->world_width;xoff++)
+    for(yoff=0;yoff!=ret->world_height;yoff++) {
+      tile=xoff+yoff*ret->world_width;
+      for(idx=I8_MIN;idx<heightmap[tile];idx++) {
+	ret->world_blocks[tile*256+idx-I8_MIN]=world_mat[tile].u8[0];
+      }
+      if(ceilmap[tile]!=I8_MAX&&ceilmap2[tile]>0) {
+	stop_at=ceilmap[tile]+ceilmap2[tile];
+	for(idx=ceilmap[tile];idx<stop_at;idx++) {
+	  ret->world_blocks[tile*256+idx-I8_MIN]=world_mat[tile].u8[1];
+        }
+      }
+    }
+
+  xoff=GRID_SZ*world->startx;
+  yoff=GRID_SZ*world->starty;
+
+
   fptr=world(U8*)+world->thing_templates_where.ptr;
   to=fptr+world->thing_templates_where.len;  
   while(fptr<to) {
@@ -342,6 +360,7 @@ C3DWorld *LoadWorldFromFile(U8 *blob_file="ASS",U8 *filename,F64 fov=pi/2) {
     CallScript("addThingTemplate:withName:",man,template,FrogStrNew(fptr(CFileThingTemplate*)->name));
     fptr(CFileThingTemplate*)++;
   }
+
   fptr=world(U8*)+world->things_where.ptr;
   to=fptr+world->things_where.len;
   while(fptr<to) {
@@ -358,6 +377,8 @@ C3DWorld *LoadWorldFromFile(U8 *blob_file="ASS",U8 *filename,F64 fov=pi/2) {
 	  thing->y=fptr(CFileThing*)->y*GRID_SZ-yoff;
 	  thing->angle=fptr(CFileThing*)->rot;
 	  thing->chat_bot_name=FrogStrNew(fptr(CFileThing*)->chat_bot_name);
+	  tile=ToI64(thing->x/128.)+ToI64(thing->y/128.)*w->world_width;
+	  thing->z=heightmap[tile];
 	  if(fptr(CFileThing*)->drop_item_name[0]) {
             thing->drop_thing=FrogClassNew(NameToUniverseNumber(fptr(CFileThing*)->drop_item_name));
           }
@@ -393,18 +414,6 @@ C3DWorld *LoadWorldFromFile(U8 *blob_file="ASS",U8 *filename,F64 fov=pi/2) {
 }
 
 
-I64 WallForCord(C3DWorld *w,I64 x,I64 y,I64 h=I64_MIN) {
-  I64 t,ch,cr;
-  if(0<=x<w->world_width)
-    if(0<=y<w->world_height) {
-      t=w->world_mat[x+y*w->world_width];
-//u8[0] is the floor tile
-      if(w->wall_textures[t&0xff]&&w->heightmap[x+y*w->world_width]>h)
-         return t;
-      return 0;
-    }
-  return -1;
-}
 I64 SegmentModulo(F64 f,I64 i) {
   I64 off=f+i*GRID_SZ;
   if(off>0) return off%GRID_SZ;
@@ -412,11 +421,6 @@ I64 SegmentModulo(F64 f,I64 i) {
   return 0;
 }
 I64 PassesThoughBlock(C3DWorld *w,F64 slope,I64 x,I64 y,F64 *dist,F64 cos,F64 sin,Bool far_side=FALSE) {
-  switch(WallForCord(w,x,y)) {
-    case -1:
-    case 0:
-      return FALSE;
-  }
   I64 found=FALSE,found_side;
   F64 smallest=1e100,biggest=-1.;
   F64 cx1=x*GRID_SZ,cy1=y*GRID_SZ;
@@ -500,65 +504,32 @@ I64 PassesThoughBlock(C3DWorld *w,F64 slope,I64 x,I64 y,F64 *dist,F64 cos,F64 si
   }
   return found;
 }
-class CPlatformCache {
-  I64 x,y;
-  F64 h;
-} platform_cache[16][mp_cnt];
-I64 platform_cache_ptr[mp_cnt];
-MemSetI64(platform_cache_ptr,0,mp_cnt);
-//Maybe a door raised
-U0 ClearPlatformCache() {
-  I64 c,cache;
-  c=mp_cnt;
-  while(--c>=0) {
-    cache=16;
-    while(--cache>=0) {
-      platform_cache[cache][c].x=-1;
-      platform_cache[cache][c].y=-1;
+I64 BlockAtXYZ(I64 x,I64 y,I64 z) {
+  I64 tile=x+y*w->world_width;
+  if(0<=tile<w->world_height*w->world_width) {
+    if(I8_MIN<=z<=I8_MAX) {
+      return w->world_blocks[tile*256+z-I8_MIN];
     }
   }
+  return -1;
 }
-F64 GetPlatformHeight(C3DWorld *w,I64 ix,I64 iy) {
-  I64 idx=iy*w->world_width+ix,cache;
-  I64 c=Gs->num;
-  for(cache=0;cache!=16;cache++) {
-    if(platform_cache[cache][c].x==ix&&platform_cache[cache][c].y==iy) {
-      return platform_cache[cache][c].h;
-    }
-  }
-  F64 h=AsF64(CallScriptUniverse(
-	#exe{StreamPrint("%d",NameToUniverseNumber("getPlatformHeightAtX:atY:"));},
-          FrogSymbol0(#exe{StreamPrint("%d",NameToUniverseNumber("world"));})->value,
-	  FrogNumNew(ix*GRID_SZ+GRID_SZ/2),
-	  FrogNumNew(iy*GRID_SZ+GRID_SZ/2)
-  ));
-  cache=platform_cache_ptr[c]++&15;
-  platform_cache[cache][c].x=ix;
-  platform_cache[cache][c].y=iy;
-  platform_cache[cache][c].h=h;
-  return h;
-}
+
 Bool HeightImpossible(C3DWorld *w,I64 ix,I64 iy,F64 above,Bool allow_ceil,F64 tallness=.1,F64 wiggle_room=0) {
-  I64 c,idx=iy*w->world_width+ix,cache;
+  I64 iz=Floor(above);
+  I64 c,idx2;
   F64 h;
-  if(0<=ix<w->world_width)
-    if(0<=iy<w->world_height) {
-      if(1) {
-        h=GetPlatformHeight(w,ix,iy);
-      } else
-	h=w->heightmap[idx];
-      if(above+wiggle_room<h) //wiigle_room for stepping over partlyy open doors
-	return TRUE;
-      c=w->ceilmap[idx];
-      if(c!=I8_MAX)
-//Check if ranges overlap
-        if(Max(c,above)<Min(above+tallness,c+w->ceilmap2[idx]))
-	  return TRUE;
-    }
+  if(BlockAtXYZ(ix,iy,iz)) {
+     return TRUE;
+  }
+  for(idx2=0;idx2<tallness;idx2++) {
+    idx2++;
+    if(BlockAtXYZ(ix,iy,iz+idx2))
+      return TRUE;
+  }
   return FALSE;
 }
 
-I64 FindRayWall(C3DWorld *w,F64 slope,F64 cos,F64 sin,I64 *segment=NULL,F64 *dist=NULL,I64 *side=NULL,F64 above=I8_MIN,I64 force_tile=INVALID_PTR,Bool far_side=FALSE,Bool allow_ceil=FALSE) {
+I64 FindRayWall(C3DWorld *w,F64 slope,F64 cos,F64 sin,I64 *segment=NULL,F64 *dist=NULL,I64 *side=NULL,F64 above=I8_MIN,I64 tix,I64 tiy,Bool far_side=FALSE,Bool allow_ceil=FALSE) {
   F64 x=w->x;
   F64 y=w->y;
   Bool found_hit=FALSE;
@@ -568,54 +539,17 @@ I64 FindRayWall(C3DWorld *w,F64 slope,F64 cos,F64 sin,I64 *segment=NULL,F64 *dis
   I64 sign_c=Sign(cos),sign_s=Sign(sin);
   static F64 step=GRID_SZ-1;
   if(dist) *dist=-1;
-  if(force_tile!=INVALID_PTR) {
-    ix=force_tile%w->world_width;
-    iy=force_tile/w->world_width;
-    if(!PassesThoughBlock(w,slope,ix,iy,&res_dist,cos,sin,far_side)) {
-      if(dist) *dist=res_dist;
-      goto undef;
-    }
-    smallest=res_dist;
-    check_dist=res_dist;
-    ix2=ix;
-    iy2=iy;
-    goto final;
+  ix=tix;
+  iy=tiy;
+  if(!PassesThoughBlock(w,slope,ix,iy,&res_dist,cos,sin,far_side)) {
+    if(dist) *dist=res_dist;
+    goto undef;
   }
-  while(check_dist<dist2) {
-    check_dist+=step;
-    x=w->x+check_dist*cos;
-    y=w->y+check_dist*sin;
-    ix=x/GRID_SZ,iy=y/GRID_SZ;
-    if(HeightImpossible(w,ix,iy,above,allow_ceil)&&PassesThoughBlock(w,slope,ix,iy,&res_dist,cos,sin)) {
-      found_hit=TRUE;
-      if(res_dist<smallest) {
-        smallest=res_dist;
-        ix2=ix;
-        iy2=iy;
-      }
-    }
-    if(check_dist>ToF64(GRID_SZ)) {
-      if(HeightImpossible(w,ix-sign_c,iy,above,allow_ceil)&&PassesThoughBlock(w,slope,ix-sign_c,iy,&res_dist,cos,sin)) {
-        found_hit=TRUE;
-        if(res_dist<smallest) {
-	  smallest=res_dist;
-	  ix2=ix-sign_c;
-	  iy2=iy;
-        }
-      }
-      if(HeightImpossible(w,ix,iy-sign_s,above,allow_ceil)&&PassesThoughBlock(w,slope,ix,iy-sign_s,&res_dist,cos,sin)) {
-        found_hit=TRUE;
-        if(res_dist<smallest) {
-	  smallest=res_dist;
-	  ix2=ix;
-	  iy2=iy-sign_s;
-        }
-      }
-    }
-    if(found_hit) goto final;
-skip:;
-  }
-  goto undef;
+  smallest=res_dist;
+  check_dist=res_dist;
+  ix2=ix;
+  iy2=iy;
+  goto final;
 fin:
   if(dist) *dist=dist2;
   if(0<=ix<w->world_width&&0<=iy<w->world_height) {
@@ -691,18 +625,11 @@ C3DThing *BumpsIntoThing(C3DThing *self,...) {
   return FrogNumNew(0);
 } 
 AddMethod("C3DThing","hitsThing:",&BumpsIntoThing);
-I64 WorldPlatformHeight(I64 x,I64 y) {
-  I64 t=y*w->world_width+x;
-  if(0<=t<w->world_width*w->world_height) {
-    return w->heightmap[t];
-  }
-  return I32_MAX;
-}
 CFrogNum *C3DThingPathFindWalkTowardsThing(C3DThing *self,...) {
   C3DThing *thing=argv[0];
   CPFPoint pt;
   if(!ThingHasClass(thing,"C3DThing")) return FROG_SMALL_NIL;
-  CI64Set *path=PathFinder(self->x/128,self->y/128,thing->x/128,thing->y/128,&WorldPlatformHeight,AsF64(argv[1]));
+  CI64Set *path=PathFinder(self->x/128,self->y/128,Floor(self->z),thing->x/128,thing->y/128,Floor(thing->z),&BlockAtXYZ,AsF64(argv[1]));
   if(path->cnt<2) {
     I64SetDel(path);
     return FrogNumNew(Arg(thing->x-self->x,thing->y-self->y));
@@ -763,16 +690,8 @@ Bool RadiusHitsWall(C3DWorld *w,F64 angle,F64 *_x,F64 *_y,F64 height,F64 radius=
 	    if(Sign(Sin(angle))!=yoff)
 	      goto skip;
 	  }
-	  tile=ToI64(x)+xoff+(ToI64(y)+yoff)*w->world_width;
-	  if(0<=tile<w->world_height*w->world_width) {
-	    if(flags&RADF_DOOR) {
-	      h=GetPlatformHeight(w,x+xoff,y+yoff);
-	    } else
-	      h=w->heightmap[tile];
-	    ch=w->ceilmap[tile];
-	    cr=w->ceilmap2[tile];
+	  if(HeightImpossible(w,x+xoff,y+yoff,height,TRUE,tallness)) {
 //.2 for stepping over partly open doors
-	    if(flags&RADF_FLOOR&&height+.2<h) {
 check:
 	        if(Abs(x-tx)<=radius&&xoff) {
 	          if(adjust) {
@@ -788,14 +707,11 @@ check:
 	          }
 	          ret|=TRUE;
 	        }
-	    } else if(flags&RADF_CEIL&&ch<=height+tallness<ch+cr) {
-	      goto check;
 	    }
-	  }
 skip:;
         }
       }
-  }
+    }
   } while(hit);
   if(adjust) {
     *_x=x*GRID_SZ;
@@ -810,27 +726,32 @@ Bool C3DWorldMoveZWithCollision(C3DWorld *w,F64 dist,F64 x,F64 y,F64 *_height,F6
   F64 by=dist/8;
   Bool hit=FALSE;
   F64 h_offset=0;
-  F64 h;
+  F64 h,delta;
   I64 cnt=0,tile,best,ch,cr;
+  F64 dir=Sign(dist);
   F64 oz=z;
-  z+=dist;
-  tile=ToI64(x/GRID_SZ)+ToI64(y/GRID_SZ)*w->world_width;
-  if(0<=tile<w->world_width*w->world_height) {
-    if(HeightImpossible(w,x/GRID_SZ,y/GRID_SZ,z,TRUE,tallness)) {
-     h=GetPlatformHeight(w,x/GRID_SZ,y/GRID_SZ);
-     ch=w->ceilmap[tile];
-     cr=w->ceilmap2[tile];
-     if(ch<=oz) {
-        o=z;
-        z=Max(z,ch+cr);
-        hit|=o!=z;
-      } else {
-        o=z;
-        z=Clamp(z,h,ch-tallness);
-        hit|=o!=z;
-      }
-    }
+//Wut
+  if(dir==0) return FALSE;
+  for(cnt=0;Abs(dist)>1/256.;cnt++) {
+     if(dir<0)
+       delta=Max(dist,-1);
+     else
+       delta=Min(dist,1);
+     dist-=delta;
+     if(HeightImpossible(w,x/128,y/128,z+delta,TRUE,tallness)) {
+       hit=TRUE;
+       goto fix;
+     }
+     z+=delta;
   }
+fix:;
+  while(HeightImpossible(w,x/GRID_SZ,y/GRID_SZ,z,TRUE,tallness)) {
+    hit=TRUE;
+    z-=dir/128.;
+  }
+  if(hit)
+    if(Abs(z-Floor(z))<=2*dir/128.)
+      z=Floor(z);
   *_height=z;
   return hit;
 }
@@ -896,29 +817,10 @@ again:
 }
 
 Bool IsOnWaterTile(C3DThing *t) {
-  I64 tx=t->x/GRID_SZ,ty=t->y/GRID_SZ,idx;
-  if(0<=tx<w->world_width)
-    if(0<=ty<w->world_height) {
-      idx=tx+ty*w->world_width;
-      if(w->heightmap[idx]+.001>=t->z) {
-	if(w->world_mat[idx].u8[0]==5)
-	  return TRUE;
-      }
-    }
-  return FALSE;
+  return 5==BlockAtXYZ(t->x/GRID_SZ,t->y/GRID_SZ,Floor(t->z)-1);
 }
 Bool IsOnLavaTile(C3DThing *t) {
-  I64 tx=t->x/GRID_SZ,ty=t->y/GRID_SZ,idx;
-  if(0<=tx<w->world_width)
-    if(0<=ty<w->world_height) {
-      idx=tx+ty*w->world_width;
-      if(w->heightmap[idx]+.001>=t->z) {
-	if(w->world_mat[idx].u8[0]==10)
-	  return TRUE;
-      }
-    }
-  return FALSE;
-
+  return 10==BlockAtXYZ(t->x/GRID_SZ,t->y/GRID_SZ,Floor(t->z)-1);
 }
 CFrogNum *WorldManagerRemoveFromGrid(C3DWorldManager *wm,...) {
   C3DThing *t=argv[0];
@@ -994,7 +896,7 @@ next:;
 }
 AddMethod("C3DWorldManager","getThingsInRadiusFromX:fromY:withRadius:",&WorldManagerThingsInRadius);
 U0 PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm,F64 last_tS) {
-  I64 wx=t->x/GRID_SZ,wy=t->y/GRID_SZ;
+  I64 wx=t->x/GRID_SZ,wy=t->y/GRID_SZ,idx;
   if(!(0<=wx<w->world_width))
     return;
   if(!(0<=wy<w->world_height))
@@ -1003,9 +905,6 @@ U0 PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm,F64 last_tS) {
   F64 weight=1.;
   F64 angle,dist,ox,oy;
   I64 tile=wx+wy*w->world_width;
-  I64 floor=w->heightmap[tile];
-  I64 ceil=w->ceilmap[tile];
-  I64 raise=w->ceilmap2[tile],idx;
   Bool i_am_moving=FALSE,on_ground;
   CRocket *rocket=NULL;
   CFrogArray *in_radius;
@@ -1045,7 +944,7 @@ U0 PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm,F64 last_tS) {
     angle=Arg(t->momx+t->momx2,t->momy+t->momy2);
     i_am_moving=TRUE;
     dist=Sqrt(Sqr(t->momx+t->momx2)+Sqr(t->momy+t->momy2))*(1.-t->friction);
-    on_ground=AsF64(CallScript("isOnGround",t));
+    on_ground=AsF64(CallScript("`isOnGround",t));
     if(C3DWorldMoveWithCollision(w,angle,dist*weight,
 	&t->x,
 	&t->y,
@@ -1384,6 +1283,28 @@ U0 PrepareThingsForDraw(C3DWorldManager *wm,F64 thing_scale=.6) {
 skip:;
   }
 }
+I64 ToTile(I64 block) {
+  return block/256;
+}
+
+//https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection
+Bool SegmentSegmentIntersect(CD2 *hit_at,CD2 *a,CD2 *b,CD2 *a2,CD2 *b2,F64 *t,F64 *u) {
+  F64 bottom=(a->x-b->x)*(a2->y-b2->y)-(a->y-b->y)*(a2->x-b2->x);
+  F64 _t=((a->x-a2->x)*(a2->y-b2->y)-(a->y-a2->y)*(a2->x-b2->x))/bottom;
+  F64 _u=-((a->x-b->x)*(a->y-a2->y)-(a->y-b->y)*(a->x-a2->x))/bottom;
+  if(0<=_t<=1)
+    if(0<=_u<=1) {
+      if(t) *t=_t;
+      if(u) *u=_u;
+      if(hit_at) {
+	hit_at->x=a->x+_t*(b->x-a->x);
+	hit_at->y=a->y+_t*(b->y-a->y);
+      }
+      return TRUE;
+    }
+  return FALSE;
+}
+
 //https://github.com/cgyurgyik/fast-voxel-traversal-algorithm/blob/master/overview/FastVoxelTraversalOverview.md
 I64 GetColorForRay(C3DWorldManager *man,CD3 *ray,F64 dist,F64 *hit_at,CD3 *hit_cords) {  
   C3DWorld *w=man->world_handle;
@@ -1419,8 +1340,8 @@ I64 GetColorForRay(C3DWorldManager *man,CD3 *ray,F64 dist,F64 *hit_at,CD3 *hit_c
   I64 stain_x,stain_y;
   I64 color;
   CD2 long;
-  long.x=x+I16_MAX*cos;
-  long.y=y+I16_MAX*sin;
+  long.x=x+VIEW_DIST*128*cos;
+  long.y=y+VIEW_DIST*128*sin;
   tx=x;
   ty=y;
   tz=w->cam_height;
@@ -1434,11 +1355,14 @@ I64 GetColorForRay(C3DWorldManager *man,CD3 *ray,F64 dist,F64 *hit_at,CD3 *hit_c
 	  thing=do_things->body[thing_idx];
 	  if(Abs(thing->x/128-tx)<1&&AbsI64(thing->y/128-ty)<1&&!thing->no_draw) {
 	    CD2 origin128;
-	    CD2 st,en,xyhit;
 	    F64 scale=.6;
+	    CD2 st,en,xyhit;
 	    origin128.x=w->x/128;
 	    origin128.y=w->y/128;
 	    if(hit_texture=ThingFace(w,thing)) {
+	      h=hit_texture->height/128.*scale;
+	      if(!(thing->z-1.<=tz<=h+thing->z+1.))
+		goto next_thing;
 	      st.x=thing->scrn_st.x;
 	      st.y=thing->scrn_st.y;
 	      en.x=thing->scrn_en.x;
@@ -1447,8 +1371,8 @@ I64 GetColorForRay(C3DWorldManager *man,CD3 *ray,F64 dist,F64 *hit_at,CD3 *hit_c
 	      st.y/=128;
 	      en.x/=128;
 	      en.y/=128;
-
-	      if(PlaneIntersect(&xyhit,&origin128,&long,&st,&en)) {
+	      F64 i1=.5,i2=.5;
+	      if(SegmentSegmentIntersect(&xyhit,&origin128,&long,&st,&en,&i1,&i2)) {
 //Make sure our hit is in our tile(may be a fat sprite or out of bounds).
                 $SP,"<1>",BI=1$;
 
@@ -1457,16 +1381,12 @@ I64 GetColorForRay(C3DWorldManager *man,CD3 *ray,F64 dist,F64 *hit_at,CD3 *hit_c
 
 
 		if(ToI64(xyhit.x)==tx&&ToI64(xyhit.y)==ty) {
-	          dist=Sqrt(Sqr(xyhit.x-w->x/128)+Sqr(xyhit.y-w->y/128));
+		  dist=Sqrt(Sqr(xyhit.x-w->x/128)+Sqr(xyhit.y-w->y/128));
 		  h=dist*slope+w->cam_height;
 		  h2=hit_texture->height/128.*scale;
 		  if(thing->z<=h<h2+thing->z) {
 		    texture_y=ClampI64((1.-(h-thing->z)/h2)*hit_texture->height,0,hit_texture->height-1);
-		    texture_x=ClampI64(
-			Sqrt(Sqr(st.x-xyhit.x)+Sqr(st.y-xyhit.y))/
-			  Sqrt(Sqr(st.x-en.x)+Sqr(st.y-en.y))
-			    *hit_texture->width,
-		        0,hit_texture->width-1);
+		    texture_x=ClampI64(i2*hit_texture->width,0,hit_texture->width-1);
 		    color=GrPeek0(hit_texture,texture_x,texture_y);
 		    if(TRANSPARENT!=color) {
 	              dist=Sqrt(Sqr(origin128.x-xyhit.x)+Sqr(origin128.y-xyhit.y))*128.;
@@ -1482,24 +1402,13 @@ I64 GetColorForRay(C3DWorldManager *man,CD3 *ray,F64 dist,F64 *hit_at,CD3 *hit_c
 		}
 	      }
 	    }
+next_thing:;
 	  }
 	}
 //Check for hitting a tile(WhichTexture also accounts for doors)
         texture_y_offset=0; //Ffor Dooors
-        idx=ty*w->world_width+tx;
-	if(w->ceilmap[idx]<=tz<I8_MAX) {
-	  if(w->ceilmap2[idx]>tz-w->ceilmap[idx]) {
-	    goto tile;
-	  }
-	}
-//Check door height
-	if(door=w->door_mat[idx]) {
-	  h=w->heightmap[idx]+door->height*door->percent;
-	  texture_y_offset=-door->height*door->percent*128.;
-	  if(h>tz)
-	    goto tile; 
-	}
-	if(w->heightmap[idx]>tz) {
+        idx=(ty*w->world_width+tx)*256+tz-I8_MIN;
+	if(w->world_blocks[idx]) {
 tile:;
 	I64 segment=0;
 	FindRayWall(w,
@@ -1510,7 +1419,8 @@ tile:;
 	    &dist,
 	    &wall_side,
 	    I8_MIN,
-	    idx
+	    tx,
+	    ty
 	    );
 	FindRayWall(w,
 	    tan,
@@ -1520,7 +1430,8 @@ tile:;
 	    &dist2,
 	    ,
 	    I8_MIN,
-	    idx,
+	    tx,
+	    ty,
 	    TRUE //Far side
 	    );
 
@@ -1536,38 +1447,20 @@ tile:;
 	Bool hit_wall=FALSE;
 	hit_texture=WhichTexture(w,idx,h,h2,&ath,&hit_wall);
 	F64 hit_dist;
-        if(hit_texture) {
+        if(hit_texture&&AnimDCCnt(hit_texture)) {
 	  if(hit_wall)  {
-	    stain_dc=WallStain(w,idx,ath+texture_y_offset/128.,wall_side,&stain_x,&stain_y);
-            if(stain_dc) {
-	      stain_x=(segment&127)-stain_x;
-	      if(0<=stain_x<stain_dc->width)
-	        if(0<=stain_y<stain_dc->height) {
-	          color=GrPeek0(stain_dc,stain_x,stain_y);
-	          if(color!=TRANSPARENT)
-	            goto valid_color;
-	      }
-	    }
  	    color=GrPeek0(hit_texture,segment&127,ToI64(ath*128+texture_y_offset)&127);
-	    dist=dist;
 	  } else {
 	    hit_dist=(ath-w->cam_height)/slope*128;
 	    tx=hit_dist*cos+w->x;
 	    ty=hit_dist*sin+w->y;
 	    dist=Sqrt(Sqr(tx-w->x)+Sqr(ty-w->y));
-	    if(w->ceilmap[idx]<=tz<I8_MAX)
-	      stain_dc=FloorStain(w,idx%w->world_width,idx/w->world_width,&stain_x,&stain_y,TRUE);
-	    else
-	      stain_dc=FloorStain(w,idx%w->world_width,idx/w->world_width,&stain_x,&stain_y,FALSE);
-	    if(stain_dc) {
-	      color=GrPeek(stain_dc,-stain_x+(tx&127),-stain_y+(ty&127));
-	      if(color!=TRANSPARENT&&color>=0)
-	        goto valid_color;
-	    }
  	    color=GrPeek0(hit_texture,tx&127,(ty+texture_y_offset)&127);
 	  }
 valid_color:
 	  if(hit_cords) {
+            //Slightly before our wall(not in wall).
+	    dist=Clamp(dist-1,0,32*VIEW_DIST);
 	    hit_cords->x=w->x+cos*dist;
 	    hit_cords->y=w->y+sin*dist;
 	    hit_cords->z=slope*(dist/128.)+w->cam_height;
@@ -1601,119 +1494,6 @@ pass:;
 fin:
   return -1;
 }
-
-I64 mp_done=0;
-F64 ScreenCordsToDist(C3DWorld *w,I64 x,I64 y,F64 max=GRID_SZ*128,F64 *height=NULL,Bool *hit_floor=FALSE) {
-  F64 angle=w->angle+w->fov*((x-GR_WIDTH/2)/ToF64(GR_WIDTH));
-  CDC *to_dc=w->to_dc;
-  I32 have=I32_MAX;
-  F64 wx,wy;
-  F64 d=-1,dist,h,y0,dist2,h2,y1,hm;
-  I64 tile2,tile;
-//Check for floor from ZBuf
-  if(0<=x<GR_WIDTH)
-    if(0<=y<GR_HEIGHT) {
-      have=to_dc->depth_buf[y*to_dc->width_internal+x];
-    }
-  I64 *tiles=GetTilesInPath(w,angle,max),idx;
-  I64 total,xoff,yoff,adj_height,side;
-  if(height) *height=w->cam_height;
-  if(hit_floor) *hit_floor=FALSE;
-  for(idx=0;tiles[idx]!=-1;idx++) {
-    tile=tiles[idx];
-    wx=(w->x+have*cos_lookup_table[x])/GRID_SZ;
-    wy=(w->y+have*sin_lookup_table[x])/GRID_SZ;
-	FindRayWall(w,
-	      tan_lookup_table[x],
-	      cos_lookup_table[x],
-	      sin_lookup_table[x],
-	      NULL,
-	      &dist2,
-	      NULL,
-	      I8_MIN,
-	      tile,
-	      TRUE, //Far side of tile
-	      TRUE //allow ceil
- 	      );
-	FindRayWall(w,
-	      tan_lookup_table[x],
-	      cos_lookup_table[x],
-	      sin_lookup_table[x],
-	      NULL,
-	      &dist,
-	      &side,
-	      I8_MIN,
-	      tile,
-	      FALSE, //Near side of tile
-	      TRUE //allow ceil
-	      );
-   adj_height=w->heightmap[tile];
-    xoff=0;yoff=0;
-    switch(side) {
-       case 0:
-	 xoff=-1;
-	 break;
-       case 1:
-	 xoff=1;
-	 break;
-       case 2:
-	 yoff=-1;
-	 break;
-       case 3:
-	 yoff=1;
-	 break;
-    } 
-    tile2=xoff+yoff*w->world_width+tile;
-    if(0<=tile2<w->world_width*w->world_height&&(xoff^^yoff)) {
-      adj_height=MinI64(adj_height,w->heightmap[tile2]);
-    }
-    hm=GetPlatformHeight(w,tile%w->world_width,tile/w->world_width);
-    h=DIST_SCALE/(1.+dist*cos2_lookup_table[x]);
-    y0=GR_HEIGHT/2-h*(hm-w->cam_height);
-    h2=DIST_SCALE/(1.+dist2*cos2_lookup_table[x]);
-    y1=GR_HEIGHT/2-h2*(hm-w->cam_height);    
-    if(have<dist2) {
-      if(y1-2<=y<=y0+2) {
-	if(height) *height=hm;
-	if(hit_floor) *hit_floor=TRUE;
-	d=have;
-	break;
-      }
-    }
-    if(y0<=y<y0+h*(hm-adj_height)) {
-//TODOtest floor intersection
-      if(height) *height=Lerp((y-y0)/(h*(hm-adj_height)),hm,adj_height);
-      d=dist;
-      break;
-    }
-    if(w->ceilmap[tile]!=I8_MAX) {
-      adj_height=w->ceilmap2[tile];
-      total=w->ceilmap[tile];
-      y0=GR_HEIGHT/2-h*(total+adj_height-w->cam_height);
-      if(y0<=y<=y0+h*adj_height) {
-        if(height) *height=Lerp((y-y0)/(h*adj_height),total+adj_height+1,total+1);
-	d=dist;
-	break;
-      }
-    }
-  }
-  if(d<0) {
-    FindRayWall(w,
-	  tan_lookup_table[x],
-	  cos_lookup_table[x],
-	  sin_lookup_table[x],
-	  NULL,
-	  &d,
-	  NULL,
-	  w->cam_height,
-	  ,
-	  ,
-	  TRUE //allow ceil
-	  );
-  }
-  Free(tiles);
-  return d;
-}
 CDC *WhichTexture(C3DWorld *w,I64 tile,F64 h,F64 h2,F64 *hit_h,Bool *hit_wall) {
   F64 have,have2;
   F64 mx,mn;
@@ -1726,68 +1506,36 @@ CDC *WhichTexture(C3DWorld *w,I64 tile,F64 h,F64 h2,F64 *hit_h,Bool *hit_wall) {
     mn=h;
   }
 
+  I64 tileh=(tile&255)+I8_MIN;
+  have=tileh;
+  have2=tileh+1;
   if(hit_wall) *hit_wall=TRUE;
 
-  if(door=w->door_mat[tile]) {
-    have=w->heightmap[tile];
-    if(door->percent>.03)
-      have2=door->height*door->percent+have;
-    else
-      have2=.001+have;
-    if(Max(mn,have)<=Min(mx,have2)) {
-      if(h>have2) {
-        //Looking  Down
-	if(h>have2) {
-          if(hit_wall) *hit_wall=FALSE;
-	  if(hit_h)*hit_h=have2;
-	  return w->floor_textures[door->act_as_wall];
-	}
-      }
-      if(have<h) {
-        if(hit_wall) *hit_wall=TRUE;
-        if(hit_h) *hit_h=h;
-        return w->wall_textures[door->act_as_wall];
-      }
-    }
-  }
-
-  if(w->ceilmap[tile]!=I8_MAX) {
-    have=w->ceilmap[tile];
-    have2=have+w->ceilmap2[tile];
-    if(Max(mn,have)<=Min(mx,have2)) {
-     if(h>h2) {
-       //Looking  Down
-       if(h>=have2) {//Hit top
-         if(hit_wall) *hit_wall=FALSE;
-	 if(hit_h)*hit_h=have2;
-	 return w->floor_textures[w->world_mat[tile].u8[1]];
-       }
-       if(hit_h) *hit_h=h;
-       return w->wall_textures[w->world_mat[tile].u8[1]];
-     }
-     if(h<=have) {//Hit bottom
-       if(hit_wall) *hit_wall=FALSE;
-       if(hit_h) *hit_h=have;
-       return w->ceil_textures[w->world_mat[tile].u8[1]];
-     }
-     if(hit_h) *hit_h=h;
-     return w->wall_textures[w->world_mat[tile].u8[1]];
-    }
-  }
-  have=I8_MIN;
-  have2=w->heightmap[tile];
   if(Max(mn,have)<=Min(mx,have2)) {
-    if(h>=have2) {//Hit floor
-      if(hit_h) *hit_h=have2;
-      if(hit_wall) *hit_wall=FALSE;
-      return w->floor_textures[w->world_mat[tile].u8[0]];
+    if(have<=h<=have2) {
+      if(hit_h) *hit_h=h;
+      return w->wall_textures[w->world_blocks[tile]];
     }
-    if(hit_h) *hit_h=h;
-    return w->wall_textures[w->world_mat[tile].u8[0]];
+    if(h>h2) {
+//Looking  Down
+      if(h>=have2) {//Hit top
+        if(hit_wall) *hit_wall=FALSE;
+        if(hit_h)*hit_h=have2;
+        return w->floor_textures[w->world_blocks[tile]];
+      }
+    }
+    if(h<h2) {
+      if(h2>=have) {//Hit bottom
+        if(hit_wall) *hit_wall=FALSE;
+        if(hit_h) *hit_h=have;
+        return w->ceil_textures[w->world_blocks[tile]];
+      }
+    }
   }
   return NULL;
 }
-I64 mp_done;
+
+I64 mp_done=0;
 //https://github.com/shibenb/simple-c-raytracer
 U0 GenerateRay(C3DWorld *world,CD3 *ray_look,F64 i,F64 j,F64 w,F64 h,CD3 *pos,CD3 *lookat) {
   CD3 up,hori,vert,look;
@@ -1950,6 +1698,7 @@ Bool CanSee2DThing(C3DWorld *w,C3DThing *t) {
   I64 *ti=GetTilesInPath(w,angle,dist),idx;
   I64 at_tile=ToI64(w->x/GRID_SZ)+ToI64(w->y/GRID_SZ)*w->world_width;
   I64 t_at_tile=ToI64(t->x/GRID_SZ)+ToI64(t->y/GRID_SZ)*w->world_width;
+  I64 x,y,z;
   for(idx=0;ti[idx]!=-1;idx++) {
     if(ti[idx]==at_tile) {
       if(at_tile==t_at_tile) {
@@ -1957,6 +1706,8 @@ Bool CanSee2DThing(C3DWorld *w,C3DThing *t) {
 	break;
       }
     } else {
+      x=ti[idx]%w->world_width;
+      y=ti[idx]/w->world_width;
       FindRayWall(w,
 	    Tan(angle),
 	    Cos(angle),
@@ -1965,7 +1716,8 @@ Bool CanSee2DThing(C3DWorld *w,C3DThing *t) {
 	    &near,
 	    NULL,
 	    I8_MIN,
-	    ti[idx],
+	    x,
+	    y,
 	    FALSE,
 	    TRUE
       );
@@ -1977,23 +1729,20 @@ Bool CanSee2DThing(C3DWorld *w,C3DThing *t) {
 	    &far,
 	    NULL,
 	    I8_MIN,
-	    ti[idx],
+	    x,
+	    y,
 	    TRUE,//far sdie
 	    TRUE
       );
 //TODO replace "+1" with thing height
       interp=Min((near+far)/2,dist)/dist*(t->z+1.-w->cam_height)+w->cam_height;
-      if(HeightImpossible(w,
-	ti[idx]%w->world_width,
-	ti[idx]/w->world_width,
-	interp,
-	TRUE)) {
-         ret=FALSE;
-         break;
-      }
 //Perhaps we got an extra block
       if(ti[idx]==t_at_tile)
 	break;
+      if(BlockAtXYZ(x,y,interp)) {
+	ret=TRUE;
+	break;
+      }
     }
   }
   Free(ti);
@@ -2365,13 +2114,14 @@ AddMethod("C3DWorldManager","getQuestChatBot:",&WorldManagerGetQuestChatBot);
 Bool WorldManagerFloorIsLiquid(C3DWorldManager *man,...) {
   I64 x=AsF64(argv[0]);
   I64 y=AsF64(argv[1]);
-  I64 tile=x+y*w->world_width;
+  I64 z=AsF64(argv[2]);
+  I64 tile=(x+y*w->world_width)*256+z-I8_MIN;
   if(0<=tile<w->world_width*w->world_height) {
-    return FrogNumNew(IsLiquidTile(w->world_mat[tile].u8[0]));
+    return FrogNumNew(IsLiquidTile(w->world_blocks[tile]));
   }
   return FrogNumNew(0);
 }
-AddMethod("C3DWorldManager","floorIsLiquidAtX:atY:",&WorldManagerFloorIsLiquid);
+AddMethod("C3DWorldManager","floorIsLiquidAtX:atY:atZ:",&WorldManagerFloorIsLiquid);
 
 //Returns 1. if COLLISION,else 0
 CFrogThing *C3DThingMoveAtAngle(C3DThing *self,...) {
@@ -2404,197 +2154,21 @@ CFrogThing *WorldManagerHeight(C3DWorldManager *self,...) {
 
 AddMethod("C3DWorldManager","width",&WorldManagerWidth);
 AddMethod("C3DWorldManager","height",&WorldManagerHeight);
-
-CFrogThing *WorldManagerSetTileHeightAtXAtY(C3DWorldManager *self,...) {
-  I64 th=AsF64(argv[0]);
-  I64 x=AsF64(argv[1]);
-  I64 y=AsF64(argv[2]);
-  if(0<=x<w->world_width)
-    if(0<=y<w->world_height) {
-      return w->heightmap[x+y*w->world_width]=th;
-    }
-  return FROG_SMALL_NIL;
-}
-AddMethod("C3DWorldManager","setTileHeight:atX:atY:",&WorldManagerSetTileHeightAtXAtY);
 CFrogThing *WorldManagerSetTileAtXAtY(C3DWorldManager *self,...) {
   I8 tile=AsF64(argv[0]);
   I64 x=AsF64(argv[1]);
   I64 y=AsF64(argv[2]);
+  I64 z=AsF64(argv[3]);
   if(0<=x<w->world_width)
     if(0<=y<w->world_height) {
-      return w->heightmap[x+y*w->world_width]=tile;
+      if(I8_MIN<=z<=I8_MAX)
+        return w->world_blocks[(x+y*w->world_width)*256+z-I8_MIN]=tile;
     }
   return FROG_SMALL_NIL;
 }
-AddMethod("C3DWorldManager","setTile:atX:atY:",&WorldManagerSetTileAtXAtY);
+AddMethod("C3DWorldManager","setTile:atX:atY:atZ:",&WorldManagerSetTileAtXAtY);
 
 
-
-CFrogThing *WorldManagerSetCeilHeightAtXAtY(C3DWorldManager *self,...) {
-  I64 th=AsF64(argv[0]);
-  I64 x=AsF64(argv[1]);
-  I64 y=AsF64(argv[2]);
-  if(0<=x<w->world_width)
-    if(0<=y<w->world_height) {
-      return w->ceilmap[x+y*w->world_width]=th;
-    }
-  return FROG_SMALL_NIL;
-}
-AddMethod("C3DWorldManager","setCeilHeight:atX:atY:",&WorldManagerSetCeilHeightAtXAtY);
-CFrogThing *WorldManagerSetCeilAtXAtY(C3DWorldManager *self,...) {
-  I8 tile=AsF64(argv[0]);
-  I64 x=AsF64(argv[1]);
-  I64 y=AsF64(argv[2]);
-  if(0<=x<w->world_width)
-    if(0<=y<w->world_height) {
-      return w->world_mat[x+y*w->world_width].i8[1]=tile;
-    }
-  return FROG_SMALL_NIL;
-}
-AddMethod("C3DWorldManager","setCeilTile:atX:atY:",&WorldManagerSetCeilAtXAtY);
-
-CFrogThing *WorldManagerSetCeilRiseAtXAtY(C3DWorldManager *self,...) {
-  I8 ch=AsF64(argv[0]);
-  I64 x=AsF64(argv[1]);
-  I64 y=AsF64(argv[2]);
-  if(0<=x<w->world_width)
-    if(0<=y<w->world_height) {
-      return w->ceilmap2[x+y*w->world_width]=ch;
-    }
-  return FROG_SMALL_NIL;
-}
-AddMethod("C3DWorldManager","setCeilRise:atX:atY:",&WorldManagerSetCeilRiseAtXAtY);
-
-CFrogThing *WorldManagerTileHeightAtXAtY(C3DWorldManager *self,...) {
-  I64 x=AsF64(argv[0]);
-  I64 y=AsF64(argv[1]);
-  if(0<=x<w->world_width)
-    if(0<=y<w->world_height) {
-      return FrogNumNew(w->heightmap[x+y*w->world_width]);
-    }
-  return FrogNumNew(I16_MAX);
-}
-AddMethod("C3DWorldManager","tileHeightAtX:atY:",&WorldManagerTileHeightAtXAtY);
-CFrogThing *WorldManagerCeilHeightAtXAtY(C3DWorldManager *self,...) {
-  I64 x=AsF64(argv[0]);
-  I64 y=AsF64(argv[1]);
-  if(0<=x<w->world_width)
-    if(0<=y<w->world_height) {
-      return FrogNumNew(w->ceilmap[x+y*w->world_width]);
-    }
-  return FrogNumNew(I16_MAX);
-}
-AddMethod("C3DWorldManager","ceilHeightAtX:atY:",&WorldManagerCeilHeightAtXAtY);
-CFrogThing *WorldManagerCeilRiseAtXAtY(C3DWorldManager *self,...) {
-  I64 x=AsF64(argv[0]);
-  I64 y=AsF64(argv[1]);
-  if(0<=x<w->world_width)
-    if(0<=y<w->world_height) {
-      return FrogNumNew(w->ceilmap2[x+y*w->world_width]);
-    }
-  return FrogNumNew(I16_MAX);
-}
-AddMethod("C3DWorldManager","ceilRiseAtX:atY:",&WorldManagerCeilRiseAtXAtY);
-CFrogThing *WorldManagerTileHeightAt(C3DWorldManager *self,...) {
-  C2DPoint *p=argv[0];
-  CFrogThing *ret=FrogNumNew(I16_MAX);
-  if(0<=p->x<w->world_width)
-    if(0<=p->y<w->world_height) {
-      ret=FrogNumNew(w->heightmap[p->x+p->y*w->world_width]);
-    }
-  return ret;
-}
-AddMethod("C3DWorldManager","tileHeightAt:",&WorldManagerTileHeightAt);
-
-
-CFrogThing *WorldManagerRaySideForTile(C3DWorldManager *self,...) {
-  F64 x=AsF64(argv[0]);
-  F64 y=AsF64(argv[1]);
-  F64 a=AsF64(argv[2]);
-  F64 h=AsF64(argv[3]);
-  C2DPoint *p=argv[4];
-  I64 force_tile=p->x+p->y*w->world_width;
-  F64 oldx=w->x,oldy=w->y;
-  I64 side;
-  w->x=x;
-  w->y=y;
-  FindRayWall(w,
-	    Tan(a),
-	    Cos(a),
-	    Sin(a),
-	    NULL,
-	    NULL,
-	    &side,
-	    h,
-	    force_tile,
-	    FALSE,
-	    TRUE //Allow ceilings
-	    );
-  w->x=oldx;
-  w->y=oldy;
-  return FrogNumNew(side);
-}
-AddMethod("C3DWorldManager","raySideAtX:atY:atAngle:atHeight:forTile:",&WorldManagerRaySideForTile);
-
-CFrogThing *WorldManagerRaySegmentForTile(C3DWorldManager *self,...) {
-  F64 x=AsF64(argv[0]);
-  F64 y=AsF64(argv[1]);
-  F64 a=AsF64(argv[2]);
-  F64 h=AsF64(argv[3]);
-  F64 oldx=w->x,oldy=w->y;
-  C2DPoint *p=argv[4];
-  I64 force_tile=p->x+p->y*w->world_width;
-  I64 segment;
-  w->x=x;
-  w->y=y;
-  FindRayWall(w,
-	    Tan(a),
-  	    Cos(a),
-	    Sin(a),
-	    &segment,
-	    NULL,
-	    NULL,
-	    h,
-	    force_tile,
-	    FALSE,
-	    TRUE //Allow ceilings
-	    );
-  w->x=oldx;
-  w->y=oldy;
-  return FrogNumNew(segment);
-}
-AddMethod("C3DWorldManager","raySegmentAtX:atY:atAngle:atHeight:forTile:",&WorldManagerRaySegmentForTile);
-
-
-CFrogThing *WorldManagerRayTile(C3DWorldManager *self,...) {
-  F64 x=AsF64(argv[0]);
-  F64 y=AsF64(argv[1]);
-  F64 a=AsF64(argv[2]);
-  F64 h=AsF64(argv[3]);
-  F64 oldx=w->x,oldy=w->y;
-  I64 tile;
-  w->x=x;
-  w->y=y;
-  tile=FindRayWall(w,
-	    Tan(a),
-	    Cos(a),
-	    Sin(a),
-	    NULL,
-	    NULL,
-	    NULL,
-	    Floor(h),
-	    ,
-	    FALSE,
-	    TRUE //Allow ceilings
-	    );
-  w->x=oldx;
-  w->y=oldy;
-  C2DPoint *p=ConstructThing("C2DPoint");
-  p->x=tile%w->world_width;
-  p->y=tile/w->world_width;
-  return p;
-}
-AddMethod("C3DWorldManager","rayTileAtX:atY:atAngle:atHeight:",&WorldManagerRayTile);
 
 CFrogThing *ShellCasingSetGr(CShellCasing *self,...) {
   U8 *name=AsString(argv[0]);
@@ -2625,19 +2199,6 @@ CFrogThing *HandItemSetGr(CHandItem *self,...) {
   return FROG_SMALL_NIL;
 }
 AddMethod("CHandItem","setGraphics:",&HandItemSetGr);
-
-AddMethod("C3DWorldManager","tileHeightAtX:atY:",&WorldManagerTileHeightAtXAtY);
-CFrogThing *WorldManagerFloorAtXAtY(C3DWorldManager *self,...) {
-  I64 x=AsF64(argv[0]);
-  I64 y=AsF64(argv[1]);
-  if(0<=x<w->world_width)
-    if(0<=y<w->world_height) {
-      return FrogNumNew(w->world_mat[x+y*w->world_width].u8[0]);
-    }
-  return FrogNumNew(-1);
-}
-AddMethod("C3DWorldManager","floorAtX:atY:",&WorldManagerFloorAtXAtY);
-
 
 U0 HandItemDel(CHandItem *i) {
   if(i->gr) AnimDCDel(i->gr);
@@ -2681,38 +2242,77 @@ CFrogThing *ScreenCoordToZ(C3DWorldManager *self,...) {
   return FrogNumNew(p->z);
 }
 AddMethod("C3DWorldManager","screenCoordToZ",&ScreenCoordToZ);
-CFrogThing *ScreenCoordOnFloor(C3DWorldManager *self,...) {
-  CD3 *p=&w->to_point[self->screen_x/4][self->screen_y/4];
-  I64 tx=p->x/128;
-  I64 ty=p->y/128;
-//Round To nearest 16 just in case we are just "really close" to a wall
-//F64's arent exact
-$SP,"<3>",BI=3$;  
-
-
-
-
-
-
-  if((p->x-tx*128)>128*.9)
-    tx++;
-  if((p->y-ty*128)>128*.9)
-    ty++;
-  I64 tile=tx+ty*w->world_width;
-  if(0<=tile<w->world_width*w->world_height) {
-    if(Floor(p->z)>=w->heightmap[tile])
-      return FrogNumNew(1);
+//
+// World Edit section
+//
+CFrogNum *WorldEditBlockSetIdx(CWorldEditBlock *bl,...) {
+  I64 idx=AsF64(argv[0]);
+  CDC *dc;
+  if(0<=idx<0x10000/2&&(dc=w->wall_textures[idx])) {
+    if(bl->gr) AnimDCDel(bl->gr);
+    bl->gr=AnimDCCopy(dc,frog_mem_task);
+    if(bl->inventory_item->graphics)
+      AnimDCDel(bl->inventory_item->graphics);
+    bl->inventory_item->graphics=ScaleDC(dc,24,24,frog_mem_task);
+    bl->tile_idx=idx;
+    return FrogNumNew(1);
   }
   return FrogNumNew(0);
 }
-AddMethod("C3DWorldManager","screenCoordIsOnFloor",&ScreenCoordOnFloor);
+AddMethod("CWorldEditBlock","setBlockIndex:",&WorldEditBlockSetIdx);
+
+CFrogNum *WorldEditThingSetIdx(CWorldEditThing *bl,...) {
+  I64 idx=AsF64(argv[0]);
+  CDC *dc;
+  C3DThingTemplate *t;
+  if(0<=idx<0x10000&&(t=w->thing_templates[idx])) {
+    if(dc=t->front) {
+      if(bl->gr) AnimDCDel(bl->gr);
+      bl->gr=AnimDCCopy(dc,frog_mem_task);
+      if(bl->inventory_item->graphics)
+        AnimDCDel(bl->inventory_item->graphics);
+      bl->inventory_item->graphics=ScaleDC(dc,24,24,frog_mem_task);
+      bl->template=t;
+      return FrogNumNew(1);
+    }
+  }
+  return FrogNumNew(0);
+}
+AddMethod("CWorldEditThing","setThingIndex:",&WorldEditThingSetIdx);
+
+CFrogNum *WorldManagerGetShiftKey(C3DWorldManager *,...) {
+  return FrogNumNew(Bt(kbd.down_bitmap,SC_SHIFT));
+}
+AddMethod("C3DWorldManager","getShiftKey",&WorldManagerGetShiftKey);
+
+CFrogNum *WorldManagerGetTileAtXAtYAtZ(C3DWorldManager *,...) {
+  I64 x=Floor(AsF64(argv[0]));
+  I64 y=Floor(AsF64(argv[1]));
+  I64 z=Floor(AsF64(argv[2]));
+  return FrogNumNew(BlockAtXYZ(x,y,z));
+}
+AddMethod("C3DWorldManager","getTileAtX:atY:atZ:",&WorldManagerGetTileAtXAtYAtZ);
+CFrogNum *WorldManagerSetTileAtXAtYAtZ(C3DWorldManager *,...) {
+  I64 x=Floor(AsF64(argv[1]));
+  I64 y=Floor(AsF64(argv[2]));
+  I64 z=Floor(AsF64(argv[3]));
+  if(0<=x<w->world_width)
+    if(0<=y<w->world_height)
+      if(I8_MIN<=z<=I8_MAX) {
+	w->world_blocks[(x+y*w->world_width)*256+z-I8_MIN]=AsF64(argv[0]);
+      }
+  return FROG_SMALL_NIL;
+}
+AddMethod("C3DWorldManager","setTile:atX:atY:atZ:",&WorldManagerSetTileAtXAtYAtZ);
+
+
 //
 // Test section
 //
 #ifdef TEST_3D
  DocClear;
 #include "UI.HC"
-LoadWorldFromFile(,"Untitled.WORLD");
+LoadWorldFromOldFile(,"Untitled.WORLD");
 I64 mp_thing_done=0;
 extern CDC *MakeMinimap1(C3DWorld *w,F64 x,F64 y,F64 angle,I64 radius,F64 height);
 U0 UpdateDrawBuffer() {
@@ -2759,7 +2359,15 @@ U0 UpdateDrawBuffer() {
     ty=p->y/GRID_SZ;
     if(0<=tx<w->world_width)
       if(0<=ty<w->world_height) {
-	p->z=Max(w->heightmap[tx+ty*w->world_width]-1,p->z);
+	if(BlockAtXYZ(tx,ty,Floor(p->z))) {
+	  if(p->momz>0.) {
+	    p->momz=0;
+	    p->z=Floor(p->z);
+	  } else if(p->momz<0.) {
+	    p->z=Ceil(p->z);
+	    p->momz=0.;
+	  }
+	}
       }
     DrawParticle(w,p);
     n=p->next;
@@ -2818,6 +2426,7 @@ U0 DrawIt(CTask *t,CDC *dc) {
   GrBlot(dc,0,0,w->to_dc);
 }
 CDC *MakeMinimap1(C3DWorldManager *wm,F64 x,F64 y,F64 angle,I64 radius,F64 height) {
+/*
   CDC *mask=DCNew(radius*2,radius*2),*tile_dc;
   CDC *res=DCNew(radius*2,radius*2);
   I64 px,py;
@@ -2834,7 +2443,6 @@ CDC *MakeMinimap1(C3DWorldManager *wm,F64 x,F64 y,F64 angle,I64 radius,F64 heigh
   Mat4x4RotZ(mat2,angle);
   Mat4x4Scale(mat2,12.);
   Mat4x4TranslationEqu(mat2,x,y,0);
-//  Mat4x4TranslationAdd(mat,-radius,-radius,0);
 
   DCFill(res,TRANSPARENT);
   mask->color=WHITE;
@@ -2892,49 +2500,9 @@ CDC *MakeMinimap1(C3DWorldManager *wm,F64 x,F64 y,F64 angle,I64 radius,F64 heigh
   }
   DCDel(mask);
   return res;
+*/
+  return DCNew(1,1);
 }
-//
-// World Edit section
-//
-CFrogNum *WorldEditBlockSetIdx(CWorldEditBlock *bl,...) {
-  I64 idx=AsF64(argv[0]);
-  CDC *dc;
-  if(0<=idx<0x10000/2&&dc=w->wall_textures[idx]) {
-    if(bl->gr) AnimDCDel(bl->gr);
-    bl->gr=AnimDCCopy(dc,frog_mem_task);
-    if(bl->inventory_item->graphics)
-      AnimDCDel(bl->inventory_item->graphics);
-    bl->inventory_item->graphics=ScaleDC(dc,24,24,frog_mem_task);
-    bl->tile_idx=idx;
-    return FrogNumNew(1);
-  }
-  return FrogNumNew(0);
-}
-AddMethod("CWorldEditBlock","setBlockIdx",&WorldEditBlockSetIdx);
-
-CFrogNum *WorldEditThingSetIdx(CWorldEditThing *bl,...) {
-  I64 idx=AsF64(argv[0]);
-  CDC *dc;
-  C3DThingTemplate *t;
-  if(0<=idx<0x10000/2&&(t=w->thing_templates[idx])) {
-    if(dc=t->front) {
-      if(bl->gr) AnimDCDel(bl->gr);
-      bl->gr=AnimDCCopy(dc,frog_mem_task);
-      if(bl->inventory_item->graphics)
-        AnimDCDel(bl->inventory_item->graphics);
-      bl->inventory_item->graphics=ScaleDC(dc,24,24,frog_mem_task);
-      bl->template=t;
-      return FrogNumNew(1);
-    }
-  }
-  return FrogNumNew(0);
-}
-AddMethod("CWorldEditThing","setThingIdx",&WorldEditThingSetIdx);
-
-CFrogNum *WorldManagerGetShiftKey(C3DWorldManager *,...) {
-  return FrogNumNew(Bt(kbd.down_bitmap,SC_SHIFT));
-}
-AddMethod("C3DWorldManager","getShiftKey",&WorldManagerGetShiftKey);
 
 //
 //
@@ -3149,12 +2717,11 @@ skip_input:;
       }
       CallScript("animate",FrogSymbol("hand_item")->value);
       UpdateDrawBuffer;
-      ClearPlatformCache; //Clear the cache becuase of changeing doors
       Refresh;
       if(every&15==0) FrogGarbageCollect;
     } catch {PutExcept(TRUE);}
 en:
- AIWNIOS_SetCaptureMouse(FALSE);
+  AIWNIOS_SetCaptureMouse(FALSE);
   FlushMsgs;
   Fs->draw_it=NULL;
   Refresh;
@@ -3167,5 +2734,4 @@ WalkAround;
 )   _   l   ‚   #   '   i   '   !   ‰   k   ‹   '   _   j   [         32 Away from camera    ^      
 m   ”   j   "           ¨         
    þÿÿÿ                      þÿÿÿ            -      -               #   (   #   )            %      #         
-      	                  „         
-         %      $   /      /            &      D      G   0   $   /   	%   "   Wall 	         Ûm2Ò¶ÍµIF¢  
+      	           
