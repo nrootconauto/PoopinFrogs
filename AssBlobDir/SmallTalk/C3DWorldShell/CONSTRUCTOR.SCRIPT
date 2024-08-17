@@ -30,7 +30,7 @@ init ->* |
      v->type = 'MsLUp' ifTrue: [
        ldown _ 0 .
      ].
-     v->type = 'MsRDown' ifTrue: [
+     v->type = 'MsRUp' ifTrue: [
        rdown _ 0 .
      ].
      v->type = 'MsLDown' ifTrue: [
@@ -160,8 +160,13 @@ init ->* |
      ] .
  
      #world handlePowerups .
-     ldown ifTrue: [
-       #hand_item fire .
+     #ms_grabbed ifTrue: [
+       ldown ifTrue: [
+         #hand_item fire .
+       ] .
+       rdown ifTrue: [
+         #hand_item altFire .
+       ] .
      ] .
      #hand_item animate .
      #world physics .

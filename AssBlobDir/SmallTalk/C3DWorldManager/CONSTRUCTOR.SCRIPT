@@ -7,17 +7,8 @@ init | gx=CFrogNum gy=CFrogNum col=CFrogArray |
   gravity _ 3 / 30 .
   tile_templates _ CFrogDictionary new .
   thing_templates _ CFrogDictionary new .
-  'the world_handle field is set in 3D.HC'. 
-  gx _ (self width + 16 ) / 16 .
-  gy _ (self height + 16 ) / 16 .
+  self initGrid .
 
-  0 to: gx do: [:a=CFrogNum|
-    col _ # () .
-    0 to: gy do: [:b=CFrogNum|
-      col add: #() 
-    ].
-    grid add: col .
-  ] .
   doors _ #() .
 
   ^ self

@@ -77,7 +77,7 @@ newLandscapeWithWidth: w=CFrogNum withHeight: h=CFrogNum
       x2 _ lerp value: g3 value: g4 value: gx / grid_sz .
 
       x1 _ lerp value: x1 value: x2 value: gy / grid_sz .
-      -127 to: x1 * 6 do: [:z=CFrogNum |
+      -128 to: x1 * 6 do: [:z=CFrogNum |
         #world setTile: fill_with atX: x atY: y atZ: z .
       ] .
     ].

@@ -1,0 +1,25 @@
+addToPlayerAgain:p=CPlayer ->* |
+  who=CUIGrid
+|
+  in_quick_inventory ifTrue: [
+    who _ p->quick_inventory
+  ] ifFalse: [
+    who _ p->main_inventory
+  ] .
+
+  inventory_item _ CUIGridItem new .
+  inventory_item setGraphics: gr_name .
+  inventory_item setCount: ammo .
+  inventory_item setItem: self .
+  inventory_item onLeftUp: [
+    #hand_item _ self .
+  ].
+
+  p->items add: self .
+
+
+  who addItem: inventory_item atX: grid_x atY: grid_y .
+
+  'FrogAss' show .
+  tile_idx show .
+  self setBlockIndex: tile_idx .

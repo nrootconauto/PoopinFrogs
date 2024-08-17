@@ -2,3 +2,6 @@ beforeSave ->*
   |
   |
   game_load_tS _ CFrogTime now asSeconds .
+  blocks_string _ self saveBlocksToString .
+  blocks_width _ self width .
+  blocks_height _ self height .

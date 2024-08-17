@@ -1,0 +1,19 @@
+initGrid ->* 
+|
+ gx=CFrogNum
+ gy=CFrogNum
+ col=CFrogArray 
+|
+  'the world_handle field is set in 3D.HC'. 
+  gx _ (self width + 16 ) / 16 .
+  gy _ (self height + 16 ) / 16 .
+
+  grid _ #() .
+
+  0 to: gx do: [:a=CFrogNum|
+    col _ # () .
+    0 to: gy do: [:b=CFrogNum|
+      col add: #() 
+    ].
+    grid add: col .
+  ] .

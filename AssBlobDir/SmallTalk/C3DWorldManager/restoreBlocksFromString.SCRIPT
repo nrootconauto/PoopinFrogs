@@ -1,0 +1,30 @@
+restoreBlocksFromString: str=CFrogStr
+  withWidth: w=CFrogNum
+  withHeight: h=CFrogNum
+  ->*
+|
+  ptr=CFrogNum
+  len=CFrogNum
+  block=CFrogNum
+  sptr=CFrogNum
+|
+  sptr _ 0 .
+  self emptyWorldWithWidth: w withHeight: h .
+  0 to: w do: [:x=CFrogNum|
+    0 to: h do: [:y=CFrogNum|
+      ptr _ -128 .
+      [ptr <= 127] whileTrue: [
+        len _ str at: sptr .
+        sptr _ sptr + 1 .
+        block _ str at: sptr .
+        sptr _ sptr + 1 .
+        
+        len show .
+        block show .
+        0 to: len do:[
+          self setTile: block atX: x atY: y atZ: ptr .
+          ptr _ ptr + 1 .
+        ] .
+      ] .
+    ] .
+  ] .

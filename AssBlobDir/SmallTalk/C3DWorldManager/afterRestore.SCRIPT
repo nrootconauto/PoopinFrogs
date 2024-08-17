@@ -42,3 +42,5 @@ afterRestore->* |
 
   'door matrix upd' show .
   self updateDoorMatrix .
+
+  self restoreBlocksFromString: blocks_string withWidth: blocks_width withHeight: blocks_height .

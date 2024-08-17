@@ -1,4 +1,4 @@
-fire ->* |
+altFire ->* |
  w=C3DWorldManager
  cur_ts=CFrogNum
  wz=CFrogNum
@@ -7,6 +7,7 @@ fire ->* |
  dist=CFrogNum
  a=CFrogNum
  player=CPlayer
+ rem=CFrogNum
  |
   w _ #world .
   cur_ts _ CFrogTime now asSeconds .
@@ -15,11 +16,19 @@ fire ->* |
     wz _ w screenCoordToZ .
     wx _ w screenCoordToX .
     wy _ w screenCoordToY .
-'move 1 unit backwards to set closer block' .
+'move 1 unit forwards to set hit(?) block' .
     player _ w getPlayer .
-    dist _ ((wx - player->x) squared + (wy - player->y) squared)sqrt - 1 .
+    dist _ ((wx - player->x) squared + (wy - player->y) squared)sqrt + 10 .
     a _ wx - player->x arg: wy - player->y .
     wx _ player->x + (a cos * dist ) . 
     wy _ player->y + (a sin * dist ) .
+'If we are really close to top/bottom,use top/bottom brick'.
+    rem _ wz rem: 1 .
+    rem < 0 ifTrue: [
+      rem _ rem + 1 .
+    ] . 
+    rem >= (1 - (1 / 120. )) ifTrue: [
+      wz _ wz + 1 .
+    ] .
     w setTile: 0 atX: wx / 128 atY: wy / 128 atZ: wz .
   ] .

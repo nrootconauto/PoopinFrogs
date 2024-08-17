@@ -7,6 +7,7 @@
 #define TEST_3D
 #ifndef ENGINE_3D
 #define VIEW_DIST 32
+#define mp_cnt 1
 #define FOG0_DIST 8
 #define FOG1_DIST 16
 #define FOG2_DIST 20
@@ -2212,9 +2213,16 @@ I64 mp_thing_done=0;
 extern CDC *MakeMinimap1(C3DWorld *w,F64 x,F64 y,F64 angle,I64 radius,F64 height);
 U0 Draw3DWorld(CTask *,CDC *dc) {
   C3DWorldManager *man=FrogSymbol("world")->value;
+  man->world_handle=w;
+  w->_wall_stains=man->wall_stains->items;
+  w->_floor_stains=man->floor_stains->items;
+  w->_2d_things=man->things->items;
   PrepareThingsForDraw(man);
   CDoor **doors;
   CPlayer *player=CallScript("getPlayer",man);
+  if(player==FROG_SMALL_NIL) {
+    return;
+  }
   CDC *hand_gr,*minimap;
   I32 *odepth_buf;
   I64 tx,ty,c,f;
@@ -2328,7 +2336,7 @@ CFrogThing *WorldManagerEmptyWithDim(C3DWorldManager *man,...) {
   Free(w->world_blocks);
   w->world_blocks=CAlloc(256*(w->world_width*w->world_height),frog_mem_task);
   CFrogDictionary *old_templates=man->thing_templates,*ot2=man->tile_templates;
-  CallScript("init",man); //Update grid
+  CallScript("initGrid",man);
   man->thing_templates=old_templates;
   man->tile_templates=ot2;
   w->_wall_stains=man->wall_stains->items;
@@ -2438,7 +2446,7 @@ AddMethod("C3DWorldManager","physics",&WorldPhysics);
 //
 //
 //
-//CallScript("newLandscapeWithWidth:withHeight:",FrogSymbol("world")->value,FrogNumNew(100),FrogNumNew(100));
+CallScript("newLandscapeWithWidth:withHeight:",FrogSymbol("world")->value,FrogNumNew(100),FrogNumNew(100));
 C3DWorldShell *shell=ConstructThing("C3DWorldShell");
 CallScript("init",shell);
 UIShellRun(shell);

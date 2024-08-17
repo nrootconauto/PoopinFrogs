@@ -186,7 +186,7 @@ class CUIGrid:CUIElem {
   I64  grid_w,grid_h;
   CFrogArray *mat;
   CUIGridItem *active;
-  U8 *constructor dft "UIElemInit";
+  U8 *constructor dft "UIElemInit";
   U8 *draw_it dft "UIGridDraw";
 };
 
@@ -248,6 +248,8 @@ class C3DWorldManager:CFrogThing {
 //Private
   F64 game_load_tS;  //The CFrogTime now asSeconds that the game world is at when loaded
   CFrogThing *player no_serialize 1;
+  CFrogStr *blocks_string recur_serialize 1;
+  I64 blocks_width,blocks_height;
 };
 
 class CHandItem:CFrogThing {
