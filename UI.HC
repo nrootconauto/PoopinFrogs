@@ -669,6 +669,141 @@ U0 LoadColorSyms() {
   }
 }
 LoadColorSyms;
+
+AddMethod("CUIGridItem","setGraphics:",&UIGridItemSetGr);
+
+CFrogThing *STUIUpdateWithEvent(CUIElem *e,...) {
+  CUIEvent *ev=argv[0];
+  UpdateUI(e,ev->raw_type,ev->m1,ev->m2);
+}
+AddMethod("CUIElem","sendEventToUI:",&STUIUpdateWithEvent);
+U0 UIShellDrawIt(CTask *t,CDC *dc) {
+  GrBlot(dc,0,0,FramePtr("screen_dc",t));
+  DrawUIRoot(t,dc);
+}
+CFrogThing *UIShellRun(CUIShell *shell,...) {
+  CDC *dc=DCNew(GR_WIDTH,GR_HEIGHT);
+  DCDepthBufAlloc(dc);
+  WinMax;
+  WinBorder(0);
+  dc->flags|=DCF_NO_TRANSPARENTS;
+  CUIEvent *ev;
+  I64 last_z=ms.pos.z;
+  I64 t,m1,m2,tick=0;
+  U8 *di=AsString(shell->draw_it_name);
+  Bool ldown=FALSE,rdown=FALSE,old_ldown=FALSE,old_rdown=FALSE;
+  CHashFun *fun=HashFind(di,Fs->hash_table,HTT_FUN);
+  U0 (*draw_it)(CTask *,CDC *);
+  Free(di);
+  Fs->draw_it=&UIShellDrawIt;
+  CFrogSymbol *grabbed=FrogSymbol("ms_grabbed");
+  FramePtrAdd("screen_dc",dc);
+  while(!shell->exited) {
+    if(AsF64(grabbed->value)) {
+      AIWNIOS_SetCaptureMouse(1);
+    } else
+      AIWNIOS_SetCaptureMouse(0);
+    while(t=ScanMsg(&m1,&m2)) {
+      ev=ConstructThing("CUIEvent");
+      ev->raw_type=t;
+      ev->m1=m1;
+      ev->m2=m2;
+      switch(t) {
+	case MSG_KEY_DOWN:
+	  ev->type=FrogStrNew("KeyDown");
+	  break;
+	case MSG_KEY_UP:
+	  ev->type=FrogStrNew("KeyUp");
+	  break;
+        start:
+	case MSG_MS_L_DOWN:
+	case MSG_MS_L_D_DOWN:
+	  ev->type=FrogStrNew("MsLDown");
+	  break;
+	case MSG_MS_R_D_DOWN:
+	case MSG_MS_R_DOWN:
+	  ev->type=FrogStrNew("MsRDown");
+	  break;
+	case MSG_MS_L_D_UP:
+	case MSG_MS_L_UP:
+	  ev->type=FrogStrNew("MsLUp");
+	  break;
+	case MSG_MS_R_D_UP:
+	case MSG_MS_R_UP:
+	  ev->type=FrogStrNew("MsRUp");
+	  break;
+	case MSG_MS_MOVE:
+	  ev->type=FrogStrNew("MsMove");
+	  break;
+	end:
+          if(AsF64(grabbed->value)) {
+	    ev->m1=ms.pos.x;
+	    ev->m2=ms.pos.y;
+            MsSet(GR_WIDTH/2,GR_HEIGHT/2);
+	  }
+ 	  break;
+      }
+      if(ThingHasClass(shell->on_event,"CFrogBlock"))
+	FrogBlockValue(shell->on_event,ev);
+    }
+    if(old_ldown!=ms.lb) {
+      old_ldown=ms.lb;
+      ev=ConstructThing("CUIEvent");
+      if(ms.lb) {
+        ev->raw_type=MSG_MS_L_DOWN;
+        ev->type=FrogStrNew("MsLDown");
+      } else {
+        ev->raw_type=MSG_MS_L_UP;
+        ev->type=FrogStrNew("MsLUp");
+      }
+      ev->m1=ms.pos.x;
+      ev->m2=ms.pos.y;
+      if(ThingHasClass(shell->on_event,"CFrogBlock"))
+	FrogBlockValue(shell->on_event,ev);
+PrintI("ld",ms.lb);
+    }
+
+    if(old_rdown!=ms.rb) {
+      old_rdown=ms.rb;
+      ev=ConstructThing("CUIEvent");
+      if(ms.rb) {
+        ev->raw_type=MSG_MS_L_DOWN;
+        ev->type=FrogStrNew("MsRDown");
+      } else {
+        ev->raw_type=MSG_MS_L_UP;
+        ev->type=FrogStrNew("MsRUp");
+
+      }
+      ev->m1=ms.pos.x;
+      ev->m2=ms.pos.y;
+      if(ThingHasClass(shell->on_event,"CFrogBlock"))
+	FrogBlockValue(shell->on_event,ev);
+    }
+
+    if(ms.pos.z!=last_z) {
+      ev=ConstructThing("CUIEvent");
+      ev->m1=last_z-ms.pos.z;
+      ev->type=FrogStrNew("MsScroll");
+      last_z=ms.pos.z;
+      if(ThingHasClass(shell->on_event,"CFrogBlock"))
+	FrogBlockValue(shell->on_event,ev);
+    }
+    if(fun) {
+      draw_it=fun->exe_addr;
+      (*draw_it)(Fs,dc);
+    }
+    if(tick++&15==0)
+      FrogGarbageCollect(FROG_SMALL_NIL);
+    Refresh;
+    if(ThingHasClass(shell->on_refresh,"CFrogBlock"))
+      FrogBlockValue(shell->on_refresh);
+  }
+  AIWNIOS_SetCaptureMouse(0);
+  FramePtrDel("screen_dc");
+  Fs->draw_it=NULL;
+  DCDel(dc);
+}
+
 #if__CMD_LINE__
 STRunStmt("#ui_root _ CUIScrollBars new .\n");
 STRunStmt("#ui_root setWidth: 400 ; setHeight: 100 .\n");

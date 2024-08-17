@@ -13,4 +13,8 @@ animate ->* |tS=CFrogNum|
       message->y _ (480 / 4) + ((tS *7) sin  * 40) .
       message->color _ 10 + (tS * 2.5 floor rem: 5) floor .
     ] .
-  ]
+  ] .
+
+  shell_casings do: [:c=CShellCasing|
+    c update .
+  ] .

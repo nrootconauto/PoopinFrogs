@@ -265,8 +265,6 @@ C3DWorld *LoadWorldFromOldFile(U8 *blob_file="ASS",U8 *filename,F64 fov=pi/2) {
   C3DWorldSetFov(ret,fov);
   CDoor *door;
   QueInit(&ret->particles);
-  ret->to_dc=DCNew(GR_WIDTH,GR_HEIGHT);
-  DCDepthBufAlloc(ret->to_dc);
   ret->step_width=4; 
   ret->step_width_y=4;
   ret->world_width=world->w;
@@ -1220,7 +1218,7 @@ fin:
 }
 
 extern CDC *WhichTexture(C3DWorld *w,I64 tile,F64 h,F64 h2,F64 *hit_h,Bool *hit_wall);
-CDC *ThingFace(C3DWorld *w,C3DThing *thing) {
+CDC *ThingFace(C3DWorld *w,C3DThing *thing,Bool *flip=NULL) {
   C3DThingTemplate *template=thing->template;
   if(template==FROG_SMALL_NIL) return NULL;
   F64 off=thing->angle-w->angle+pi,gap;
@@ -1236,6 +1234,7 @@ CDC *ThingFace(C3DWorld *w,C3DThing *thing) {
       break;
     face++;
   }
+  if(flip) *flip=FALSE;
   switch(face) {
     default:
     case 1:
@@ -1243,7 +1242,7 @@ CDC *ThingFace(C3DWorld *w,C3DThing *thing) {
       break;
     case 2:
       use_dc=template->side;
- //     flip=TRUE;
+      if(flip) *flip=TRUE;
       break;
     case 3:
       use_dc=template->back;
@@ -1272,9 +1271,10 @@ U0 PrepareThingsForDraw(C3DWorldManager *wm,F64 thing_scale=.6) {
     thing=things[cnt];
     if(thing->no_draw)
       goto skip;
-    hit_texture=ThingFace(wm->world_handle,thing);
+    hit_texture=ThingFace(wm->world_handle,thing,&thing->draw_flip);
     if(!hit_texture)
       goto skip;
+    thing->draw_face=hit_texture;
     normal=Arg(w->x-thing->x,w->y-thing->y)-pi/2;
     thing->scrn_st.x=thing->x-hit_texture->width/2.*Cos(normal)*thing_scale;
     thing->scrn_st.y=thing->y-hit_texture->width/2.*Sin(normal)*thing_scale;
@@ -1312,6 +1312,9 @@ I64 GetColorForRay(C3DWorldManager *man,CD3 *ray,F64 dist,F64 *hit_at,CD3 *hit_c
   CI64Set *do_things;
   F64 x=w->x/128,y=w->y/128;
   CDoor *door;
+  Bool hit=FALSE;
+  F64 hit_dist=1e100;
+  I64 hit_color=-1;
   I64 tx=x,ty=y,idx,tz;
   I64 cnt=dist/128.;  
   I64 stepx=Sign(ray->z);
@@ -1346,7 +1349,7 @@ I64 GetColorForRay(C3DWorldManager *man,CD3 *ray,F64 dist,F64 *hit_at,CD3 *hit_c
   ty=y;
   tz=w->cam_height;
   idx=ty*w->world_width+tx;
-  for(cur=0;cur!=cnt;cur++) {
+  for(cur=0;cur!=cnt&&!hit;cur++) {
     if(0<=tx<w->world_width)
       if(0<=ty<w->world_height) {
         do_things=grid->items->body[tx/16](CFrogArray*)->items->body[ty/16](CFrogArray*)->items;
@@ -1359,7 +1362,7 @@ I64 GetColorForRay(C3DWorldManager *man,CD3 *ray,F64 dist,F64 *hit_at,CD3 *hit_c
 	    CD2 st,en,xyhit;
 	    origin128.x=w->x/128;
 	    origin128.y=w->y/128;
-	    if(hit_texture=ThingFace(w,thing)) {
+	    if(hit_texture=thing->draw_face) {
 	      h=hit_texture->height/128.*scale;
 	      if(!(thing->z-1.<=tz<=h+thing->z+1.))
 		goto next_thing;
@@ -1380,23 +1383,28 @@ I64 GetColorForRay(C3DWorldManager *man,CD3 *ray,F64 dist,F64 *hit_at,CD3 *hit_c
 
 
 
-		if(ToI64(xyhit.x)==tx&&ToI64(xyhit.y)==ty) {
+		if(1) {
 		  dist=Sqrt(Sqr(xyhit.x-w->x/128)+Sqr(xyhit.y-w->y/128));
 		  h=dist*slope+w->cam_height;
 		  h2=hit_texture->height/128.*scale;
 		  if(thing->z<=h<h2+thing->z) {
 		    texture_y=ClampI64((1.-(h-thing->z)/h2)*hit_texture->height,0,hit_texture->height-1);
+		    if(thing->draw_flip) i2=1.-i2;
 		    texture_x=ClampI64(i2*hit_texture->width,0,hit_texture->width-1);
 		    color=GrPeek0(hit_texture,texture_x,texture_y);
 		    if(TRANSPARENT!=color) {
 	              dist=Sqrt(Sqr(origin128.x-xyhit.x)+Sqr(origin128.y-xyhit.y))*128.;
-                      if(hit_at) *hit_at=dist;
-		      if(hit_cords) {
-			hit_cords->x=xyhit.x*128;
-			hit_cords->y=xyhit.y*128;
-			hit_cords->z=h;
+		      if(dist<hit_dist) {
+			hit=TRUE;
+			hit_dist=dist;
+                        if(hit_at) *hit_at=dist;
+		        if(hit_cords) {
+		  	  hit_cords->x=xyhit.x*128;
+			  hit_cords->y=xyhit.y*128;
+			  hit_cords->z=h;
+		        }
+	                hit_color=Fog(color,dist);
 		      }
-	              return Fog(color,dist);
 		    }
 		  }
 		}
@@ -1446,27 +1454,31 @@ tile:;
 	F64 ath=0;
 	Bool hit_wall=FALSE;
 	hit_texture=WhichTexture(w,idx,h,h2,&ath,&hit_wall);
-	F64 hit_dist;
+	F64 hit_dist2;
         if(hit_texture&&AnimDCCnt(hit_texture)) {
 	  if(hit_wall)  {
  	    color=GrPeek0(hit_texture,segment&127,ToI64(ath*128+texture_y_offset)&127);
 	  } else {
-	    hit_dist=(ath-w->cam_height)/slope*128;
-	    tx=hit_dist*cos+w->x;
-	    ty=hit_dist*sin+w->y;
+	    hit_dist2=(ath-w->cam_height)/slope*128;
+	    tx=hit_dist2*cos+w->x;
+	    ty=hit_dist2*sin+w->y;
 	    dist=Sqrt(Sqr(tx-w->x)+Sqr(ty-w->y));
  	    color=GrPeek0(hit_texture,tx&127,(ty+texture_y_offset)&127);
 	  }
 valid_color:
-	  if(hit_cords) {
-            //Slightly before our wall(not in wall).
-	    dist=Clamp(dist-1,0,32*VIEW_DIST);
-	    hit_cords->x=w->x+cos*dist;
-	    hit_cords->y=w->y+sin*dist;
-	    hit_cords->z=slope*(dist/128.)+w->cam_height;
+	  if(dist<hit_dist) {
+	    if(hit_cords) {
+              //Slightly before our wall(not in wall).
+	      dist=Clamp(dist-8,0,32*VIEW_DIST);
+	      hit_cords->x=w->x+cos*dist;
+	      hit_cords->y=w->y+sin*dist;
+	      hit_cords->z=slope*(dist/128.)+w->cam_height;
+	    }
+	    if(hit_at) *hit_at=dist;
+            hit=TRUE;
+	    hit_dist=dist;
+	    hit_color=Fog(color,dist);
 	  }
-	  if(hit_at) *hit_at=dist;
-	  return Fog(color,dist);
         }
 	}
 	goto pass;
@@ -1492,7 +1504,7 @@ pass:;
     } 
   }
 fin:
-  return -1;
+  return hit_color;
 }
 CDC *WhichTexture(C3DWorld *w,I64 tile,F64 h,F64 h2,F64 *hit_h,Bool *hit_wall) {
   F64 have,have2;
@@ -1739,8 +1751,8 @@ Bool CanSee2DThing(C3DWorld *w,C3DThing *t) {
 //Perhaps we got an extra block
       if(ti[idx]==t_at_tile)
 	break;
-      if(BlockAtXYZ(x,y,interp)) {
-	ret=TRUE;
+      if(BlockAtXYZ(x,y,Floor(interp))) {
+	ret=FALSE;
 	break;
       }
     }
@@ -2223,22 +2235,22 @@ AddMethod("C3DThing","canSeeThing:",&ThingCanSeeThing);
 
 
 CFrogThing *ScreenCoordToDist(C3DWorldManager *self,...) {
-  CD3 *p=&w->to_point[self->screen_x/4][self->screen_y/4];
+  CD3 *p=&w->to_point[GR_WIDTH/2/4][GR_HEIGHT/2/4];
   return FrogNumNew(Sqrt(Sqr(p->x-w->x)+Sqr(p->y-w->y)));
 }
 AddMethod("C3DWorldManager","screenCoordToDist",&ScreenCoordToDist);
 CFrogThing *ScreenCoordToX(C3DWorldManager *self,...) {
-  CD3 *p=&w->to_point[self->screen_x/4][self->screen_y/4];
+  CD3 *p=&w->to_point[GR_WIDTH/2/4][GR_HEIGHT/2/4];
   return FrogNumNew(p->x);
 }
 AddMethod("C3DWorldManager","screenCoordToX",&ScreenCoordToX);
 CFrogThing *ScreenCoordToY(C3DWorldManager *self,...) {
-  CD3 *p=&w->to_point[self->screen_x/4][self->screen_y/4];
+  CD3 *p=&w->to_point[GR_WIDTH/2/4][GR_HEIGHT/2/4];
   return FrogNumNew(p->y);
 }
 AddMethod("C3DWorldManager","screenCoordToY",&ScreenCoordToY);
 CFrogThing *ScreenCoordToZ(C3DWorldManager *self,...) {
-  CD3 *p=&w->to_point[self->screen_x/4][self->screen_y/4];
+  CD3 *p=&w->to_point[GR_WIDTH/2/4][GR_HEIGHT/2/4];
   return FrogNumNew(p->z);
 }
 AddMethod("C3DWorldManager","screenCoordToZ",&ScreenCoordToZ);
@@ -2315,7 +2327,7 @@ AddMethod("C3DWorldManager","setTile:atX:atY:atZ:",&WorldManagerSetTileAtXAtYAtZ
 LoadWorldFromOldFile(,"Untitled.WORLD");
 I64 mp_thing_done=0;
 extern CDC *MakeMinimap1(C3DWorld *w,F64 x,F64 y,F64 angle,I64 radius,F64 height);
-U0 UpdateDrawBuffer() {
+U0 Draw3DWorld(CTask *,CDC *dc) {
   C3DWorldManager *man=FrogSymbol("world")->value;
   PrepareThingsForDraw(man);
   CDoor **doors;
@@ -2327,8 +2339,13 @@ U0 UpdateDrawBuffer() {
   C3DParticle *p,*head,*n;
   CShellCasing *shellc;
   CHandItem *hand=FrogSymbol("hand_item")->value;
-  CDC *dc=w->to_dc;
-  DCFill(dc,TRANSPARENT);
+  w->angle2=player->angle2;
+  w->angle=player->angle;
+  w->x=player->x;
+  w->y=player->y;
+  w->cam_height=player->z+.6;
+  w->to_dc=dc;
+  DCFill(dc,LTCYAN);
   DCDepthBufRst(dc);
   odepth_buf=dc->depth_buf;
   InitTables(w->angle,w->fov);
@@ -2415,11 +2432,11 @@ U0 UpdateDrawBuffer() {
     }
   }
 fin:
-  minimap=MakeMinimap1(man,player->x,player->y,player->angle,64,player->z);
-  DrawUIRoot(Fs,dc);
+/*  minimap=MakeMinimap1(man,player->x,player->y,player->angle,64,player->z);
   GrBlot(dc,GR_WIDTH-128-16,30,minimap);
-  DCDel(minimap);
+  DCDel(minimap);*/
   dc->depth_buf=odepth_buf;
+  w->to_dc=NULL;
 }
 U0 DrawIt(CTask *t,CDC *dc) {
   w->to_dc->flags|=DCF_NO_TRANSPARENTS;
@@ -2503,230 +2520,32 @@ CDC *MakeMinimap1(C3DWorldManager *wm,F64 x,F64 y,F64 angle,I64 radius,F64 heigh
 */
   return DCNew(1,1);
 }
-
-//
-//
-//
-U0 WalkAround(U8 *save_string=NULL) {
-  I64 c,ch=0,sc=0,m1,m2,msg,jump=FALSE;
-  I64 msx=GR_WIDTH/2,msy=GR_HEIGHT/2;
-  F64 mouse_angle;
-  F64 x=9*GRID_SZ,y=5*GRID_SZ;
-  Bool up=FALSE,down=FALSE,right=FALSE,left=FALSE,cont=TRUE;
-  CFrogSymbol *man=FrogSymbol("world");
-  CFrogSymbol *ms_grabbed=FrogSymbol("ms_grabbed");
-  CShellCasing *shellc;
-  C3DWorldManager *wm=man->value,*load_game;
-  I64 every=0,old_msx,old_msy;
-  CDC *minimap;
-  CPlayer *player=CallScript("getPlayer",man->value);
-  CUIElem *ui_root=FrogSymbol("ui_root")->value;
-  WinMax;
-  WinBorder;
-  AutoComplete;
-  Fs->draw_it=&DrawIt;
-  w->x=x,w->y=y;
-  w->cam_height=.8;
-  w->angle=0;
-  CFrogThing **body;
-  C3DThing *thing;
-  I64 idx,old_msz=ms.pos.z;
-  F64 last_tS=tS;
-//Temporary thing
-  ms_grabbed->value=FrogNumNew(1);
-  old_msx=GR_WIDTH/2;
-  old_msy=GR_HEIGHT/2;
-  MsSet(old_msx,old_msy);
-  try while (cont) {
-      every++;
-      if(AsF64(ms_grabbed->value)) {
-        AIWNIOS_SetCaptureMouse(1);
-      } else
-        AIWNIOS_SetCaptureMouse(0);
-//In case the #world was changed(Loaded a saved game?)
-      wm=man->value;
-      player=CallScript("getPlayer",man->value);
-      ui_root=FrogSymbol("ui_root")->value;
-      w->_2d_things=wm->things->items;
-      w->_wall_stains=wm->wall_stains->items;
-      w->_floor_stains=wm->floor_stains->items;
-      if(every%3==0) CallScript("update",man->value);
-      body=wm->doors->items->body;
-      c=wm->doors->items->cnt;
-      for(idx=0;idx<c;idx++)
-        CallScript("update",body[idx]);
-//Pick item based on mouse wheel.
-      if(ms.pos.z!=old_msz) {
-        CallScript("selectNextItemByOffset:",player,FrogNumNew(ms.pos.z-old_msz));
-	old_msz=ms.pos.z;
-      }
-// Do physics after update
-      c=w->_2d_things->cnt;
-      body=w->_2d_things->body;
-      for(idx=0;idx<c;idx++) {
-	thing=body[idx];
+CFrogThing *WorldPhysics(C3DWorldManager *wm,...) {
+  C3DThing **body=MAllocIdent(w->_2d_things->body),*thing,*player;
+  player=CallScript("getPlayer",wm);
+  I64 c=w->_2d_things->cnt,idx;
+  for(idx=0;idx<c;idx++) {
+    thing=body[idx];
 //Only update when in view
-	if(Sqr(VIEW_DIST*GRID_SZ)>
-	  Sqr(thing->y-player->y)+Sqr(thing->x-player->x))
-          CallScript("animate",thing);
-      }
-//Handle after we run everything else
-      CallScript("handlePowerups",man->value);
-      body=MAllocIdent(w->_2d_things->body);
-      c=w->_2d_things->cnt;
-      for(idx=0;idx<c;idx++) {
-	thing=body[idx];
-//Only update when in view
-	if(Sqr(VIEW_DIST*GRID_SZ)
+    if(Sqr(VIEW_DIST*GRID_SZ)
 		>Sqr(thing->y-player->y)+Sqr(thing->x-player->x)) {
-          PhysicsOnThing(w,thing,wm,last_tS);
-          if(body[idx]==player) {
-	    player->momx2=0;
-	    player->momy2=0;
-          }
-        }
+      PhysicsOnThing(w,thing,wm,0.);
+      if(body[idx]==player) {
+	player->momx2=0;
+	player->momy2=0;
       }
-     Free(body);
-     last_tS=tS;
-//if (ThingHasClass(player,"CPlayer")) {
-      // set vars for multikey input
-      while(msg=ScanMsg(&m1,&m2)) {        
-        if(ThingHasClass(ui_root,"CUIElem"))
-	  if(UpdateUI(ui_root,msg,m1,m2)) {
-//Dont move during UI
-	    up=FALSE;
-	    down=FALSE;
-	    left=FALSE;
-	    right=FALSE;
-	    goto next;
-	  }
-        switch (msg) {
-	    break;case MSG_MS_L_DOWN:
-	    msx=m1,msy=m2;
-	    break;case MSG_MS_MOVE:
-	    msx=m1,msy=m2;
-	    break;case MSG_KEY_DOWN:
-	    ch=m1,sc=m2;
-	    if (!ch) switch (sc.u8[0]) {
-	        case SC_CURSOR_RIGHT: right=TRUE; break;
-	        case SC_CURSOR_LEFT: left=TRUE; break;
-	        case SC_CURSOR_UP: up=TRUE; break;
-	        case SC_CURSOR_DOWN: down=TRUE; break;
-	      } else switch (ToUpper(ch)) {
-	        case CH_ESC:
-	        case CH_SHIFT_ESC: {
-//No jumping out of try block
-		  //goto en;
-		  cont=FALSE;
-		  break;
-	        }
-	        case '\t': {
-		  CallScript("toggleMenu",player);
-	          MsSet(old_msx=GR_WIDTH/2,old_msy=GR_HEIGHT/2);
-		  goto skip_input;
-		}
-	        case ' ': jump=TRUE; break;
-	        case 'W': up=TRUE; break;
-	        case 'A': left=TRUE; break;
-	        case 'S': down=TRUE; break;
-	        case 'D': right=TRUE; break;
-	        case '1' ... '9':
-		  CallScript("selectQuickItemByNum:",player,FrogNumNew(ch-'1'));
-		  break;
-//On american keybaords,0 is the last key
-	        case '0':
-		  CallScript("selectQuickItemByNum:",player,FrogNumNew(9));
-		  break;
-	      }
-	    break;case MSG_KEY_UP:
-	    ch=m1,sc=m2;
-	    if (!ch) switch (sc.u8[0]) {
-	        start:
-		  case SC_CURSOR_RIGHT: right=FALSE; break;
-		  case SC_CURSOR_LEFT: left=FALSE; break;
-		  case SC_CURSOR_UP: up=FALSE;break;
-		  case SC_CURSOR_DOWN: down=FALSE; break;
-	        end: sc=0;
-	      } else switch (ToUpper(ch)) {
-	        case 'W': up=FALSE; break;
-	        case 'A': left=FALSE; break;
-	        case 'S': down=FALSE; break;
-	        case 'D': right=FALSE; break;
-	      }
-        }
-next:;
-      }
-      if(AsF64(ms_grabbed->value)) {
-        if (jump) {
-	  CallScript("jump",player);
-	  jump=FALSE;
-        }
-        if (up)
-	  C3DThingMoveAtAngle(player,
-	        FrogNumNew(GRID_SZ/4),
-	        FrogNumNew(player->angle));
-        if (down)
-	  C3DThingMoveAtAngle(player,
-	        FrogNumNew(-GRID_SZ/4),
-	        FrogNumNew(player->angle));
-        if (left) {
-	  C3DThingMoveAtAngle(player,
-	        FrogNumNew(GRID_SZ/4),
-	        FrogNumNew(player->angle-pi/2));
-        }
-        if (right)
-	  C3DThingMoveAtAngle(player,
-	        FrogNumNew(GRID_SZ/4),
-	        FrogNumNew(player->angle+pi/2));
-	if(AsF64(ms_grabbed->value)) {
-//AIWNIOS_SetCaptureMouse bases relative coords from GR_WIDTH/2,GR_HEIGHT/2
-          if(ms.pos.x-old_msx) {
-	    player->angle+=(ms.pos.x-old_msx)*SCRN_TURN_RATE;
-          }
-          if(ms.pos.y-old_msy) {
-	    w->angle2=Clamp(w->angle2+(ms.pos.y-old_msy)*SCRN_TURN_RATE,-pi/2.1,pi/2.1);
-          }
-	  MsSet(old_msx=GR_WIDTH/2,old_msy=GR_HEIGHT/2);
-        }
-        if (ms.lb&&20<msy<GR_HEIGHT-75) { // mouse input is best handled with ms, not ScanMsg
-	  mouse_angle=(ms.pos.x-GR_WIDTH/2)*(w->fov/GR_WIDTH);
-	  player->angle+=mouse_angle;
-	  CallScript("fire",FrogSymbol("hand_item")->value);
-	  player->angle-=mouse_angle;
-        }
-      }
-skip_input:;
-      wm->screen_x=msx;
-      wm->screen_y=msy;
-      w->x=player->x;
-      w->y=player->y;
-      w->angle=player->angle+.001;
-      w->cam_height=player->z+.6;
-      w->angle%=2*pi;
-      if(w->angle<0)
-        w->angle+=2*pi;
-      if(ThingHasClass(player->shell_casings,"CFrogArray")) {
-        body=player->shell_casings->items->body;
-        idx=player->shell_casings->items->cnt;
-        while(--idx>=0) {
-	  shellc=body[idx];
-	  if(ThingHasClass(shellc,"CShellCasing")) {
-	    CallScript("update",shellc);
-	  }
-        }
-      }
-      CallScript("animate",FrogSymbol("hand_item")->value);
-      UpdateDrawBuffer;
-      Refresh;
-      if(every&15==0) FrogGarbageCollect;
-    } catch {PutExcept(TRUE);}
-en:
-  AIWNIOS_SetCaptureMouse(FALSE);
-  FlushMsgs;
-  Fs->draw_it=NULL;
-  Refresh;
+    }
+  }
+  Free(body);
+  return FROG_SMALL_NIL;
 }
-WalkAround;
+AddMethod("C3DWorldManager","physics",&WorldPhysics);
+//
+//
+//
+C3DWorldShell *shell=ConstructThing("C3DWorldShell");
+CallScript("init",shell);
+UIShellRun(shell);
 #endif
 #endif               
    

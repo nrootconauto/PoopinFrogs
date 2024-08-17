@@ -17,9 +17,10 @@ fire ->* |
     wy _ w screenCoordToY .
 'move 1 unit backwards to set closer block' .
     player _ w getPlayer .
-    dist _ ((wx - player->x) squared + (wy - player->y) squared)sqrt - 1 .
+    dist _ ((wx - player->x) squared + (wy - player->y) squared) sqrt - 1 .
     a _ wx - player->x arg: wy - player->y .
     wx _ player->x + (a cos * dist ) . 
     wy _ player->y + (a sin * dist ) .
+    dist show .
     w setTile: tile_idx atX: wx / 128 atY: wy / 128 atZ: wz .
   ] .

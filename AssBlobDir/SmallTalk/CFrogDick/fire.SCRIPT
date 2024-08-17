@@ -37,6 +37,7 @@ fire ->* |
         piss -> momx _  (force * a cos).
         piss -> momy _  (force * a sin).
         piss -> momz _  .35 .
+        piss -> from _ player .
         (piss updateWithWeight:  1  / step * ( step - v )  makeParticles: 0) ifTrue: [ 
           'test if wee havent hit the ground '.
           piss_stream addLink: piss .

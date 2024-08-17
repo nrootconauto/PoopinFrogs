@@ -1,0 +1,170 @@
+init ->* |
+  handled=CFrogNum
+  next_refresh=CFrogNum
+  now=CFrogNum
+  player=CPlayer
+  up=CFrogNum
+  down=CFrogNum
+  left=CFrogNum
+  right=CFrogNum
+  idx=CFrogNum
+  ldown=CFrogNum
+  rdown=CFrogNum
+|
+  #ui_shell _ self .
+  #ms_grabbed _ 1 .
+  draw_it_name _ 'Draw3DWorld' .
+
+  up _ 0 . 
+  down _ 0 . 
+  left _ 0 . 
+  right _ 0 . 
+
+  ldown _ 0 .
+  rdown _ 0 .
+
+  next_refresh _ CFrogTime now asSeconds .
+  on_event _ [:v=CUIEvent |
+     player _ #world getPlayer .
+     handled _ 0 .
+     v->type = 'MsLUp' ifTrue: [
+       ldown _ 0 .
+     ].
+     v->type = 'MsRDown' ifTrue: [
+       rdown _ 0 .
+     ].
+     v->type = 'MsLDown' ifTrue: [
+       ldown _ 1 .
+       #ms_grabbed ifTrue: [
+         'Handled because we are firing rhe weaepon during refresh' .
+         handled _ 1 .
+       ] .
+     ] .
+     v->type = 'MsRDown' ifTrue: [
+       rdown _ 1 .
+       #ms_grabbed ifTrue: [
+         'Handled because we are firing rhe weaepon during refresh' .
+         handled _ 1 .
+       ] .
+     ] .
+     v->type = 'KeyUp' ifTrue: [
+       ('' ,v->m1 asCharactor) uppercase = 'W' ifTrue: [
+         handled _ 1 .
+         up _ 0 .
+       ].
+       ('', v->m1 asCharactor) uppercase = 'S' ifTrue: [
+         handled _ 1 .
+         down _ 0 .
+       ].
+       ('', v->m1 asCharactor) uppercase = 'A' ifTrue: [
+         handled _ 1 .
+         left  _ 0 .
+       ].
+       ('', v->m1 asCharactor) uppercase = 'D' ifTrue: [
+         right _ 0 .
+         handled _ 0 .
+       ].
+     ] .
+     v->type = 'KeyDown' ifTrue: [
+       'Tab' .
+       v->m1 = 9 ifTrue: [
+         handled _ 1 .
+         player toggleMenu .
+       ] .
+       'CH_ESC' .
+       v->m1 = 27 ifTrue: [
+         handled _ 1 .
+         exited _ 1  .
+       ] .
+       'CH_SHIFT_ESC' .
+       v->m1 = 28 ifTrue: [
+         handled _ 1 .
+         exited _ 1  .
+       ] .
+       'Space '.
+       v->m1 = 32 ifTrue: [
+          player jump .
+          handled _ 1 .
+       ].
+
+       idx _ 0 .
+       '1234567890' do:[:c=CFrogChr | 
+         v->m1 asCharactor = c ifTrue: [
+           player selectQuickItemByNum:  idx .
+           handled _ 1 .
+         ] .
+         idx _ idx + 1 .
+       ] .
+       
+       ('' ,v->m1 asCharactor) uppercase = 'W' ifTrue: [
+         handled _ 1 .
+         up _ 1.
+       ].
+       ('', v->m1 asCharactor) uppercase = 'S' ifTrue: [
+         handled _ 1 .
+         down _ 1 .
+       ].
+       ('', v->m1 asCharactor) uppercase = 'A' ifTrue: [
+         handled _ 1 .
+         left  _ 1 .
+       ].
+       ('', v->m1 asCharactor) uppercase = 'D' ifTrue: [
+         right _ 1 .
+         handled _ 1 .
+       ].
+       
+     ] .
+     v->type = 'MsMove' ifTrue: [
+       #ms_grabbed ifTrue: [
+         player -> angle _ player->angle + ((v->m1 - (640 / 2) ) * (3.14 / 30 / 7 )) .
+         player -> angle2 _ player -> angle2 + ((v -> m2 - (480 / 2) ) * (3.14 / 30 / 7 )) .
+         player -> angle2 _ player -> angle2 min: 3.14 / 3 .
+         player -> angle2 _ player -> angle2 max: -3.14 / 3 .
+         handled _ 1 .
+       ].
+     ] .
+     v->type = 'MsScroll' ifTrue: [
+       #ms_grabbed ifTrue: [
+         player selectNextItemByOffset: v->m1 .
+         handled _ 1 .
+       ].
+     ] .
+
+     handled ifFalse: [
+       #ui_root sendEventToUI: v .
+     ] .
+  ] .
+  on_refresh _ [
+     player _ #world getPlayer .
+     now _ CFrogTime now asSeconds .
+     now >= next_refresh ifTrue: [
+       next_refresh _ now + (1 / 10 ).
+       #world update
+     ] .
+     player->momx2 _ 0 .
+     player->momy2 _ 0 .
+     player _ #world getPlayer .
+     up ifTrue: [
+       player move: 128 / 4 atAngle: player->angle .
+     ] .
+     down ifTrue: [
+       player move: 128 / 4 atAngle: player->angle  +  3.14  .
+     ] .
+     left ifTrue: [
+       player move: 128 / 4 atAngle: player->angle  - (3.14 / 2 ) .
+     ] .
+     right ifTrue: [
+       player move: 128 / 4 atAngle: player->angle  + (3.14 / 2 ) .
+     ] .
+     (#world getThingsInRadiusFromX: player->x fromY: player->y withRadius: 32 * 128) do: [:t* |
+       t animate .
+     ] .
+ 
+     #world handlePowerups .
+     ldown ifTrue: [
+       #hand_item fire .
+     ] .
+     #hand_item animate .
+     #world physics .
+  ] .
+  ^ self 

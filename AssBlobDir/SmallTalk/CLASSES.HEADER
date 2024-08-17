@@ -75,7 +75,17 @@ class CFrogBin:CFrogThing {
 //
 // See /UI.HC
 //
-
+class CUIEvent:CFrogThing {
+  I64 m1,m2;
+  I64 raw_type;
+//'KeyUp'
+//'KeyDown'
+//'MsLUp'
+//'MsRUp'
+//'MsLDown'
+//'MsRDown'
+  CFrogStr * type;
+};
 class CUIElem:CFrogThing {
  //Negative means from side of parent/window
   I64 x,y;
@@ -98,6 +108,13 @@ class CUIElem:CFrogThing {
   Bool update_parent_first;
   Bool focus;
   Bool dont_draw,pad[4];
+};
+class CUIShell:CFrogThing {
+  CUIElem *ui_root; //Will be stored in #ui_root
+  CFrogStr *draw_it_name;
+  CFrogBlock *on_refresh;
+  CFrogBlock *on_event; //See CUIEvent,send eveents to #ui_root via sendEventToUI:
+  Bool exited dft FALSE; //TRUE on exit
 };
 class CUIChatLog:CUIElem {
   U8 *constructor dft "UIChatLogInit";
@@ -209,8 +226,10 @@ class C3DThing:CFrogThing {
   Bool no_fall_off_edge;
   Bool floating;
   Bool hit_thing; //Set by physics when we hit a thing
-  Bool pad[8-3];
-  CD2 scrn_st,scrn_en;
+  Bool draw_flip;
+  Bool pad[8-4];
+  CDC *draw_face no_serialize 1; //Private
+  CD2 scrn_st,scrn_en; //Private
 };
 class C3DWorldManager:CFrogThing {
   U8 *world_handle;
@@ -444,6 +463,7 @@ class CPlayer:C3DThing {
   CPissStream *piss_stream recur_serialize 1;
   F64 last_x,last_y;
   CFrogArray *quest_flags recur_serialize 1;
+  F64 angle2; // up/down angle
 //Has form "QuestName/Codename"
   CFrogArray *quest_seen_responses recur_serialize 1;
 //How many bloody footprints will be made
@@ -536,4 +556,7 @@ class CMarkerDrugItem:CHandItem {
   F64 last_fire;
 };
 class CMarkerDrugPickup:CPickup {
+};
+
+class C3DWorldShell:CUIShell {
 };
