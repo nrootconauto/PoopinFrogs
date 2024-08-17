@@ -684,6 +684,8 @@ U0 UIShellDrawIt(CTask *t,CDC *dc) {
 CFrogThing *UIShellRun(CUIShell *shell,...) {
   CDC *dc=DCNew(GR_WIDTH,GR_HEIGHT);
   DCDepthBufAlloc(dc);
+  SettingsPush;
+  AutoComplete(0);
   WinMax;
   WinBorder(0);
   dc->flags|=DCF_NO_TRANSPARENTS;
@@ -802,6 +804,7 @@ PrintI("ld",ms.lb);
   FramePtrDel("screen_dc");
   Fs->draw_it=NULL;
   DCDel(dc);
+  SettingsPop;
 }
 
 #if__CMD_LINE__

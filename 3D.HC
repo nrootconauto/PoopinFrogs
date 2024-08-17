@@ -2441,9 +2441,7 @@ AddMethod("C3DWorldManager","physics",&WorldPhysics);
 //CallScript("newLandscapeWithWidth:withHeight:",FrogSymbol("world")->value,FrogNumNew(100),FrogNumNew(100));
 C3DWorldShell *shell=ConstructThing("C3DWorldShell");
 CallScript("init",shell);
-Prof(10);
 UIShellRun(shell);
-ProfRep;
 #endif
 #endif               
    
