@@ -35,6 +35,9 @@ class CAST:CQue {
     CQue body;
   };
   Bool compiled;
+//Used by escape analysis
+  Bool refs_extern_vars;
+  Bool escapes;
 };
 class CMethod {
   U8 name[STR_LEN];

@@ -2,6 +2,33 @@
 #include "Parser.HC";
 #include "RunTime.HH";
 #include "Set.HC";
+I64 CallSTFast(U8 (*fun_ptr)(U8 *self,...),CFrogThing *self,I64 argc,I64 *argv) {
+  switch(argc) {
+    case:
+      return fun_ptr(self);
+    case:
+      return fun_ptr(self,argv[0]);
+    case:
+      return fun_ptr(self,argv[0],argv[1]);
+    case:
+      return fun_ptr(self,argv[0],argv[1],argv[2]);
+    case:
+      return fun_ptr(self,argv[0],argv[1],argv[2],argv[3]);
+    case:
+      return fun_ptr(self,argv[0],argv[1],argv[2],argv[3],argv[4]);
+    case:
+      return fun_ptr(self,argv[0],argv[1],argv[2],argv[3],argv[4],argv[5]);
+    case:
+      return fun_ptr(self,argv[0],argv[1],argv[2],argv[3],argv[4],argv[5],argv[6]);
+    case:
+      return fun_ptr(self,argv[0],argv[1],argv[2],argv[3],argv[4],argv[5],argv[6],argv[7]);
+    case:
+      return fun_ptr(self,argv[0],argv[1],argv[2],argv[3],argv[4],argv[5],argv[6],argv[7],argv[8]);
+  }
+  return CallVaArgs(fun_ptr,argc,argv,self);
+}
+
+
 //MAlloc'ed variables are aligned  to 8 0b1000,so we set bit 0 for "Small Var"
 #define FROG_SMALL_NUM 0b1
 #define FROG_SMALL_NIL 0b11
@@ -367,7 +394,7 @@ U0 SetClassMemberVal(CFrogThing *t,U8 *member,I64 val) {
   CFrogThing dummy;
   F64 v2;
   MemSet(&dummy,0,sizeof CFrogThing);
-  if(!cls) NULL;
+  if(!cls) return NULL;
   if(mlst=MemberFind(member,cls)) {
     if(mlst->member_class->ptr_stars_cnt==1) {
       StrCpy(dummy.class_name,mlst->member_class[-1].str);
@@ -612,24 +639,14 @@ U8 *Str2FunPtr(U8 *str)  {
 }
 CFrogThing *ConstructThing(U8 *name,...) {
   CConstructorPair *p;
-  CFrogThing *ret;
+  CFrogThing *ret=NULL;
   CHashFun *fun;
   U0 (*init)(CFrogThing*);
 
   if(!argc) {
     if(ret=UniverseConstructThingS(name)) {
-      QueIns(ret,allocs_head.last);
       return ret;
     }
-    ret=_ConstructThing(name,argc,argv);
-    if(!ret) return FROG_SMALL_NIL;
-    UniverseAddConstructorPair(name,
-      ret,
-      Str2FunPtr(GetClassMemberValI64(ret,"constructor")),
-      Str2FunPtr(GetClassMemberValI64(ret,"destroy"))
-    );
-    QueRem(ret); //Remove from GC
-    return ConstructThing(name);
   } else
     ret=_ConstructThing(name,argc,argv);
   if(!ret) ret=FROG_SMALL_NIL;
@@ -646,12 +663,12 @@ U0 FrogStrInit(CFrogStr *a) {
   a->items=U8SetNew(frog_mem_task);
 } 
 CFrogArray *FrogArrayNew() {
-  CFrogArray *ret=ConstructThing("CFrogArray");
+  CFrogArray *ret=UniverseConstructThing(#exe{StreamPrint("%d",UniverseAddClass("CFrogArray"));});
   return ret;
 }
 
 CFrogThing *FrogStrNew(U8 *s) {
-  CFrogStr *str=ConstructThing("CFrogStr");
+  CFrogStr *str=UniverseConstructThing(#exe{StreamPrint("%d",UniverseAddClass("CFrogStr"));});
   CU8Set *items=str->items;
   for(;*s;s++) {
     U8SetAdd(items,*s);
@@ -666,7 +683,7 @@ CFrogThing *CallPtr(U8 *fun_ptr,U8 *must_have,CFrogThing *self,...) {
      return FROG_SMALL_NIL;
     }
   }
-  CFrogThing *ret=CallVaArgs(fun_ptr,argc,argv,self);
+  CFrogThing *ret=CallSTFast(fun_ptr,self,argc,argv);
   if(!ret)
     ret=FROG_SMALL_NIL;
   return ret;
@@ -676,7 +693,7 @@ CFrogThing *CallPtr2(U8 *fun_ptr,I64 universe_class,CFrogThing *self,...) {
   if(!ThingHasClass2(self,universe_class)) {
     return FROG_SMALL_NIL;
   }
-  CFrogThing *ret=CallVaArgs(fun_ptr,argc,argv,self);
+  CFrogThing *ret=CallSTFast(fun_ptr,self,argc,argv);
   if(!ret)
     ret=FROG_SMALL_NIL;
   return ret;
@@ -692,20 +709,20 @@ CFrogThing *CallScript(U8 *name,CFrogThing *self,...) {
   if(ThingHasClass(self,"CFrogClass")) {
     fptr=UniverseGetClassMethodForClassByIdx(NameToUniverseNumber(self(CFrogClass*)->name),self->id);   
     if(fptr&&fptr!=&Useless)  { //Dumb hack
-      ret=CallVaArgs(fptr,argc,argv,self);
+      ret=CallSTFast(fptr,self,argc,argv);
       goto fin;
     }
   }
   if(!(self&1)) {
     fptr=UniverseGetMethodForClassByIdx(NameToUniverseNumber(name),self->id);   
     if(fptr) 
-      ret=CallVaArgs(fptr,argc,argv,self);
+      ret=CallSTFast(fptr,self,argc,argv);
     goto fin;
   } else {
     id=UniverseAddClass(FrogThingClassName(self));
     fptr=UniverseGetMethodForClassByIdx(NameToUniverseNumber(name),id);
     if(fptr) 
-      ret=CallVaArgs(fptr,argc,argv,self);
+      ret=CallSTFast(fptr,self,argc,argv);
     goto fin;
   }
 fin:
@@ -721,20 +738,20 @@ CFrogThing *CallScriptUniverse(I64 who,CFrogThing *self,...) {
     id=self(CFrogClass*)->class_id;
     fptr=UniverseGetClassMethodForClassByIdx(who,id);   
     if(fptr&&fptr!=&Useless) { //Dumb hack
-      ret=CallVaArgs(fptr,argc,argv,self);
+      ret=CallSTFast(fptr,self,argc,argv);
       goto fin;
     }
   }
   if(!(self&1)) {
     fptr=UniverseGetMethodForClassByIdx(who,self->id);   
     if(fptr) 
-      ret=CallVaArgs(fptr,argc,argv,self);
+      ret=CallSTFast(fptr,self,argc,argv);
     goto fin;
   } else {
     id=UniverseAddClass(FrogThingClassName(self));
     fptr=UniverseGetMethodForClassByIdx(who,id);
     if(fptr) 
-      ret=CallVaArgs(fptr,argc,argv,self);
+      ret=CallSTFast(fptr,self,argc,argv);
     goto fin;
   }
 fin:
@@ -745,7 +762,7 @@ fin:
 
 CFrogClass *FrogClassNew(I64 cls_idx) {
   CFrogClass *ret;
-  ret=ConstructThing("CFrogClass");
+  ret=UniverseConstructThing(#exe{StreamPrint("%d",UniverseAddClass("CFrogClass"));});
   ret->class_id=cls_idx;
   U8 *name;
   if(name=I64SetGetAt(universe_values,cls_idx))
@@ -826,7 +843,7 @@ CLocalsGeneric *STNewReplFrame(I64 *return_flag) {
 }
 
 CFrogThing *FrogBlockNew(U8 *fptr,CLocalsGeneric *frame,CFrogThing *self) {
-  CFrogBlock *ret=ConstructThing("CFrogBlock");
+  CFrogBlock *ret=UniverseConstructThing(#exe{StreamPrint("%d",UniverseAddClass("CFrogBlock"));});
   I64 idx;
   ret->frame=frame;
   ret->fun_ptr=fptr;
@@ -1024,7 +1041,7 @@ CFrogNum *FrogStrNotEqual(CFrogStr *self,...) {
 }
 
 CFrogStr *FrogStrCopy(CFrogStr *self,...) {
-  CFrogStr *s=ConstructThing("CFrogStr");
+  CFrogStr *s=UniverseConstructThing(#exe{StreamPrint("%d",UniverseAddClass("CFrogStr"));});
   Free(s->items->body);
   s->items->body=MAllocIdent(self->items->body,s->items->mem_task);
   s->items->cnt=self->items->cnt;
@@ -1033,7 +1050,7 @@ CFrogStr *FrogStrCopy(CFrogStr *self,...) {
 
 
 CFrogStr *FrogStrCopy(CFrogStr *self,...) {
-  CFrogStr *s=ConstructThing("CFrogStr");
+  CFrogStr *s=UniverseConstructThing(#exe{StreamPrint("%d",UniverseAddClass("CFrogStr"));});;
   Free(s->items->body);
   s->items->body=MAllocIdent(self->items->body,s->items->mem_task);
   s->items->cnt=self->items->cnt;
@@ -1041,7 +1058,7 @@ CFrogStr *FrogStrCopy(CFrogStr *self,...) {
 }
 CFrogArray *FrogArrayCopy(CFrogStr *self,...) {
   I64 cnt;
-  CFrogArray *s=ConstructThing("CFrogArray"),**body;
+  CFrogArray *s=UniverseConstructThing(#exe{StreamPrint("%d",UniverseAddClass("CFrogArray"));}),**body;
   Free(s->items->body);
   s->items->body=MAllocIdent(self->items->body,s->items->mem_task);
   cnt=self->items->cnt;
@@ -1183,7 +1200,7 @@ DbgPrint("invalid block:%P",self->fun_ptr);
   }
 fin:
   Fs->user_data=cur;
-  ret=CallVaArgs(self->fun_ptr,argc,argv,self->self,cur);
+  ret=CallSTFast(self->fun_ptr,self,argc,argv);
   if(*cur->return_flag) {
 //Propigate the return upwards
     cur2=old_frame;
@@ -1599,8 +1616,7 @@ CFrogThing *FrogThingNew(CFrogClass *cls,...) {
   CHashClass *tmph;
   I64 cls_id=#exe{StreamPrint("%d",UniverseAddClass("CFrogClass"));};
   if(cls->id!=cls_id) return FROG_SMALL_NIL;
-  U8 *name=I64SetGetAt(universe_values,cls->class_id);
-  return ConstructThing(name);
+  return UniverseConstructThing(cls->class_id);
 }
 AddClassMethod("CFrogThing","basicNew",&FrogThingNew);
 
@@ -1676,7 +1692,7 @@ AddMethod("CFrogBlobFile","readLump:",&FrogBlobFileReadLump);
 
 F64 frog_time_offset=-tS;
 CFrogThing *FrogTimeNow(CFrogThing *ul,...) {
-  CFrogTime *t=ConstructThing("CFrogTime");
+  CFrogTime *t=UniverseConstructThing(#exe{StreamPrint("%d",UniverseAddClass("CFrogTime"));});
   t->ts=FrogNumNew(tS+frog_time_offset);
   return t;
 }

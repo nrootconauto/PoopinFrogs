@@ -143,7 +143,6 @@ init ->* |
      ] .
      player->momx2 _ 0 .
      player->momy2 _ 0 .
-     player _ #world getPlayer .
      up ifTrue: [
        player move: 128 / 4 atAngle: player->angle .
      ] .

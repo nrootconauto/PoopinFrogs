@@ -1,0 +1,86 @@
+newLandscapeWithWidth: w=CFrogNum withHeight: h=CFrogNum
+  -> C3DWorldManager 
+|
+  ret=C3DWorldManager
+  player=CPlayer
+  grid_sz=CFrogNum
+  r=CFrogRandom
+  vectors=CFrogArray
+  tmp=CFrogArray
+  angle=CFrogNum
+  vector=CFrogArray
+  g1=CFrogNum
+  g2=CFrogNum
+  g3=CFrogNum
+  g4=CFrogNum
+  lerp=CFrogBlock
+  gx=CFrogNum
+  gy=CFrogNum
+  x1=CFrogNum
+  x2=CFrogNum
+  col=CFrogArray
+  fill_with=CFrogBlick
+|
+  r _ CFrogRandom new .
+  ret _ self .
+  #world _ ret .
+  ret emptyWorldWithWidth: w withHeight: h .
+  player _ CPlayer new .
+  player -> x _ w * 128 / 2 + 64 . 
+  player -> y _ h * 128 / 2 + 64 . 
+
+  grid_sz _ 10 .
+
+  vectors _ #() .  
+  
+  'Perlin noise' .
+
+  0 to: (w / grid_sz) ceil + 1 do: [:x=CFrogNum|
+    tmp _ #() .
+    0 to: (h / grid_sz) ceil + 1 do: [:y=CFrogNum|
+      angle _ r next * 6.28 .
+      tmp add: #((angle cos ) (angle sin )) .
+    ] .
+    vectors add: tmp .
+  ] .
+
+  lerp _ [:a=CFrogNum :b=CFrogNum :v=CFrogNum |
+     a + ((b - a )*v)
+  ].
+
+  'Dirt' .
+  fill_with _ 3 . 
+
+  0 to: w  do: [:x=CFrogNum|
+    0 to: h do: [:y=CFrogNum|
+      gx _ x rem: grid_sz .
+      gy _ y rem: grid_sz .
+
+      vector _ ((vectors at: x / grid_sz) at: y /grid_sz) .
+      g1 _ ((gx / grid_sz ) * (vector at: 0)) + 
+        ((gy / grid_sz ) * (vector at: 1 )).
+
+      vector _ ((vectors at: x / grid_sz + 1) at: y / grid_sz  ) .
+      g2 _ ((1 - (gx / grid_sz)) negated  * (vector at: 0)) + 
+        ((gy / grid_sz ) * (vector at: 1 )).
+
+      vector _ ((vectors at: x / grid_sz ) at: y /grid_sz + 1) .
+      g3 _ ((gx / grid_sz ) * (vector at: 0)) + 
+        ((1 - (gy / grid_sz)) negated * (vector at: 1 )).
+
+      vector _ ((vectors at: x / grid_sz + 1) at: y / grid_sz + 1) .
+      g4 _ ((1 - (gx / grid_sz)) negated * (vector at: 0)) + 
+        ((1 -  (gy / grid_sz)) negated  * (vector at: 1 )).
+
+
+      x1 _ lerp value: g1 value: g2 value: gx / grid_sz .
+      x2 _ lerp value: g3 value: g4 value: gx / grid_sz .
+
+      x1 _ lerp value: x1 value: x2 value: gy / grid_sz .
+      -127 to: x1 * 6 do: [:z=CFrogNum |
+        #world setTile: fill_with atX: x atY: y atZ: z .
+      ] .
+    ].
+  ] .
+
+  ^ ret .

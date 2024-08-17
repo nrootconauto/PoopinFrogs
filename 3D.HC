@@ -187,7 +187,6 @@ class C3DWorld {
    CDC *floor_textures1616[0x10000/2];
    CDC *ceil_textures[0x10000/2];
    C3DThingTemplate *thing_templates[0x10000];
-   CDoor **door_mat;
    I64 mp_done,dc_lock;
    CQue _2d_thing_templates; 
    CI64Set *_2d_things;
@@ -235,18 +234,6 @@ U0 C3DThingTemplateDel(C3DThingTemplate *t) {
 U0 C3DWorldSetFov(C3DWorld *w,F64 fov=pi/2) {
   w->fov=fov;
 }
-//Call on level load
-U0 WorldUpdateDoorMat(C3DWorldManager *man,...) {
-  I64 idx;
-  CDoor *door,**doors;
-  MemSetI64(w->door_mat,NULL,w->world_height*w->world_width);
-  doors=man->doors->items->body;
-  for(idx=0;idx!=man->doors->items->cnt;idx++) {
-    door=doors[idx];
-    w->door_mat[door->x+door->y*w->world_width]=door;
-  }
-}
-AddMethod("C3DWorldManager","updateDoorMatrix",&WorldUpdateDoorMat);
 
 C3DWorld *LoadWorldFromOldFile(U8 *blob_file="ASS",U8 *filename,F64 fov=pi/2) {
   C3DWorld *ret=CAlloc(sizeof(C3DWorld));
@@ -269,7 +256,6 @@ C3DWorld *LoadWorldFromOldFile(U8 *blob_file="ASS",U8 *filename,F64 fov=pi/2) {
   ret->step_width_y=4;
   ret->world_width=world->w;
   ret->world_height=world->h;
-  ret->door_mat=MAlloc(world->h*world->w*8);
   ret->world_blocks=CAlloc(world->h*world->w*256);
   w=ret;
   QueInit(&ret->_2d_thing_templates);
@@ -407,7 +393,6 @@ C3DWorld *LoadWorldFromOldFile(U8 *blob_file="ASS",U8 *filename,F64 fov=pi/2) {
     CallScript("addDoor:",man,door);
   }
   Free(world);
-  WorldUpdateDoorMat(man);
   return ret;
 }
 
@@ -453,7 +438,7 @@ I64 PassesThoughBlock(C3DWorld *w,F64 slope,I64 x,I64 y,F64 *dist,F64 cos,F64 si
     tmp=cx1*slope;
     if(cy1<=tmp<=cy2) {
       if(dist) {
-        tmp=Sqrt(Sqr(cx1*GRID_SZ)+Sqr(tmp*GRID_SZ));
+        tmp=Sqr(cx1*GRID_SZ)+Sqr(tmp*GRID_SZ);
         smallest=Min(smallest,tmp);
         biggest=Max(biggest,tmp);
       }
@@ -465,7 +450,7 @@ I64 PassesThoughBlock(C3DWorld *w,F64 slope,I64 x,I64 y,F64 *dist,F64 cos,F64 si
     if(cy1<=tmp<=cy2) {
       found=TRUE;
       if(dist) {
-        tmp=Sqrt(Sqr(cx2*GRID_SZ)+Sqr(tmp*GRID_SZ));
+        tmp=Sqr(cx2*GRID_SZ)+Sqr(tmp*GRID_SZ);
         smallest=Min(smallest,tmp);
         biggest=Max(biggest,tmp);
       }
@@ -476,7 +461,7 @@ I64 PassesThoughBlock(C3DWorld *w,F64 slope,I64 x,I64 y,F64 *dist,F64 cos,F64 si
     tmp=cy1/slope;
     if(cx1<=tmp<=cx2) {
       if(dist) {
-        tmp=Sqrt(Sqr(cy1*GRID_SZ)+Sqr(tmp*GRID_SZ));
+        tmp=Sqr(cy1*GRID_SZ)+Sqr(tmp*GRID_SZ);
         smallest=Min(smallest,tmp);
         biggest=Max(biggest,tmp);
       }
@@ -487,7 +472,7 @@ I64 PassesThoughBlock(C3DWorld *w,F64 slope,I64 x,I64 y,F64 *dist,F64 cos,F64 si
     tmp=cy2/slope;
     if(cx1<=tmp<=cx2) {
       if(dist) {
-        tmp=Sqrt(Sqr(cy2*GRID_SZ)+Sqr(tmp*GRID_SZ));
+        tmp=Sqr(cy2*GRID_SZ)+Sqr(tmp*GRID_SZ);
         smallest=Min(smallest,tmp);
         biggest=Max(biggest,tmp);
       }
@@ -496,9 +481,9 @@ I64 PassesThoughBlock(C3DWorld *w,F64 slope,I64 x,I64 y,F64 *dist,F64 cos,F64 si
   }
   if(dist) {
     if(!far_side)
-      *dist=smallest;
+      *dist=Sqrt(smallest);
     else
-      *dist=biggest;
+      *dist=Sqrt(biggest);
   }
   return found;
 }
@@ -624,8 +609,8 @@ C3DThing *BumpsIntoThing(C3DThing *self,...) {
 } 
 AddMethod("C3DThing","hitsThing:",&BumpsIntoThing);
 CFrogNum *C3DThingPathFindWalkTowardsThing(C3DThing *self,...) {
-  C3DThing *thing=argv[0];
   CPFPoint pt;
+  C3DThing *thing=argv[0];
   if(!ThingHasClass(thing,"C3DThing")) return FROG_SMALL_NIL;
   CI64Set *path=PathFinder(self->x/128,self->y/128,Floor(self->z),thing->x/128,thing->y/128,Floor(thing->z),&BlockAtXYZ,AsF64(argv[1]));
   if(path->cnt<2) {
@@ -1047,102 +1032,6 @@ skip:;
 en:;
   return NULL;
 }
-U0 DrawWallSegment(C3DWorld *w,I64 segment,I64 x,I64 start_y,CDC *texture,I64 height,F64 dist,F64 z,I64 tile_idx,I64 side) {
-  I64 offx,offy,stain_color;
-  CDC *stain=WallStain(w,tile_idx,z,side,&offx,&offy);
-  if(!texture||!height) return;
-  U8 *dst=w->to_dc->body;
-  I32 *depth_dst,idist=dist;
-  I64 tmp,i,segment_y,width=w->to_dc->width_internal,anim_frame=ToI64(Frog_tS/ANIM_DELAY)%AnimDCCnt(texture),xp;
-  dst+=x+MaxI64(start_y,0)*width;
-  if(w->to_dc->depth_buf)
-    depth_dst=w->to_dc->depth_buf+x+MaxI64(start_y,0)*width;
-  else
-    depth_dst=NULL;
-  xp=Lerp(segment/ToF64(GRID_SZ),0,texture->width-1);
-i=0;
-ent:
-  for(;i<=height;i+=w->step_width) {
-    if(i+start_y<0) {
-      i=-start_y;
-      dst=w->to_dc->body+(start_y+i)*width+x;
-      if(w->to_dc->depth_buf)
-	depth_dst=w->to_dc->depth_buf+(start_y+i)*width+x;
-      goto ent;
-    }
-    if(0<=i+start_y<GR_HEIGHT-w->step_width) {
-      segment_y=height/(DIST_SCALE/(dist+1))*(i/ToF64(height))*texture->height;
-      segment_y=AbsI64(segment_y);
-      tmp=Fog(GrPeek0(
-	    texture+anim_frame,
-	    xp,
-	    segment_y%(texture->height)),idist);
-      if(stain) {
-	if(0<=(stain_color=GrPeek(stain,xp-offx,segment_y-offy))) {
-	  if(stain_color!=TRANSPARENT)
-	    tmp=Fog(stain_color,idist);
-        }
-      }
-      idist=dist;
-      if(w->step_width==2) {
-        if(depth_dst[0]>=idist) {
-          dst(U16*)[0]=tmp;
-          dst+=width;
-          dst(U16*)[0]=tmp>>8; //Dither
-          dst+=width;
-          if(depth_dst) {
-	    depth_dst[0]=idist;
-	    depth_dst[1]=idist;
-	    depth_dst+=width;
-	    depth_dst[0]=idist;
-	    depth_dst[1]=idist;
-	    depth_dst+=width;
-          }
-        } else  {
-          depth_dst+=width*2;
-	  dst+=width*2;
-        }
-      } else if(w->step_width==4) {
-        if(depth_dst[0]>=idist) {
-          dst(U32*)[0]=tmp;
-          dst+=width;
-          dst(U32*)[0]=tmp>>8; //Dither
-          dst+=width;
-          dst(U32*)[0]=tmp;
-          dst+=width;
-          dst(U32*)[0]=tmp>>8; //Dither
-          dst+=width;
-          if(depth_dst) {
-	    depth_dst[0]=idist;
-	    depth_dst[1]=idist;
-	    depth_dst[2]=idist;
-	    depth_dst[3]=idist;
-	    depth_dst+=width;
-	    depth_dst[0]=idist;
-	    depth_dst[1]=idist;
-	    depth_dst[2]=idist;
-	    depth_dst[3]=idist;
-	    depth_dst+=width;
-	    depth_dst[0]=idist;
-	    depth_dst[1]=idist;
-	    depth_dst[2]=idist;
-	    depth_dst[3]=idist;
-	    depth_dst+=width;
-	    depth_dst[0]=idist;
-	    depth_dst[1]=idist;
-	    depth_dst[2]=idist;
-	    depth_dst[3]=idist;
-	    depth_dst+=width;
-          }
-        } else  {
-          depth_dst+=width*4;
-	  dst+=width*4;
-        }
-      }
-    } else if(i+start_y>=w->to_dc->height-w->step_width)
-      break;
-  }
-}
 CDC *FloorStain(C3DWorld *w,I64 tx,I64 ty,I64 *xoff,I64 *yoff,Bool ceil) {
   CFloorStain **body=w->_floor_stains->body,*f;
   I64 idx=w->_floor_stains->cnt;
@@ -1320,9 +1209,9 @@ I64 GetColorForRay(C3DWorldManager *man,CD3 *ray,F64 dist,F64 *hit_at,CD3 *hit_c
   I64 stepx=Sign(ray->z);
   I64 stepy=Sign(-ray->x);
   I64 stepz=Sign(-ray->y);
-  F64 current_x_index=Max(1,Ceil(x));
-  F64 current_y_index=Max(1,Ceil(y));
-  F64 current_z_index=Max(1,Ceil(w->cam_height));
+  F64 current_x_index=Ceil(x);
+  F64 current_y_index=Ceil(y);
+  F64 current_z_index=Ceil(w->cam_height);
   if(stepx<0) current_x_index--;
   if(stepy<0) current_y_index--;
   if(stepz<0) current_z_index--;
@@ -1347,7 +1236,7 @@ I64 GetColorForRay(C3DWorldManager *man,CD3 *ray,F64 dist,F64 *hit_at,CD3 *hit_c
   long.y=y+VIEW_DIST*128*sin;
   tx=x;
   ty=y;
-  tz=w->cam_height;
+  tz=Floor(w->cam_height);
   idx=ty*w->world_width+tx;
   for(cur=0;cur!=cnt&&!hit;cur++) {
     if(0<=tx<w->world_width)
@@ -1469,7 +1358,7 @@ valid_color:
 	  if(dist<hit_dist) {
 	    if(hit_cords) {
               //Slightly before our wall(not in wall).
-	      dist=Clamp(dist-8,0,32*VIEW_DIST);
+	      dist=Clamp(dist-2.,0,128*VIEW_DIST);
 	      hit_cords->x=w->x+cos*dist;
 	      hit_cords->y=w->y+sin*dist;
 	      hit_cords->z=slope*(dist/128.)+w->cam_height;
@@ -1552,12 +1441,12 @@ I64 mp_done=0;
 U0 GenerateRay(C3DWorld *world,CD3 *ray_look,F64 i,F64 j,F64 w,F64 h,CD3 *pos,CD3 *lookat) {
   CD3 up,hori,vert,look;
   F64 tmp,fov2,tmp2;
+  fov2=world->fov/2;
   D3Equ(&up,0,1,0);
   D3Sub(&look,lookat,pos);
   D3Unit(&look);
   D3Cross(&hori,&look,&up);
   D3Cross(&vert,&hori,&look);
-  fov2=world->fov/2;
   
   CD3 samph,sampv,slook;
   i=(2*(i/w)-1);
@@ -1566,7 +1455,6 @@ U0 GenerateRay(C3DWorld *world,CD3 *ray_look,F64 i,F64 j,F64 w,F64 h,CD3 *pos,CD
   D3Mul(&sampv,j*fov2,&vert);
   D3Add(&slook,&samph,&sampv);
   D3Add(ray_look,&slook,&look);
-  D3Unit(ray_look);
 }
 U0 MPCastCol(C3DWorldManager *wm) {
   C3DWorld *w=wm->world_handle;
@@ -1579,12 +1467,12 @@ U0 MPCastCol(C3DWorldManager *wm) {
   CDC *what;
   CD3 *p;
   I64 *tiles,tile;
-  I64 color;
+  I64 color,col;
   U32 *ptr;
   I32 *depth_ptr;
   I64 tx,ty;
   I64 segment;
-  I32 idist;
+  I32 idist,row;
   Bool hit_wall;
   F64 angle_offset_table[GR_WIDTH];
   F64 y_angle_offset_table[GR_HEIGHT];
@@ -1635,39 +1523,34 @@ F64 dir=Arg(ray.z,ray.x);
       p->y=w->y+ray.y*I16_MAX;
       p->z=w->cam_height;
       color=GetColorForRay(wm,&ray,32*GRID_SZ,&dist,p);
-      if(color!=-1) {
-	  *ptr=color;
-	  idist=dist;
-          depth_ptr[0]=idist;
-          depth_ptr[1]=idist;
-          depth_ptr[2]=idist;
-          depth_ptr[3]=idist;
-	  ptr(U8*)+=to_dc->width_internal;
-	  depth_ptr+=to_dc->width_internal;
-
-	  *ptr=color>>8; //Dither
-          depth_ptr[0]=idist;
-          depth_ptr[1]=idist;
-          depth_ptr[2]=idist;
-          depth_ptr[3]=idist;
-	  ptr(U8*)+=to_dc->width_internal;
-	  depth_ptr+=to_dc->width_internal;
-
-	  *ptr=color;
-          depth_ptr[0]=idist;
-          depth_ptr[1]=idist;
-          depth_ptr[2]=idist;
-          depth_ptr[3]=idist;
-	  ptr(U8*)+=to_dc->width_internal;
-	  depth_ptr+=to_dc->width_internal;
-
-	  *ptr=color>>8; //Dither
-          depth_ptr[0]=idist;
-          depth_ptr[1]=idist;
-          depth_ptr[2]=idist;
-          depth_ptr[3]=idist;
-	  depth_ptr+=to_dc->width_internal;
-	  ptr(U8*)+=to_dc->width_internal;
+      idist=dist;
+      idist|=idist<<32;
+      if(color!=-1&&w->step_width==4) {
+        for(col=0;col!=4;col++) {
+	    if(col&1)
+	      ptr(U32*)[0]=color;
+	    else
+	      ptr(U32*)[0]=color>>8; //Dither
+            depth_ptr[0](I64)=idist;
+            depth_ptr[2](I64)=idist;
+	    ptr(U8*)+=to_dc->width_internal;
+	    depth_ptr+=to_dc->width_internal;
+	}
+	goto fin;
+      }
+      if(color!=-1&&w->step_width==8) {
+	  for(col=0;col!=8;col++) {
+	    if(col&1)
+	      ptr(U64*)[0]=color;
+	    else
+	      ptr(U64*)[0]=color>>8|color<<(64-8); //Rotate for Dither
+            depth_ptr[0](I64)=idist;
+            depth_ptr[2](I64)=idist;
+            depth_ptr[4](I64)=idist;
+            depth_ptr[6](I64)=idist;
+	    ptr(U8*)+=to_dc->width_internal;
+	    depth_ptr+=to_dc->width_internal;
+	  }
 	  goto fin;
       }
       ptr(U8*)+=to_dc->width_internal*w->step_width;
@@ -2438,10 +2321,22 @@ fin:
   dc->depth_buf=odepth_buf;
   w->to_dc=NULL;
 }
-U0 DrawIt(CTask *t,CDC *dc) {
-  w->to_dc->flags|=DCF_NO_TRANSPARENTS;
-  GrBlot(dc,0,0,w->to_dc);
+
+CFrogThing *WorldManagerEmptyWithDim(C3DWorldManager *man,...) {
+  w->world_width=AsF64(argv[0]);
+  w->world_height=AsF64(argv[1]);
+  Free(w->world_blocks);
+  w->world_blocks=CAlloc(256*(w->world_width*w->world_height),frog_mem_task);
+  CFrogDictionary *old_templates=man->thing_templates,*ot2=man->tile_templates;
+  CallScript("init",man); //Update grid
+  man->thing_templates=old_templates;
+  man->tile_templates=ot2;
+  w->_wall_stains=man->wall_stains->items;
+  w->_floor_stains=man->floor_stains->items;
+  w->_2d_things=man->things->items;
+  return man;
 }
+AddMethod("C3DWorldManager","emptyWorldWithWidth:withHeight:",&WorldManagerEmptyWithDim);
 CDC *MakeMinimap1(C3DWorldManager *wm,F64 x,F64 y,F64 angle,I64 radius,F64 height) {
 /*
   CDC *mask=DCNew(radius*2,radius*2),*tile_dc;
@@ -2543,9 +2438,12 @@ AddMethod("C3DWorldManager","physics",&WorldPhysics);
 //
 //
 //
+//CallScript("newLandscapeWithWidth:withHeight:",FrogSymbol("world")->value,FrogNumNew(100),FrogNumNew(100));
 C3DWorldShell *shell=ConstructThing("C3DWorldShell");
 CallScript("init",shell);
+Prof(10);
 UIShellRun(shell);
+ProfRep;
 #endif
 #endif               
    

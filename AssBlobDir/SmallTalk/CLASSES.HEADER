@@ -186,7 +186,7 @@ class CUIGrid:CUIElem {
   I64  grid_w,grid_h;
   CFrogArray *mat;
   CUIGridItem *active;
-  U8 *constructor dft "UIElemInit";
+  U8 *constructor dft "UIElemInit";
   U8 *draw_it dft "UIGridDraw";
 };
 
@@ -226,7 +226,7 @@ class C3DThing:CFrogThing {
   Bool no_fall_off_edge;
   Bool floating;
   Bool hit_thing; //Set by physics when we hit a thing
-  Bool draw_flip;
+  Bool draw_flip;
   Bool pad[8-4];
   CDC *draw_face no_serialize 1; //Private
   CD2 scrn_st,scrn_en; //Private
@@ -559,4 +559,9 @@ class CMarkerDrugPickup:CPickup {
 };
 
 class C3DWorldShell:CUIShell {
+};
+
+class CLandscapeGenerator:CFrogThing {
+  CFrogArray *perlin_vectors;
+  I64 w,h;
 };

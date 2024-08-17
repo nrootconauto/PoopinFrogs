@@ -143,11 +143,34 @@ U0 UniverseAddConstructorPair(U8 *name,U8 *blob,U8 *init,U8 *destroy) {
   p->destroy=destroy;
   I64SetInsAt(universe_init_pairs,idx,p);
 }
+extern U8 *_ConstructThing(U8*,I64,I64*);
+extern U8 *Str2FunPtr(U8*);
+extern I64 GetClassMemberValI64(U8*,U8*);
 U8 *UniverseConstructThing(I64 idx) {
   CUniverseInitPair *p=I64SetGetAt(universe_init_pairs,idx);
-  if(!p) return NULL;
-  CFrogThing *ret=MAllocIdent(p->blob,universe_task);
+  U8 *name;
+  CFrogThing *ret;
+  if(!p) {
+    if(0<=idx<universe_names->cnt) {
+      name=universe_names->body[idx];
+      ret=_ConstructThing(name,0,NULL);
+      if(ret) {
+        UniverseAddConstructorPair(name,
+          ret,
+          Str2FunPtr(GetClassMemberValI64(ret,"constructor")),
+          Str2FunPtr(GetClassMemberValI64(ret,"destroy"))
+        );
+	QueRem(ret); //Remove from garbage collector.
+	p=I64SetGetAt(universe_init_pairs,idx);
+        goto fin;
+      }
+    }
+    return NULL;
+  }
+fin:
+  ret=MAllocIdent(p->blob,universe_task);
   if(p->init) {(*p->init)(ret);}
+  QueIns(ret,allocs_head.last);
   ret->id=idx;
   return ret;
 }

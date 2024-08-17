@@ -386,19 +386,52 @@ U0 VarCheck(CLocals *l,CAST *ast) {
   }
 }
 extern U0 AssignTypeToNode(CLocals *l,CAST *ast);
+Bool BlockRefsExternVars(CLocals *l,CAST *ast) {
+  Bool ret=FALSE;
+  CAST *head=&ast->args,*cur;
+  if(ast->type==AST_BLOCK) {
+    for(cur=head->next;cur!=head;cur=cur->next)
+      FramePtrAdd(cur->name,0x1234);
+  } else if(ast->type==AST_VAR) {
+    if(FramePtr(ast->name)!=0x1234) {
+      return TRUE;
+    }
+  }
+  if(ast->type==AST_BLOCK||ast->type==AST_ARRAY) {
+    head=&ast->body;
+    for(cur=head->next;cur!=head;cur=cur->next)
+      ret|=BlockRefsExternVars(l,cur);
+  } else {
+    if(head->next) {
+      for(cur=head->next;cur!=head;cur=cur->next)
+        ret|=BlockRefsExternVars(l,cur);
+    }
+  }
+
+  if(ast->type==AST_BLOCK) {
+    head=&ast->args;
+    for(cur=head->next;cur!=head;cur=cur->next)
+      FramePtrDel(cur->name);
+    ast->refs_extern_vars=ret;
+  }
+  return ret;
+}
+//Run BlockRefsExternVars before this
 Bool BlockEscapesFromMethod(CLocals *l,CAST *ast) {
   CAST *head=&ast->args,*cur=head->next,*first;
   switch(ast->type) {
     case AST_RETURN:
-     if(cur->type==AST_BLOCK);
+     if(cur->type==AST_BLOCK&&cur->refs_extern_vars){
        return TRUE;
+     }
      return BlockEscapesFromMethod(l,cur);
     case AST_ASSIGN:
       first=head->next;
       cur=head->last;
 //Assign into a block allows for escape
-      if(cur->type==AST_BLOCK)
+      if(cur->type==AST_BLOCK&&cur->refs_extern_vars) {
 	return TRUE;
+      }
       if(BlockEscapesFromMethod(l,cur))
 	return TRUE;
       break;
@@ -411,7 +444,7 @@ Bool BlockEscapesFromMethod(CLocals *l,CAST *ast) {
       AssignTypeToNode(l,cur);
       if(BlockEscapesFromMethod(l,cur))
 	 return TRUE;
-      if(!StrCmp(cur->var_class_name,"CFrogNum")) {
+      if(1) {
         if(!StrCmp(ast->name,"to:do:"))
 	  goto pass;
         if(!StrCmp(ast->name,"to:by:do:"))
@@ -431,7 +464,7 @@ Bool BlockEscapesFromMethod(CLocals *l,CAST *ast) {
         if(!StrCmp(ast->name,"whileFalse:"))
 	  goto pass;
       }
-      if(!StrCmp(cur->var_class_name,"CFrogArray")) {
+      if(1) {
         if(!StrCmp(ast->name,"detect:"))
 	  goto pass;
         if(!StrCmp(ast->name,"collect:"))
@@ -455,7 +488,7 @@ pass:
 	  return TRUE;
 
 //Block is an argument to a method and presubly escapes
-	if(cur!=first&&cur->type==AST_BLOCK) {
+	if(cur!=first&&cur->type==AST_BLOCK&&cur->refs_extern_vars) {
 	  return TRUE;
         }
       }
@@ -466,8 +499,9 @@ pass:
       for(cur=head->next;cur!=head;cur=cur->next) {
 	  if(BlockEscapesFromMethod(l,cur))
 	    return TRUE;
-	if(cur->type==AST_BLOCK)
+	if(cur->type==AST_BLOCK&&cur->refs_extern_vars) {
 	  return TRUE;
+	}
       }
       break;
     default:
@@ -557,7 +591,9 @@ U8 *CompileThunk(CAST *block,CLocals *parent=NULL) {
   locals->next=parent;
   CAST *var,*head;
   FramePtrAdd("ST@@stk_depth",0);
-  DocPrint(doc,"CFrogThing *Thunk@@%d(CFrogThing *self,CLocalsGeneric0 *parent_frame,...) {\n",thunk_idx);
+  DocPrint(doc,"CFrogThing *Thunk@@%d(CFrogBlock *block,...) {\n",thunk_idx);
+  DocPrint(doc,"CFrogThing *self=block->self;\n");
+  DocPrint(doc,"CLocalsGeneric0 *parent_frame=block->frame;\n");
   replace=DocPrint(doc,"  CFrogThing *stk[$$LK,\"replace_me\"$$],*retval=FROG_SMALL_NIL,**tmp;\n");
   DocPrint(doc,"CFrogThing *(*fun_ptr)(CFrogThing *,...);\n");
   DocPrint(doc,"  Bool false=FALSE;\n");
@@ -886,6 +922,16 @@ U0 CompileAST(CDoc *doc,CAST *ast,CLocals *locals,I64 stack_depth,I64 jump_to=IN
   if(allow_f64) {
     ast->is_f64=IsF64ExprNode(locals,ast);
   } else if(IsF64ExprNode(locals,ast)) {
+    if(ast->type==AST_NUM) {
+//Just "unroll" call to FrogNumNew
+      DocPrint(doc,"L%d:\n",ast_case_num++);
+      DocPrint(doc,"retval=%d; /* %n */ \n",FrogNumNew(ast->num),ast->num);
+      DocPrint(doc,"%s=retval;",StackFrame2Var(stack_depth));
+      if(jump_to!=INVALID_PTR) {
+        DocPrint(doc,"goto L%d;\n",jump_to);
+      }
+      return;
+    }
     DocPrint(doc,"L%d:\n",ast_case_num++);
     DocPrint(doc,"retval=FrogNumNew(");
     CompileAST(doc,ast,locals,stack_depth+1,jump_to,TRUE);
@@ -1063,9 +1109,14 @@ todoby:
 
         for(idx=0;idx<cnt+1;idx++) { //+1 includes self
 	  if(IsF64ExprNode(locals,cur)) {
-	    DocPrint(doc,"%s=FrogNumNew(",StackFrame2Var(stack_depth+idx));
-	    CompileAST(doc,cur,locals,stack_depth+idx,,TRUE);
-	    DocPrint(doc,");");
+//Just "unroll" call to FrogNumNew
+            if(cur->type==AST_NUM) {
+ 	      DocPrint(doc,"%s=%d; /* %n */\n",StackFrame2Var(stack_depth+idx),FrogNumNew(cur->num),cur->num);
+	    }else {
+ 	      DocPrint(doc,"%s=FrogNumNew(",StackFrame2Var(stack_depth+idx));
+	      CompileAST(doc,cur,locals,stack_depth+idx,,TRUE);
+	      DocPrint(doc,");");
+	    }
 	  }
 	  cur=cur->next;
         }
@@ -1518,6 +1569,7 @@ U0 CompileToHolyC(U8 *src,U8 *class_name,U8 *src_path=NULL,Bool class_method=FAL
   head=&m->body;
   for(var=head->next;var!=head;var=var->next) {
     VarCheck(locals,var);
+    BlockRefsExternVars(locals,var);
     escapes|=BlockEscapesFromMethod(locals,var);
  }
 FramePtrSet("Escapes",escapes);
