@@ -1,0 +1,12 @@
+setBlockIndex: i=CFrogNum
+  ->CFrogNum
+|
+  t=CTileTemplate
+|
+  tile_idx _ i .
+  t _ #world->tile_templates at: i .
+  (t hasClass: CTileTemplate) ifTrue: [
+     self setGraphics: t->wall_texture->name .
+     ^ 1 .
+  ] .
+  ^ 0 .

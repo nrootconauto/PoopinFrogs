@@ -72,6 +72,14 @@ class CFrogBin:CFrogThing {
   U8 *data;
   U8 *destroy dft "FrogBinDel";
 };
+
+
+class CFrogImg:CFrogThing {
+  CDC *dc;
+  CFrogStr *name;
+  U8 *destroy dft "FrogImgDel";
+};
+
 //
 // See /UI.HC
 //
@@ -172,9 +180,10 @@ class CUICenter:CUIElem {
   Bool x_center,y_center;
 };
 
+
 class CUIGridItem:CUIElem {
   CFrogStr *name;
-  CDC *graphics;
+  CFrogImg *graphics;
   I64 cnt; //0 for none
   CFrogThing *parent;
   U8 *constructor dft "UIElemInit";
@@ -194,6 +203,12 @@ class CUIGrid:CUIElem {
 //
 //See /3D.HC
 //
+class CTileTemplate:CFrogThing {
+  I64 tile_idx;
+  CFrogImg *floor_texture;
+  CFrogImg *wall_texture;
+  CFrogImg *ceil_texture;
+};
 class C2DPoint:CFrogThing {
   I64 x,y;
 };
@@ -201,11 +216,9 @@ class C3DThingTemplate:CFrogThing {
   I64 flags;
   F64 radius;
   CFrogStr *name;
-  CDC *front;
-  CDC *side;
-  CDC *back;
-  U8 *destroy dft "C3DThingTemplateDel";
-//Private,See GetColorForRay/PrepareThingsForDraw
+  CFrogImg *front;
+  CFrogImg *side;
+  CFrogImg *back;
 };
 extern class CEliza;
 class C3DThing:CFrogThing {
@@ -228,6 +241,7 @@ class C3DThing:CFrogThing {
   Bool hit_thing; //Set by physics when we hit a thing
   Bool draw_flip;
   Bool pad[8-4];
+//Private,See GetColorForRay/PrepareThingsForDraw
   CDC *draw_face no_serialize 1; //Private
   CD2 scrn_st,scrn_en; //Private
 };
@@ -235,10 +249,10 @@ class C3DWorldManager:CFrogThing {
   U8 *world_handle;
   CFrogArray *things recur_serialize 1;
 //See CWallStain mofo
-  CFrogArray *wall_stains no_serialize 1;
+  CFrogArray *wall_stains no_serialize 1;
   CFrogArray *floor_stains no_serialize 1;
   CFrogDictionary *thing_templates no_serialize 1;
-  CFrogDictionary *tile_templates no_serialize 1;
+  CFrogArray *tile_templates no_serialize 1;
   F64 gravity,last_update;
   I64 screen_x,screen_y;
 //A grid of things having the things(128*128 size)
@@ -249,12 +263,11 @@ class C3DWorldManager:CFrogThing {
   F64 game_load_tS;  //The CFrogTime now asSeconds that the game world is at when loaded
   CFrogThing *player no_serialize 1;
   CFrogStr *blocks_string recur_serialize 1;
-  I64 blocks_width,blocks_height;
+  I64 blocks_width,blocks_height;
 };
 
 class CHandItem:CFrogThing {
-  CDC *gr;
-  U8  *destroy dft "HandItemDel";
+  CFrogImg *gr;
   I64 x,y;
   I64 xoff,yoff;
   I64 ammo,max_ammo;
@@ -306,8 +319,7 @@ class CShellCasing:CFrogThing {
   F64 x,y;
   F64 momx,momy;
   F64 gravity;
-  CDC *dc;
-  U8 *destroy dft "ShellCasingDel";
+  CFrogImg *dc;
 };
 //
 // Eliza Chat Engine Section

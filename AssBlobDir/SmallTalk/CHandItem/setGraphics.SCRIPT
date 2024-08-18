@@ -1,0 +1,6 @@
+setGraphics: str=CFrogStr
+->*
+|
+|
+  gr _ CFrogImg get:  str  .
+  inventory_item setGraphics: str .

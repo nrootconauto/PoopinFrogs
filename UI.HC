@@ -577,22 +577,6 @@ U0 UICenterDraw(CDC *dc,I64 xoff,I64 yoff,CUICenter *center) {
 //
 #define UI_GRID_WIDTH 32
 #define UI_GRID_PAD 8
-CFrogThing *UIGridItemSetGr(CUIGridItem *self,...) {
-  CFrogStr *who=argv[0];
-  U8 *name=AsString(who),*l;
-  CDC *raw;
-  l=BlobFileGetLump("ASS",name);
-  if(self->graphics) AnimDCDel(self->graphics);
-  if(l) {
-    raw=AnimDCLoad(l);
-    self->graphics=ScaleDC(raw,24,24,frog_mem_task);
-    AnimDCDel(raw);
-  }
-  Free(l);
-  Free(name);
-  return FROG_SMALL_NIL;
-}
-AddMethod("CUIGridItem","setGraphics:",&UIGridItemSetGr);
 U0 UIGridItemDel(CUIGridItem *i) {
   if(i->graphics) AnimDCDel(i->graphics);
   Free(i);
@@ -607,8 +591,9 @@ U0 UIGridItemDraw(CDC *dc,I64 x,I64 y,CUIGridItem *self) {
         dc->color=BLUE;
       GrRect(dc,x+UI_GRID_PAD/2,y+UI_GRID_PAD/2,UI_GRID_WIDTH-UI_GRID_PAD,UI_GRID_WIDTH-UI_GRID_PAD);
     }
-  if(self->graphics)
-    AnimDCBlot(dc,x+UI_GRID_PAD/2,y+UI_GRID_PAD/2,self->graphics);
+  if(ThingHasClass(self->graphics,"CFrogImg")) {
+    AnimDCBlotScaled(dc,x+UI_GRID_PAD/2,y+UI_GRID_PAD/2,24,24,self->graphics->dc);
+  }
   if(self->cnt) {
     str=MStrPrint("%d",self->cnt);
     x=x+UI_GRID_WIDTH/2-StrLen(str)*8/2;
@@ -669,8 +654,6 @@ U0 LoadColorSyms() {
   }
 }
 LoadColorSyms;
-
-AddMethod("CUIGridItem","setGraphics:",&UIGridItemSetGr);
 
 CFrogThing *STUIUpdateWithEvent(CUIElem *e,...) {
   CUIEvent *ev=argv[0];

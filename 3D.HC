@@ -50,6 +50,27 @@ U0 ErectFogTable(U64 *table,I64 fog_color,F64 ratio) {
 ErectFogTable(fog0_table,BLACK,.75);
 ErectFogTable(fog1_table,BLACK,.5);
 ErectFogTable(fog2_table,BLACK,.25);
+U0 FrogImgSetGraphics(CFrogImg *img,...) {
+  U8 *lunk=AsString(argv[0]),*data,*symbol_name;
+  if(img->dc)
+    AnimDCDel(img->dc);
+  img->dc=DCNew(1,1);
+  if(lunk) {
+    if(data=BlobFileGetLump(,lunk)) {
+      img->dc=AnimDCLoad(data);
+      img->name=FrogStrNew(lunk);
+      Free(data);
+    }
+    Free(lunk);
+  }
+  return FROG_SMALL_NIL;
+}
+AddMethod("CFrogImg","setGraphics:",&FrogImgSetGraphics);
+U0 FrogImgDel(CFrogImg *img) {
+  AnimDCDel(img->dc);
+  Free(img);
+}
+
 
 U64 Fog(I64 color,I64 dist) {
   dist>>=7; //GRID_SZ is 128(7 bits)
@@ -224,175 +245,88 @@ U0 NewParticle(C3DWorld *w,I64 color,I64 sz,F64 x,F64 y,F64 z,F64 mx,F64 my,F64 
   w->particle_cnt++;
 }
 #define THINGF_FACE_FORWARD 1
-//These are defined in the blob header.
-U0 C3DThingTemplateDel(C3DThingTemplate *t) {
-  if(t->front) DCDel(t->front);
-  if(t->side) DCDel(t->side);
-  if(t->back) DCDel(t->back);
-  Free(t);
-}
 U0 C3DWorldSetFov(C3DWorld *w,F64 fov=pi/2) {
   w->fov=fov;
 }
 
-C3DWorld *LoadWorldFromOldFile(U8 *blob_file="ASS",U8 *filename,F64 fov=pi/2) {
+#define BLOB_THINGS_ROOT "Level/Things"
+#define BLOB_TILES_ROOT "Level/Tiles"
+
+C3DWorld *InitWorld(U8 *blob_file="ASS",F64 fov=pi/2) {
   C3DWorld *ret=CAlloc(sizeof(C3DWorld));
-  CFileWorld *world=BlobFileGetLump(blob_file,filename);
   F64 xoff,yoff;
-  U8 *fptr=world,*to,*tmp;
+  U8 *tmp;
   I64 idx,tile,stop_at;
   CDC *unscaled;
-  U8 *heightmap;
-  U8 *ceilmap;
-  U8 *ceilmap2;
   U16 *world_mat;
   C3DThingTemplate **templates=ret->thing_templates,*template;
   C3DThing *thing;
   C3DWorldManager *man;
   C3DWorldSetFov(ret,fov);
+  CTileTemplate *tile_template;
   CDoor *door;
   QueInit(&ret->particles);
   ret->step_width=4; 
   ret->step_width_y=4;
-  ret->world_width=world->w;
-  ret->world_height=world->h;
-  ret->world_blocks=CAlloc(world->h*world->w*256);
+  ret->world_width=100;
+  ret->world_height=100;
+  ret->world_blocks=CAlloc(ret->world_width*ret->world_height*256);
   w=ret;
   QueInit(&ret->_2d_thing_templates);
-  world_mat=world+1;
-  heightmap=world(U8*)+world->heightmap.ptr;
-  ceilmap=world(U8*)+world->ceilmap.ptr;
-  ceilmap2=world(U8*)+world->ceilmap2.ptr;
 
   man=ConstructThing("C3DWorldManager","world_handle",ret);
   CallScript("init",man);
   ret->_wall_stains=man->wall_stains->items;
   ret->_floor_stains=man->floor_stains->items;
   ret->_2d_things=man->things->items;
-  fptr=world(U8*)+world->textures_where.ptr;
-  to=fptr+world->textures_where.len;
-  while(fptr<to) {
-    idx=fptr(CFileTexture*)->idx;
-    tmp=BlobFileGetLump(blob_file,fptr(CFileTexture*)->blob_name);
-    unscaled=AnimDCLoad(tmp);
-    if(idx>0)
-      ret->floor_textures[idx]=ScaleDC(unscaled,GRID_SZ,GRID_SZ);
-    else
-      ret->floor_textures[-idx]=ScaleDC(unscaled,GRID_SZ,GRID_SZ);
-    if(idx>0)
-      ret->floor_textures1616[idx]=ScaleDC(unscaled,16,16);
-    else
-      ret->floor_textures1616[-idx]=ScaleDC(unscaled,16,16);
-    AnimDCDel(unscaled);
-    Free(tmp);
-    tmp=BlobFileGetLump(blob_file,fptr(CFileTexture*)->wall_blob_name);
-    unscaled=AnimDCLoad(tmp);
-    if(idx>0)
-      ret->wall_textures[idx]=ScaleDC(unscaled,GRID_SZ,GRID_SZ);
-    else
-      ret->wall_textures[-idx]=ScaleDC(unscaled,GRID_SZ,GRID_SZ);
-    AnimDCDel(unscaled);
-    Free(tmp);
-    tmp=BlobFileGetLump(blob_file,fptr(CFileTexture*)->ceil_blob_name);
-    if(tmp) {
-      unscaled=AnimDCLoad(tmp);
-      if(idx>0)
-        ret->ceil_textures[idx]=ScaleDC(unscaled,GRID_SZ,GRID_SZ);
-      else
-        ret->ceil_textures[-idx]=ScaleDC(unscaled,GRID_SZ,GRID_SZ);
-      AnimDCDel(unscaled);
-      Free(tmp);
-    }
-    fptr(CFileTexture*)++;
-  }
-  for(xoff=0;xoff!=ret->world_width;xoff++)
-    for(yoff=0;yoff!=ret->world_height;yoff++) {
-      tile=xoff+yoff*ret->world_width;
-      for(idx=I8_MIN;idx<heightmap[tile];idx++) {
-	ret->world_blocks[tile*256+idx-I8_MIN]=world_mat[tile].u8[0];
+
+  CBlobFileHeader *bf_data=GetBlobFileData(blob_file); //Dont Free
+  CLumpHeader *bf_lump=bf_data->lump_table;
+  CFileThingTemplate *f_template;
+  idx=bf_data->lump_cnt;
+  while(--idx>=0) {
+    if(!StrNCmp(bf_lump->name,BLOB_THINGS_ROOT,StrLen(BLOB_THINGS_ROOT))) {
+      f_template=bf_data(U8*)+bf_lump->offset;
+      idx=f_template->idx;
+      if(I16_MIN<=idx<=I16_MAX) {
+        template=ConstructThing("C3DThingTemplate");
+        templates[f_template->idx-I16_MIN]=template;
+        CallScript("setFront:",template,FrogStrNew(f_template->blob_front_name));
+        CallScript("setBack:",template,FrogStrNew(f_template->blob_back_name));
+        CallScript("setSide:",template,FrogStrNew(f_template->blob_side_name));
+        CallScript("addThingTemplate:withName:",man,template,FrogStrNew(f_template->name));
       }
-      if(ceilmap[tile]!=I8_MAX&&ceilmap2[tile]>0) {
-	stop_at=ceilmap[tile]+ceilmap2[tile];
-	for(idx=ceilmap[tile];idx<stop_at;idx++) {
-	  ret->world_blocks[tile*256+idx-I8_MIN]=world_mat[tile].u8[1];
+    }
+    bf_lump++;
+  }
+  CFileTexture *ftxtr;
+  bf_lump=bf_data->lump_table;
+  idx=bf_data->lump_cnt;
+  while(--idx>=0) {
+    if(!StrNCmp(bf_lump->name,BLOB_TILES_ROOT,StrLen(BLOB_TILES_ROOT))) {
+      ftxtr=bf_data(U8*)+bf_lump->offset;
+      tile=AbsI64(ftxtr->idx);
+      if(0<=tile<U8_MAX) {
+        tile_template=ConstructThing("CTileTemplate");
+	tile_template->tile_idx=tile;
+        CallScript("setWall:",tile_template,FrogStrNew(ftxtr->wall_blob_name));
+        CallScript("setFloor:",tile_template,FrogStrNew(ftxtr->blob_name));
+        CallScript("setCeil:",tile_template,FrogStrNew(ftxtr->ceil_blob_name));
+
+        if(ThingHasClass(tile_template->wall_texture,"CFrogImg")) {
+	  ret->wall_textures[tile]=ScaleDC(tile_template->wall_texture->dc,GRID_SZ,GRID_SZ);
         }
-      }
-    }
-
-  xoff=GRID_SZ*world->startx;
-  yoff=GRID_SZ*world->starty;
-
-
-  fptr=world(U8*)+world->thing_templates_where.ptr;
-  to=fptr+world->thing_templates_where.len;  
-  while(fptr<to) {
-    template=ConstructThing("C3DThingTemplate");
-    idx=fptr(CFileThingTemplate*)->idx;
-    templates[idx-I16_MIN]=template;
-    tmp=BlobFileGetLump(blob_file,fptr(CFileThingTemplate*)->blob_front_name);
-    if(tmp)
-      template->front=AnimDCLoad(tmp);
-    Free(tmp);
-    tmp=BlobFileGetLump(blob_file,fptr(CFileThingTemplate*)->blob_back_name);
-    if(tmp)
-      template->back=AnimDCLoad(tmp);
-    Free(tmp);
-    tmp=BlobFileGetLump(blob_file,fptr(CFileThingTemplate*)->blob_side_name);
-    if(tmp)
-      template->side=AnimDCLoad(tmp);
-    Free(tmp);
-    CallScript("addThingTemplate:withName:",man,template,FrogStrNew(fptr(CFileThingTemplate*)->name));
-    fptr(CFileThingTemplate*)++;
-  }
-
-  fptr=world(U8*)+world->things_where.ptr;
-  to=fptr+world->things_where.len;
-  while(fptr<to) {
-    template=templates[fptr(CFileThing*)->thing_template_idx-I16_MIN];
-    if(template) {
-      tmp=AsString(template->name);
-      if(thing=ConstructThing(tmp)) {
-        if(ThingHasClass(thing,"C3DThing")) {
-	  if(fptr(CFileThing*)->activate_tag[0])
-	    thing->activate_tag=Str2I64(fptr(CFileThing*)->activate_tag);
-	  else
-	    thing->activate_tag=0;
-	  thing->x=fptr(CFileThing*)->x*GRID_SZ-xoff;
-	  thing->y=fptr(CFileThing*)->y*GRID_SZ-yoff;
-	  thing->angle=fptr(CFileThing*)->rot;
-	  thing->chat_bot_name=FrogStrNew(fptr(CFileThing*)->chat_bot_name);
-	  tile=ToI64(thing->x/128.)+ToI64(thing->y/128.)*w->world_width;
-	  thing->z=heightmap[tile];
-	  if(fptr(CFileThing*)->drop_item_name[0]) {
-            thing->drop_thing=FrogClassNew(NameToUniverseNumber(fptr(CFileThing*)->drop_item_name));
-          }
-	  CallScript("init",thing);
-//Things add themselves to the world
-//	  I64SetAdd(ret->_2d_things,thing);
+        if(ThingHasClass(tile_template->floor_texture,"CFrogImg")) {
+	  ret->floor_textures[tile]=ScaleDC(tile_template->floor_texture->dc,GRID_SZ,GRID_SZ);
         }
+        if(ThingHasClass(tile_template->ceil_texture,"CFrogImg")) {
+	  ret->ceil_textures[tile]=ScaleDC(tile_template->ceil_texture->dc,GRID_SZ,GRID_SZ);
+        }
+        CallScript("addTileTemplate:",man,tile_template);
       }
-      Free(tmp);
     }
-    fptr(CFileThing*)++;
+    bf_lump++;
   }
-  fptr=world(U8*)+world->doors.ptr;
-  to=fptr+world->doors.len;
-  while(fptr<to) {
-    door=ConstructThing("CDoor");
-    CallScript("init",door);
-    door->x=fptr(CFileDoor*)->x-world->startx;
-    door->y=fptr(CFileDoor*)->y-world->starty;
-    door->act_as_wall=fptr(CFileDoor*)->act_as_wall;
-    door->height=fptr(CFileDoor*)->height;
-    door->small_key=fptr(CFileDoor*)->flags&DOORF_SMALL_KEY;
-    door->big_key=fptr(CFileDoor*)->flags&DOORF_BIG_KEY;
-    door->rise_to_ceiling=fptr(CFileDoor*)->flags&DOORF_TO_CEILING;
-    door->side_door=fptr(CFileDoor*)->flags&DOORF_SIDE_DOOR;
-    door->tag=fptr(CFileDoor*)->tag;
-    fptr(CFileDoor*)++;
-    CallScript("addDoor:",man,door);
-  }
-  Free(world);
   return ret;
 }
 
@@ -1134,7 +1068,7 @@ CDC *ThingFace(C3DWorld *w,C3DThing *thing,Bool *flip=NULL) {
   switch(face) {
     default:
     case 1:
-      use_dc=template->front;     
+      use_dc=template->front;
       break;
     case 2:
       use_dc=template->side;
@@ -1148,6 +1082,8 @@ CDC *ThingFace(C3DWorld *w,C3DThing *thing,Bool *flip=NULL) {
       break;
   }
 draw:
+  if(!ThingHasClass(use_dc,"CFrogImg")) return NULL;
+  use_dc=use_dc(CFrogImg*)->dc;
   if(!use_dc||!AnimDCCnt(use_dc)) return NULL;
   frame=ToI64((Frog_tS-thing->animation_start_tS)/ANIM_DELAY);
   frame=MaxI64(frame,0); //Prevent poo poo suace
@@ -1703,7 +1639,7 @@ U0 DrawParticle(C3DWorld *w,C3DParticle *p) {
   I64 x0,y0;
   CD3 res;
   w->to_dc->color=p->color;
-  w->to_dc->thick=(DIST_SCALE/(1+dist))*1.5/GRID_SZ*p->size;
+  w->to_dc->thick=(DIST_SCALE/ToF64(1+dist))/GRID_SZ*p->size;
   PointToScrn(w,p->x,p->y,p->z,&res);
   if(w->to_dc->thick>0)
     GrPlot3(w->to_dc,res.x,res.y,dist);
@@ -2098,41 +2034,6 @@ CFrogThing *WorldManagerSetTileAtXAtY(C3DWorldManager *self,...) {
 AddMethod("C3DWorldManager","setTile:atX:atY:atZ:",&WorldManagerSetTileAtXAtY);
 
 
-
-CFrogThing *ShellCasingSetGr(CShellCasing *self,...) {
-  U8 *name=AsString(argv[0]);
-  U8 *grl=BlobFileGetLump("ASS.BLOB",name);
-  if(self->dc) AnimDCDel(self->dc);
-  if(grl) {
-    self->dc=AnimDCLoad(grl); 
-  }
-  Free(name),Free(grl); 
-  return FROG_SMALL_NIL;
-}
-AddMethod("CShellCasing","setGraphics:",&ShellCasingSetGr);
-U0 ShellCasingDel(CShellCasing *c) {
-  if(c->dc) AnimDCDel(c->dc);
-  Free(c);
-}
-CFrogThing *HandItemSetGr(CHandItem *self,...) {
-  U8 *name=AsString(argv[0]);
-  U8 *grl=BlobFileGetLump("ASS.BLOB",name);
-  if(grl) {
-    if(self->gr)
-      AnimDCDel(self->gr);
-    self->gr=AnimDCLoad(grl);
-    Free(grl);
-  }
-  self->gr_name=FrogStrNew(name);
-  Free(name);
-  return FROG_SMALL_NIL;
-}
-AddMethod("CHandItem","setGraphics:",&HandItemSetGr);
-
-U0 HandItemDel(CHandItem *i) {
-  if(i->gr) AnimDCDel(i->gr);
-  Free(i);
-}
 CFrogThing *ThingCanSeeThing(C3DThing *self,...) {
   F64 old_x=w->x,old_y=w->y,old_z=w->cam_height;
   CFrogThing *ret;
@@ -2174,21 +2075,6 @@ AddMethod("C3DWorldManager","screenCoordToZ",&ScreenCoordToZ);
 //
 // World Edit section
 //
-CFrogNum *WorldEditBlockSetIdx(CWorldEditBlock *bl,...) {
-  I64 idx=AsF64(argv[0]);
-  CDC *dc;
-  if(0<=idx<0x10000/2&&(dc=w->wall_textures[idx])) {
-    if(bl->gr) AnimDCDel(bl->gr);
-    bl->gr=AnimDCCopy(dc,frog_mem_task);
-    if(bl->inventory_item->graphics)
-      AnimDCDel(bl->inventory_item->graphics);
-    bl->inventory_item->graphics=ScaleDC(dc,24,24,frog_mem_task);
-    bl->tile_idx=idx;
-    return FrogNumNew(1);
-  }
-  return FrogNumNew(0);
-}
-AddMethod("CWorldEditBlock","setBlockIndex:",&WorldEditBlockSetIdx);
 
 CFrogNum *WorldEditThingSetIdx(CWorldEditThing *bl,...) {
   I64 idx=AsF64(argv[0]);
@@ -2241,7 +2127,7 @@ AddMethod("C3DWorldManager","setTile:atX:atY:atZ:",&WorldManagerSetTileAtXAtYAtZ
 #ifdef TEST_3D
  DocClear;
 #include "UI.HC"
-LoadWorldFromOldFile(,"Untitled.WORLD");
+InitWorld;
 I64 mp_thing_done=0;
 extern CDC *MakeMinimap1(C3DWorld *w,F64 x,F64 y,F64 angle,I64 radius,F64 height);
 U0 Draw3DWorld(CTask *,CDC *dc) {
@@ -2256,7 +2142,7 @@ U0 Draw3DWorld(CTask *,CDC *dc) {
   if(player==FROG_SMALL_NIL) {
     return;
   }
-  CDC *hand_gr,*minimap;
+  CFrogImg *hand_gr,*minimap;
   I32 *odepth_buf;
   I64 tx,ty,c,f;
   CI64Set *s;
@@ -2333,8 +2219,8 @@ U0 Draw3DWorld(CTask *,CDC *dc) {
       while(--idx>=0) {
         shellc=body[idx];
 	if(ThingHasClass(shellc,"CShellCasing")) {
-	  if(shellc->dc)
-	   AnimDCBlot(dc,shellc->x,shellc->y,shellc->dc);
+	  if(ThingHasClass(shellc->dc,"CFrogImg"))
+	   AnimDCBlot(dc,shellc->x,shellc->y,shellc->dc->dc);
 	}
       }
    }
@@ -2342,8 +2228,8 @@ U0 Draw3DWorld(CTask *,CDC *dc) {
 
   if(ThingHasClass(hand,"CHandItem")) {
     hand->x=ms.pos.x;
-    if(hand_gr=hand->gr) {
-      c=AnimDCCnt(hand_gr);
+    if(ThingHasClass(hand_gr=hand->gr,"CFrogImg")) {
+      c=AnimDCCnt(hand_gr->dc);
       f=(Frog_tS-hand->anim_start_tS)/ANIM_DELAY;
       if(hand->anim_no_repeat) {
         if(f>=c)
@@ -2352,7 +2238,7 @@ U0 Draw3DWorld(CTask *,CDC *dc) {
           f%=c;
       } else 
         f%=c;
-      GrBlot(dc,hand->x+hand->xoff-hand_gr->width/2,hand->y+hand->yoff-hand_gr->height/2,hand_gr+f);
+      GrBlot(dc,hand->x+hand->xoff-hand_gr->dc->width/2,hand->y+hand->yoff-hand_gr->dc->height/2,hand_gr->dc+f);
     }
   }
 fin:

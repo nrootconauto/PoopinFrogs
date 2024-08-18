@@ -345,6 +345,32 @@ U0 _DumpSegmentCeil2(CWorld *world,CLevelSegment *seg) {
     ptr+=world->w;
   }
 }
+U0 AddLevelThingTemplateToBlob(U8 *blob,CLevelThingTemplate *thing) {
+  U8 *path=MStrPrint("%s/NO_EDIT%d",BLOB_THINGS_ROOT,thing->idx);
+  CFileThingTemplate dummy;
+  MemSet(&dummy,0,sizeof CFileThingTemplate);
+  dummy.idx=thing->idx;
+  StrCpy(dummy.name,thing->name);
+  StrCpy(dummy.blob_side_name,thing->blob_side_name);
+  StrCpy(dummy.blob_front_name,thing->blob_front_name);
+  StrCpy(dummy.blob_back_name,thing->blob_back_name);
+  BlobFileAddLump(blob,path,&dummy,sizeof(CFileThingTemplate),'THING');
+  Free(path);
+}
+
+U0 AddLevelTileToBlob(U8 *blob,CLevelTexture *tile) {
+  U8 *path=MStrPrint("%s/NO_EDIT%d",BLOB_TILES_ROOT,tile->idx);
+  CFileTexture dummy;
+  MemSet(&dummy,0,sizeof CFileTexture);
+  dummy.idx=tile->idx;
+  StrCpy(dummy.floor_blob_name,tile->floor_blob_name);
+  StrCpy(dummy.ceil_blob_name,tile->ceil_blob_name);
+  StrCpy(dummy.wall_blob_name,tile->wall_blob_name);
+  BlobFileAddLump(blob,path,&dummy,sizeof(CFileTexture),'TILE');
+  Free(path);
+}
+
+
 U0 LevelEditorExport(U8 *blob,U8 *filename) {
   I64 minx=0,miny=0,maxx=0,maxy=0,idx;
   CLevelTexture *texture;
@@ -399,6 +425,7 @@ U0 LevelEditorExport(U8 *blob,U8 *filename) {
     StrCpy(fptr(CFileTexture*)->wall_blob_name,texture->wall_blob_name);
     StrCpy(fptr(CFileTexture*)->floor_blob_name,texture->floor_blob_name);
     StrCpy(fptr(CFileTexture*)->ceil_blob_name,texture->ceil_blob_name);
+    AddLevelTileToBlob(blob,texture);
     fptr(CFileTexture*)++;
   }
   if(fptr-data->textures(U8*)!=textures_sz)
@@ -1399,18 +1426,7 @@ CLevelDoor *InsertDoor(I64 tx,I64 ty,Bool ask=FALSE,Bool undo=TRUE) {
   QueIns(d,seg->doors.last);
   return d;
 } 
-U0 AddLevelThingTemplateToBlob(U8 *blob,CLevelThingTemplate *thing) {
-  U8 *path=MStrPrint("%s/NO_EDIT%d",BLOB_THINGS_ROOT,thing->idx);
-  CFileThingTemplate dummy;
-  MemSet(&dummy,0,sizeof CFileThingTemplate);
-  dummy.idx=thing->idx;
-  StrCpy(dummy.name,thing->name);
-  StrCpy(dummy.blob_side_name,thing->blob_side_name);
-  StrCpy(dummy.blob_front_name,thing->blob_front_name);
-  StrCpy(dummy.blob_back_name,thing->blob_back_name);
-  BlobFileAddLump(blob,path,&dummy,sizeof(CFileThingTemplate),'THING');
-  Free(path);
-}
+
 U0 EditThingTemplate(U8 *blob,CLevelThingTemplate *template) {
 enter:;
   CDoc *what=DocNew(blkdev.tmp_filename);

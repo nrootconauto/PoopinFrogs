@@ -18,7 +18,7 @@ altFire ->* |
     wy _ w screenCoordToY .
 'move 1 unit forwards to set hit(?) block' .
     player _ w getPlayer .
-    dist _ ((wx - player->x) squared + (wy - player->y) squared)sqrt + 10 .
+    dist _ ((wx - player->x) squared + (wy - player->y) squared)sqrt + 3 .
     a _ wx - player->x arg: wy - player->y .
     wx _ player->x + (a cos * dist ) . 
     wy _ player->y + (a sin * dist ) .
@@ -27,8 +27,11 @@ altFire ->* |
     rem < 0 ifTrue: [
       rem _ rem + 1 .
     ] . 
-    rem >= (1 - (1 / 120. )) ifTrue: [
+    rem >= (1 - (1 / 32. )) ifTrue: [
       wz _ wz + 1 .
+    ] .
+    rem <=  (1 / 32. ) ifTrue: [
+      wz _ wz - 1 .
     ] .
     w setTile: 0 atX: wx / 128 atY: wy / 128 atZ: wz .
   ] .

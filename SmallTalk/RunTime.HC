@@ -1709,3 +1709,4 @@ U0 FrogBinDel(CFrogBin *bin) {
   Free(bin);
 }
 Fs->user_data=0;
+

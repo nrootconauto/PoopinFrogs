@@ -1,0 +1,5 @@
+setFront: str=CFrogStr
+->*
+|
+|
+  front _ CFrogImg get: str 

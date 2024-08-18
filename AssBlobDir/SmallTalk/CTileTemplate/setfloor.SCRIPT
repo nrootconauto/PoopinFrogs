@@ -1,0 +1,5 @@
+setFloor: str=CFrogStr
+->*
+|
+|
+  floor_texture _ CFrogImg get: str .

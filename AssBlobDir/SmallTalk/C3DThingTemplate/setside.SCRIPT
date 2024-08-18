@@ -1,0 +1,5 @@
+setSide: str=CFrogStr 
+->*
+|
+|
+  side _ CFrogImg get: str 

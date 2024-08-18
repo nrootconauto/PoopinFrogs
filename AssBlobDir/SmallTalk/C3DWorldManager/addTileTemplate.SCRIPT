@@ -1,0 +1,5 @@
+addTileTemplate: t=CTileTemplate 
+->*
+|
+|
+  tile_templates at: t->tile_idx put: t 

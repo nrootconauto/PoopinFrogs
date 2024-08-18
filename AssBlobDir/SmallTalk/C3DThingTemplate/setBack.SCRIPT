@@ -1,0 +1,5 @@
+setBack: str=CFrogStr 
+->*
+|
+|
+  back _ CFrogImg get: str 

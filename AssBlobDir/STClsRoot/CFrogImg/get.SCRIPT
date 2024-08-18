@@ -1,0 +1,14 @@
+get: name=CFrogStr  -> CFrogImg
+|
+  has=CFrogImg 
+|
+  (#img_table hasClass: CFrogDictionary ) ifFalse: [
+    #img_table _ CFrogDictionary new .
+  ].
+  has _ #img_table at: name .
+  (has hasClass: CFrogImg) ifFalse: [
+    has _ CFrogImg new .
+    has setGraphics: name . 
+    #img_table at: name put: has .
+  ]
+  ^ has .

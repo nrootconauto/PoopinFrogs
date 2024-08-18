@@ -1,0 +1,5 @@
+setGraphics: str=CFrogStr
+->*
+|
+| 
+ dc _ CFrogImg get:  str 

@@ -1,5 +1,4 @@
 updateWithWeight: w=CFrogNum makeParticles: part=CFrogNum ->* |
-  h=CFrogNum
   stain*
   around=CFrogArray 
   rand=CFrogRandom
@@ -38,7 +37,7 @@ updateWithWeight: w=CFrogNum makeParticles: part=CFrogNum ->* |
 
   (old_under and: part) ifTrue: [
     1 to: 3 do:  [
-      world newParticleAtX: x atY: y atZ: h withSpread: 8 withColor: #color_YELLOW
+      world newParticleAtX: x atY: y atZ: (oldz + 1 ) floor withSpread: 8 withColor: #color_YELLOW
     ] .
     'TODO wall stain '.
     ^ #(x y z ) .

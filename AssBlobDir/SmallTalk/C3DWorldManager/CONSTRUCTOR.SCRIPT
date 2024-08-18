@@ -5,7 +5,11 @@ init | gx=CFrogNum gy=CFrogNum col=CFrogArray |
   things _ #() .
   grid _ # () .
   gravity _ 3 / 30 .
-  tile_templates _ CFrogDictionary new .
+  tile_templates _ #() .
+'Lookup table '.
+  0 to: 256 do: [
+    tile_templates add: 0 .
+  ].
   thing_templates _ CFrogDictionary new .
   self initGrid .
 

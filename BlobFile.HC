@@ -22,6 +22,8 @@ class CBlobFileCache {
   CTask *mem_task;
   I64 sz;
 } blob_file_cache={0,NULL,NULL,Fs,0};
+U8 *dft_blob_path=__DIR__"/ASS.BLOB";
+
 CLumpHeader *BlobFileGetLumpInfo(CBlobFileHeader *hd,U8 *blob) {
   I64 cnt=hd->lump_cnt;
   CLumpHeader *ret;
@@ -34,7 +36,9 @@ CLumpHeader *BlobFileGetLumpInfo(CBlobFileHeader *hd,U8 *blob) {
 }
 //This consults the cache
 //DO NOT FREE
-U8 *GetBlobFileData(U8 *filename,I64 *len=NULL) {
+U8 *GetBlobFileData(U8 *filename=NULL,I64 *len=NULL) {
+  if(!filename)
+    filename=dft_blob_path ;
   filename=ExtDft(filename,"BLOB");
   CDirEntry de;
   U8 *data=NULL;
@@ -65,7 +69,8 @@ regen:
   Free(filename);
   return data;
 }
-U8 *BlobFileGetLump(U8 *filename,U8 *name,I64 *len=NULL,U64 *type=NULL) {
+U8 *BlobFileGetLump(U8 *filename=NULL,U8 *name,I64 *len=NULL,U64 *type=NULL) {
+  if(!filename) filename=dft_blob_path;
   CLumpHeader *lump;
   U8 *ret=NULL,*ftxt;
   filename=ExtDft(filename,"BLOB");
@@ -93,7 +98,8 @@ I64 BlobLumpSort(CLumpHeader *a,CLumpHeader *b) {
   return StrCmp(a->name,b->name);
 }
 //dlen can be -1 for delete
-U0 BlobFileAddLump(U8 *filename,U8 *name,U8 *data,I64 dlen,U64 type='DATA') {
+U0 BlobFileAddLump(U8 *filename=NULL,U8 *name,U8 *data,I64 dlen,U64 type='DATA') {
+  if(!filename) filename=dft_blob_path;
   I64 ofsz,want_sz,idx,idx2;
   CLumpHeader *lump_hdr;
   CBlobFileHeader *ret,*oftxt;
@@ -187,7 +193,8 @@ U8 *_BlobFileSelectPath(U8 *lump_name) {
   return ret;
 }
 //Returns "blob filename"
-U8 *BlobFileSelect(U8 *filename) {
+U8 *BlobFileSelect(U8 *filename=NULL) {
+  if(!filename) filename=dft_blob_path;
 loop:
   filename=ExtDft(filename,"BLOB");
   if(!FileFind(filename)) {
