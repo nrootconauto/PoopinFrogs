@@ -13,23 +13,29 @@ wander: dist=CFrogNum
     ^ (self move: dist atAngle: angle ) not.
   ].
   (self moveGoesOverEdge: dist atAngle: angle) not ifTrue: [
-    self newChaseDirection: dist withTarget: target .
     hit_wall _ self move: dist atAngle: angle .
     (hit_wall and: self isOnGround ) ifTrue: [
-      'Check if 1 block jump' .
-      ((#world getTileAtX: (x + (128 * angle cos ))/ 128 atY: (y + (128 * angle sin))/ 128 ) atZ: z + 1) = 0 ifTrue: [
+      'Check if 1 block jump'.
+      (#world getTileAtX: (x + (128 * angle cos ))/ 128 atY: (y + (128 * angle sin))/ 128 atZ: z + 1) = 0 ifTrue: [
         momz _ jmp_velo .
-        ^ 0 .
-      ] .
-      ^ 0 .
-      'Check if 1 block depress' .
-      ((#world getTileAtX: (x + (128 * angle cos ))/ 128 atY: (y + (128 * angle sin))/ 128 ) atZ: z - 1) = 0 ifTrue: [
-        'Just fall,no jump' .
-        ^ 0 .
+        ^ 1 .
       ] .
       ^ 0 .
     ] . 
+    self newChaseDirection: dist withTarget: target .
+  ] ifFalse: [
+^ 0 .
+    self isOnGround ifTrue: [
+      'Check if 1 block depress' .
+      (#world getTileAtX: (x + (128 * angle cos ))/ 128 atY: (y + (128 * angle sin))/ 128  atZ: z - 1) = 0 ifTrue: [
+        'Just jump into pit'.
+        momz _ jmp_velo .
+        ^ 1 .
+      ] .
+    ] .
+    self newChaseDirection: dist withTarget: target .
+    ^ 0.
   ] .
   
 
-  ^ 1. 
+  ^ 1 . 

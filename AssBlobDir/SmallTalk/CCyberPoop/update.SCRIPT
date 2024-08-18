@@ -83,6 +83,7 @@ update ->*
   ] .
 
   (target->health <= 0.) ifTrue: [
+    target _ 0 .
     state _ 'Wait'.
   ] .
 

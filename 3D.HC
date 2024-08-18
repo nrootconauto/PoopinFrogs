@@ -7,7 +7,6 @@
 #define TEST_3D
 #ifndef ENGINE_3D
 #define VIEW_DIST 32
-#define mp_cnt 1
 #define FOG0_DIST 8
 #define FOG1_DIST 16
 #define FOG2_DIST 20
@@ -732,6 +731,13 @@ fix:;
   while(HeightImpossible(w,x/GRID_SZ,y/GRID_SZ,z,TRUE,tallness)) {
     hit=TRUE;
     z-=dir/128.;
+    if(dir>0&&z<oz) {
+      z=oz;
+      break;
+    } if(dir<0&&z>oz) {
+      z=oz;
+      break;
+    }
   }
   if(hit)
     if(Abs(z-Floor(z))<=2*dir/128.)
@@ -1225,6 +1231,9 @@ I64 GetColorForRay(C3DWorldManager *man,CD3 *ray,F64 dist,F64 *hit_at,CD3 *hit_c
   F64 cos=Cos(angle),sin=Sin(angle);
   F64 slope=-ray->y/Sqrt(Sqr(ray->z)+Sqr(ray->x)); //???
   F64 tan=Tan(angle);
+  F64 r_abs_rx=1./Abs(ray->x);
+  F64 r_abs_ry=1./Abs(ray->y);
+  F64 r_abs_rz=1./Abs(ray->z);
   CDC *hit_texture;
   CDC *stain_dc;
   I64 cur,thing_idx,texture_x,texture_y;
@@ -1254,16 +1263,12 @@ I64 GetColorForRay(C3DWorldManager *man,CD3 *ray,F64 dist,F64 *hit_at,CD3 *hit_c
 	    origin128.y=w->y/128;
 	    if(hit_texture=thing->draw_face) {
 	      h=hit_texture->height/128.*scale;
-	      if(!(thing->z-1.<=tz<=h+thing->z+1.))
+	      if(!(Floor(thing->z)<=tz<=h+thing->z+1.))
 		goto next_thing;
-	      st.x=thing->scrn_st.x;
-	      st.y=thing->scrn_st.y;
-	      en.x=thing->scrn_en.x;
-	      en.y=thing->scrn_en.y;
-	      st.x/=128;
-	      st.y/=128;
-	      en.x/=128;
-	      en.y/=128;
+	      st.x=thing->scrn_st.x/128.;
+	      st.y=thing->scrn_st.y/128.;
+	      en.x=thing->scrn_en.x/128.;
+	      en.y=thing->scrn_en.y/128.;
 	      F64 i1=.5,i2=.5;
 	      if(SegmentSegmentIntersect(&xyhit,&origin128,&long,&st,&en,&i1,&i2)) {
 //Make sure our hit is in our tile(may be a fat sprite or out of bounds).
@@ -1377,18 +1382,18 @@ valid_color:
 pass:;
     if(tMaxX<tMaxY) {
       if(tMaxX<tMaxZ) {
-        tMaxX+=1./Abs(ray->z);
+        tMaxX+=r_abs_rz;
         tx+=stepx;
       } else {
-        tMaxZ+=1./Abs(ray->y);
+        tMaxZ+=r_abs_ry;
         tz+=stepz;
       }
     } else {
       if(tMaxY<tMaxZ) {
-        tMaxY+=1./Abs(ray->x);
+        tMaxY+=r_abs_rx;
         ty+=stepy;
       } else {
-        tMaxZ+=1./Abs(ray->y);
+        tMaxZ+=r_abs_ry;
         tz+=stepz;
       }
     } 
@@ -1445,7 +1450,6 @@ U0 GenerateRay(C3DWorld *world,CD3 *ray_look,F64 i,F64 j,F64 w,F64 h,CD3 *pos,CD
   fov2=world->fov/2;
   D3Equ(&up,0,1,0);
   D3Sub(&look,lookat,pos);
-  D3Unit(&look);
   D3Cross(&hori,&look,&up);
   D3Cross(&vert,&hori,&look);
   
@@ -1526,6 +1530,18 @@ F64 dir=Arg(ray.z,ray.x);
       color=GetColorForRay(wm,&ray,32*GRID_SZ,&dist,p);
       idist=dist;
       idist|=idist<<32;
+      if(color!=-1&&w->step_width==2) {
+        for(col=0;col!=2;col++) {
+	    if(col&1)
+	      ptr(U16*)[0]=color;
+	    else
+	      ptr(U16*)[0]=color>>8; //Dither
+            depth_ptr[0](I64)=idist;
+	    ptr(U8*)+=to_dc->width_internal;
+	    depth_ptr+=to_dc->width_internal;
+	}
+	goto fin;
+      }
       if(color!=-1&&w->step_width==4) {
         for(col=0;col!=4;col++) {
 	    if(col&1)
@@ -1534,6 +1550,23 @@ F64 dir=Arg(ray.z,ray.x);
 	      ptr(U32*)[0]=color>>8; //Dither
             depth_ptr[0](I64)=idist;
             depth_ptr[2](I64)=idist;
+	    ptr(U8*)+=to_dc->width_internal;
+	    depth_ptr+=to_dc->width_internal;
+	}
+	goto fin;
+      }
+      if(color!=-1&&w->step_width==6) {
+        for(col=0;col!=6;col++) {
+	    if(col&1) {
+	      ptr(U32*)[0]=color;
+	      ptr(U16*)[2]=color;
+	    } else {
+	      ptr(U32*)[0]=color>>8; //Dither
+	      ptr(U16*)[2]=color>>8; //Dither
+            }
+            depth_ptr[0](I64)=idist;
+            depth_ptr[2](I64)=idist;
+            depth_ptr[4](I64)=idist;
 	    ptr(U8*)+=to_dc->width_internal;
 	    depth_ptr+=to_dc->width_internal;
 	}
@@ -1571,7 +1604,7 @@ U0 C3DWorldCastRays(C3DWorld *w) {
   MPCastCol(man);
   for(c=1;c<mp_cnt;++c) {
     while(!Bt(&mp_done,c))
-     ;
+     __Sleep(2);
   }
 }
 F64 AngleBetween(F64 a,F64 b) {
@@ -1670,7 +1703,7 @@ U0 DrawParticle(C3DWorld *w,C3DParticle *p) {
   I64 x0,y0;
   CD3 res;
   w->to_dc->color=p->color;
-  w->to_dc->thick=(DIST_SCALE/(1+dist))/GRID_SZ*p->size;
+  w->to_dc->thick=(DIST_SCALE/(1+dist))*1.5/GRID_SZ*p->size;
   PointToScrn(w,p->x,p->y,p->z,&res);
   if(w->to_dc->thick>0)
     GrPlot3(w->to_dc,res.x,res.y,dist);
@@ -2213,7 +2246,7 @@ I64 mp_thing_done=0;
 extern CDC *MakeMinimap1(C3DWorld *w,F64 x,F64 y,F64 angle,I64 radius,F64 height);
 U0 Draw3DWorld(CTask *,CDC *dc) {
   C3DWorldManager *man=FrogSymbol("world")->value;
-  man->world_handle=w;
+  man->world_handle=w;
   w->_wall_stains=man->wall_stains->items;
   w->_floor_stains=man->floor_stains->items;
   w->_2d_things=man->things->items;
