@@ -3,3 +3,4 @@ setWall: str=CFrogStr
 |
 |
   wall_texture _ CFrogImg get: str .
+  self updateTextures .

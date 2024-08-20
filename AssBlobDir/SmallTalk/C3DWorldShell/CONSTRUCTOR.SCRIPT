@@ -11,17 +11,18 @@ init ->* |
   ldown=CFrogNum
   rdown=CFrogNum
 |
-  #ui_shell _ self .
-  #ms_grabbed _ 1 .
   draw_it_name _ 'Draw3DWorld' .
 
-  up _ 0 . 
-  down _ 0 . 
-  left _ 0 . 
-  right _ 0 . 
+  on_init _ [
+    #ms_grabbed _ 1 .
+    up _ 0 . 
+    down _ 0 . 
+    left _ 0 . 
+    right _ 0 . 
 
-  ldown _ 0 .
-  rdown _ 0 .
+    ldown _ 0 .
+    rdown _ 0 .
+  ] .
 
   next_refresh _ CFrogTime now asSeconds .
   on_event _ [:v=CUIEvent |
@@ -110,6 +111,12 @@ init ->* |
        ].
        ('', v->m1 asCharactor) uppercase = 'D' ifTrue: [
          right _ 1 .
+         handled _ 1 .
+       ].
+
+       'Block editor' .
+       ('', v->m1 asCharactor) uppercase = 'B' ifTrue: [
+         CBlockEditShell new run .
          handled _ 1 .
        ].
        

@@ -222,7 +222,9 @@ class CLocalsGeneric:CFrogFrame {
 
 U0 STFrameDel() {
   CLocalsGeneric *s=Fs->user_data;
+  if(!s) return;
   CHashGeneric *gen;
+  s->thing_flags&=~THINGF_GC_ROOT;
   Fs->user_data=s->next;
 }
 
@@ -707,7 +709,7 @@ CFrogThing *CallScript(U8 *name,CFrogThing *self,...) {
   U8* fptr,id;
   CFrogThing *ret=NULL;
   if(ThingHasClass(self,"CFrogClass")) {
-    fptr=UniverseGetClassMethodForClassByIdx(NameToUniverseNumber(self(CFrogClass*)->name),self->id);   
+    fptr=UniverseGetClassMethodForClassByIdx(NameToUniverseNumber(name),self(CFrogClass*)->class_id);   
     if(fptr&&fptr!=&Useless)  { //Dumb hack
       ret=CallSTFast(fptr,self,argc,argv);
       goto fin;
@@ -1192,15 +1194,17 @@ CFrogThing *_FrogBlockValue(CFrogBlock *self,I64 argc,I64 *argv) {
 	goto fin;
       cur2=cur2->next;
     }
-DbgPrint("invalid block:%P",self->fun_ptr);
+    DbgPrint("invalid block:%P",self->fun_ptr);
     MemSet(&dummy,0,sizeof CLocalsGeneric);
     dummy.type='Block';
     dummy.return_flag=&dummy.ret_flag;
+    dummy.return_flag[0]=0;
     cur=&dummy;
+    self->frame=cur;
   }
 fin:
   Fs->user_data=cur;
-  ret=CallSTFast(self->fun_ptr,self,argc,argv);
+  ret=CallSTFast(self->fun_ptr,self,argc,argv);
   if(*cur->return_flag) {
 //Propigate the return upwards
     cur2=old_frame;
@@ -1573,7 +1577,7 @@ U0 FrogGarbageCollect(CFrogThing *root=FROG_SMALL_NIL,Bool debug=FALSE) {
   FrogDisableScripts;
   CFrogThing *head=&allocs_head,*cur,*next;
   for(cur=head->next;cur!=head;cur=cur->next) {
-    if(!ThingHasClass(cur,"CFrogSymbol")) {
+    if(!ThingHasClass(cur,"CFrogSymbol")&&!(cur->thing_flags&THINGF_GC_ROOT)) {
       LBts(&cur->thing_flags,THINGf_TO_DELETE);
       cur->shadow_ref_cnt=0;
       cur->ref_cnt=I64_MAX;
@@ -1584,6 +1588,8 @@ U0 FrogGarbageCollect(CFrogThing *root=FROG_SMALL_NIL,Bool debug=FALSE) {
     if(ThingHasClass(cur,"CFrogSymbol")) {
       FrogGarbageCollectThing(cur(CFrogSymbol*)->value,debug);
     }
+    if(cur->thing_flags&THINGF_GC_ROOT)
+      FrogGarbageCollectThing(cur,debug);
   }
   FrogGarbageCollectThing(root);
   for(cur=head->next;cur!=head;cur=next) {
@@ -1709,4 +1715,3 @@ U0 FrogBinDel(CFrogBin *bin) {
   Free(bin);
 }
 Fs->user_data=0;
-

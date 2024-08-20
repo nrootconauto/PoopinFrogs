@@ -19,101 +19,7 @@ CTask *ui_task=Fs;
 #include "SmallTalk/Load.HC"
 #define UI_GRID_DRAG_FPTR "UIDragItem"
 #define UI_FOCUS_FPTR "UIFocusItem"
-
-#if 0
-//These are defined in the ASS.BLOB SmallTalk header lump
-class CUIElem:CFrogThing {
- //Negative means from side of parent/window
-  I64 x,y;
-  I64 sz_x,sz_y;
-//x/y is where to draw the stuff
-//These cordnates are realtive to the element
-  CFrogBlock *ms_ldown;
-  CFrogBlock *ms_lup;
-  CFrogBlock *ms_rdown;
-  CFrogBlock *ms_rup;
-  CFrogBlock *kbd_up;
-  CFrogBlock *kbd_down;
-  CFrogBlock *drag_start;
-  CFrogBlock *drag_end;
-  CFrogBlock *ms_move;
-  CFrogArray *sub_elems;
-//
-  I64 computed_x,computed_y;
-  Bool dont_draw_children;
-  Bool update_parent_first;
-  Bool focus;
-  Bool dont_draw,pad[4];
-};
-class CUIChatLog:CUIElem {
-  U8 *constructor dft "UIChatLogInit";
-  U8 *draw_it dft "UIChatLogDraw";
-  CFrogArray *lines;
-  I64 max_cnt;
-  U8 bg_color,fg_color;
-};
-class CUIBackground:CUIElem {
-  U8 *draw_it dft "UIBackgroundDraw";
-  U8 *constructor dft "UIElemInit";
-  I64 bg_color;
-};
-class CUILabel:CUIElem {
-  U8 *draw_it dft "UILabelDraw";
-  U8 *constructor dft "UILabelInit";
-  I64 color;
-  CFrogStr *label;
-};
-class CUIButton:CUIElem {
-  U8 *draw_it dft "UIButtonDraw";
-  U8 *constructor dft "UIButtonInit";  
-  I64 fg_color;
-  I64 bg_color;
-  CFrogStr *label;
-};
-class CUIMeter:CUIElem {
-  U8 *draw_it dft "UIMeterDraw";
-  U8 *constructor dft "UIMeterInit";  
-  I64 max,value;
-  I64 bg_color;
-  I64 fg_color;
-  I64 text_color;
-  I64 border_color;
-  CFrogStr *str;
-};
-class CUITextBar:CUIElem {
-  CFrogStr *buf;
-  U8 *constructor dft "UITextBarInit";
-  U8 *draw_it dft "UITextBarDraw";
-  I64 view_pos,cur_pos;
-  U8 bg_color,fg_color,border_color;
-};
-class CUIScrollBars:CUIElem {
-  U8 *constructor dft "UIElemInit";
-  U8 *draw_it dft "UIScrollBarsDraw";
-  I64 x_scroll,y_scroll,bg_color;
-};
-class CUICenter:CUIElem {
-  U8 *constructor dft 6"UIElemInit";
-  U8 *draw_it dft "UICenterDraw";
-  CUIElem *parent; 
-  Bool x_center,y_center;
-};
-
-class CUIGridItem:CUIElem {
-  CFrogStr *name;
-  CDC *graphics;
-  I64 cnt; //0 for none
-  CFrogThing *parent;
-  U8 *draw_it dft "UIGridItemDraw";
-};
-
-class CUIGrid:CUIElem {
-  I64  grid_w,grid_h;
-  CFrogArray *mat;
-  CUIGridItem *active;
-  U8 *draw_it dft "UIGridDraw";
-};
-#endif
+#define MSG_MS_SCROLL 13
 U0 RenderUI(CDC *dc,CUIElem *e,I64 left_x=0,I64 left_y=0,I64 right_x=GR_WIDTH,I64 right_y=GR_HEIGHT) {
   if(!ThingHasClass(e,"CUIElem")) return;
   CUIElem *draw,**body=e->sub_elems->items->body;
@@ -176,6 +82,10 @@ I64 *UpdateUI(CUIElem *update,I64 msg_type,I64 m1,I64 m2,I64 right_x=GR_WIDTH,I6
       break;
     start:
       cb=NULL;
+      case MSG_MS_SCROLL:
+        if(update&&update->scroll)
+	  cb=update->scroll;
+        break;
       case MSG_KEY_UP:
         if(update&&update->kbd_up)
 	  cb=update->kbd_up;
@@ -210,6 +120,18 @@ pass:
     }
   cb=NULL;
   switch(msg_type) {
+    case MSG_MS_SCROLL:
+      if(update&&update->scroll)
+	cb=update->scroll;
+      if(ThingHasClass(cb,"CFrogBlock")) {
+	FrogBlockValue(cb,
+		  update,
+		  FrogNumNew(m1)
+		  );
+	ret_code=TRUE;
+	return &ret_code;
+      }
+      break;
     case MSG_MS_MOVE:
       cb=update->ms_move;
       if(ms.lb&&update->ms_ldown)
@@ -493,7 +415,7 @@ U0 UIScrollBarsDraw(CDC *dc,I64 xoff,I64 yoff,CUIScrollBars *scroll) {
   F64 sbh,sbw;
   CUIElem **body=scroll->sub_elems->items->body,*sub;
   I64 elem_cnt=scroll->sub_elems->items->cnt;
-  CDC *dummy=DCNew(scroll->sz_x,scroll->sz_y);
+  CDC *dummy=DCNew(scroll->sz_x,scroll->sz_y),*one=DCNew(1,1);
   DCFill(dummy,scroll->bg_color);
   for(cnt=0;cnt!=elem_cnt;cnt++) {
     sub=body[cnt];
@@ -518,12 +440,20 @@ U0 UIScrollBarsDraw(CDC *dc,I64 xoff,I64 yoff,CUIScrollBars *scroll) {
 
   for(cnt=0;cnt!=elem_cnt;cnt++) {
     sub=body[cnt];
+//Render normally.
     RenderUI(dummy,sub,
 	-sx,
 	-sy,
 	scroll->sz_x,scroll->sz_y);
+//Render to 1x1 pixel with "real" cordnates for computed_x/y
+    RenderUI(one,sub,
+	scroll->computed_x-sx,
+	scroll->computed_y-sy,
+	scroll->computed_x+scroll->sz_x,
+	scroll->computed_y+scroll->sz_y);
   }
   GrBlot(dc,xoff,yoff,dummy);
+  DCDel(one);
   DCDel(dummy);
   if(h>scroll->sz_y) {
     sbh=ToF64(scroll->sz_y)/h*scroll->sz_y;
@@ -592,7 +522,7 @@ U0 UIGridItemDraw(CDC *dc,I64 x,I64 y,CUIGridItem *self) {
       GrRect(dc,x+UI_GRID_PAD/2,y+UI_GRID_PAD/2,UI_GRID_WIDTH-UI_GRID_PAD,UI_GRID_WIDTH-UI_GRID_PAD);
     }
   if(ThingHasClass(self->graphics,"CFrogImg")) {
-    AnimDCBlotScaled(dc,x+UI_GRID_PAD/2,y+UI_GRID_PAD/2,24,24,self->graphics->dc);
+    AnimDCBlotScaled(dc,x+UI_GRID_PAD/2,y+UI_GRID_PAD/2,24,24,self->graphics->dc);
   }
   if(self->cnt) {
     str=MStrPrint("%d",self->cnt);
@@ -671,6 +601,12 @@ CFrogThing *UIShellRun(CUIShell *shell,...) {
   AutoComplete(0);
   WinMax;
   WinBorder(0);
+  CFrogThing *old_ui_root=FrogSymbol("ui_root")->value;
+  CUIShell*old_shell=FrogSymbol("ui_shell")->value;
+  CFrogNum *old_grabbed=FrogSymbol("ms_grabbed")->value;
+  FrogSymbol("ui_shell")->value=shell;
+  if(ThingHasClass(old_ui_root,"CUIElem")) old_ui_root->thing_flags|=THINGF_GC_ROOT;
+  if(ThingHasClass(old_shell,"CUIShell")) old_shell->thing_flags|=THINGF_GC_ROOT;
   dc->flags|=DCF_NO_TRANSPARENTS;
   CUIEvent *ev;
   I64 last_z=ms.pos.z;
@@ -683,6 +619,7 @@ CFrogThing *UIShellRun(CUIShell *shell,...) {
   Fs->draw_it=&UIShellDrawIt;
   CFrogSymbol *grabbed=FrogSymbol("ms_grabbed");
   FramePtrAdd("screen_dc",dc);
+  FrogBlockValue(shell->on_init);
   while(!shell->exited) {
     if(AsF64(grabbed->value)) {
       AIWNIOS_SetCaptureMouse(1);
@@ -745,7 +682,6 @@ CFrogThing *UIShellRun(CUIShell *shell,...) {
       ev->m2=ms.pos.y;
       if(ThingHasClass(shell->on_event,"CFrogBlock"))
 	FrogBlockValue(shell->on_event,ev);
-PrintI("ld",ms.lb);
     }
 
     if(old_rdown!=ms.rb) {
@@ -767,6 +703,7 @@ PrintI("ld",ms.lb);
 
     if(ms.pos.z!=last_z) {
       ev=ConstructThing("CUIEvent");
+      ev->raw_type=MSG_MS_SCROLL;
       ev->m1=last_z-ms.pos.z;
       ev->type=FrogStrNew("MsScroll");
       last_z=ms.pos.z;
@@ -788,8 +725,13 @@ PrintI("ld",ms.lb);
   Fs->draw_it=NULL;
   DCDel(dc);
   SettingsPop;
+  if(ThingHasClass(old_ui_root,"CUIElem")) old_ui_root->thing_flags&=~THINGF_GC_ROOT;
+  if(ThingHasClass(old_shell,"CUIShell")) old_shell->thing_flags&=~THINGF_GC_ROOT;
+  FrogSymbol("ui_root")->value=old_ui_root;
+  FrogSymbol("ms_grabbed")->value=old_grabbed;
+  FrogSymbol("ui_shell")->value=old_shell;
 }
-
+AddMethod("CUIShell","run",&UIShellRun);
 #if__CMD_LINE__
 STRunStmt("#ui_root _ CUIScrollBars new .\n");
 STRunStmt("#ui_root setWidth: 400 ; setHeight: 100 .\n");

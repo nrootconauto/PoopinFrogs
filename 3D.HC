@@ -59,18 +59,31 @@ U0 FrogImgSetGraphics(CFrogImg *img,...) {
     if(data=BlobFileGetLump(,lunk)) {
       img->dc=AnimDCLoad(data);
       img->name=FrogStrNew(lunk);
-      Free(data);
+      Free(data);
     }
     Free(lunk);
   }
   return FROG_SMALL_NIL;
 }
 AddMethod("CFrogImg","setGraphics:",&FrogImgSetGraphics);
+#include "TextureEditor";
+CFrogImg *FrogImgNewFromEditor(CFrogImg *img,...) {
+  U8 *lump;
+  lump=TextureEdit(dft_blob_path);
+  CFrogImg *ret=FROG_SMALL_NIL;
+  if(lump) {
+    ret=CallScript("get:",img,FrogStrNew(lump)); //Get an existing name/replace
+    CallScript("setGraphics:",ret,FrogStrNew(lump));
+    Free(lump);
+  }
+  return ret;
+}
+
+AddClassMethod("CFrogImg","newFromEditor",&FrogImgNewFromEditor);
 U0 FrogImgDel(CFrogImg *img) {
   AnimDCDel(img->dc);
   Free(img);
 }
-
 
 U64 Fog(I64 color,I64 dist) {
   dist>>=7; //GRID_SZ is 128(7 bits)
@@ -1386,6 +1399,7 @@ U0 GenerateRay(C3DWorld *world,CD3 *ray_look,F64 i,F64 j,F64 w,F64 h,CD3 *pos,CD
   fov2=world->fov/2;
   D3Equ(&up,0,1,0);
   D3Sub(&look,lookat,pos);
+  D3Unit(&look);
   D3Cross(&hori,&look,&up);
   D3Cross(&vert,&hori,&look);
   
@@ -1396,6 +1410,7 @@ U0 GenerateRay(C3DWorld *world,CD3 *ray_look,F64 i,F64 j,F64 w,F64 h,CD3 *pos,CD
   D3Mul(&sampv,j*fov2,&vert);
   D3Add(&slook,&samph,&sampv);
   D3Add(ray_look,&slook,&look);
+  D3Unit(ray_look);
 }
 U0 MPCastCol(C3DWorldManager *wm) {
   C3DWorld *w=wm->world_handle;
@@ -2362,6 +2377,36 @@ CFrogThing *WorldPhysics(C3DWorldManager *wm,...) {
   return FROG_SMALL_NIL;
 }
 AddMethod("C3DWorldManager","physics",&WorldPhysics);
+
+
+
+CFrogThing *TileTemplateUpdate(CTileTemplate *tile,...) {
+  I64 idx=tile->tile_idx;
+  PrintI("idx",idx);
+  CDC *dc;
+  if(dc=w->wall_textures[idx])
+    AnimDCDel(dc);
+  if(dc=w->floor_textures[idx])
+    AnimDCDel(dc);
+  if(dc=w->ceil_textures[idx])
+    AnimDCDel(dc);
+  if(ThingHasClass(tile->wall_texture,"CFrogImg")) {
+    w->wall_textures[idx]=ScaleDC(tile->wall_texture->dc,128,128,frog_mem_task);
+  } else
+    w->wall_textures[idx]=NULL;
+
+  if(ThingHasClass(tile->floor_texture,"CFrogImg")) {
+    w->floor_textures[idx]=ScaleDC(tile->floor_texture->dc,128,128,frog_mem_task);
+  } else
+    w->floor_textures[idx]=NULL;
+
+  if(ThingHasClass(tile->ceil_texture,"CFrogImg")) {
+    w->ceil_textures[idx]=ScaleDC(tile->ceil_texture->dc,128,128,frog_mem_task);
+  } else
+    w->ceil_textures[idx]=NULL;
+  return FROG_SMALL_NIL;
+}
+AddMethod("CTileTemplate","updateTextures",&TileTemplateUpdate);
 //
 //
 //

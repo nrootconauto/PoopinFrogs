@@ -594,6 +594,9 @@ U8 *CompileThunk(CAST *block,CLocals *parent=NULL) {
   DocPrint(doc,"CFrogThing *Thunk@@%d(CFrogBlock *block,...) {\n",thunk_idx);
   DocPrint(doc,"CFrogThing *self=block->self;\n");
   DocPrint(doc,"CLocalsGeneric0 *parent_frame=block->frame;\n");
+  DocPrint(doc,"parent_frame->thing_flags|=THINGF_GC_ROOT;\n");
+//$BK,1$IMPORTANT,set THINGF_GC_ROOT to avoid disappearing data$BK,0$ STFrameDel unsets it.
+  
   replace=DocPrint(doc,"  CFrogThing *stk[$$LK,\"replace_me\"$$],*retval=FROG_SMALL_NIL,**tmp;\n");
   DocPrint(doc,"CFrogThing *(*fun_ptr)(CFrogThing *,...);\n");
   DocPrint(doc,"  Bool false=FALSE;\n");
@@ -1197,7 +1200,7 @@ force_f64:;
 	  goto prim_skip;
         }
         if(!StrCmp(ast->op_name,"sqrt")) {
-	  NumPrim1(doc,locals,ast,stack_depth,"Sqrt","sqrt");
+	  NumPrim1(doc,locals,ast,stack_depth,"Sqrt","sqrt");
 	  goto prim_skip;
         }
         if(!StrCmp(ast->op_name,"floor")) {
@@ -1580,6 +1583,7 @@ FramePtrSet("Escapes",escapes);
   DocPrint(doc,"  Bool false=FALSE;\n");
   frame=DocPrint(doc,"  $$LK,\"dasds\"$$");
   DocPrint(doc,"  CLocalsGeneric0 *parent_frame=Fs->user_data;\n");
+  DocPrint(doc,"parent_frame->thing_flags|=THINGF_GC_ROOT;\n");
   DocPrint(doc,"  parent_frame->_raw_mask=%d;\n",locals->raw_mask);
   DocPrint(doc,"  I64 unwind=0,next_case=%d;\n",ast_case_num);
   DocPrint(doc,"CFrogThing *(*fun_ptr)(CFrogThing *,...);\n");

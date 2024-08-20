@@ -4,4 +4,7 @@ init ->* | |
   self onLeftClick: [:e* :x2=CFrogNum :y2=CFrogNum |
     e onClickAtX: x2 atY: y2
   ] .
+  scroll _ [:e* :amt=CFrogNum |
+    y_scroll _ y_scroll - (amt * 6) max: 0 .
+  ] .
   ^ self

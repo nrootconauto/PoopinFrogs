@@ -1,0 +1,151 @@
+init ->* |
+  grid=CUIGrid
+  item=CUIGridItem
+  group=CUIBackground
+  button=CUIButton
+  scroll_bars=CUIScrollBars
+  tile*
+  new_texture=CFrogImg
+  ui_roots=CFrogArray
+  handled=CFrogNum
+  old*
+  inv_item=CWorldEditBlock
+|
+  'Draw world in backgroubnd' .
+  draw_it_name _ 'Draw3DWorld' .
+
+  on_init _ [
+    #ms_grabbed _ 0 .
+    #ui_root _ CUIElem new .
+    ui_roots _ #(#ui_root) .'I make a stack of UIs that are POPed' .
+    #ui_root show .
+    #ui_root -> x _ 0 .
+    #ui_root -> y _ 0 .
+    #ui_root -> sz_x _ 640 .
+    #ui_root -> sz_y _ 480 .
+    scroll_bars _ CUIScrollBars new .
+    scroll_bars ->x _ 10 .
+    scroll_bars ->y _ 10 .
+    scroll_bars ->sz_y _ 460 .
+    scroll_bars ->sz_x _ 620 .
+    scroll_bars->bg_color _ #color_DKGRAY .
+    grid _ CUIGrid new .
+    grid setWidth: 16 withHeight: 16 .
+    1 to: 256 do:[:b=CFrogNum |
+      item _ CUIGridItem new .
+      tile _ (#world -> tile_templates at: b) .
+      item->graphics _  tile->wall_texture  .
+      (tile hasClass: CTileTemplate) ifTrue: [
+        item -> item _ tile  .
+      ] ifFalse: [
+        item -> item _ b .
+      ] .
+      item->cnt _ b .
+      item onLeftUp: [:elem=CUIGridItem |
+        tile _ elem -> item .
+        (tile hasClass: CTileTemplate) ifFalse: [
+          tile _ CTileTemplate new .
+          tile -> tile_idx _ elem->item .
+          tile -> tile_idx show .
+          #world -> tile_templates at: tile->tile_idx put: tile .
+          elem->item _ tile .
+        ] .
+        'Remove old group ' .
+        group _ CUIBackground new .
+        ui_roots add: group .
+        #ui_root _ group .
+        group-> bg_color _ #color_DKGRAY .
+        group setHeight: 300 .
+        group setWidth: 200 .
+        group->x _ 640 / 2 - (group->sz_x / 2) .
+        group->y _ 480 / 2 - (group->sz_y / 2) .
+        
+        button _ CUIButton new .
+        button->fg_color _ #color_LTRED .
+        button->bg_color _ #color_YELLOW .
+        button setLabel: 'Edit top' .
+        button onLeftUp: [:elem* |
+          new_texture _ CFrogImg newFromEditor .
+          tile setFloor:  new_texture->name.
+
+        ] .
+        button-> x _ 50 .
+        button-> y _ 50 .
+        button->sz_y _ 40 .
+        button->sz_x _ 200 .
+        group addChild: button .
+
+        
+        button _ CUIButton new .
+        button->fg_color _ #color_LTRED .
+        button->bg_color _ #color_YELLOW .
+        button setLabel: 'Edit Wall' .
+        button onLeftUp: [:elem* |
+          new_texture _ CFrogImg newFromEditor .
+          tile setWall:  new_texture->name.
+        ] .
+        button-> x _ 50 .
+        button-> y _ 100 .
+        button->sz_y _ 40 .
+        button->sz_x _ 200 .
+        group addChild: button .
+
+        button _ CUIButton new .
+        button->fg_color _ #color_LTRED .
+        button->bg_color _ #color_YELLOW .
+        button setLabel: 'Edit Bottom' .
+        button onLeftUp: [:elem* |
+          new_texture _ CFrogImg newFromEditor .
+          tile setCeil:  new_texture->name.
+        ] .
+        button-> x _ 50 .
+        button-> y _ 150 .
+        button->sz_y _ 40 .
+        button->sz_x _ 200 .
+        group addChild: button .
+
+        button _ CUIButton new .
+        button->fg_color _ #color_LTRED .
+        button->bg_color _ #color_YELLOW .
+        button setLabel: 'Add To Players stash' .
+        button onLeftUp: [:elem* |
+          CWorldEditBlock new: tile->tile_idx .
+        ] .
+        button-> x _ 50 .
+        button-> y _ 200 .
+        button->sz_y _ 40 .
+        button->sz_x _ 200 .
+        group addChild: button .
+
+      ] .
+      grid addItem: item .
+    ] .
+
+    #ui_root addChild: scroll_bars .
+    scroll_bars addChild: grid .
+    grid->x _ 10 .
+    grid->y _ 10 .
+  ] .
+
+  on_event _ [:v=CUIEvent |
+    handled _ 0 .
+    v->type = 'KeyDown' ifTrue: [
+      v->m1 = 27 ifTrue: [
+        'ESC '.
+        ui_roots size <= 1 ifTrue: [
+          exited _ 1 .
+          handled _ 1 . 
+        ] ifFalse:[
+'POP the ui menus until nothing left to pop' .
+          ui_roots remove: (ui_roots at: ui_roots size - 1) .
+          #ui_root _ ui_roots at: ui_roots size - 1 .
+          handled _  1.  
+        ] .
+      ] .
+    ] .
+    handled ifFalse: [
+      #ui_root sendEventToUI: v .
+    ].
+  ] .
+  ^ self
+

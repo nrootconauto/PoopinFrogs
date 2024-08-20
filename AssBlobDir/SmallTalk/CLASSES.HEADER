@@ -109,8 +109,10 @@ class CUIElem:CFrogThing {
   CFrogBlock *drag_start;
   CFrogBlock *drag_end;
   CFrogBlock *ms_move;
+  CFrogBlock *scroll;
   CFrogArray *sub_elems;
 //
+  CFrogThing *user_data;
   I64 computed_x,computed_y;
   Bool dont_draw_children;
   Bool update_parent_first;
@@ -121,6 +123,7 @@ class CUIShell:CFrogThing {
   CUIElem *ui_root; //Will be stored in #ui_root
   CFrogStr *draw_it_name;
   CFrogBlock *on_refresh;
+  CFrogBlock *on_init; //First thing run(used for repeat entry)
   CFrogBlock *on_event; //See CUIEvent,send eveents to #ui_root via sendEventToUI:
   Bool exited dft FALSE; //TRUE on exit
 };
@@ -249,10 +252,10 @@ class C3DWorldManager:CFrogThing {
   U8 *world_handle;
   CFrogArray *things recur_serialize 1;
 //See CWallStain mofo
-  CFrogArray *wall_stains no_serialize 1;
+  CFrogArray *wall_stains no_serialize 1;
   CFrogArray *floor_stains no_serialize 1;
-  CFrogDictionary *thing_templates no_serialize 1;
-  CFrogArray *tile_templates no_serialize 1;
+  CFrogDictionary *thing_templates recur_serialize 1;
+  CFrogArray *tile_templates recur_serialize 1;
   F64 gravity,last_update;
   I64 screen_x,screen_y;
 //A grid of things having the things(128*128 size)
@@ -573,6 +576,9 @@ class CMarkerDrugPickup:CPickup {
 };
 
 class C3DWorldShell:CUIShell {
+};
+
+class CBlockEditShell:CUIShell {
 };
 
 class CLandscapeGenerator:CFrogThing {
