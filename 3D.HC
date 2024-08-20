@@ -6,6 +6,8 @@
 #include "PathFinder.HC";
 #define TEST_3D
 #ifndef ENGINE_3D
+#include "SSE.HC";
+#define mp_cnt 1
 #define VIEW_DIST 32
 #define FOG0_DIST 8
 #define FOG1_DIST 16
@@ -1393,13 +1395,95 @@ CDC *WhichTexture(C3DWorld *w,I64 tile,F64 h,F64 h2,F64 *hit_h,Bool *hit_wall) {
 
 I64 mp_done=0;
 //https://github.com/shibenb/simple-c-raytracer
+#ifdef TARGET_X86
+
+U0 GenerateRay(C3DWorld *world,CD3 *ray_look,F64 i,F64 j,F64 w,F64 h,CD3 *pos,CD3 *lookat) {
+  I32 vlookat[4];
+  I32 up[4];
+  F64 up2[3];
+  I32 hori[4];
+  I32 vert[4];
+  I32 look[4];
+  I32 samph[4];
+  I32 sampv[4];
+  I32 slook[4];
+  I32 result[4];
+  F64 noreg tmp;
+  F64 noreg tmp2;
+  F64 fov2;
+  fov2=world->fov/2;
+  tmp=(2*(i/w)-1);
+  tmp2=(2*(j/h)-1)*(h/w);
+  tmp*=fov2;
+  tmp2*=fov2;
+  up[0]=F64ToF32(0);
+  up[1]=F64ToF32(1.);
+  up[2]=F64ToF32(0);
+  up[3]=F64ToF32(0.);
+  
+  look[0]=F64ToF32(lookat->x);
+  look[1]=F64ToF32(lookat->y);
+  look[2]=F64ToF32(lookat->z);
+
+  MOVUPS XMM0,&look [RBP]
+  MOVUPS XMM1,&up [RBP]
+  MOVUPS XMM2,&look [RBP]
+  MOVUPS XMM3,&up [RBP]
+// Sexy cross product
+//(http://threadlocalmutex.com/?p=8)
+  SHUFPS XMM2,XMM2,-55 //1,2,0,3 as I8
+  SHUFPS XMM3,XMM3,-55 //1,2,0,3
+//a_yzx==XMM2
+//b_yzx==XMM3
+  MULPS XMM0,XMM3
+  MULPS XMM1,XMM2
+  SUBPS	XMM0,XMM1 //c
+  SHUFPS XMM0,XMM0,-55
+  MOVUPS &hori[RBP],XMM0
+//XMM4(hori) is Cross(look,up)
+
+  MOVUPS XMM0,&hori [RBP]
+  MOVUPS XMM1,&look [RBP]
+  MOVUPS XMM2,&hori [RBP]
+  MOVUPS XMM3,&look [RBP]
+  SHUFPS XMM2,XMM2,-55 //What do you think it is again
+  SHUFPS XMM3,XMM3,-55
+  MULPS XMM0,XMM3
+  MULPS XMM1,XMM2
+  SUBPS	XMM0,XMM1 //c
+  SHUFPS XMM0,XMM0,-55
+  MOVUPS &vert[RBP],XMM0
+//XMM5 is Cross(hori,look)
+
+
+  CVTSD2SS XMM4,&tmp [RBP]
+  SHUFPS XMM4,XMM4,0
+  MOVUPS XMM0,&hori[RBP]
+  MULPS XMM4,XMM0 //samph=hori*tmp[4 vector]
+
+  CVTSD2SS XMM5,&tmp2 [RBP]
+  SHUFPS XMM5,XMM5,0 
+  MOVUPS XMM0,&vert[RBP]
+  MULPS XMM5,XMM0 //samph=hori*tmp[4 vector]
+
+  ADDPS XMM4,XMM5
+  MOVUPS XMM0,&look [RBP]
+  ADDPS XMM4,XMM0
+  MOVUPS &result[RBP],XMM4
+
+
+  ray_look->x=F32ToF64(result[0]);
+  ray_look->y=F32ToF64(result[1]);
+  ray_look->z=F32ToF64(result[2]);  
+}
+#else
 U0 GenerateRay(C3DWorld *world,CD3 *ray_look,F64 i,F64 j,F64 w,F64 h,CD3 *pos,CD3 *lookat) {
   CD3 up,hori,vert,look;
   F64 tmp,fov2,tmp2;
   fov2=world->fov/2;
   D3Equ(&up,0,1,0);
   D3Sub(&look,lookat,pos);
-  D3Unit(&look);
+  D3Unit(&look);
   D3Cross(&hori,&look,&up);
   D3Cross(&vert,&hori,&look);
   
@@ -1412,6 +1496,7 @@ U0 GenerateRay(C3DWorld *world,CD3 *ray_look,F64 i,F64 j,F64 w,F64 h,CD3 *pos,CD
   D3Add(ray_look,&slook,&look);
   D3Unit(ray_look);
 }
+#endif
 U0 MPCastCol(C3DWorldManager *wm) {
   C3DWorld *w=wm->world_handle;
   F64 angle=w->angle-w->fov/2,angle2,hit_dist,ath;
@@ -1440,6 +1525,8 @@ U0 MPCastCol(C3DWorldManager *wm) {
 	Sin(xrot),
 	1
 	);
+  look_at.x=Sin(-w->angle);
+  look_at.z=Cos(-w->angle);
   idx=ToF64(Gs->num)/ToF64(mp_cnt)*GR_WIDTH;
   cap=ToF64(Gs->num+1)/ToF64(mp_cnt)*GR_WIDTH;
   for(x=idx;x<cap;x+=w->step_width) {
@@ -1469,10 +1556,6 @@ $SP,"<2>",BI=2$;
     for(y=0;y<GR_HEIGHT;y+=w->step_width) {
 //Nroot has no idea what he was doing here.Literaly typing random stuff
       GenerateRay(w,&ray,x,y,to_dc->width,to_dc->height,&at,&look_at);   
-F64 mag=Sqrt(Sqr(ray.x)+Sqr(ray.z));
-F64 dir=Arg(ray.z,ray.x);
-      ray.x=Sin(dir-w->angle)*mag;
-      ray.z=Cos(dir-w->angle)*mag;
       p=&w->to_point[x/4][y/4];
 //If we dont hit a wall,just fill with "far out in the distacnve"
       p->x=w->x+ray.x*I16_MAX;
