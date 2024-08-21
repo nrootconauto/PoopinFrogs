@@ -402,7 +402,7 @@ U0 SetClassMemberVal(CFrogThing *t,U8 *member,I64 val) {
       StrCpy(dummy.class_name,mlst->member_class[-1].str);
       if(ThingHasClass(&dummy,"CFrogThing")) { 
         (t(U8*)+mlst->offset)(I64*)[0]=FrogIncRefCnt(val);
-        return ;
+        return ;
       }
     }
     v2=AsF64(val);
@@ -1709,6 +1709,15 @@ CFrogThing *FrogSetTime(CFrogThing *ul,...) {
   return FROG_SMALL_NIL;
 }
 AddClassMethod("CFrogTime","setTime:",&FrogSetTime);
+
+CFrogThing *FrogClassFromString(CFrogThing *ul,...) {
+  U8 *s=AsString(argv[0]);
+  CFrogClass *ret=FrogClassNew(UniverseAddClass(s));
+  Free(s);
+  return ret;
+}
+AddClassMethod("CFrogClass","fromString:",&FrogClassFromString);
+
 
 U0 FrogBinDel(CFrogBin *bin) {
   Free(bin->data);

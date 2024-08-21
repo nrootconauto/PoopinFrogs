@@ -1,0 +1,207 @@
+init ->* |
+  text_bar=CUITextBar
+  grid=CUIGrid
+  item=CUIGridItem
+  group=CUIBackground
+  button=CUIButton
+  label=CUILabel
+  scroll_bars=CUIScrollBars
+  ui_roots=CFrogArray
+  handled=CFrogNum
+  old*
+  y=CFrogNum
+  templates=CFrogArray
+  template=C3DThingTemplate
+  edit_template=CFrogBlock
+|
+  'Draw world in background' .
+  draw_it_name _ 'Draw3DWorld' .
+
+  edit_template _ [:template=C3DThingTemplate |
+template show .
+    #ui_root _ CUIBackground new .
+    #ui_root->color _ #color_DKGRAY .
+    #ui_root ->x _ 10 .
+    #ui_root ->y _ 10 .
+    #ui_root -> sz_x _ 640 .
+    #ui_root -> sz_y _ 480 .
+
+    y _ 20 .
+
+    button _ CUIButton new .
+    button -> sz_x _ 200 . 
+    button -> sz_y _ 30 .
+    button -> x _ 20 .
+    button -> y _ y . 
+    button -> bg_color _ #color_YELLOW .
+    button -> fg_color _ #color_RED .
+    button->label _ 'Add to inventory' .
+    button onLeftUp: [
+      (CWorldEditThing new: template -> name ) show  .
+    ] .
+    #ui_root addChild: button .
+
+    y _ y + 50 .
+
+    button _ CUIButton new .
+    button -> sz_x _ 200 . 
+    button -> sz_y _ 30 .
+    button -> x _ 20 .
+    button -> y _ y . 
+    button -> bg_color _ #color_YELLOW .
+    button -> fg_color _ #color_RED .
+    button->label _ 'Set Front Graphics' .
+    button onLeftUp: [
+      template -> front _ CFrogImg newFromEditor .
+    ] .
+    #ui_root addChild: button .
+
+    y _ y + 50 .
+ 
+    button _ CUIButton new .
+    button -> sz_x _ 200 . 
+    button -> sz_y _ 30 .
+    button -> x _ 50 .
+    button -> y _ y . 
+    button -> bg_color _ #color_YELLOW .
+    button -> fg_color _ #color_RED .
+    button->label _ 'Set Side Graphics' .
+    button onLeftUp: [
+      template -> side _ CFrogImg newFromEditor .
+    ] .
+    #ui_root addChild: button .
+
+    y _ y + 50 .
+
+    button _ CUIButton new .
+    button -> sz_x _ 200 . 
+    button -> sz_y _ 30 .
+    button -> x _ 50 .
+    button -> y _ y . 
+    button -> bg_color _ #color_YELLOW .
+    button -> fg_color _ #color_RED .
+    button->label _ 'Set Back Graphics' .
+    button onLeftUp: [
+      template -> back _ CFrogImg newFromEditor .
+    ] .
+    #ui_root addChild: button .
+
+    ui_roots add: #ui_root .
+  ] .
+
+
+  on_init _ [
+    templates _ #() .
+
+    #ms_grabbed _ 0 .
+    #ui_root _ CUIElem new .
+    ui_roots _ #(#ui_root) .'I make a stack of UIs that are POPed' .
+    #ui_root -> x _ 0 .
+    #ui_root -> y _ 0 .
+    #ui_root -> sz_x _ 640 .
+    #ui_root -> sz_y _ 480 .
+    scroll_bars _ CUIScrollBars new .
+    scroll_bars ->x _ 10 .
+    scroll_bars ->y _ 10 .
+    scroll_bars ->sz_y _ 460 .
+    scroll_bars ->sz_x _ 620 .
+    scroll_bars->bg_color _ #color_DKGRAY .
+
+    label _ CUILabel new .
+    label setLabel: 'Things Menu'.
+    label->color _ #color_LTCYAN .
+    label->x _ 50 .
+    label->y _ 20 .
+    scroll_bars addChild: label .
+
+    y _ 40 .
+
+
+    'Make a new thing button' .
+    button _ CUIButton new . 
+    button -> sz_x _ 200 . 
+    button -> sz_y _ 30 .
+    button -> x _ 20 .
+    button -> y _ y .
+    button -> fg_color _ #color_RED .
+    button -> bg_color _ #color_LTGREEN .
+    button->label _ 'Create A new Thing' .
+    button onLeftUp: [:e*|
+      #ui_root _ CUIBackground new .
+      ui_roots add: #ui_root .
+      #ui_root->color _ #color_DKGRAY .
+      #ui_root ->x _ 100 .
+      #ui_root ->y _ 200 .
+      #ui_root -> sz_x _ 440 .
+      #ui_root -> sz_y _ 80 .
+      label _ CUILabel new .
+      label setLabel: 'Enter the Item name' .
+      label->color _ #color_LTCYAN .
+      label->x _ 100 .
+      label->y _ 20 .
+      #ui_root addChild: label .
+      text_bar _ CUITextBar new .
+      #ui_root addChild: text_bar .
+      text_bar->y _ 30 .
+      text_bar->sz_x _ 400 .
+      text_bar->sz_y _ 12 .
+
+      text_bar->on_enter _ [:b=CFrogStr |
+        b show .
+        template _ C3DThingTemplate new .
+        template -> name _ b 
+        #world->thing_templates at: b put:  template .
+
+'POP the ui_root stack '. 
+        ui_roots remove: (ui_roots at: ui_roots size - 1) .
+        #ui_root _ ui_roots at: ui_roots size - 1 .
+
+        edit_template value: template .
+      ] .
+    ] .
+    scroll_bars addChild: button  .
+
+    y _ y + 50 .
+
+    #world ->thing_templates doKeys: [:name=CFrogStr|
+      name show .
+      template _ #world getThingTemplate: name .
+      button _ CUIButton new . 
+      button -> sz_x _ 200 . 
+      button -> sz_y _ 30 .
+      button -> x _ 20 .
+      button -> y _ y . 
+      button -> bg_color _ #color_YELLOW .
+      button -> fg_color _ #color_RED .
+      button->user_data _ template .
+      button->label _ 'Edit Thing ', name  .
+      button onLeftUp: [:which=CUIButton|
+        edit_template value: which->user_data .
+      ].
+      y _ y + 50 .
+      scroll_bars addChild: button .
+    ] .
+    #ui_root addChild: scroll_bars .
+  ] .
+
+  on_event _ [:v=CUIEvent |
+    handled _ 0 .
+    v->type = 'KeyDown' ifTrue: [
+      v->m1 = 27 ifTrue: [
+        'ESC '.
+        ui_roots size <= 1 ifTrue: [
+          exited _ 1 .
+          handled _ 1 . 
+        ] ifFalse:[
+          'POP the ui menus until nothing left to pop' .
+          ui_roots remove: (ui_roots at: ui_roots size - 1) .
+          #ui_root _ ui_roots at: ui_roots size - 1 .
+          handled _  1.  
+        ] .
+      ] .
+    ] .
+    handled ifFalse: [
+      #ui_root sendEventToUI: v .
+    ].
+  ] .
+  ^ self

@@ -1,0 +1,7 @@
+doKeys: b=CFrogBlock -> * |
+|
+  buckets do:[:bucket=CFrogArray|
+    bucket do:[:pair=CFrogArray |
+      b value: (pair at: 0)
+    ]
+  ]

@@ -1,0 +1,29 @@
+fire ->* |
+ w=C3DWorldManager
+ cur_ts=CFrogNum
+ wz=CFrogNum
+ wx=CFrogNum
+ wy=CFrogNum
+ dist=CFrogNum
+ a=CFrogNum
+ player=CPlayer
+ thing*
+ |
+  w _ #world .
+  cur_ts _ CFrogTime now asSeconds .
+  timeout < cur_ts ifTrue: [
+    timeout _ cur_ts + .1 .
+    wz _ w screenCoordToZ .
+    wx _ w screenCoordToX .
+    wy _ w screenCoordToY .
+'move 32 unit backwards to set closer block' .
+    player _ w getPlayer .
+    dist _ ((wx - player->x) squared + (wy - player->y) squared) sqrt - 32 max: 0 .
+    a _ wx - player->x arg: wy - player->y .
+    wx _ player->x + (a cos * dist ) . 
+    wy _ player->y + (a sin * dist ) .
+    thing _ (CFrogClass fromString: name) new  .
+    thing->x _ wx .
+    thing->y _ wy .
+    thing->z _ wz . 
+  ] .

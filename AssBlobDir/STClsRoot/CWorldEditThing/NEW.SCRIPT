@@ -1,2 +1,2 @@
-new | |
- ^ self basicNew init
+new: name=CFrogStr | |
+ ^ self basicNew init: name .

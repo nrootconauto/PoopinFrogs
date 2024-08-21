@@ -119,6 +119,12 @@ init ->* |
          CBlockEditShell new run .
          handled _ 1 .
        ].
+
+       'Thing editor' .
+       ('', v->m1 asCharactor) uppercase = 'T' ifTrue: [
+         CThingEditShell new run .
+         handled _ 1 .
+       ].
        
      ] .
      v->type = 'MsMove' ifTrue: [

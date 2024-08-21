@@ -307,8 +307,8 @@ C3DWorld *InitWorld(U8 *blob_file="ASS",F64 fov=pi/2) {
   while(--idx>=0) {
     if(!StrNCmp(bf_lump->name,BLOB_THINGS_ROOT,StrLen(BLOB_THINGS_ROOT))) {
       f_template=bf_data(U8*)+bf_lump->offset;
-      idx=f_template->idx;
-      if(I16_MIN<=idx<=I16_MAX) {
+      tile=f_template->idx;
+      if(I16_MIN<=tile<=I16_MAX) {
         template=ConstructThing("C3DThingTemplate");
         templates[f_template->idx-I16_MIN]=template;
         CallScript("setFront:",template,FrogStrNew(f_template->blob_front_name));
@@ -321,7 +321,7 @@ C3DWorld *InitWorld(U8 *blob_file="ASS",F64 fov=pi/2) {
   }
   CFileTexture *ftxtr;
   bf_lump=bf_data->lump_table;
-  idx=bf_data->lump_cnt;
+  idx=bf_data->lump_cnt;
   while(--idx>=0) {
     if(!StrNCmp(bf_lump->name,BLOB_TILES_ROOT,StrLen(BLOB_TILES_ROOT))) {
       ftxtr=bf_data(U8*)+bf_lump->offset;
@@ -2261,25 +2261,6 @@ AddMethod("C3DWorldManager","screenCoordToZ",&ScreenCoordToZ);
 // World Edit section
 //
 
-CFrogNum *WorldEditThingSetIdx(CWorldEditThing *bl,...) {
-  I64 idx=AsF64(argv[0]);
-  CDC *dc;
-  C3DThingTemplate *t;
-  if(0<=idx<0x10000&&(t=w->thing_templates[idx])) {
-    if(dc=t->front) {
-      if(bl->gr) AnimDCDel(bl->gr);
-      bl->gr=AnimDCCopy(dc,frog_mem_task);
-      if(bl->inventory_item->graphics)
-        AnimDCDel(bl->inventory_item->graphics);
-      bl->inventory_item->graphics=ScaleDC(dc,24,24,frog_mem_task);
-      bl->template=t;
-      return FrogNumNew(1);
-    }
-  }
-  return FrogNumNew(0);
-}
-AddMethod("CWorldEditThing","setThingIndex:",&WorldEditThingSetIdx);
-
 CFrogNum *WorldManagerGetShiftKey(C3DWorldManager *,...) {
   return FrogNumNew(Bt(kbd.down_bitmap,SC_SHIFT));
 }
@@ -2580,7 +2561,7 @@ AddMethod("CTileTemplate","updateTextures",&TileTemplateUpdate);
 //
 //
 CallScript("newLandscapeWithWidth:withHeight:",FrogSymbol("world")->value,FrogNumNew(100),FrogNumNew(100));
-//FrogSymbol("world")->value=CallScript("restoreThingFromSaveFile",FrogStrNew("Slot 1"));
+//FrogSymbol("world")->value=CallScript("restoreThingFromSaveFile",FrogStrNew("Slot 1"));
 C3DWorldShell *shell=ConstructThing("C3DWorldShell");
 CallScript("init",shell);
 UIShellRun(shell);

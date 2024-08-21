@@ -1,0 +1,8 @@
+animate->*
+|
+ t=C3DThingTemplate 
+|
+  t _ #world getThingTemplate: name .
+  (t hasClass: C3DThingTemplate) ifTrue: [
+    self setGraphics :  t->front->name  .
+  ] .

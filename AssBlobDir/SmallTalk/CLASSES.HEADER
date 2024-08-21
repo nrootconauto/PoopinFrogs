@@ -253,7 +253,7 @@ class C3DWorldManager:CFrogThing {
   U8 *world_handle;
   CFrogArray *things recur_serialize 1;
 //See CWallStain mofo
-  CFrogArray *wall_stains no_serialize 1;
+  CFrogArray *wall_stains no_serialize 1;
   CFrogArray *floor_stains no_serialize 1;
   CFrogDictionary *thing_templates recur_serialize 1;
   CFrogArray *tile_templates recur_serialize 1;
@@ -290,7 +290,7 @@ class CWorldEditBlock:CHandItem {
 };
 
 class CWorldEditThing:CHandItem {
-  C3DThingTemplate *template;
+  CFrogStr *name ;
 };
 
 
@@ -579,6 +579,8 @@ class C3DWorldShell:CUIShell {
 };
 
 class CBlockEditShell:CUIShell {
+};
+class CThingEditShell:CUIShell {
 };
 
 class CLandscapeGenerator:CFrogThing {
