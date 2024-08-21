@@ -7,8 +7,7 @@
 #define TEST_3D
 #ifndef ENGINE_3D
 #include "SSE.HC";
-#define mp_cnt 1
-#define VIEW_DIST 32
+#define VIEW_DIST 32
 #define FOG0_DIST 8
 #define FOG1_DIST 16
 #define FOG2_DIST 20
@@ -1135,6 +1134,83 @@ I64 ToTile(I64 block) {
 }
 
 //https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection
+#ifdef TARGET_X86
+Bool SegmentSegmentIntersect(CD2 *hit_at,CD2 *a,CD2 *b,CD2 *a2,CD2 *b2,F64 *t,F64 *u) {
+  CD2 _a,_b,_a2,_b2,bottom2;
+  _a.x=a->x;
+  _a.y=a->y;
+  _b.x=b->x;
+  _b.y=b->y;
+  _a2.x=a2->x;
+  _a2.y=a2->y;
+  _b2.x=b2->x;
+  _b2.y=b2->y;
+  MOVUPD XMM0,&_a[RBP];
+  MOVUPD XMM1,&_b[RBP];
+  SUBPD XMM0,XMM1
+  MOVUPD XMM2,&_a2[RBP];
+  MOVUPD XMM1,&_b2[RBP];
+  SUBPD XMM2,XMM1
+//xx
+  MOVSD2 &bottom2+8[RBP],XMM0 
+  MOVSD2 &bottom2[RBP],XMM2 
+  SHUFPD XMM0,XMM2,0b11 //Move yy into XMMM0
+  MOVUPD XMM2,&bottom2[RBP]
+  MULPD XMM2,XMM0
+  MOVUPD &bottom2[RBP],XMM2
+
+  F64 bottom=bottom2.y-bottom2.x;
+
+
+
+
+
+  MOVUPD XMM2,&_a2[RBP];
+  MOVUPD XMM1,&_b2[RBP];
+  SUBPD XMM2,XMM1
+  MOVUPD XMM0,&_a[RBP];
+  MOVUPD XMM1,&_a2[RBP];
+  SUBPD XMM0,XMM1
+
+  MOVSD2 &bottom2+8[RBP],XMM0 
+  MOVSD2 &bottom2[RBP],XMM2 
+  SHUFPD XMM0,XMM2,0b11 //Move yy into XMMM0
+  MOVUPD XMM2,&bottom2[RBP]
+  MULPD XMM2,XMM0
+  MOVUPD &bottom2[RBP],XMM2
+
+  F64 _t=(bottom2.y-bottom2.x)/bottom;
+//F64 _t=((a->x-a2->x)*(a2->y-b2->y)-(a->y-a2->y)*(a2->x-b2->x))/bottom;
+
+  MOVUPD XMM2,&_a[RBP];
+  MOVUPD XMM1,&_a2[RBP];
+  SUBPD XMM2,XMM1
+  MOVUPD XMM0,&_a[RBP];
+  MOVUPD XMM1,&_b[RBP];
+  SUBPD XMM0,XMM1
+
+  MOVSD2 &bottom2+8[RBP],XMM0 
+  MOVSD2 &bottom2[RBP],XMM2 
+  SHUFPD XMM0,XMM2,0b11 //Move yy into XMMM0
+  MOVUPD XMM2,&bottom2[RBP]
+  MULPD XMM2,XMM0
+  MOVUPD &bottom2[RBP],XMM2
+
+  F64 _u=-(bottom2.y-bottom2.x)/bottom;
+
+  if(0<=_t<=1)
+    if(0<=_u<=1) {
+      if(t) *t=_t;
+      if(u) *u=_u;
+      if(hit_at) {
+	hit_at->x=a->x+_t*(b->x-a->x);
+	hit_at->y=a->y+_t*(b->y-a->y);
+      }
+      return TRUE;
+    }
+  return FALSE;
+}
+#else
 Bool SegmentSegmentIntersect(CD2 *hit_at,CD2 *a,CD2 *b,CD2 *a2,CD2 *b2,F64 *t,F64 *u) {
   F64 bottom=(a->x-b->x)*(a2->y-b2->y)-(a->y-b->y)*(a2->x-b2->x);
   F64 _t=((a->x-a2->x)*(a2->y-b2->y)-(a->y-a2->y)*(a2->x-b2->x))/bottom;
@@ -1151,7 +1227,7 @@ Bool SegmentSegmentIntersect(CD2 *hit_at,CD2 *a,CD2 *b,CD2 *a2,CD2 *b2,F64 *t,F6
     }
   return FALSE;
 }
-
+#endif
 //https://github.com/cgyurgyik/fast-voxel-traversal-algorithm/blob/master/overview/FastVoxelTraversalOverview.md
 I64 GetColorForRay(C3DWorldManager *man,CD3 *ray,F64 dist,F64 *hit_at,CD3 *hit_cords) {  
   C3DWorld *w=man->world_handle;
@@ -1193,8 +1269,8 @@ I64 GetColorForRay(C3DWorldManager *man,CD3 *ray,F64 dist,F64 *hit_at,CD3 *hit_c
   I64 stain_x,stain_y;
   I64 color;
   CD2 long;
-  long.x=x+VIEW_DIST*128*cos;
-  long.y=y+VIEW_DIST*128*sin;
+  long.x=x+VIEW_DIST*cos;
+  long.y=y+VIEW_DIST*sin;
   tx=x;
   ty=y;
   tz=Floor(w->cam_height);
@@ -1265,29 +1341,34 @@ next_thing:;
 	if(w->world_blocks[idx]) {
 tile:;
 	I64 segment=0;
-	FindRayWall(w,
-	    tan,
-	    cos,
-	    sin,
-	    &segment,
-	    &dist,
-	    &wall_side,
-	    I8_MIN,
-	    tx,
-	    ty
-	    );
-	FindRayWall(w,
-	    tan,
-	    cos,
-	    sin,
-	    ,
-	    &dist2,
-	    ,
-	    I8_MIN,
-	    tx,
-	    ty,
-	    TRUE //Far side
-	    );
+        CD2 corners[4];
+        F64 nearest=VIEW_DIST*128,farest=0,tmp,fsegment;
+        corners[0].x=tx;
+        corners[0].y=ty;
+        corners[1].x=tx+1;
+        corners[1].y=ty;
+        corners[2].x=tx+1;
+        corners[2].y=ty+1;
+        corners[3].x=tx;
+        corners[3].y=ty+1;
+
+	origin128.x=w->x/128;
+	origin128.y=w->y/128;
+
+        for(thing_idx=0;thing_idx!=4;thing_idx++) {
+          if(SegmentSegmentIntersect(NULL,&corners[thing_idx],&corners[(thing_idx+1)&3],&origin128,&long,&fsegment,&tmp)) {
+            nearest=Min(nearest,tmp);
+            farest=Max(farest,tmp);
+	    if(nearest==tmp) {
+	      segment=fsegment*127;
+	    }
+	  }
+        }
+
+        if(farest) { //Was set to 0 above
+          dist=nearest*VIEW_DIST*128;
+          dist2=farest*VIEW_DIST*128;
+        }
 
 	if(ToI64(w->x/128)==tx&&ty==ToI64(w->y/128)) {
 	  h=w->cam_height;
@@ -1446,7 +1527,7 @@ U0 GenerateRay(C3DWorld *world,CD3 *ray_look,F64 i,F64 j,F64 w,F64 h,CD3 *pos,CD
   MOVUPS XMM1,&look [RBP]
   MOVUPS XMM2,&hori [RBP]
   MOVUPS XMM3,&look [RBP]
-  SHUFPS XMM2,XMM2,-55 //What do you think it is again
+  SHUFPS XMM2,XMM2,-55 //What do you think it is again
   SHUFPS XMM3,XMM3,-55
   MULPS XMM0,XMM3
   MULPS XMM1,XMM2
