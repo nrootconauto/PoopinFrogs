@@ -3,7 +3,7 @@
 #define ANIM_DELAY .25
 U0 AnimDCDel(CDC *dc) {
   I64 idx=0;
-  while(dc[idx].dc_signature==DCS_SIGNATURE_VAL) {
+  while(dc[idx].dc_signature==DCS_SIGNATURE_VAL) {
     dc[idx].dc_signature=0;
     Free(dc[idx].body);
     Free(dc[idx].r);
@@ -50,6 +50,7 @@ CDC *AnimDCLoad(U8 *ptr,I64 *_len=NULL,CTask *mem_task=NULL) {
 U0 AnimDCBlot(CDC *dst,I64 x,I64 y,CDC *anim,I64 frame=I64_MAX) {
   I64 cnt=0;
   for(cnt=0;anim[cnt].dc_signature==DCS_SIGNATURE_VAL;cnt++);
+  if(cnt<=0) return;
   if(frame==I64_MAX)
     frame=ToI64(tS/ANIM_DELAY)%cnt;
   GrBlot(dst,x,y,anim+frame);
@@ -57,10 +58,11 @@ U0 AnimDCBlot(CDC *dst,I64 x,I64 y,CDC *anim,I64 frame=I64_MAX) {
 U0 AnimDCBlotScaled(CDC *dst,I64 x,I64 y,I64 w,I64 h,CDC *anim,I64 frame=I64_MAX) {
   I64 cnt=0,xo,yo;
   for(cnt=0;anim[cnt].dc_signature==DCS_SIGNATURE_VAL;cnt++);
+  if(cnt<=0) return;
   if(frame==I64_MAX)
     frame=ToI64(tS/ANIM_DELAY)%cnt;
   anim+=frame;
-  F64 wr=(anim->width-1)/ToF64(w),hr=(anim->height-1)/ToF64(h);
+  F64 wr=(anim->width-1)/ToF64(w),hr=(anim->height-1)/ToF64(h);
   for(xo=0;xo!=w;xo++)
     for(yo=0;yo!=h;yo++) {
       dst->color=GrPeek0(anim,wr*xo,hr*yo);

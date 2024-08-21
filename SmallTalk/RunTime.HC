@@ -402,7 +402,7 @@ U0 SetClassMemberVal(CFrogThing *t,U8 *member,I64 val) {
       StrCpy(dummy.class_name,mlst->member_class[-1].str);
       if(ThingHasClass(&dummy,"CFrogThing")) { 
         (t(U8*)+mlst->offset)(I64*)[0]=FrogIncRefCnt(val);
-        return ;
+        return ;
       }
     }
     v2=AsF64(val);
@@ -1204,7 +1204,7 @@ CFrogThing *_FrogBlockValue(CFrogBlock *self,I64 argc,I64 *argv) {
   }
 fin:
   Fs->user_data=cur;
-  ret=CallSTFast(self->fun_ptr,self,argc,argv);
+  ret=CallSTFast(self->fun_ptr,self,argc,argv);
   if(*cur->return_flag) {
 //Propigate the return upwards
     cur2=old_frame;

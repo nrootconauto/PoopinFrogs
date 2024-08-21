@@ -78,6 +78,7 @@ class CFrogImg:CFrogThing {
   CDC *dc;
   CFrogStr *name;
   U8 *destroy dft "FrogImgDel";
+  U8 *constructor dft "FrogImgBlank";
 };
 
 //
@@ -226,7 +227,7 @@ class C3DThingTemplate:CFrogThing {
 extern class CEliza;
 class C3DThing:CFrogThing {
   CFrogClass *drop_thing; //CFrogClass
-  C3DThingTemplate *template no_serialize 1;
+  C3DThingTemplate *template;
   F64 x,y,z,angle,health;
   F64 momx,momy,momz,animation_start_tS;
   F64 momx2,momy2;
@@ -236,7 +237,7 @@ class C3DThing:CFrogThing {
   Bool no_draw,animation_no_repeat,pad[6];
 //Private
   CFrogStr *template_name;
-  CEliza *chat_bot no_serialize 1;
+  CEliza *chat_bot;
   CFrogStr *chat_bot_name;
   I64 activate_tag;
   Bool no_fall_off_edge;
@@ -245,26 +246,26 @@ class C3DThing:CFrogThing {
   Bool draw_flip;
   Bool pad[8-4];
 //Private,See GetColorForRay/PrepareThingsForDraw
-  CDC *draw_face no_serialize 1; //Private
+  CDC *draw_face no_serialize 1 ; //Private
   CD2 scrn_st,scrn_en; //Private
 };
 class C3DWorldManager:CFrogThing {
   U8 *world_handle;
   CFrogArray *things recur_serialize 1;
 //See CWallStain mofo
-  CFrogArray *wall_stains no_serialize 1;
+  CFrogArray *wall_stains no_serialize 1;
   CFrogArray *floor_stains no_serialize 1;
   CFrogDictionary *thing_templates recur_serialize 1;
   CFrogArray *tile_templates recur_serialize 1;
   F64 gravity,last_update;
   I64 screen_x,screen_y;
 //A grid of things having the things(128*128 size)
-  CFrogArray *grid no_serialize 1;
-  CFrogArray *doors recur_serialize 1;
+  CFrogArray *grid;
+  CFrogArray *doors;
   CTask *sound_task no_serialize 1;
 //Private
   F64 game_load_tS;  //The CFrogTime now asSeconds that the game world is at when loaded
-  CFrogThing *player no_serialize 1;
+  CFrogThing *player;
   CFrogStr *blocks_string recur_serialize 1;
   I64 blocks_width,blocks_height;
 };
@@ -277,10 +278,9 @@ class CHandItem:CFrogThing {
   F64 timeout;
   F64 anim_start_tS;
   I64 anim_no_repeat;
-  CUIGridItem *inventory_item no_serialize 1;
+  CUIGridItem *inventory_item;
   CFrogBlock *on_click;
 //Private
-  CFrogStr *gr_name;
   I64 grid_x,grid_y;
   Bool in_quick_inventory,is_equiped;
 };
@@ -377,7 +377,7 @@ class CBigKey:CHandItem {};
 class CBigKeyPickup:CPickup{};
 
 class CPissLink:CFrogThing {
-  C3DThing *from no_serialize 1;
+  C3DThing *from ;
   F64 oldx,oldy,oldz;
   F64 x,y,z;
   F64 momx,momy,momz;
@@ -387,14 +387,14 @@ class CLightningLink:CPissLink {
   I64 color;
 };
 class CLightningBolt:CFrogThing {
-  C3DThing *from no_serialize 1;
+  C3DThing *from;
   CFrogRandom *random_generator;
 //CLighningLink
   CFrogArray *links recur_serialize 1;
   F64 next_remove_link_tS;
 };
 class CPissStream:CFrogThing {
-  C3DThing *from no_serialize 1;
+  C3DThing *from;
 //CPissLink
   CFrogArray *links recur_serialize 1;
 };
@@ -408,13 +408,13 @@ class CShootgunPickup:CPickup {
 };
 
 class CFrogTongue:CFrogThing {
-  C3DThing *from no_serialize 1;
+  C3DThing *from;
   F64 start_tS,speed;
   F64 x,y,z;
   F64 target_x,target_y,target_z;
 //if going_back is set,target_x/y/z is the hit location
   I64 going_back;
-  CFrogArray *hit no_serialize 1;
+  CFrogArray *hit;
 };
 
 class CDogTongue:CFrogTongue {
@@ -436,7 +436,7 @@ class CFrogNPC:C3DThing {
   F64 speed;
   CFrogTongue *tongue;
 //Who are we chasing/attacking
-  C3DThing *target  no_serialize 1; //TODO
+  C3DThing *target; //TODO
 //The state varaible does things like move the frog around
 // or run around if low health. It will attack if provoked
   F64 state_start_tS;
@@ -450,19 +450,19 @@ class CPorky:C3DThing {
   F64 state_duration;
   I64 just_jumped;
   CFrogStr *state;
-  C3DThing *target no_serialize 1;
+  C3DThing *target;
   CFrogTongue *tongue;
   I64 licked;
 };
 class CPooka:C3DThing {
 };
 class CPlayer:C3DThing {
-  CFrogArray *items recur_serialize 1;
-  CFrogArray *shell_casings no_serialize 1;
+  CFrogArray *items;
+  CFrogArray *shell_casings;
   CUIMeter *health_meter no_serialize 1;
   CUIMeter *ammo_meter no_serialize 1;
-  CUIGrid *quick_inventory no_serialize 1;
-  CUIGrid *main_inventory no_serialize 1;
+  CUIGrid *quick_inventory;
+  CUIGrid *main_inventory;
   CUIButton *open_inventory_button no_serialize 1;
   CUIChatLog *chat_log no_serialize 1;
   CUITextBar *chat_log_input no_serialize 1;
@@ -494,7 +494,7 @@ class CPoopMan:C3DThing {
   I64 steps_to_walk; //Before attack
   I64 just_jumped;
   I64 threw;
-  C3DThing *target no_serialize 1;
+  C3DThing *target;
 };
 class CAlien:C3DThing {
   CFrogRandom *random_generator;
@@ -503,7 +503,7 @@ class CAlien:C3DThing {
   F64 state_duration;
   I64 steps_to_walk; //BEfore attack
   I64 just_jumped;
-  C3DThing *target no_serialize 1;
+  C3DThing *target;
 };
 class CZombie:C3DThing {
   CFrogRandom *random_generator;
@@ -514,7 +514,7 @@ class CZombie:C3DThing {
   CFrogStr *state;
  CPissStream *piss_stream recur_serialize 1;
   I64 just_jumped;
-  C3DThing *target no_serialize 1;
+  C3DThing *target;
 };
 class CAssBird:C3DThing {
   CFrogRandom *random_generator;
@@ -523,7 +523,7 @@ class CAssBird:C3DThing {
   F64 state_duration;
   I64 steps_to_walk; //Before attack
   CFrogStr *state;
-  C3DThing *target no_serialize 1;
+  C3DThing *target;
   CLightningBolt *lightning_bolt recur_serialize 1;
   I64 made_sound;
 };
@@ -535,10 +535,10 @@ class CCyberPoop:C3DThing {
   F64 state_duration;
   CFrogStr *state;
   I64 just_jumped;
-  C3DThing *target no_serialize 1;
+  C3DThing *target;
 };
 class CRocket:C3DThing {
-  C3DThing *from  no_serialize 1;
+  C3DThing *from;
 };
 class CPoopRocket:CRocket {
 };

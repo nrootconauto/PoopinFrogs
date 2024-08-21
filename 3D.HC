@@ -7,7 +7,8 @@
 #define TEST_3D
 #ifndef ENGINE_3D
 #include "SSE.HC";
-#define VIEW_DIST 32
+#define mp_cnt 1
+#define VIEW_DIST 32
 #define FOG0_DIST 8
 #define FOG1_DIST 16
 #define FOG2_DIST 20
@@ -51,14 +52,19 @@ U0 ErectFogTable(U64 *table,I64 fog_color,F64 ratio) {
 ErectFogTable(fog0_table,BLACK,.75);
 ErectFogTable(fog1_table,BLACK,.5);
 ErectFogTable(fog2_table,BLACK,.25);
+U0 FrogImgBlank(CFrogImg *img) {
+  img->dc=DCNew(1,1,frog_mem_task);
+  img->name=FrogStrNew("");
+}
 U0 FrogImgSetGraphics(CFrogImg *img,...) {
   U8 *lunk=AsString(argv[0]),*data,*symbol_name;
   if(img->dc)
     AnimDCDel(img->dc);
-  img->dc=DCNew(1,1);
+  img->dc=AnimDCNew(1,1,frog_mem_task);
   if(lunk) {
     if(data=BlobFileGetLump(,lunk)) {
-      img->dc=AnimDCLoad(data);
+      AnimDCDel(img->dc);
+      img->dc=AnimDCLoad(data,,frog_mem_task);
       img->name=FrogStrNew(lunk);
       Free(data);
     }
@@ -2546,7 +2552,6 @@ AddMethod("C3DWorldManager","physics",&WorldPhysics);
 
 CFrogThing *TileTemplateUpdate(CTileTemplate *tile,...) {
   I64 idx=tile->tile_idx;
-  PrintI("idx",idx);
   CDC *dc;
   if(dc=w->wall_textures[idx])
     AnimDCDel(dc);
@@ -2575,6 +2580,7 @@ AddMethod("CTileTemplate","updateTextures",&TileTemplateUpdate);
 //
 //
 CallScript("newLandscapeWithWidth:withHeight:",FrogSymbol("world")->value,FrogNumNew(100),FrogNumNew(100));
+//FrogSymbol("world")->value=CallScript("restoreThingFromSaveFile",FrogStrNew("Slot 1"));
 C3DWorldShell *shell=ConstructThing("C3DWorldShell");
 CallScript("init",shell);
 UIShellRun(shell);

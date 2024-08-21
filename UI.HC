@@ -131,7 +131,7 @@ pass:
 	ret_code=TRUE;
 	return &ret_code;
       }
-      break;
+      break;
     case MSG_MS_MOVE:
       cb=update->ms_move;
       if(ms.lb&&update->ms_ldown)
@@ -507,10 +507,6 @@ U0 UICenterDraw(CDC *dc,I64 xoff,I64 yoff,CUICenter *center) {
 //
 #define UI_GRID_WIDTH 32
 #define UI_GRID_PAD 8
-U0 UIGridItemDel(CUIGridItem *i) {
-  if(i->graphics) AnimDCDel(i->graphics);
-  Free(i);
-}
 U0 UIGridItemDraw(CDC *dc,I64 x,I64 y,CUIGridItem *self) {
   U8 *str;
   if(ThingHasClass(self->parent,"CUIGrid"))

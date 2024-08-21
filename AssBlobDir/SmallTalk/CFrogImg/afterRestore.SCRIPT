@@ -1,0 +1,6 @@
+afterRestore ->*
+|
+|
+  'name' show .
+  name show .
+  self setGraphics: name .

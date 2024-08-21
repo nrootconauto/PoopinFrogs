@@ -8,7 +8,6 @@ addToPlayerAgain:p=CPlayer ->* |
   ] .
 
   inventory_item _ CUIGridItem new .
-  inventory_item setGraphics: gr_name .
   inventory_item setCount: ammo .
   inventory_item setItem: self .
   inventory_item onLeftUp: [
@@ -20,6 +19,4 @@ addToPlayerAgain:p=CPlayer ->* |
 
   who addItem: inventory_item atX: grid_x atY: grid_y .
 
-  'FrogAss' show .
-  tile_idx show .
   self setBlockIndex: tile_idx .

@@ -661,7 +661,7 @@ STStudio;
 LoadMethodsFromBlob;
 //STRepl;
 CDoc *d=DocNew("/WWW/SmallTalkHelp.DD");
-//STHelpIdx(d);
+STHelpIdx(d);
 DocWrite(d);
 DocDel(d);
 #else

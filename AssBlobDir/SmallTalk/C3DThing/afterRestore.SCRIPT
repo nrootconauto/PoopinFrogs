@@ -1,3 +1,0 @@
-afterRestore -> * ||
-  template _ #world getThingTemplate: template_name . 
-  chat_bot _ #world getQuestChatBot: chat_bot_name .
