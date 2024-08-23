@@ -399,8 +399,11 @@ CAST *ParseAst(CLexer *l) {
       var->type=AST_SYMBOL;
     else {
       var->type=AST_VAR;
-      if(FramePtr(var->name))
+      if(FramePtr(var->name)) {
 	StrCpy(var->var_class_name,FramePtr(var->name));
+      } else if(StrCmp(var->name,"self")&&!HashFind(var->name,Fs->hash_table,HTT_CLASS)) {
+        LexExcept(l,"I need a valid ass variable(got %s).",var->name);
+      }
     }
     if(l->tok=='->') {
       tmp=CAlloc(sizeof CAST);

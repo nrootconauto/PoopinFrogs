@@ -5,3 +5,11 @@ beforeSave ->*
   blocks_string _ self saveBlocksToString .
   blocks_width _ self width .
   blocks_height _ self height .
+  thing_templates doKeys:[:k=CFrogStr|
+    (thing_templates at: k ) save .
+  ] .
+  tile_templates do:[:t=CTileTemplate |
+    (t hasClass: CTileTemplate) ifTrue: [
+      t save
+    ] .
+  ] .

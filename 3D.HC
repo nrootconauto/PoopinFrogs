@@ -266,7 +266,7 @@ CFrogThing *ThingTemplateSave(C3DThingTemplate *t,...) {
       Free(name);
     }
     if(ThingHasClass(t->front,"CFrogImg"))
-      if(name=AsString(t->front->name)){
+       if(name=AsString(t->front->name)){
         StrCpy(f_template.blob_front_name,name);
         Free(name);
       }
@@ -280,9 +280,10 @@ CFrogThing *ThingTemplateSave(C3DThingTemplate *t,...) {
         StrCpy(f_template.blob_side_name,name);
         Free(name);
       }
-    if(name2) BlobFileAddLump(,name2,&f_template,sizeof(CFileTexture));
+    if(name2) BlobFileAddLump(,name2,&f_template,sizeof(CFileThingTemplate));
     Free(name2);
   }
+  return FROG_SMALL_NIL;
 }
 AddMethod("C3DThingTemplate","save",&ThingTemplateSave);
 
@@ -291,8 +292,8 @@ CFrogThing *TileTemplateSave(CTileTemplate *t,...) {
   CFileTexture f_template;
   U8 *name;
   if(ThingHasClass(t,"CTileTemplate")) {
-    f_template.idx=t->tile_idx;
     MemSet(&f_template,0,sizeof CFileTexture);
+    f_template.idx=t->tile_idx;
     if(ThingHasClass(t->floor_texture,"CFrogImg"))
       if(name=AsString(t->floor_texture->name)){
         StrCpy(f_template.blob_name,name);

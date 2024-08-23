@@ -174,7 +174,7 @@ U0 BlobFileAddLump(U8 *filename=NULL,U8 *name,U8 *data,I64 dlen,U64 type='DATA')
   FileWrite(dump_path,data,dlen);
   Free(dump_path);
 //Regenerate
-  UndumpBlobFile(filename,DEVELOPMENT_DIR);
+//  UndumpBlobFile(filename,DEVELOPMENT_DIR);
 #endif
   Free(filename);
 }

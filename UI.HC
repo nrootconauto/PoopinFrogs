@@ -666,8 +666,8 @@ skip:
         ev->raw_type=MSG_MS_L_UP;
         ev->type=FrogStrNew("MsLUp");
       }
-      ev->m1=ms.pos.x;
-      ev->m2=ms.pos.y;
+      ev->m1=ms.pos.x-Fs->pix_left;
+      ev->m2=ms.pos.y-Fs->pix_top;
       if(ThingHasClass(shell->on_event,"CFrogBlock"))
 	FrogBlockValue(shell->on_event,ev);
     }
@@ -683,8 +683,8 @@ skip:
         ev->type=FrogStrNew("MsRUp");
 
       }
-      ev->m1=ms.pos.x;
-      ev->m2=ms.pos.y;
+      ev->m1=ms.pos.x-Fs->pix_left;
+      ev->m2=ms.pos.y-Fs->pix_top;
       if(ThingHasClass(shell->on_event,"CFrogBlock"))
 	FrogBlockValue(shell->on_event,ev);
     }
