@@ -634,38 +634,60 @@ CFrogThing *UIShellRun(CUIShell *shell,...) {
 	case MSG_KEY_UP:
 	  ev->type=FrogStrNew("KeyUp");
 	  break;
-        start:
-	case MSG_MS_L_DOWN:
-	case MSG_MS_L_D_DOWN:
-	  ev->type=FrogStrNew("MsLDown");
-	  break;
-	case MSG_MS_R_D_DOWN:
-	case MSG_MS_R_DOWN:
-	  ev->type=FrogStrNew("MsRDown");
-	  break;
-	case MSG_MS_L_D_UP:
-	case MSG_MS_L_UP:
-	  ev->type=FrogStrNew("MsLUp");
-	  break;
-	case MSG_MS_R_D_UP:
-	case MSG_MS_R_UP:
-	  ev->type=FrogStrNew("MsRUp");
-	  break;
-	case MSG_MS_MOVE:
+        case MSG_MS_MOVE:
 	  ev->type=FrogStrNew("MsMove");
-	  break;
-	end:
           if(AsF64(grabbed->value)) {
 	    ev->m1=ms.pos.x;
 	    ev->m2=ms.pos.y;
             MsSet(GR_WIDTH/2,GR_HEIGHT/2);
 	  }
- 	  break;
+	  break;
+	case MSG_MS_L_DOWN:
+	case MSG_MS_L_D_DOWN:
+	case MSG_MS_R_D_DOWN:
+	case MSG_MS_R_DOWN:
+	case MSG_MS_L_D_UP:
+	case MSG_MS_L_UP:
+	case MSG_MS_R_D_UP:
+	case MSG_MS_R_UP:
+ 	  goto skip;
       }
       if(ThingHasClass(shell->on_event,"CFrogBlock"))
 	FrogBlockValue(shell->on_event,ev);
     }
+skip:
+    if(old_ldown!=ms.lb) {
+      old_ldown=ms.lb;
+      ev=ConstructThing("CUIEvent");
+      if(ms.lb) {
+        ev->raw_type=MSG_MS_L_DOWN;
+        ev->type=FrogStrNew("MsLDown");
+      } else {
+        ev->raw_type=MSG_MS_L_UP;
+        ev->type=FrogStrNew("MsLUp");
+      }
+      ev->m1=ms.pos.x;
+      ev->m2=ms.pos.y;
+      if(ThingHasClass(shell->on_event,"CFrogBlock"))
+	FrogBlockValue(shell->on_event,ev);
+    }
 
+    if(old_rdown!=ms.rb) {
+      old_rdown=ms.rb;
+      ev=ConstructThing("CUIEvent");
+      if(ms.rb) {
+        ev->raw_type=MSG_MS_L_DOWN;
+        ev->type=FrogStrNew("MsRDown");
+      } else {
+        ev->raw_type=MSG_MS_L_UP;
+        ev->type=FrogStrNew("MsRUp");
+
+      }
+      ev->m1=ms.pos.x;
+      ev->m2=ms.pos.y;
+      if(ThingHasClass(shell->on_event,"CFrogBlock"))
+	FrogBlockValue(shell->on_event,ev);
+    }
     if(ms.pos.z!=last_z) {
       ev=ConstructThing("CUIEvent");
       ev->raw_type=MSG_MS_SCROLL;

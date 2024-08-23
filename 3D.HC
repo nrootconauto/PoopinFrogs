@@ -165,22 +165,6 @@ class CFileDoor {
   I32 flags;
   I32 tag;
 };
-class CFileWorld {
-  I64 w,h;
-  I64 startx,starty;
-  I16 *data;
-  CFilePtrLen textures_where;
-  CFilePtrLen thing_templates_where;
-  CFilePtrLen things_where;
-  CFilePtrLen heightmap;
-  CFilePtrLen ceilmap;
-  CFilePtrLen ceilmap2;
-  CFilePtrLen wolrd_start;
-  CFilePtrLen doors;
-  CFilePtrLen transition;
-}; 
- 
-
 F64 cos_lookup_table[GR_WIDTH];
 F64 cos2_lookup_table[GR_WIDTH];
 F64 sin_lookup_table[GR_WIDTH];
@@ -271,6 +255,66 @@ U0 C3DWorldSetFov(C3DWorld *w,F64 fov=pi/2) {
 #define BLOB_THINGS_ROOT "Level/Things"
 #define BLOB_TILES_ROOT "Level/Tiles"
 
+CFrogThing *ThingTemplateSave(C3DThingTemplate *t,...) {
+  CFileThingTemplate f_template;
+  U8 *name,*name2=NULL;
+  if(ThingHasClass(t,"C3DThingTemplate")) {
+    MemSet(&f_template,0,sizeof CFileThingTemplate);
+    if(name=AsString(t->name)){
+      name2=MStrPrint(BLOB_THINGS_ROOT"/%s",name);
+      StrCpy(f_template.name,name);
+      Free(name);
+    }
+    if(ThingHasClass(t->front,"CFrogImg"))
+      if(name=AsString(t->front->name)){
+        StrCpy(f_template.blob_front_name,name);
+        Free(name);
+      }
+    if(ThingHasClass(t->back,"CFrogImg"))
+      if(name=AsString(t->back->name)){
+        StrCpy(f_template.blob_back_name,name);
+        Free(name);
+      }
+    if(ThingHasClass(t->side,"CFrogImg"))
+      if(name=AsString(t->side->name)){
+        StrCpy(f_template.blob_side_name,name);
+        Free(name);
+      }
+    if(name2) BlobFileAddLump(,name2,&f_template,sizeof(CFileTexture));
+    Free(name2);
+  }
+}
+AddMethod("C3DThingTemplate","save",&ThingTemplateSave);
+
+
+CFrogThing *TileTemplateSave(CTileTemplate *t,...) {
+  CFileTexture f_template;
+  U8 *name;
+  if(ThingHasClass(t,"CTileTemplate")) {
+    f_template.idx=t->tile_idx;
+    MemSet(&f_template,0,sizeof CFileTexture);
+    if(ThingHasClass(t->floor_texture,"CFrogImg"))
+      if(name=AsString(t->floor_texture->name)){
+        StrCpy(f_template.blob_name,name);
+        Free(name);
+      }
+    if(ThingHasClass(t->wall_texture,"CFrogImg"))
+      if(name=AsString(t->wall_texture->name)){
+        StrCpy(f_template.wall_blob_name,name);
+        Free(name);
+      }
+    if(ThingHasClass(t->ceil_texture,"CFrogImg"))
+      if(name=AsString(t->ceil_texture->name)){
+        StrCpy(f_template.ceil_blob_name,name);
+        Free(name);
+      }
+    name=MStrPrint(BLOB_TILES_ROOT"/%d",t->tile_idx);
+    BlobFileAddLump(,name,&f_template,sizeof(CFileTexture));
+    Free(name);
+  }
+  return FROG_SMALL_NIL;
+}
+AddMethod("CTileTemplate","save",&TileTemplateSave);
 C3DWorld *InitWorld(U8 *blob_file="ASS",F64 fov=pi/2) {
   C3DWorld *ret=CAlloc(sizeof(C3DWorld));
   F64 xoff,yoff;
