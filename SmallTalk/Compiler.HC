@@ -1200,7 +1200,7 @@ force_f64:;
 	  goto prim_skip;
         }
         if(!StrCmp(ast->op_name,"sqrt")) {
-	  NumPrim1(doc,locals,ast,stack_depth,"Sqrt","sqrt");
+	  NumPrim1(doc,locals,ast,stack_depth,"Sqrt","sqrt");
 	  goto prim_skip;
         }
         if(!StrCmp(ast->op_name,"floor")) {

@@ -1,0 +1,40 @@
+sort: pred=CFrogBlock ->*
+|
+  part=CFrogBlock
+  qsort0=CFrogBlock
+  pivot*
+  i=CFrogNum
+  A*
+  B*
+  stack=CFrogArray 
+|
+  stack _ #() .
+  part _ [:lo=CFrogNum :hi=CFrogNum |
+    pivot _ self at:hi .
+    i _ lo .
+    lo to: hi  do: [:j=CFrogNum |
+      A _ self at: i .
+      B _ self at: j .
+      (pred value: pivot value: B) >= 0 ifTrue: [
+        self at: i  put: B .
+        self at: j put: A .
+        i _ i + 1 .
+      ] .
+    ] .
+    A _ self at: i .
+    self at: i  put: pivot .
+    self at: hi put: A .
+    i
+  ].
+
+  qsort0 _ [:lo=CFrogNum :hi=CFrogNum|
+    (lo < hi and: lo >= 0) ifTrue: [
+      stack add: (part value: lo value: hi ).
+      qsort0  value: lo value: stack last   - 1 .
+      qsort0  value: stack last + 1 value: hi .
+      stack removeAt: stack size - 1 .
+    ] .
+  ] .
+
+  qsort0 value: 0 value: self size - 1 . 
+  ^ self 

@@ -290,7 +290,7 @@ class CWorldEditBlock:CHandItem {
 };
 
 class CWorldEditThing:CHandItem {
-  CFrogStr *name ;
+  CFrogStr *name ;
 };
 
 
@@ -586,4 +586,12 @@ class CThingEditShell:CUIShell {
 class CLandscapeGenerator:CFrogThing {
   CFrogArray *perlin_vectors;
   I64 w,h;
+};
+//
+// Composite UI elements
+//
+class CUITree:CUIElem {
+  CFrogArray *sub_trees;
+  CFrogArray *sub_elems2;
+  CUITree *parent;
 };

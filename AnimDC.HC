@@ -3,7 +3,7 @@
 #define ANIM_DELAY .25
 U0 AnimDCDel(CDC *dc) {
   I64 idx=0;
-  while(dc[idx].dc_signature==DCS_SIGNATURE_VAL) {
+  while(dc[idx].dc_signature==DCS_SIGNATURE_VAL) {
     dc[idx].dc_signature=0;
     Free(dc[idx].body);
     Free(dc[idx].r);

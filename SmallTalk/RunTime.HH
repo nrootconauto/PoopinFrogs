@@ -7,7 +7,7 @@ class CFrogThing:CQue {
 #define THINGf_TO_DELETE 0
 #define THINGf_GC_LOCK 2
 #define THINGf_CALL_LOCK 3
-#define THINGf_GC_ROOT 4
+#define THINGf_GC_ROOT 4
   I32 thing_flags,shadow_ref_cnt;
   I32 id,ref_cnt;
   CCPU *owner_cpu;

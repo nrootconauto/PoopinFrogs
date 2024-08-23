@@ -22,7 +22,7 @@ again:
 //Nroot here,Pointers are first defined then used as pointers in SaveDefacto.
 //You(should) never reach here
       if(!(ptr&0x7))
-        PrintI("internalWTF(undef pointer)",ptr);
+        PrintI("internalWTF(undef pointer)",ptr);
       else
         ret=ptr;
     } else if(ptr)

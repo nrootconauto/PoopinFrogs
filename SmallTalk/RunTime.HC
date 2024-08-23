@@ -1711,7 +1711,7 @@ CFrogThing *FrogSetTime(CFrogThing *ul,...) {
 AddClassMethod("CFrogTime","setTime:",&FrogSetTime);
 
 CFrogThing *FrogClassFromString(CFrogThing *ul,...) {
-  U8 *s=AsString(argv[0]);
+  U8 *s=AsString(argv[0]);
   CFrogClass *ret=FrogClassNew(UniverseAddClass(s));
   Free(s);
   return ret;

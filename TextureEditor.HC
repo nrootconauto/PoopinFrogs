@@ -906,7 +906,7 @@ U8 *TextureEdit(U8 *blob_file,U8 *dft=NULL,I64 dft_w=150,I64 dft_h=275) {
   CDC *dc;
   if(dft) {
     lump_name=StrNew(dft);
-  } else
+  } else
     lump_name=BlobFileSelect(blob_file);
   if(!lump_name) goto fin;
   data=BlobFileGetLump(blob_file,lump_name,,&type);

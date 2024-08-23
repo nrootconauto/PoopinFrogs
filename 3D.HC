@@ -7,7 +7,6 @@
 #define TEST_3D
 #ifndef ENGINE_3D
 #include "SSE.HC";
-#define mp_cnt 1
 #define VIEW_DIST 32
 #define FOG0_DIST 8
 #define FOG1_DIST 16
@@ -321,7 +320,7 @@ C3DWorld *InitWorld(U8 *blob_file="ASS",F64 fov=pi/2) {
   }
   CFileTexture *ftxtr;
   bf_lump=bf_data->lump_table;
-  idx=bf_data->lump_cnt;
+  idx=bf_data->lump_cnt;
   while(--idx>=0) {
     if(!StrNCmp(bf_lump->name,BLOB_TILES_ROOT,StrLen(BLOB_TILES_ROOT))) {
       ftxtr=bf_data(U8*)+bf_lump->offset;
@@ -1142,7 +1141,7 @@ I64 ToTile(I64 block) {
 //https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection
 #ifdef TARGET_X86
 Bool SegmentSegmentIntersect(CD2 *hit_at,CD2 *a,CD2 *b,CD2 *a2,CD2 *b2,F64 *t,F64 *u) {
-  CD2 _a,_b,_a2,_b2,bottom2;
+  CD2 _a,_b,_a2,_b2,tmpb,tmpt,tmpu;
   _a.x=a->x;
   _a.y=a->y;
   _b.x=b->x;
@@ -1151,58 +1150,54 @@ Bool SegmentSegmentIntersect(CD2 *hit_at,CD2 *a,CD2 *b,CD2 *a2,CD2 *b2,F64 *t,F6
   _a2.y=a2->y;
   _b2.x=b2->x;
   _b2.y=b2->y;
-  MOVUPD XMM0,&_a[RBP];
-  MOVUPD XMM1,&_b[RBP];
-  SUBPD XMM0,XMM1
-  MOVUPD XMM2,&_a2[RBP];
+  MOVUPD XMM3,&_a[RBP];
+  MOVUPD XMM4,&_b[RBP];
+  MOVUPD XMM5,&_a2[RBP];
   MOVUPD XMM1,&_b2[RBP];
-  SUBPD XMM2,XMM1
+
+
+  MOVUPD XMM0,XMM3;
+  SUBPD XMM0,XMM4 //a-b
+  MOVUPD XMM2,XMM5
+  SUBPD XMM2,XMM1 //a2-b2
 //xx
-  MOVSD2 &bottom2+8[RBP],XMM0 
-  MOVSD2 &bottom2[RBP],XMM2 
-  SHUFPD XMM0,XMM2,0b11 //Move yy into XMMM0
-  MOVUPD XMM2,&bottom2[RBP]
+  MOVSD2 &tmpb+8[RBP],XMM0 
+  MOVSD2 &tmpb[RBP],XMM2
+//yy  
+  SHUFPD XMM0,XMM2,0b11
+  MOVUPD XMM2,&tmpb[RBP]
   MULPD XMM2,XMM0
-  MOVUPD &bottom2[RBP],XMM2
+  MOVUPD &tmpb[RBP],XMM2
 
-  F64 bottom=bottom2.y-bottom2.x;
-
-
-
-
-
-  MOVUPD XMM2,&_a2[RBP];
-  MOVUPD XMM1,&_b2[RBP];
-  SUBPD XMM2,XMM1
-  MOVUPD XMM0,&_a[RBP];
-  MOVUPD XMM1,&_a2[RBP];
-  SUBPD XMM0,XMM1
-
-  MOVSD2 &bottom2+8[RBP],XMM0 
-  MOVSD2 &bottom2[RBP],XMM2 
+  MOVUPD XMM2,XMM5
+  SUBPD XMM2,XMM1 //a2-b2
+  MOVUPD XMM0,XMM3;
+  SUBPD XMM0,XMM5 //a-a2
+//xx 
+  MOVSD2 &tmpt+8[RBP],XMM0 
+  MOVSD2 &tmpt[RBP],XMM2 
   SHUFPD XMM0,XMM2,0b11 //Move yy into XMMM0
-  MOVUPD XMM2,&bottom2[RBP]
+  MOVUPD XMM2,&tmpt[RBP]
   MULPD XMM2,XMM0
-  MOVUPD &bottom2[RBP],XMM2
+  MOVUPD &tmpt[RBP],XMM2
 
-  F64 _t=(bottom2.y-bottom2.x)/bottom;
-//F64 _t=((a->x-a2->x)*(a2->y-b2->y)-(a->y-a2->y)*(a2->x-b2->x))/bottom;
 
-  MOVUPD XMM2,&_a[RBP];
-  MOVUPD XMM1,&_a2[RBP];
-  SUBPD XMM2,XMM1
-  MOVUPD XMM0,&_a[RBP];
-  MOVUPD XMM1,&_b[RBP];
-  SUBPD XMM0,XMM1
-
-  MOVSD2 &bottom2+8[RBP],XMM0 
-  MOVSD2 &bottom2[RBP],XMM2 
+  MOVUPD XMM2,XMM3;
+  SUBPD XMM2,XMM5 //a-a2
+  MOVUPD XMM0,XMM3;
+  SUBPD XMM0,XMM4 //a-b
+//xx 
+  MOVSD2 &tmpu+8[RBP],XMM0 
+  MOVSD2 &tmpu[RBP],XMM2 
   SHUFPD XMM0,XMM2,0b11 //Move yy into XMMM0
-  MOVUPD XMM2,&bottom2[RBP]
+  MOVUPD XMM2,&tmpu[RBP]
   MULPD XMM2,XMM0
-  MOVUPD &bottom2[RBP],XMM2
+  MOVUPD &tmpu[RBP],XMM2
 
-  F64 _u=-(bottom2.y-bottom2.x)/bottom;
+//Do these after the asm blob to avoid messing up tmp registers
+  F64 bottom=tmpb.y-tmpb.x;
+  F64 _t=(tmpt.y-tmpt.x)/bottom;
+  F64 _u=-(tmpu.y-tmpu.x)/bottom;
 
   if(0<=_t<=1)
     if(0<=_u<=1) {

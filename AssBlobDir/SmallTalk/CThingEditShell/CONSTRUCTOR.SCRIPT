@@ -13,12 +13,14 @@ init ->* |
   templates=CFrogArray
   template=C3DThingTemplate
   edit_template=CFrogBlock
+  tlabels=CFrogArray
+  tbuttons=CFrogArray
+  tree=CUITree
 |
   'Draw world in background' .
   draw_it_name _ 'Draw3DWorld' .
 
   edit_template _ [:template=C3DThingTemplate |
-template show .
     #ui_root _ CUIBackground new .
     #ui_root->color _ #color_DKGRAY .
     #ui_root ->x _ 10 .
@@ -163,24 +165,30 @@ template show .
 
     y _ y + 50 .
 
+    tlabels _ #() .
+    tbuttons _ #().
+
+
     #world ->thing_templates doKeys: [:name=CFrogStr|
-      name show .
-      template _ #world getThingTemplate: name .
+      template _ #world getThingTemplate: name.
       button _ CUIButton new . 
       button -> sz_x _ 200 . 
       button -> sz_y _ 30 .
-      button -> x _ 20 .
-      button -> y _ y . 
+      button -> x _ 0 .
+      button -> y _ 0 . 
       button -> bg_color _ #color_YELLOW .
       button -> fg_color _ #color_RED .
       button->user_data _ template .
-      button->label _ 'Edit Thing ', name  .
+      button->label _ 'Edit Thing ' .
       button onLeftUp: [:which=CUIButton|
         edit_template value: which->user_data .
       ].
-      y _ y + 50 .
-      scroll_bars addChild: button .
+      tlabels add: name .
+      tbuttons add: button .
     ] .
+    tree _ CUITree new .
+    tree  setBranchLabels: tlabels withElements: tbuttons .
+    scroll_bars addChild: tree .
     #ui_root addChild: scroll_bars .
   ] .
 

@@ -660,10 +660,10 @@ U0 LoadMethodsFromBlob(U8 *blob_file="../ASS") {
 STStudio;
 LoadMethodsFromBlob;
 //STRepl;
-CDoc *d=DocNew("/WWW/SmallTalkHelp.DD");
-STHelpIdx(d);
-DocWrite(d);
-DocDel(d);
+//CDoc *d=DocNew("/WWW/SmallTalkHelp.DD");
+//STHelpIdx(d);
+//DocWrite(d);
+//DocDel(d);
 #else
 LoadMethodsFromBlob;
 #endif

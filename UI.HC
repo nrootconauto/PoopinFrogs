@@ -617,6 +617,7 @@ CFrogThing *UIShellRun(CUIShell *shell,...) {
   FramePtrAdd("screen_dc",dc);
   FrogBlockValue(shell->on_init);
   while(!shell->exited) {
+    DocClear; //Prevent clicking on text
     if(AsF64(grabbed->value)) {
       AIWNIOS_SetCaptureMouse(1);
     } else
@@ -661,38 +662,6 @@ CFrogThing *UIShellRun(CUIShell *shell,...) {
 	  }
  	  break;
       }
-      if(ThingHasClass(shell->on_event,"CFrogBlock"))
-	FrogBlockValue(shell->on_event,ev);
-    }
-    if(old_ldown!=ms.lb) {
-      old_ldown=ms.lb;
-      ev=ConstructThing("CUIEvent");
-      if(ms.lb) {
-        ev->raw_type=MSG_MS_L_DOWN;
-        ev->type=FrogStrNew("MsLDown");
-      } else {
-        ev->raw_type=MSG_MS_L_UP;
-        ev->type=FrogStrNew("MsLUp");
-      }
-      ev->m1=ms.pos.x;
-      ev->m2=ms.pos.y;
-      if(ThingHasClass(shell->on_event,"CFrogBlock"))
-	FrogBlockValue(shell->on_event,ev);
-    }
-
-    if(old_rdown!=ms.rb) {
-      old_rdown=ms.rb;
-      ev=ConstructThing("CUIEvent");
-      if(ms.rb) {
-        ev->raw_type=MSG_MS_L_DOWN;
-        ev->type=FrogStrNew("MsRDown");
-      } else {
-        ev->raw_type=MSG_MS_L_UP;
-        ev->type=FrogStrNew("MsRUp");
-
-      }
-      ev->m1=ms.pos.x;
-      ev->m2=ms.pos.y;
       if(ThingHasClass(shell->on_event,"CFrogBlock"))
 	FrogBlockValue(shell->on_event,ev);
     }

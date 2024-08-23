@@ -22,7 +22,7 @@ class CBlobFileCache {
   CTask *mem_task;
   I64 sz;
 } blob_file_cache={0,NULL,NULL,Fs,0};
-U8 *dft_blob_path=__DIR__"/ASS.BLOB";
+U8 *dft_blob_path=__DIR__"/ASS.BLOB";
 
 CLumpHeader *BlobFileGetLumpInfo(CBlobFileHeader *hd,U8 *blob) {
   I64 cnt=hd->lump_cnt;

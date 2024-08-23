@@ -1,0 +1,119 @@
+setBranchLabels: l=CFrogArray withElements: e=CFrogArray
+->*
+|
+  button=CUIButton
+  pairs=CFrogArray
+  y=CFrogNum
+  rearrange=CFrogBlock
+  pair=CFrogArray 
+  elem=CUIElem
+  elem2=CUIElem
+  prefixes=CFrogDictionary
+  at=CFrogNum
+  prefix=CFrogStr
+  subtree=CUITree
+  l2=CFrogArray
+  e2=CFrogArray
+  tmp=CFrogArray
+|
+  y _ 10 .
+  pairs _ #() .
+  sub_elems2 _ #() .
+  sub_trees _ #() .
+  
+
+  0 to: l size do: [:i=CFrogNum |
+    '#(labelelemnt open)' .
+    pairs add: #((l at: i ) (e at: i) (0))
+  ] .
+  'Compute a/b/c prefixes,make a list without sub-entries' .
+  prefixes _ CFrogDictionary new .
+  tmp _ #(). 
+  pairs do: [:p=CFrogArray |
+    at _ p first indexOf: '/' .
+    at > 0 ifTrue: [
+      prefix _ p first copyFrom: 0 to: at .
+      ((prefixes at: prefix) hasClass: CFrogArray) ifTrue: [
+        (prefixes at: prefix) add: p .
+      ] ifFalse: [
+        prefixes at: prefix put: #( p ) 
+      ] .
+    ] ifFalse: [
+      tmp add:  p .
+    ] .
+  ] .
+
+  pairs _ tmp .
+
+  prefixes doKeys: [:k=CFrogStr|
+    subtree _ CUITree new.
+    pair _ prefixes at: k .
+    l2 _ pair collect: [:d=CFrogArray| 
+      'Copy without prefix/' .
+      d first copyFrom: k size + 1  to: d first size
+    ] .
+    e2 _ pair collect: [:d=CFrogArray| d at: 1 ] .
+    subtree setBranchLabels: l2 withElements: e2 .
+    subtree rearrange .
+
+    'Hack alert,Make sure expected elments appear with items with subtrees' .
+    elem _ subtree .
+    0 to: l size do:[:poo=CFrogNum |
+      (l at: poo) = k ifTrue: [
+        elem _ CUIElem new .
+        elem2 _ e at: poo .
+        elem -> sz_y _ subtree -> sz_y +  elem2 -> sz_y + 20 .
+        elem -> sz_x _ subtree->sz_x max: elem2->sz_x .
+        elem addChild: elem2 .
+        elem2->y _ 0 .
+        subtree->y _ elem2->sz_y + 20 .
+        elem addChild: subtree.   
+      ] .
+    ]. 
+
+'Used with rearrange' .
+    subtree->parent _ self .
+
+    pairs _ pairs reject:[:p=CFrogArray|
+     'Remove old entry to avoid 2 names per tree' .
+      p first  = k
+    ] .
+
+    pairs add: #( (k)  (elem) (0) ) .
+  ] .
+
+  pairs sort: [:a* :b*|
+    a first compare: b first 
+  ] .  
+
+  
+
+  pairs do: [:p=CFrogArray |
+   button _ CUIButton new .
+   button -> bg_color _ #color_YELLOW .
+   button -> fg_color _ #color_RED .
+   button -> sz_y _ 12 .
+   button -> sz_x _ 100 .
+   button -> x _ 20 .
+   button -> y _ 0 .
+   button->user_data _ p .
+   button->label _ '+] ',  p first copy .
+   button onLeftUp: [ :button=CUIButton |
+     p _ button ->user_data. 
+     (p at: 2 ) = 0 ifTrue: [
+       button->label _ '-] ',  p first copy .
+       button->bg_color _ #color_LTPURPLE .
+       p at: 2 put: 1 .
+       self addChild: (p at: 1) .
+     ] ifFalse: [
+       button->label _ '+] ',  p first copy .
+       button->bg_color _ #color_YELLOW .
+       self removeChild: (p at: 1) .
+       p at: 2 put: 0 .
+     ] .
+     self rearrange .
+    ] .
+    sub_elems2 add: button .
+  ] .
+
+  self rearrange.

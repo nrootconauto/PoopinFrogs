@@ -1,0 +1,17 @@
+compare: other=CFrogStr ->CFrogNum
+|
+|
+  0 to: (self size min: other size) do:[:i=CFrogNum|
+    (self at: i) asciiValue ~= (other at: i) asciiValue ifTrue: [
+      ^ (self at: i) asciiValue - (other  at: i) asciiValue .
+    ] .
+  ] .
+  self size ~= other size ifTrue: [
+   self size < other size ifTrue: [
+     ^  0 - (other at: self size) asciiValue .
+   ] ifFalse: [
+     ^  (self at: other size ) asciiValue .
+   ] .
+  ] .
+
+  ^ 0 .

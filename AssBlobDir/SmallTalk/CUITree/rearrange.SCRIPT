@@ -1,0 +1,30 @@
+rearrange ->* 
+|
+  yy=CFrogNum
+  button=CUIButton
+  pair=CFrogArray
+  elem=CUIElem
+|
+  sub_elems _ #() .
+  yy _ 10 . 
+  0 to: sub_elems2 size do:[:w=CFrogNum|
+    button _ sub_elems2 at: w .
+    self addChild: button .
+    button->y _ yy .
+    pair _ button -> user_data .
+    elem _ (pair at: 1 ) .
+    (pair at: 2) ifTrue: [
+      self removeChild: elem .
+      self addChild: elem .
+      elem->x _ 20 .
+      elem->y _ yy + 15 .
+      sz_x _ sz_x max: 20 + (elem->sz_x max: button ->sz_x ) .
+      yy _ yy + elem -> sz_y + 30 .
+    ] ifFalse: [
+      self removeChild: elem .
+      sz_x _ sz_x max: 20 +  button -> sz_x .
+      yy _ yy + 30 .
+    ] .
+    sz_y _ yy .
+  ] .
+  parent rearrange .
