@@ -15,10 +15,36 @@ U0 GenerateUselessMethod(U8 *class_name,U8 *method_name,U8 *return_class)  {
 }
 //Dont Free
 U8 *MethodReturnClass(U8 *class_name,U8 *method_name) {
+ent:;
+  CHashClass *cls;
   U8 *rt=MStrPrint("RET_TYPE_%s.%s",class_name,method_name);
   U8 *r=FramePtr(rt);
-  Free(rt);  
+  Free(rt);
+  if(!r&&class_name) {
+    cls=HashFind(class_name,Fs->hash_table,HTT_CLASS);
+    if(cls&&cls->base_class) {
+      class_name=cls->base_class->str;
+      if(class_name)
+        goto ent;
+    }
+  }
   return r;
+}
+Bool HasMethod(U8 *class_name,U8 *method_name) {
+ent:;
+  CHashClass *cls;
+  U8 *rt=MStrPrint("METHOD_%s.%s",class_name,method_name);
+  U8 *r=FramePtr(rt);
+  Free(rt);
+  if(!r&&class_name) {
+    cls=HashFind(class_name,Fs->hash_table,HTT_CLASS);
+    if(cls&&cls->base_class) {
+      class_name=cls->base_class->str;
+      if(class_name)
+        goto ent;
+    }
+  }
+  return ToBool(r);
 }
 //Dont Free
 U8 *StackFrame2Var(I64 stk) {

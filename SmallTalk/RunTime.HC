@@ -229,14 +229,13 @@ U0 STFrameDel() {
 }
 
 Bool IsSmalltalkMember2(CHashClass *cls) {
-  CHashClass *fc=HashFind("CFrogThing",frog_mem_task->hash_table,HTT_CLASS);
   if(cls->type&HTT_FUN)
     return FALSE;
 //Account for pointers to cls
   if(cls->ptr_stars_cnt)
     --cls;
   while(cls) {
-    if(cls==fc){
+    if(!StrCmp(cls->str,"CFrogThing")){
       return TRUE;
     }
     cls=cls->base_class;
@@ -780,14 +779,13 @@ Bool IsSmalltalkMember(CHashClass *cls) {
     if(RT_I8<=t<=RT_U64)
       return TRUE;
   }
-  CHashClass *fc=HashFind("CFrogThing",frog_mem_task->hash_table,HTT_CLASS);
   if(cls->type&HTT_FUN)
     return FALSE;
 //Account for pointers to cls
   if(cls->ptr_stars_cnt)
     --cls;
   while(cls) {
-    if(cls==fc){
+    if(!StrCmp(cls->str,"CFrogThing")){
       return TRUE;
     }
     cls=cls->base_class;

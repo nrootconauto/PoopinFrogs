@@ -17,7 +17,9 @@
 #define AST_MEMBER 17
 //Used by Compiler.HC
 #define AST_STACK_TEMPORARY 18
-
+//Dont Free
+extern U8 *MethodReturnClass(U8 *class_name,U8 *method_name);
+extern Bool HasMethod(U8 *class_name,U8 *method_name);
 class CAST:CQue {
   CQue args;
   I32 type,is_literal;
@@ -232,11 +234,28 @@ again:
   }
   return NULL;
 }
+U0 TryAssignType(CAST *a) {
+  CAST *who,*cur;
+  U8 *rc;
+  switch(a->type) {
+    case AST_UNOP:
+    case AST_BINOP:
+    case AST_KEYWORD:
+      who=a->args.next;
+      if(who->var_class_name[0]&&who->var_class_name[0]!='*') {
+	if(rc=MethodReturnClass(a->var_class_name,a->name)) {
+	  StrCpy(a->var_class_name,rc);
+	}
+      }
+      break;
+  }
+}
 CAST *ParseUnop(CLexer *l,CAST *left=NULL) {
   if(!left) left=ParseLiteral(l);
-  CAST *ret;
+  CAST *ret=NULL;
   CLexer backup;
   I64 old_pos,old_ch;
+  U8 *rn;
   if(!left) return NULL;
 again:
   if(l->tok==TOK_NAME) {
@@ -251,13 +270,15 @@ again:
     QueInit(ret);
     QueIns(left,&ret->args);
     StrCpy(ret->name,backup.str);
+    TryAssignType(ret);
     left=ret;
     goto again;
   }
   return left;
 }
 CAST *ParseBinop(CLexer *l,CAST *left=NULL) {
-  CAST *right,*ret;
+  CAST *right,*ret=NULL;
+  U8 *rn;
   CHashClass *cls;
   if(!left) left=ParseUnop(l);
   if(!left) return NULL;
@@ -281,6 +302,7 @@ again:
     if(!right)
       LexExcept(l,"Binop needs 2 fucking operands asshole.");
     QueIns(right,ret->args.last);
+    TryAssignType(ret);
     left=ret;
     goto again;
   }
@@ -291,7 +313,7 @@ CAST *ParseKeyword(CLexer *l,CAST *left=NULL) {
   if(!left) left=ParseBinop(l);
   CAST *ret=NULL,*right;
   CLexer backup;
-  U8 buf[STR_LEN],str2[STR_LEN];
+  U8 buf[STR_LEN],str2[STR_LEN],*rn;
   buf[0]=0;
   if(!left) return NULL;
 again:
@@ -320,6 +342,7 @@ again:
   if(!StrLen(buf))
     return left;
   StrCpy(ret->name,buf);
+  TryAssignType(ret);
   return ret;
 }
 CAST *ParseCascade(CLexer *l) {
@@ -467,7 +490,7 @@ cont:
   return var;
 }
 
-CMethod *ParseMethod(CLexer *l,CHashClass *cls=NULL) {
+CMethod *ParseMethod(CLexer *l,CHashClass *cls=NULL,Bool deep_verbose=FALSE) {
   CMethod *m=CAlloc(sizeof CMethod);
   CAST *name,*head;
   CAST *ast;
@@ -478,6 +501,7 @@ CMethod *ParseMethod(CLexer *l,CHashClass *cls=NULL) {
   CHashClass *ocls=cls;
   I64 idx;
   Bool found_ret_class=FALSE;
+  FramePtrAdd("deep_verbose",deep_verbose); //Free'd with hash table
   QueInit(&m->args);
   QueInit(&m->body);
   QueInit(&m->temps);

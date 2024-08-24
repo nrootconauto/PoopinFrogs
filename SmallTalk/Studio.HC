@@ -8,6 +8,7 @@
 #define ST_ROOT	"SmallTalk/" //Must be same length
 #define ST_CLASS_ROOT	"STClsRoot/"
 #define ST_SCRIPT_ROOT	"STScripts/"
+extern U0 LoadMethodsFromBlob(U8 *blob_file=NULL,Bool dry_only=FALSE);
 U8 *LumpNameToPath(U8 *str) {
   str+=StrLen(ST_ROOT);
   if(StrOcc(str,'/')) {
@@ -105,7 +106,54 @@ again:
   LexerDel(l);
   Free(txt);
 }
+U0 SynViewAssist(CDoc *who) {
+  U8 *t;
+  DocTermNew;
+  CLexer *l;
+  CAST *ast;
+  CHashClass *cls=NULL;
+  LBts(&(Fs->display_flags),DISPLAYf_SHOW);
+
+  //Load method definitions
+  LoadMethodsFromBlob(,TRUE);
+
+  if(t=BlobFileGetLump(,ST_ROOT"CLASSES")) {
+    ExePutS(t);
+    Free(t);
+  }
+
+  if(FramePtr("MethodClass"))
+    cls=HashFind(FramePtr("MethodClass"),Fs->hash_table,HTT_CLASS);
+  while(TRUE) {
+    WinVert(2,TEXT_ROWS-10,Fs->parent_task);
+    WinVert(TEXT_ROWS-10+2,TEXT_ROWS-1);
+    if(FramePtr("DOC_MODIFIED")) {
+      DocClear;
+      "$$LTGREEN$$$$TX+CX,\"SmallTalkBuddy:\"$$$$FD$$\n";
+      FramePtrSet("DOC_MODIFIED",0);
+      t=DocSave(who);
+      StrUtil(t,SUF_REM_CTRL_CHARS);
+      l=LexerNew(t);
+      try {
+        Lex(l);
+        if(cls)
+	  MethodDel(ParseMethod(l,cls,TRUE));
+        else if(!FramePtr("MethodClass")) {
+	  while(ast=ParseAst(l))
+	    ASTDel(ast);
+        }
+      } catch {
+        Fs->catch_except=TRUE;
+      };
+      LexerDel(l);
+      Free(t);
+    }
+    Sleep(500);
+  }
+}
 Bool SynView(CDoc *doc) {
+  FramePtrAdd("DOC_MODIFIED",1);
+  CTask *check=Spawn(&SynViewAssist,doc,,,Fs);
   CDoc *pd=Fs->put_doc,*hl=DocNew,*dd=Fs->display_doc;
   Bool ul;
   Fs->put_doc=doc;
@@ -121,11 +169,14 @@ Bool SynView(CDoc *doc) {
     DocRecalc(hl,RECALCt_FIND_CURSOR);
     if(ul) DocUnlock(hl);
     ch=DocGetKey;
+//Used by SynViewAssist
+    FramePtrSet("DOC_MODIFIED",1);
     Free(t);
   } while (ch!=CH_ESC && ch!=CH_SHIFT_ESC);
   DocDel(hl);
   Fs->put_doc=pd;
   Fs->display_doc=dd;
+  FramePtrDel("DOC_MODIFIED");
   return ch==CH_ESC;
 }
 
@@ -468,7 +519,6 @@ again:;
       Free(tmp);
     }
   }
-
 //Phase 5,Load scripts
   DocTreeWrite(main_menu,"Scripts",FALSE,"$$RED$$$$MU,\"New Script\",LE=%d$$$$FD$$\n",3<<32);
   for(idx=0;idx!=lumps->lump_cnt;idx++) {
@@ -481,7 +531,6 @@ again:;
       Free(tmp);
     }
   }
-
 
   code=PopUpMenu(main_menu);
   DocDel(main_menu);
@@ -519,7 +568,16 @@ again:;
     DocDel(edit);
     break;
     default:
-    if((3<<32)&code==3<<32) {
+    hdr=&lumps->lump_table[code&(1<<32-1)];
+    if(!StrNCmp(ST_ROOT,hdr->name,StrLen(ST_ROOT))) {
+      tmp=StrNew(hdr->name+StrLen(ST_ROOT));
+      if(StrOcc(tmp,'/')) *StrFirstOcc(tmp,"/")=0;
+      FramePtrAdd("MethodClass",tmp);
+    }
+    if(!StrNCmp(ST_CLASS_ROOT,hdr->name,StrLen(ST_CLASS_ROOT))) {
+      FramePtrAdd("MethodClass",StrNew("CFrogClass"));
+    }
+	    if((3<<32)&code==3<<32) {
       en=PopUpFileName("NEW_SCRIPT");
       edit=DocNew;
       PopUpPrint("FramePtrAdd(\"SAVED?\",SynView(%d),%d);\n",edit,Fs);
@@ -587,6 +645,8 @@ again:;
         Free(en);
       }
     }
+    Free(FramePtr("MethodClass"));
+    FramePtrDel("MethodClass");
     DocDel(edit);
     break;
   }
@@ -595,7 +655,8 @@ again:;
     goto again;
   Free(blob_file);
 }
-U0 LoadMethodsFromBlob(U8 *blob_file="../ASS") {
+U0 LoadMethodsFromBlob(U8 *blob_file=NULL,Bool dry_only=FALSE) {
+  if(!blob_file) blob_file=dft_blob_path;
   blob_file=ExtDft(blob_file,"BLOB");
   if(!FileFind(blob_file)) {
     PopUpOk("Cant Find Blob file!!!");
@@ -641,7 +702,7 @@ U0 LoadMethodsFromBlob(U8 *blob_file="../ASS") {
 	    PutExcept(TRUE);
 	  }
         }
-      } else if(!StrNCmp(hdr->name,ST_SCRIPT_ROOT,StrLen(ST_SCRIPT_ROOT))) {
+      } else if(!dry&&!StrNCmp(hdr->name,ST_SCRIPT_ROOT,StrLen(ST_SCRIPT_ROOT))) {
 	try {
 	  tmp=BlobFileGetLump(blob_file,hdr->name);
 	  STRunStmt(tmp);
@@ -651,6 +712,10 @@ U0 LoadMethodsFromBlob(U8 *blob_file="../ASS") {
 	  PutExcept(TRUE);
 	}
       }
+    }
+    if(dry_only) {
+      Silent(0);
+      break;
     }
   }
   Free(lumps);
