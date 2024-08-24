@@ -1160,9 +1160,17 @@ draw:
 U0 PrepareThingsForDraw(C3DWorldManager *wm,F64 thing_scale=.6) {
   CFrogArray *arr=WorldManagerThingsInRadius(wm,FrogNumNew(w->x),FrogNumNew(w->y),FrogNumNew(VIEW_DIST*128));
   C3DThing **things=arr->items->body,*thing;
-  I64 cnt=arr->items->cnt;
+  I64 cnt=arr->items->cnt,ix,iy,ox,oy;
   F64 normal;
   CDC *hit_texture;
+  F64 width;
+  for(ox=0;ox!=2*VIEW_DIST;ox++)
+    for(oy=0;oy!=2*VIEW_DIST;oy++) {
+      if(!w->things_around_camera[ox][oy])
+	w->things_around_camera[ox][oy]=I64SetNew;
+      else
+	w->things_around_camera[ox][oy]->cnt=0;
+    }
   while(--cnt>=0) {
     thing=things[cnt];
     if(thing->no_draw)
@@ -1176,6 +1184,17 @@ U0 PrepareThingsForDraw(C3DWorldManager *wm,F64 thing_scale=.6) {
     thing->scrn_st.y=thing->y-hit_texture->width/2.*Sin(normal)*thing_scale;
     thing->scrn_en.x=thing->scrn_st.x+hit_texture->width*Cos(normal)*thing_scale;
     thing->scrn_en.y=thing->scrn_st.y+hit_texture->width*Sin(normal)*thing_scale;
+    ix=ToI64((thing->x-w->x)/128.);
+    iy=ToI64((thing->y-w->y)/128.);
+    for(ox=-Floor(hit_texture->width/2./128.)-1;ox<Ceil(hit_texture->width/2./128.)+1;ox++) {
+      for(oy=-Floor(hit_texture->width/2./128.)-1;oy<Ceil(hit_texture->width/2./128.)+1;oy++) {
+	if(-VIEW_DIST<ox+ix<VIEW_DIST) {
+	  if(-VIEW_DIST<oy+iy<VIEW_DIST) {
+	    I64SetAdd(w->things_around_camera[ox+ix+VIEW_DIST][oy+iy+VIEW_DIST],thing);
+	  }
+        }
+      }
+    }
 skip:;
   }
 }
@@ -1314,6 +1333,7 @@ I64 GetColorForRay(C3DWorldManager *man,CD3 *ray,F64 dist,F64 *hit_at,CD3 *hit_c
   I64 wall_side;
   I64 stain_x,stain_y;
   I64 color;
+  I64 relx,rely;
   CD2 long;
   long.x=x+VIEW_DIST*cos;
   long.y=y+VIEW_DIST*sin;
@@ -1324,11 +1344,18 @@ I64 GetColorForRay(C3DWorldManager *man,CD3 *ray,F64 dist,F64 *hit_at,CD3 *hit_c
   for(cur=0;cur!=cnt&&!hit;cur++) {
     if(0<=tx<w->world_width)
       if(0<=ty<w->world_height) {
-        do_things=grid->items->body[tx/16](CFrogArray*)->items->body[ty/16](CFrogArray*)->items;
+	relx=(tx-w->x/128.)+VIEW_DIST;
+	rely=(ty-w->y/128.)+VIEW_DIST;
+	if(0<=relx<2*VIEW_DIST)
+	  if(0<=rely<2*VIEW_DIST)
+	    if((do_things=w->things_around_camera[relx][rely])->cnt)
+	      goto has_thing;
+        goto check_tile;
+has_thing:;
 	C3DThing *thing;
         for(thing_idx=0;thing_idx!=do_things->cnt;thing_idx++) {
 	  thing=do_things->body[thing_idx];
-	  if(Abs(thing->x/128-tx)<1&&AbsI64(thing->y/128-ty)<1&&!thing->no_draw) {
+	  if(!thing->no_draw) {
 	    CD2 origin128;
 	    F64 scale=.6;
 	    CD2 st,en,xyhit;
@@ -1381,6 +1408,7 @@ I64 GetColorForRay(C3DWorldManager *man,CD3 *ray,F64 dist,F64 *hit_at,CD3 *hit_c
 next_thing:;
 	  }
 	}
+check_tile:;
 //Check for hitting a tile(WhichTexture also accounts for doors)
         texture_y_offset=0; //Ffor Dooors
         idx=(ty*w->world_width+tx)*256+tz-I8_MIN;
