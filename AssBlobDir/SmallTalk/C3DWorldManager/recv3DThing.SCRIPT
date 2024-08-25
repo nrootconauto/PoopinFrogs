@@ -1,0 +1,16 @@
+recv3DThing: args=CFrogArray ->*
+|
+  t=C3DThing
+|
+  t=C3DThing new .
+  t->x _ args at:0 . 
+  t->y _ args at:1 . 
+  t->z _ args at:2 . 
+  t->momx _ args at:3 . 
+  t->momy _ args at:4 . 
+  t->momz _ args at:5 . 
+  t->angle _ args at:6 . 
+  t->health _ args at:7 . 
+  t->template _ self getThingTemplate: (args at: 8) .
+  t->animation_start_tS _ args at: 9 . 
+  t->animation_no_repeat _ args at: 10 . 

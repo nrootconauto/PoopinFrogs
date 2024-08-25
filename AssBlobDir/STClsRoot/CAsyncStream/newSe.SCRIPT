@@ -1,0 +1,5 @@
+newServerAt: a=CFrogStr atPort: p=CFrogNum
+->*
+|
+|
+  ^ self basicNew initServerAt: a atPort: p . 

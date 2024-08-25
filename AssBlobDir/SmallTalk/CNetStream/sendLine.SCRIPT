@@ -1,0 +1,7 @@
+sendLine: s=CFrogStr 
+|
+  ln=CFrogStr
+|
+  ln _ s copy.
+  ln add: 10 asCharactor .
+  self sendString: ln .

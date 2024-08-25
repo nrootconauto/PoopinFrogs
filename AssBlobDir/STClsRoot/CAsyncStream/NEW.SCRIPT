@@ -1,0 +1,2 @@
+newFromStream:s* | |
+ ^ self basicNew initFromStream: s

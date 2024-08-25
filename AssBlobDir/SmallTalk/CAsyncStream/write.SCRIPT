@@ -1,0 +1,6 @@
+write: s=CFrogStr 
+->*
+|
+|
+  s show .
+  sock sendBytes: s . 

@@ -85,7 +85,7 @@ CAST *ParseVarWithType(CLexer *l,Bool warn=FALSE) {
   return ret;
 }
 CAST *ParseLiteral(CLexer *l) {
-  CAST *ret,*item;
+  CAST *ret=NULL,*item;
   CHashClass *cls;
   if(l->tok=='(') {
     Lex(l);
@@ -93,7 +93,7 @@ CAST *ParseLiteral(CLexer *l) {
     if(l->tok!=')')
       LexExcept(l,"Expeted a [Redacted for GH]fuckin ')' poopbrain.");
     Lex(l);
-    ret->is_literal=TRUE;
+    if(ret) ret->is_literal=TRUE;
     return ret;
   }
   if(l->tok=='#') {

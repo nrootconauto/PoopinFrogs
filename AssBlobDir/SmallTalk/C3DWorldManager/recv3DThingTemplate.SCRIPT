@@ -1,0 +1,19 @@
+recv3DThingTemplate: props=CFrogArray
+ ->*
+|
+  t=C3DThingTemplate
+|
+  t _ thing_templates at: props first . 
+  (t hasClass: C3DThingTemplate) ifFalse: [
+    t _ C3DThingTemplate new .
+    t->name _ props first .
+    self addThingTemplate: t withName: props first .
+  ] .
+
+  t->front _ CFrogImg get: (props at: 1 ).
+  t->side _ CFrogImg get: (props at: 2 ).
+  t->back _ CFrogImg get: (props at: 3 ).
+
+  t->front setGraphicsFromString: (props at:4 ). 
+  t->side setGraphicsFromString: (props at:5 ).
+  t->back setGraphicsFromString: (props at:6 ).

@@ -1,0 +1,15 @@
+sendToStream: s=CNetStream
+->*
+|
+|
+  s remoteCallMethod: 'recv3DThingTemplate:' withArguments: #(
+    #(
+      (name)
+      (front->name)
+      (side->name)
+      (back->name)
+      (front asString)
+      (side asString)
+      (back asString)
+    )
+  ) .

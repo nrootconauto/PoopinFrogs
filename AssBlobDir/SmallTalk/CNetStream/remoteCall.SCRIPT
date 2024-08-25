@@ -1,0 +1,17 @@
+remoteCallMethod: name=CFrogStr withArguments: args=CFrogArray ->*
+|
+  msg=CFrogStr
+  recur=CFrogBlock 
+  data=CFrogStr
+|
+  msg _ 'C:' . 
+  msg addAll: name .
+  msg addAll: '.' .
+  msg addAll: args saveString .
+
+  data _ args saveThing.
+  msg addAll: data size printString .
+  msg addAll: ':' .
+  msg addAll: data .
+
+  self sendBytes: msg .

@@ -1,0 +1,42 @@
+receiveRemoteCallFor: thing=CFrogThing ->*
+|
+  buf=CFrogStr
+  name=CFrogStr
+  getInt=CFrogBlock
+  digits=CFrogStr
+  int=CFrogNum
+  len=CFrogNum
+  args*
+|
+  digits _ '0123456789' .
+  getInt _ [
+    int _ 0 .
+    [
+      buf _ self getBytes: 1 .
+      (digits indexOf: buf) ~= -1
+    ] whileTrue: [
+      int _ int * 10 + (digits indexOf: buf)
+    ] .
+    int
+  ] .
+
+  buf _ self getBytes: 1 .
+  buf = 'C' ifTrue: [
+    name _ '' .
+    [
+      buf _ self getBytes: 1 .
+      buf ~= '.'
+    ] whileTrue: [
+      name addAll: buf .
+    ] .
+    len _ getInt value .
+    buf _ self getBytes: 1 .
+    buf = ':' ifTrue: [
+      args _ (self getBytes: len) .
+      name show .
+      args show .
+      args _ args restoreThing .
+
+      thing callMethod: name withArguments: args .
+    ] .
+  ] . 

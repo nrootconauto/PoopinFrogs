@@ -1,0 +1,18 @@
+sendToStream: s=CNetStream ->*
+|
+|
+  s remoteMethodCall: 'recv3DThing:' withArguments: #(
+   #(
+     (x)
+     (y)
+     (z)
+     (momx)
+     (momy)
+     (momz)
+     (angle)
+     (health)
+     (template->name)
+     (animation_start_tS)
+     (animation_no_repeat)
+    )
+  ) .

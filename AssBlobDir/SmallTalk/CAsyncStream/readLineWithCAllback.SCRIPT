@@ -1,0 +1,4 @@
+readLineWithCallback: cb=CFrogBlock
+|
+|
+  ops add: #(('Rl') (cb)  ) .

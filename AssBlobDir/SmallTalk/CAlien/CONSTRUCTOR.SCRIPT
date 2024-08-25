@@ -1,4 +1,4 @@
-init->CPoopMan | |
+init->CAlien | |
   #world addThing: self .
   template _ #world getThingTemplate: 'CAlien' .
   state_start_tS _ CFrogTime now asSeconds .

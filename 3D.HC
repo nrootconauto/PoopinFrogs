@@ -84,12 +84,35 @@ CFrogImg *FrogImgNewFromEditor(CFrogImg *img,...) {
   }
   return ret;
 }
-
 AddClassMethod("CFrogImg","newFromEditor",&FrogImgNewFromEditor);
+
 U0 FrogImgDel(CFrogImg *img) {
   AnimDCDel(img->dc);
   Free(img);
 }
+
+CFrogStr *FrogImgToString(CFrogImg *img,...) {
+  CFrogStr *s=ConstructThing("CFrogStr");
+  I64 len;
+  U8 *a=AnimDCSave(img->dc,&len);
+  U8SetAddBytes(s->items,a,len);
+  Free(a);
+  return s;
+}
+//AddClassMethod("CFrogImg","asString",&FrogImgToString);
+CFrogStr *FrogImgFromString(CFrogImg *img,...) {
+  CFrogStr *s=AsString(argv[0]);
+  CDC *d=NULL;
+  if(s) {
+    d=AnimDCLoad(s->items->body,,frog_mem_task);
+    Free(s);
+    AnimDCDel(img->dc);
+    img->dc=d;
+  }
+  return FROG_SMALL_NIL;
+}
+//AddClassMethod("CFrogImg","setGraphicsFromString:",&FrogImgFromString);
+
 
 U64 Fog(I64 color,I64 dist) {
   dist>>=7; //GRID_SZ is 128(7 bits)
@@ -1371,13 +1394,6 @@ has_thing:;
 	      en.y=thing->scrn_en.y/128.;
 	      F64 i1=.5,i2=.5;
 	      if(SegmentSegmentIntersect(&xyhit,&origin128,&long,&st,&en,&i1,&i2)) {
-//Make sure our hit is in our tile(may be a fat sprite or out of bounds).
-                $SP,"<1>",BI=1$;
-
-
-
-
-
 		if(1) {
 		  dist=Sqrt(Sqr(xyhit.x-w->x/128)+Sqr(xyhit.y-w->y/128));
 		  h=dist*slope+w->cam_height;
@@ -1686,7 +1702,7 @@ U0 MPCastCol(C3DWorldManager *wm) {
   cap=ToF64(Gs->num+1)/ToF64(mp_cnt)*GR_WIDTH;
   for(x=idx;x<cap;x+=w->step_width) {
 // divide by cos2_lookup_table to get 32 blocks from the camera
-$SP,"<2>",BI=2$;
+$SP,"<1>",BI=1$;
 
 
 
@@ -2634,10 +2650,8 @@ C3DWorldShell *shell=ConstructThing("C3DWorldShell");
 CallScript("init",shell);
 UIShellRun(shell);
 #endif
-#endif               
+#endif               
    
 *   ]   g   3   
 )   _   l   ‚   #   '   i   '   !   ‰   k   ‹   '   _   j   [         32 Away from camera    ^      
-m   ”   j   "           ¨         
-   þÿÿÿ                      þÿÿÿ            -      -               #   (   #   )            %      #         
-      	           
+m   ”   j   "    

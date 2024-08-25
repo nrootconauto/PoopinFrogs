@@ -1,0 +1,4 @@
+readBytes: n=CFrogNum withCallback: cb=CFrogBlock
+|
+|
+  ops add: #(('R') (n) (cb)  ) .

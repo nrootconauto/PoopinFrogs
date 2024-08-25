@@ -1,0 +1,5 @@
+initConnectionTo: a=CFrogStr atPort: p=CFrogNum
+->*
+|
+|
+  ^ self initFromStream: (CNetStream newConnectionTo: a atPort: p ).

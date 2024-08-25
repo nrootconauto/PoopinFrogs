@@ -12,6 +12,22 @@ class CFrogThing:CQue {
   I32 lock_cnt,universe_class_idx;
   U8 class_name[32];
 };
+
+class CNetStream:CFrogThing {
+  I64 sock;
+  U8 *destroy dft "NetStreamDel";
+  Bool closed;
+};
+class CFrogThread:CFrogThing {
+   CFrogBlock *blcok;
+   CTask *task;
+   U8 *destroy dft "ThreadDel";
+}; 
+class CAsyncStream:CFrogThing {
+  CNetStream *sock;
+  CFrogThread *thread;
+  CFrogArray *ops;
+};
 class CFrogNum:CFrogThing {
   F64 num;
 };
@@ -259,9 +275,12 @@ class C3DWorldManager:CFrogThing {
   CFrogArray *tile_templates recur_serialize 1;
   F64 gravity,last_update;
   I64 screen_x,screen_y;
-//A grid of things having the things(128*128 size)
+//A grid of things having the things(16*16 size)
   CFrogArray *grid;
   CFrogArray *doors;
+  CFrogArray *clients; //CNetStream
+  CNetStream *server_sock;
+  I64 is_server;
   CTask *sound_task no_serialize 1;
 //Private
   F64 game_load_tS;  //The CFrogTime now asSeconds that the game world is at when loaded

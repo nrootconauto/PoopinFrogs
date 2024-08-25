@@ -1716,7 +1716,36 @@ CFrogThing *FrogClassFromString(CFrogThing *ul,...) {
 }
 AddClassMethod("CFrogClass","fromString:",&FrogClassFromString);
 
+CFrogThing *CallMethodWithArgs(CFrogThing *self,...) {
+  U8 *name=AsString(argv[0]);
+  CFrogThing *ret=FROG_SMALL_NIL;
+  U8 *fptr;
+  I64 id;
+  if(name) {
+    if(ThingHasClass(self,"CFrogClass")) {
+      fptr=UniverseGetClassMethodForClassByIdx(NameToUniverseNumber(name),self(CFrogClass*)->class_id);   
+      if(fptr&&fptr!=&Useless)  { //Dumb hack
+        ret=CallSTFast(fptr,self,argc,argv);
+      }
+    }
+    if(!(self&1)) {
+      fptr=UniverseGetMethodForClassByIdx(NameToUniverseNumber(name),self->id);   
+      if(fptr) 
+        ret=CallSTFast(fptr,self,argc,argv);
+    } else {
+      id=UniverseAddClass(FrogThingClassName(self));
+      fptr=UniverseGetMethodForClassByIdx(NameToUniverseNumber(name),id);
+      if(fptr) 
+        ret=CallSTFast(fptr,self,argc,argv);
+    }
+  }
+  return ret;
+}
+AddClassMethod("CFrogThing","callMethod:withArguments:",&CallMethodWithArgs);
 
+#exe{Cd(__DIR__);}; //???
+#include "Network.HC";
+#include "MultiThread.HC";
 U0 FrogBinDel(CFrogBin *bin) {
   Free(bin->data);
   Free(bin);

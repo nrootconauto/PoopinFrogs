@@ -1,0 +1,6 @@
+newConnectionTo: a=CFrogStr atPort: p=CFrogNum
+->* 
+|
+|
+  a show .
+  ^ self basicNew initConnectionTo: a atPort: p .

@@ -220,8 +220,17 @@ CFrogThing *RestoreThingFromSaveFile(CFrogStr *t,...) {
   Free(data);
   return ret;
 }
+CFrogThing *RestoreThing(CFrogStr *t,...) {
+  U8 *data=AsString(t);
+  if(!data) return FROG_SMALL_NIL;
+  CFrogThing *ret=FROG_SMALL_NIL;
+  ret=RestoreThing0(data);
+  Free(data);
+  return ret;
+}
+
 AddMethod("CFrogThing","saveThingToSaveFile:",&SaveThingToSaveFile);
 AddMethod("CFrogStr","restoreThingFromSaveFile",&RestoreThingFromSaveFile);
 AddMethod("CFrogThing","saveThing",&SaveThing);
 AddMethod("CFrogThing","basicSaveThing",&SaveThing);
-//AddMethod("CFrogStr","restoreThing",&RestoreThing);
+AddMethod("CFrogStr","restoreThing",&RestoreThing);

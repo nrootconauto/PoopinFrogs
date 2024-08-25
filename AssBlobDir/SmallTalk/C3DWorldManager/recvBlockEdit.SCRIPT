@@ -1,0 +1,7 @@
+recvBlockEdit: args=CFrogArray ->*
+|
+|
+  self setTile: (args at: 0)
+   atX: (args at: 1)
+   atY: (args at: 2)
+   atZ: (args at: 3)

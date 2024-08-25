@@ -1,0 +1,32 @@
+initFromStream: s=CNetStream |
+ buf=CFrogStr
+ tuple=CFrogArray
+ want=CFrogNum
+|
+  buf _ '' .
+  s show .
+  sock _ s . 
+  ops _ #() .
+  thread  _ CFrogThread spawn: [
+     [ 1
+     ] whileTrue: [
+       tuple _ ops first .
+       tuple show .
+       (tuple first = 'Rl') ifTrue: [
+         buf _ sock getLine .
+         buf show .
+         tuple last value: self value: buf.
+       ] .
+       (tuple first = 'R') ifTrue: [
+         want _ (tuple at: 1) .
+         buf _ (sock getBytes: want) .
+         buf show .
+         tuple last value: self  value: buf .
+       ] .
+       (tuple first = 'A') ifTrue: [
+         tuple last value: self  value: sock accept .
+       ] .
+       CFrogThread yield .
+     ] .
+  ] .
+  ^ self
