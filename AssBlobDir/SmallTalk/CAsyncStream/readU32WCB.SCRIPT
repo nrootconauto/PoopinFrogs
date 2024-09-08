@@ -1,0 +1,4 @@
+readU32WithCallback: cb=CFrogBlock
+|
+|
+  ops add: #(('U32') (cb)  ) .

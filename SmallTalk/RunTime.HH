@@ -13,7 +13,8 @@ class CFrogThing:CQue {
   CCPU *owner_cpu;
   I32 lock_cnt,universe_class_idx;
   U8 class_name[32];
-};
+};
+
 class CFrogFrame {
   CQue *pad,*pad;
   I32 thing_flags,pad;

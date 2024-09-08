@@ -1,0 +1,20 @@
+hostGameAt: str=CFrogStr atPort:  p=CFrogNum ->*
+|
+  recur=CFrogBlock
+|
+  is_server _ 1 .
+ str show .
+ p  show .
+  blocks_string _ self saveBlocksToString .
+  blocks_width _ self width .
+  blocks_height _ self height .
+  server_sock _ CAsyncStream newServerAt: str atPort: p  .
+  recur _ [
+    server_sock acceptWithCallback: [:w* :c*|   
+'Retrigger callback' show .
+      c _ self addClient: c .
+      recur value .
+    ].
+  ].
+
+  recur value .

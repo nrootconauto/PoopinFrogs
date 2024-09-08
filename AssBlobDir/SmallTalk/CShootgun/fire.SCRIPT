@@ -12,6 +12,7 @@ fire ->CFrogNum |
  from_angle=CFrogNum
  best_thing*
  w=C3DWorldManager
+ dmg=CFrogNum
  |
   w _ #world .
   player _ w getPlayer .
@@ -34,27 +35,8 @@ fire ->CFrogNum |
       w noiseSoundForTime: 200 withMin: 20 withMax: 30 .
       0 to: 6 do: [
         spread _ CFrogRandom new next - .5  * (3.14 / 16 ) .
-        best_thing _ player bestTargetAtAngle: player getAngle + spread .
-        hit _ best_thing hasClass: C3DThing .
-        hit ifTrue: [
-          best_thing  damage: 10 * CFrogRandom new next + 5 from: player .
-        ] ifFalse: [
-          sz _ w screenCoordToZ .
-          w screenCoordIsOnFloor ifTrue: [
-            floor_stain _ CFloorStain new .
-            floor_stain setGraphics: 'GR/GUN1/BULLET_HOLE' atAngle: 0 .
-            floor_stain putAtX: w screenCoordToX + (CFrogRandom new next * 128 - 64) 
-                      atY: w screenCoordToY (CFrogRandom new next * 128 - 64 ) .
-            w addFloorStain: floor_stain .
-          ] ifFalse: [
-            wall_hole _ CWallStain new .
-            wall_hole
-            placeAtAngle: player getAngle + spread
-              fromX: player ->x 
-              fromY: player ->y
-              atHeight: sz .
-          ] .
-        ] .
+        dmg _ 10 * CFrogRandom new next + 5 .
+        player rangeAttackAtAngle: player->angle + spread withDamage: dmg .
       ]
     ].
   ] .

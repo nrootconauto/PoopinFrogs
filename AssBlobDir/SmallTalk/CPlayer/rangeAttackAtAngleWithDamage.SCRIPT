@@ -1,0 +1,13 @@
+rangeAttackAtAngle: a=CFrogNum withDamage: d=CFrogNum
+->*
+|
+  best_thing=C3DThing
+|
+  best_thing _ self  bestTargetAtAngle: a .
+  (best_thing hasClass: C3DThing) ifTrue: [
+    best_thing damage: d from: self . 
+#world->is_client show .
+    #world->is_client ifTrue: [
+      #client sendAttackOfThing: best_thing withDamage: d . 
+    ] . 
+  ] .

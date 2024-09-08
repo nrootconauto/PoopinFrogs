@@ -1,0 +1,18 @@
+shootProjectile: type=CFrogClass
+ atX:  x*
+ atY: y*
+ atZ: z*
+ withMomX: mx*
+ withMomY: my*
+ withMomZ: mz*
+->*
+|
+|
+  self sendMessage: #(
+    (x)
+    (y)
+    (z)
+    (mx)
+    (my)
+    (mz)
+  ) withType: 'Proj' .

@@ -1,0 +1,11 @@
+sendPlaceThing: t=CFrogClass atX: x* atY: y* atZ: z*
+->*
+|
+|
+  self sendMessage: #(
+      (t)
+      (x)
+      (y)
+      (z)
+    )
+    withType: 'PThg' .

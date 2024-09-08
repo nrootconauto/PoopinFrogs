@@ -1,0 +1,65 @@
+addClient: sock=CNetStream ->C3DWorldClient
+|
+  c=C3DWorldClient
+  p=CPlayer
+  best=CFrogNum
+  world_str=CFrogStr 
+  buf=CFrogStr
+  recur=CFrogBlock
+|
+  c _ C3DWorldClient new .
+  c -> player _ CPlayer new .
+  'TODO place the player in a good spawn zone' .
+  p _ c->player .
+  p->x _ self width / 2 * 128 . 
+  p->y _ self height / 2 * 128 .
+  p->z _ 128 .
+  best _ -127 .
+  -127 to: 127 by: 1 do: [:h=CFrogNum |
+    (self getTileAtX: p->x / 128 atY: p->y / 128 atZ: h) ifFalse: [
+'Check for ground ' .
+h show .
+      (self getTileAtX: p->x / 128 atY: p->y / 128 atZ: h - 1 ) ifTrue: [
+'h2' show .
+        p->z _ h .
+        best _ p->z max: best .
+      ] .
+    ]. 
+  ] . 
+  best = -127 ifTrue: [
+  'Wut,nowhere to stand so place at top of world' .
+    p->z _ 128 . 
+  ] ifFalse: [
+    p->z _ best .
+  ] .
+'poo 0'show .
+
+  c->last_ping_tS _ CFrogTime now asSeconds .
+  c->sock _ CAsyncStream newFromStream: sock .
+  c show .
+  c->sock show.
+
+  world_str _ blocks_string .
+'poo 'show .
+  c->sock show.
+  c sendMessage: #((world_str) (blocks_width) (blocks_height))  withType: 'Wrld' .
+'poo2 'show .
+  c sendMessage: #(
+    (p->x)
+    (p->y)
+    (p->z)
+    (p->angle)
+  ) withType: 'PMov' .
+
+  recur _[
+'poo3 'show .
+    c->sock readU32WithCallback: [:sock* :cnt=CFrogNum|
+      c->sock readBytes: cnt withCallback: [:sock* :buf=CFrogStr|
+        c->last_ping_tS _ CFrogTime asSeconds .
+        self handleMessage: buf forClient: c .
+        'Re-enabled callback' .
+        recur value 
+      ] .
+    ] .
+  ] . 
+  recur value .

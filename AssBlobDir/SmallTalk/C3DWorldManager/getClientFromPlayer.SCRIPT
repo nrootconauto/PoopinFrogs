@@ -1,0 +1,9 @@
+getClientFromPlayer: p=CPlayer
+->C3DWorldClient
+|
+|
+  clients do: [:c=C3DWorldClient|
+    c->player = p ifTrue: [
+      ^ c
+    ]. 
+  ] .

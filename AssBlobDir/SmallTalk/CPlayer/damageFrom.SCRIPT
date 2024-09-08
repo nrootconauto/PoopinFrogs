@@ -1,2 +1,10 @@
-damage: d=CFrogNum from: f=C3DThing ->* ||
- self damage: d
+damage: d=CFrogNum from: f=C3DThing ->* |
+  w=C3DWorldManager
+  c=C3DWorldCleint
+|
+  w _ #world .
+  w->is_server ifTrue: [
+    c _ w getClientForPlayer: self .
+    c sendMessage: #(d) withType: 'PDmg'.
+  ] .
+  self damage: d

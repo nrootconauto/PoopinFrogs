@@ -1,0 +1,5 @@
+acceptWithCallback: b=CFrogBlock ->* 
+|
+|
+  ' accept' show .
+  ops add: #( ('Acc') ( b))

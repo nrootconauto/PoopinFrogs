@@ -26,13 +26,15 @@ extern CAiwniosSock *AiwniosSocket(U16 ,U16);
 I64 AiwniosAccept(CAiwniosSock *_s,sockaddr *src_addr,I64 addr_len) {
   I64 s=_s->os_sock;
   I64 code;
-  CAiwniosSock *sock;
-  if(NetPollForRead(1,&s)==0) {
-    code=NetAccept(s,NULL);
+  CAiwniosSock *sock=-1;
+PrintI("accept",s);
+  while(NetPollForRead(1,&s)!=0)
+    Sleep(3);
+  code=NetAccept(s,NULL);
+  if(code>0)  {
     sock=AiwniosSocket(0,0);
     sock->os_sock=code;
-  } else
-    sock=-1;
+  }
   return sock;
 }
 I64 AiwniosClose(CAiwniosSock *_s) {
@@ -43,6 +45,7 @@ I64 AiwniosClose(CAiwniosSock *_s) {
 }
 I64 AiwniosBind(CAiwniosSock *_s,sockaddr_in *src_addr,I64 addr_len) {
   I64 s=_s->os_sock;
+PrintI("bind",s);
   CNetAddr *from=src_addr->sin_zero[0](U64*),*new;
   new=NetAddrNew(from->hostname,htons(src_addr->sin_port));//Update port information
   NetBindIn(s,new);
@@ -69,7 +72,7 @@ I64 AiwniosRecvFrom(CAiwniosSock *_s,U8 *buf,I64 len,I64 flags,sockaddr *ul,I64 
     if(0==NetPollForHangup(1,&s))
       return -1;
     Sleep(3);
-  };
+  }
   return NetRead(s,buf,len);
 }
 I64 AiwniosSendTo(CAiwniosSock* _s, U8* buf, I64 len, I64 flags, sockaddr* dest_addr, I64 addrlen) {
@@ -96,9 +99,15 @@ CAiwniosSock *AiwniosSocket(U16 ,U16) {
   return ret;
 }
 RegisterSocketClass(AF_INET,SOCK_STREAM,&AiwniosSocket);
-/*
-I64 sock=create_connection("aiwnios.com",6667);
-sendString(sock,
+
+/*I64 sock=create_server("0.0.0.0",8001),a;
+while(a=accept(sock,NULL,0)) {
+  if(a>0) {sendString(a,"poo\n",4);
+  close(a);
+  }
+Sleep(3);
+}*/
+/*sendString(sock,
 "NICK clayton\n"
 "USER clayotn 0 * :realname\n"
 ,0);

@@ -23,4 +23,8 @@ fire ->* |
     wy _ player->y + (a sin * dist ) .
     dist show .
     w setTile: tile_idx atX: wx / 128 atY: wy / 128 atZ: wz .
+
+    w->is_client ifTrue: [
+      #client sendPlaceBlock: tile_idx atX: wx/128 atY: wy / 128 atZ: wz 
+    ] .
   ] .

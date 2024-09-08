@@ -1,0 +1,10 @@
+sendPlayerMovement ->*
+|
+|
+  self sendMessage: #(
+    (player->x)
+    (player->y)
+    (player->z)
+    (player->angle)
+  )
+  withType:'PMov'.

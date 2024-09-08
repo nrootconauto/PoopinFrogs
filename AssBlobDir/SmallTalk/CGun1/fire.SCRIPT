@@ -8,6 +8,7 @@ fire ->* |
  floor_stain=CFloorStain
  best_thing*
  w=C3DWorldManager
+ dmg=CFrogNum
  |
   w _ #world .
   player _ w getPlayer .
@@ -28,8 +29,8 @@ fire ->* |
       self setGraphics: 'GR/GUN1/FIRE' .
       ammo _ ammo - 1 max: 0 .
       inventory_item setCount: ammo .
-      best_thing _ player bestTargetAtAngle: player getAngle .
-      best_thing damage: 10 * CFrogRandom new next + 5 from: player 
+      dmg _ 10 * CFrogRandom new next + 5 .
+      player rangeAttackAtAngle: player->angle withDamage: dmg .
     ] .
   ] .
 

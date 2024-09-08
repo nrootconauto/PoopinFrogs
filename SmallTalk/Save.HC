@@ -104,7 +104,8 @@ U0 SaveDefacto0(CDoc *doc,U8 *str,CFrogThing *have,I64 depth=1,CI64Set *save_lis
     DocPrint(doc,"^%s.Ptr:%d\n",str,have); //Pointer
     return;
   }
-  I64SetAdd(save_list,have);
+  if(!(have&1)) //Dont save primtive types
+    I64SetAdd(save_list,have);
   if(depth<=0) return;
   I64 cnt,val,idx,force_ser;
   F64 fval;

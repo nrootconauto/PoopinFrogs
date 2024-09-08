@@ -24,4 +24,9 @@ meleeAttackWithDamage: damage=CFrogNum ->*
      'Weighted averegate' .
      angle _ best_target->x - x arg: best_target->y - y . 
      best_target damage: damage from: self .
+     #world ->is_client ifTrue: [
+       #client sendAttackOfThing: best_target withDamage: damage .
+     ].
   ].
+
+

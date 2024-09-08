@@ -1,7 +1,7 @@
 #ifndef ST_COMPILER_HH
 #define ST_COMPILER_HH 1
 #include "RunTime.HC";
-#define DEBUG 1
+//#define DEBUG 1
 U0 GenerateUselessMethod(U8 *class_name,U8 *method_name,U8 *return_class)  {
   U8 *canon=MStrPrint("METHOD_%s.%s",class_name,method_name);
   U8 *rt=MStrPrint("RET_TYPE_%s.%s",class_name,method_name);
@@ -1559,6 +1559,7 @@ U0 CompileToHolyC(U8 *src,U8 *class_name,U8 *src_path=NULL,Bool class_method=FAL
   FramePtrAdd("Escapes",0);
   try {
   Bool old=Option(OPTf_WARN_UNUSED_VAR,FALSE);
+  Bool old2=Option(OPTf_NO_REG_VAR,TRUE);
   Bool escapes=FALSE;
   U8 *ret,*fun_name,*tmp;
   static I64 fun_num=0;
@@ -1664,6 +1665,7 @@ FramePtrSet("Escapes",escapes);
   Free(fun_name);
   LocalsDel(locals);
   Option(OPTf_WARN_UNUSED_VAR,old);
+  Option(OPTf_NO_REG_VAR,old2);
 //DONE WITH IT
 fin:
   FramePtrDel("ST@@stk_depth");

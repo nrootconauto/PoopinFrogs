@@ -1,0 +1,11 @@
+sendAttackOfThing: t=C3DThing withDamage: dmg=CFrogNum
+->* 
+|
+|
+  self sendOutMessage: #(
+    (t->x)
+    (t->y)
+    (t->z)
+    (dmg)
+  ) withType: 'Damg' .
+ 

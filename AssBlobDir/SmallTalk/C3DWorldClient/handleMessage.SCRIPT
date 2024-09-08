@@ -1,0 +1,43 @@
+handleMessage:m=CFrogStr ->*
+|
+type=CFrogStr
+array*
+|
+  m size <5 ifTrue: [
+   'Malformed server response ' show .
+   m show .
+   'Closing connection ' show. 
+   sock close .
+   ^ 0 
+  ].
+  type _ m copyFrom: 0 to: 4 .
+  array _ (m copyFrom: 5 to: m size ) restoreThing .
+
+  'msg type ' show .
+  type show .
+ 
+  type = 'Wrld' ifTrue: [
+    #world restoreBlocksFromString: array first
+      withWidth: (array at: 1)
+      withHeight: (array at: 2) .
+    #world ->things _ #(). 
+   #world initGrid .
+    #world ->is_client _ 1 .
+    player _ CPlayer new .
+    #player _ player .
+  ] .
+  type = 'PMov' ifTrue: [
+    'Server sets the player position' .
+    player ->x _ array first .
+    player ->y _ array at: 1 .
+    player ->z _ array at: 2 .
+    player ->angle _ array at: 3 .
+  ] .
+  type = 'PDmg' ifTrue: [
+    'Server damges Player' .
+    player damage: array first .
+  ] .
+  type ='SThg' ifTrue: [
+    'Send Things' .
+    self receiveThings: array .
+  ].

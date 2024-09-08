@@ -42,4 +42,15 @@ fireProjectile: type* withSpeed: speed=CFrogNum
   rocket->momx _ speed * angle2 cos .
   rocket->momy _ speed * angle2 sin .
   rocket->momz _ (targetz  - rocket ->z ) / dist sqrt * speed .
+
+  #world ->is_client ifTrue: [
+    #client shootProjectile: type 
+      atX: rocket->x 
+      atY: rocket->y 
+      atZ: rocket->z
+      withMomX: rocket->momx
+      withMomY: rocket->momy
+      withMomZ: rocket->momz .
+  ].
+
   ^ rocket .

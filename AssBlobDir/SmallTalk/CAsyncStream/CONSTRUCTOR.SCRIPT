@@ -1,17 +1,22 @@
-initFromStream: s=CNetStream |
+initFromStream: s=CNetStream 
+-> CAsyncStream 
+|
  buf=CFrogStr
  tuple=CFrogArray
  want=CFrogNum
+ code=CFrogNum
 |
   buf _ '' .
   s show .
   sock _ s . 
   ops _ #() .
   thread  _ CFrogThread spawn: [
-     [ 1
+     [ sock->closed not
      ] whileTrue: [
        tuple _ ops first .
-       tuple show .
+       ops size ifTrue: [
+         tuple printString show .
+       ] .
        (tuple first = 'Rl') ifTrue: [
          buf _ sock getLine .
          buf show .
@@ -23,10 +28,17 @@ initFromStream: s=CNetStream |
          buf show .
          tuple last value: self  value: buf .
        ] .
-       (tuple first = 'A') ifTrue: [
+       (tuple first = 'Acc') ifTrue: [
          tuple last value: self  value: sock accept .
        ] .
-       CFrogThread yield .
+       (tuple first = 'U32') ifTrue: [
+         tuple last value: self  value: sock getU32 .
+       ] .
+       ops size ifTrue: [
+       ] ifFalse: [
+       ] .
+         ops remove: tuple .
+         CFrogThread yield .
      ] .
   ] .
   ^ self

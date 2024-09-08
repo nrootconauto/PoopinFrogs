@@ -1,0 +1,10 @@
+sendPlaceBlock: tile=CFrogNum atX: x* atY: y* atZ: z*
+->*
+|
+|
+  self sendMessage: #(
+    (tile)
+    (x)
+    (y)
+    (z)
+  ) withType: 'PBlk' . 

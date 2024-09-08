@@ -79,13 +79,14 @@ U0 U8SetAdd(CU8Set *s,I64 v) {
 U0 U8SetAddBytes(CU8Set *s,U8 *body,I64 cnt) {
   U8 *new;
   if(s->cnt+cnt>=s->cap) {
-     s->cap=s->cnt+cnt+16;
+     s->cap=2*s->cnt+cnt+16;
      new=CAlloc(s->cap,s->mem_task);
      MemCpy(new,s->body,s->cnt);
      Free(s->body);
      s->body=new;
   }
-  MemSet(s->body,body,cnt);
+  MemCpy(s->body+s->cnt,body,cnt);
+  s->cnt+=cnt;
 }
 
 U0 U8SetDel(CU8Set *s) {

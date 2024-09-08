@@ -704,7 +704,7 @@ CFrogThing *Useless(CFrogThing *, ...) {
 }
 
 
-CFrogThing *CallScript(U8 *name,CFrogThing *self,...) {
+CFrogThing *CallScript(U8 *name,CFrogThing *self,...) {
   U8* fptr,id;
   CFrogThing *ret=NULL;
   if(ThingHasClass(self,"CFrogClass")) {
@@ -726,6 +726,7 @@ CFrogThing *CallScript(U8 *name,CFrogThing *self,...) {
       ret=CallSTFast(fptr,self,argc,argv);
     goto fin;
   }
+  DbgPrint("Attempt to call\"%s\" on class \"%s\".",name,FrogThingClassName(self));
 fin:
   if(!ret)
     ret=FROG_SMALL_NIL;
@@ -755,6 +756,8 @@ CFrogThing *CallScriptUniverse(I64 who,CFrogThing *self,...) {
       ret=CallSTFast(fptr,self,argc,argv);
     goto fin;
   }
+  if(0<=who<universe_names->cnt)
+    DbgPrint("Attempt to call\"%s\" on class \"%s\".",universe_names->body[who],FrogThingClassName(self));
 fin:
   if(!ret)
     ret=FROG_SMALL_NIL;

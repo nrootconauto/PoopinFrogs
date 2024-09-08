@@ -1,0 +1,32 @@
+receiveThings: data* ->*
+|
+  have=CFrogArray
+  w=C3DWorldManager
+  me=CPlayer
+  thing*
+|
+  w _ #world .
+  me _ w getPlayer .
+  w->things do:[:t*|
+    t ~= me ifTrue: [
+      w removeThing: t .
+    ]
+  ] .
+
+  'Data isnt the whole picture'.
+  'It has format ' .
+  '#( x y z angle CFrogClass "Templatename" momx momy momz) ' .
+  'Player is not included in things' .
+
+  data do:[:entry=CFrogArray|
+    thing _ (entry at:4) new .
+    thing->x _ entry first .
+    thing->y _ entry at: 1 .
+    thing->z _ entry at: 2 .
+    thing->angle _ entry at: 3 .
+    thing->angle _ #world getThingTemplate: (entry at:5) .
+    thing->momx _ entry at: 6 . 
+    thing->momy _ entry at: 7 . 
+    thing->momz _ entry at: 8 . 
+  ] .
+  

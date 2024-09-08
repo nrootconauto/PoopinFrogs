@@ -1,0 +1,18 @@
+initFromStream:s=CNetStream ->C3DWorldClient 
+|
+  recur=CFrogBlock
+|
+  sock _ CAsyncStream newFromStream s .
+  
+  recur _ [
+    sock readU32WithCallback:[:w* :cnt=CFrogNum|
+     sock readBytes: cnt withCallback: [:w* :buf=CFrogStr|
+        self handleMessage: buf .
+        'Re-arm callbackcs' .
+        recur value .
+      ].
+    ] .
+  ]
+  #client _ self .
+  recur value .
+ ^ self

@@ -1,0 +1,23 @@
+sendThingsToClient: c=C3DWorldClient ->*
+|
+  p=CPlayer
+  to_send=CFrogArray
+  struct=CFrogArray
+|
+  p=c->player .
+  to_send _ self getThingsInRadiusFromX: p->x fromY: p->y  withRadius: 32 * 128 .
+  struct _ #() .
+  to_send do:[:t=C3DThing |
+    struct add: #(
+      t->x 
+      t->y
+      t->z
+      t->angle
+      (t class)
+      (t->template->name)
+      t->momx
+      t->momy
+      t->momz
+    ) .
+  ] . 
+  c sendMessage: struct withType: 'SThg' .

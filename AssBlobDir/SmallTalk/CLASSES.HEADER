@@ -24,9 +24,10 @@ class CFrogThread:CFrogThing {
    U8 *destroy dft "ThreadDel";
 }; 
 class CAsyncStream:CFrogThing {
-  CNetStream *sock;
+  CNetStream *sock;
   CFrogThread *thread;
   CFrogArray *ops;
+  Bool closed;
 };
 class CFrogNum:CFrogThing {
   F64 num;
@@ -278,8 +279,9 @@ class C3DWorldManager:CFrogThing {
 //A grid of things having the things(16*16 size)
   CFrogArray *grid;
   CFrogArray *doors;
-  CFrogArray *clients; //CNetStream
-  CNetStream *server_sock;
+  CFrogArray *clients; //CAsyncStream
+  CAsyncStream *server_sock;
+  I64 is_client;
   I64 is_server;
   CTask *sound_task no_serialize 1;
 //Private
@@ -606,6 +608,15 @@ class CLandscapeGenerator:CFrogThing {
   CFrogArray *perlin_vectors;
   I64 w,h;
 };
+
+
+class C3DWorldClient:CFrogThing {
+  CAsyncStream *sock;
+  CPlayer *player;
+  F64 last_ping_tS;
+};
+
+
 //
 // Composite UI elements
 //

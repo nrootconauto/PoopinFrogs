@@ -26,4 +26,10 @@ fire ->* |
     thing->x _ wx .
     thing->y _ wy .
     thing->z _ wz . 
+
+    w->is_client ifTrue: [
+      #client sendPlaceBlock: (CFrogClass fromString: name) atX: wx/128 atY: wy / 128 atZ: wz 
+    ] .
+
+
   ] .

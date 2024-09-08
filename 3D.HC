@@ -57,6 +57,7 @@ U0 FrogImgBlank(CFrogImg *img) {
 }
 U0 FrogImgSetGraphics(CFrogImg *img,...) {
   U8 *lunk=AsString(argv[0]),*data,*symbol_name;
+PrintI(lunk,img);
   if(img->dc)
     AnimDCDel(img->dc);
   img->dc=AnimDCNew(1,1,frog_mem_task);
@@ -2050,6 +2051,8 @@ U0 DrawLightningBolt(C3DWorld *w,CLightningBolt *l) {
 U0 DrawPissStream(C3DWorld *w,CPissStream *ps) {
   CDC *dc=w->to_dc;
   CD3 stp,enp,last;
+  if(!ThingHasClass(ps,"CPissStream"))
+    return;
   CPissLink **links=ps->links(CFrogArray*)->items->body;
   I64 idx,cnt=ps->links(CFrogArray*)->items->cnt;
   if(cnt<1) {
@@ -2644,11 +2647,12 @@ AddMethod("CTileTemplate","updateTextures",&TileTemplateUpdate);
 //
 //
 //
+#if __CMD_LINE__
 CallScript("newLandscapeWithWidth:withHeight:",FrogSymbol("world")->value,FrogNumNew(100),FrogNumNew(100));
-//FrogSymbol("world")->value=CallScript("restoreThingFromSaveFile",FrogStrNew("Slot 1"));
 C3DWorldShell *shell=ConstructThing("C3DWorldShell");
 CallScript("init",shell);
 UIShellRun(shell);
+#endif
 #endif
 #endif               
    

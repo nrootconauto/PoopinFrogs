@@ -1,0 +1,7 @@
+sendMessage: m* withType: t=CFrogStr ->*
+|
+  fin=CFrogStr
+| 
+  fin _ t , '.' , m saveThing .
+  sock->sock sendI32: fin size .
+  sock write: fin  .

@@ -1,0 +1,90 @@
+handleMessage: m=CFrogStr forClient: c=C3DWorldClient 
+->*
+|
+  type=CFrogStr
+  array*
+  p=CPlayer
+  thing*
+  x_pos=CFrogNum
+  y_pos=CFrogNum
+  z_pos=CFrogNum
+  things=CFrogArray
+  best_thing=C3DThing
+  closest=CFrogBlock
+  proj*
+|
+  closest = [:x=CFrogNum :y=CFrogNum :z=CFrogNum|
+    things _ self getThingsInRadius: 64 atX: x atY: y atZ: z .
+    best_thing _ things first .
+    things do:[:t=C3DThing|
+      (t->x - x + t->y - y + ((t->z - z) *128)) <
+      (best_thing->x - x + best_thing->y - y + ((best_thing->z - z) *128))
+        ifTrue: [
+         best_thing _ t .
+      ].
+    ].
+    best_thing 
+  ] .
+
+  m size < 5 ifTrue: [
+    'Malformed message ' show .
+    m show .
+    'Closin client ' show. 
+    c->sock close .
+    ^ 0. .
+  ] .
+  type _ m copyFrom: 0 to: 4 .
+  m _ m copyFrom: 5 to m size .
+  array _ m restoreThing .
+  type = 'PBlk' ifTrue: [
+    'Place block ' .
+    'Use 0 for remove block' . 
+    self setTile: array first
+      atX: (array at: 1)
+      atY: (array at: 2)
+      atZ: (array at: 3) .
+  ] . 
+  type = 'PThg' ifTrue:[
+    'Place aThing' .
+    thing _ (CFrogClass newFromString: array first) new .
+    thing ->x _ array at: 1 .
+    thing ->y _ array at: 2 .
+    thing ->z _ array at: 3 .
+  ].
+  type = 'PMov' ifTrue: [
+    'Player move' .
+     p _ c->player  .
+     p->x _ array first .
+     p->y _ array at: 1 .
+     p->z _ array at: 2 .
+     p->angle _ array at: 3 .
+  ] .
+  type = 'Damg' ifTrue: [
+    'Damage Entity closest to point' .
+    best_thing _ closest value: array first 
+       value: (array at:1)
+       value: (array at:2) .
+    best_thing damage: array last from: c->player .
+  ] .
+  type = 'PkUp' ifTrue:[
+     'Pickup item' .
+    best_thing _ closest value: array first 
+       value: (array at:1)
+       value: (array at:2) .
+    (best_thing hasClass:CPickup) ifTrue: [
+      best_thing addToPlayer: c->player .
+      self removeThing: best_thing .
+    ] .
+  ] . 
+
+  type = 'Proj' ifTrue: [
+    'Projectile' show .
+    proj _ (array first ) new .
+    proj->from_ c->player .
+    proj->x _ array at: 1 .
+    proj->y _ array at: 2 .
+    proj->z _ array at: 3 .
+    proj->momx _ array at: 4 .
+    proj->momy _ array at: 5 .
+    proj->momz _ array at: 6 .
+  ] .

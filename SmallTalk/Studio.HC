@@ -698,7 +698,7 @@ U0 LoadMethodsFromBlob(U8 *blob_file=NULL,Bool dry_only=FALSE) {
 	    CompileToHolyC(tmp,name,hdr->name,TRUE,dry);
 	    Free(tmp);
 	  } catch {
-	    "In %s:",hdr->name;
+	    "In %s:",hdr->name;
 	    PutExcept(TRUE);
 	  }
         }
@@ -730,5 +730,7 @@ LoadMethodsFromBlob;
 //DocWrite(d);
 //DocDel(d);
 #else
+F64 t=tS;
 LoadMethodsFromBlob;
+PrintF("load time ",tS-t);
 #endif

@@ -1,0 +1,19 @@
+connectToServer: addr=CFrogStr atPort: p=CFrogNum ->*
+|
+  recur=CFrogBlock
+|
+  sock _ CAsyncStream newConnectionTo: addr atPort : p .
+  recur _ [ 
+'recur 'show .
+    sock readU32WithCallback: [:sock* :cnt=CFrogNum|
+      cnt show .
+      sock readBytes: cnt withCallback: [:sock* :buf=CFrogStr|
+        last_ping_tS _ CFrogTime asSeconds .
+        self handleMessage: buf.
+        'Retrigger the callback' .
+        recur value .
+      ] .
+    ] .
+  ] .
+  recur value .
+  

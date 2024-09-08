@@ -1,0 +1,10 @@
+updateThingPos: thing=C3DThing  ->* | X=CFrogNum Y=CFrogNum a=CFrogArray|
+  (thing hasClass: C3DThing) ifTrue: [
+    'GRID_SZ is 128' .
+    X _ thing ->x .
+    Y _ thing ->y .
+    a _ ((grid at: X / 128 / 16 ) at: Y / 128 / 16).
+    (a includes: thing) ifFalse: [
+      a add: thing .
+    ]
+  ]
