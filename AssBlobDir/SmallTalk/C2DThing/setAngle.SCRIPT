@@ -1,2 +1,0 @@
-setAngle: a =CFrogNum ->* ||
-  angle _ a .

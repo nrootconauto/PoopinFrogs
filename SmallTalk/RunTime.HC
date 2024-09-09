@@ -704,7 +704,7 @@ CFrogThing *Useless(CFrogThing *, ...) {
 }
 
 
-CFrogThing *CallScript(U8 *name,CFrogThing *self,...) {
+CFrogThing *CallScript(U8 *name,CFrogThing *self,...) {
   U8* fptr,id;
   CFrogThing *ret=NULL;
   if(ThingHasClass(self,"CFrogClass")) {
@@ -1186,7 +1186,7 @@ Bool ValidateFrame(CLocalsGeneric *g) {
 CFrogThing *_FrogBlockValue(CFrogBlock *self,I64 argc,I64 *argv) {
   CFrogThing *ret;
   I64 return_flag;
-  CLocalsGeneric *old_frame=Fs->user_data,*cur=self->frame,*cur2,dummy;
+  CLocalsGeneric *old_frame=Fs->user_data,*cur=self->frame,*cur2,dummy;
   if(ChkOnStk(cur)) {
 //Make sure cur is a valid frame,otherwise use a dummy;
     cur2=old_frame;

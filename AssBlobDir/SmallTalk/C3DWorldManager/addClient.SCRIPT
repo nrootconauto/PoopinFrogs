@@ -11,8 +11,8 @@ addClient: sock=CNetStream ->C3DWorldClient
   c -> player _ CPlayer new .
   'TODO place the player in a good spawn zone' .
   p _ c->player .
-  p->x _ self width / 2 * 128 . 
-  p->y _ self height / 2 * 128 .
+  p->x _ self width / 2 * 128 + 64 . 
+  p->y _ self height / 2 * 128 + 64 .
   p->z _ 128 .
   best _ -127 .
   -127 to: 127 by: 1 do: [:h=CFrogNum |
@@ -33,6 +33,8 @@ h show .
     p->z _ best .
   ] .
 'poo 0'show .
+  self removeFromGrid: c->player.
+  self updateThingPos: c->player.
 
   c->last_ping_tS _ CFrogTime now asSeconds .
   c->sock _ CAsyncStream newFromStream: sock .
@@ -62,4 +64,11 @@ h show .
       ] .
     ] .
   ] . 
+  c->update _ [
+    self sendThingsToClient: c .
+  ].  
+
+  c armUpdates .
+'poop' show .
+
   recur value .

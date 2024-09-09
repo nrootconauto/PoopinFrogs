@@ -613,7 +613,12 @@ class CLandscapeGenerator:CFrogThing {
 class C3DWorldClient:CFrogThing {
   CAsyncStream *sock;
   CPlayer *player;
+//Use the update block to routinely update the client
+  CFrogBlock *update;
+  F64 next_update_tS;
   F64 last_ping_tS;
+//Private
+  CFrogThread *update_thread;
 };
 
 

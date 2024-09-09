@@ -4,20 +4,28 @@ sendThingsToClient: c=C3DWorldClient ->*
   to_send=CFrogArray
   struct=CFrogArray
 |
-  p=c->player .
-  to_send _ self getThingsInRadiusFromX: p->x fromY: p->y  withRadius: 32 * 128 .
+  p _ c->player .
+  p show .
+  p->x show .
+  p->y show .
+  to_send _ #world getThingsInRadiusFromX: p->x fromY: p->y  withRadius: 32 * 128 .
   struct _ #() .
+  to_send printString show .
+  to_send size show .
   to_send do:[:t=C3DThing |
-    struct add: #(
-      t->x 
-      t->y
-      t->z
-      t->angle
-      (t class)
-      (t->template->name)
-      t->momx
-      t->momy
-      t->momz
-    ) .
+    t show . 
+    (t ~= p ) ifTrue: [
+      struct add: #(
+        t->x 
+        t->y
+        t->z
+        t->angle
+        (t class)
+        (t->template->name)
+        t->momx
+        t->momy
+        t->momz
+      ) .
+    ] .
   ] . 
   c sendMessage: struct withType: 'SThg' .

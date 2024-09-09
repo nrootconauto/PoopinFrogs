@@ -7,6 +7,8 @@ receiveThings: data* ->*
 |
   w _ #world .
   me _ w getPlayer .
+'got data ' show .
+  data size show .
   w->things do:[:t*|
     t ~= me ifTrue: [
       w removeThing: t .
@@ -19,14 +21,16 @@ receiveThings: data* ->*
   'Player is not included in things' .
 
   data do:[:entry=CFrogArray|
-    thing _ (entry at:4) new .
+    thing _ (entry at:4) basicNew .
     thing->x _ entry first .
     thing->y _ entry at: 1 .
     thing->z _ entry at: 2 .
     thing->angle _ entry at: 3 .
-    thing->angle _ #world getThingTemplate: (entry at:5) .
+    thing->template _ #world getThingTemplate: (entry at:5) .
     thing->momx _ entry at: 6 . 
     thing->momy _ entry at: 7 . 
     thing->momz _ entry at: 8 . 
+    thing show .
+    w addThing: thing .
   ] .
   

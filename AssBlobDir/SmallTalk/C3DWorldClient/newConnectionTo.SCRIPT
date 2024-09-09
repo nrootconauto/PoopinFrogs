@@ -6,7 +6,6 @@ connectToServer: addr=CFrogStr atPort: p=CFrogNum ->*
   recur _ [ 
 'recur 'show .
     sock readU32WithCallback: [:sock* :cnt=CFrogNum|
-      cnt show .
       sock readBytes: cnt withCallback: [:sock* :buf=CFrogStr|
         last_ping_tS _ CFrogTime asSeconds .
         self handleMessage: buf.
@@ -15,5 +14,11 @@ connectToServer: addr=CFrogStr atPort: p=CFrogNum ->*
       ] .
     ] .
   ] .
+  update _ [
+'armed 'show .
+    'self sendPlayerMovement' .
+  ] .
+  next_update_tS _ CFrogTime now asSeconds .
+  self armUpdates .
   recur value .
   

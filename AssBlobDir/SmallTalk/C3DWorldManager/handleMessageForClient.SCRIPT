@@ -50,6 +50,8 @@ handleMessage: m=CFrogStr forClient: c=C3DWorldClient
     thing ->x _ array at: 1 .
     thing ->y _ array at: 2 .
     thing ->z _ array at: 3 .
+    self removeFromGrid: thing .
+    self updateThingPos: thing .
   ].
   type = 'PMov' ifTrue: [
     'Player move' .
@@ -58,6 +60,8 @@ handleMessage: m=CFrogStr forClient: c=C3DWorldClient
      p->y _ array at: 1 .
      p->z _ array at: 2 .
      p->angle _ array at: 3 .
+     self removeFromGrid: p .
+     self updateThingPos: p .
   ] .
   type = 'Damg' ifTrue: [
     'Damage Entity closest to point' .

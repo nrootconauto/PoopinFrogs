@@ -1,9 +1,10 @@
 init ->CPlayer | |
   #world addThing: self .
-  #world -> player _ self .
+  #world getPlayer = self ifTrue: [
+    no_draw _ 1 .
+  ] .
   items _ #() .
   health _ 75 .
-  no_draw _ 1 .
   shell_casings _ #() .
   self makeUI .
   piss_stream _ CPissStream new .
@@ -16,6 +17,8 @@ init ->CPlayer | |
   CMarkerDrugItem new .
 
   CNumchucks new .
+
+  template _ #world getThingTemplate: 'CFrogNPC' .
 
   quest_flags _ #() .
   quest_seen_responses _ #().

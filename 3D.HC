@@ -57,7 +57,6 @@ U0 FrogImgBlank(CFrogImg *img) {
 }
 U0 FrogImgSetGraphics(CFrogImg *img,...) {
   U8 *lunk=AsString(argv[0]),*data,*symbol_name;
-PrintI(lunk,img);
   if(img->dc)
     AnimDCDel(img->dc);
   img->dc=AnimDCNew(1,1,frog_mem_task);
@@ -1138,6 +1137,7 @@ fin:
 extern CDC *WhichTexture(C3DWorld *w,I64 tile,F64 h,F64 h2,F64 *hit_h,Bool *hit_wall);
 CDC *ThingFace(C3DWorld *w,C3DThing *thing,Bool *flip=NULL) {
   C3DThingTemplate *template=thing->template;
+PrintI("tt",template);
   if(template==FROG_SMALL_NIL) return NULL;
   F64 off=thing->angle-w->angle+pi,gap;
   I64 face=1;
@@ -1188,6 +1188,7 @@ U0 PrepareThingsForDraw(C3DWorldManager *wm,F64 thing_scale=.6) {
   F64 normal;
   CDC *hit_texture;
   F64 width;
+PrintI("cnt",cnt);
   for(ox=0;ox!=2*VIEW_DIST;ox++)
     for(oy=0;oy!=2*VIEW_DIST;oy++) {
       if(!w->things_around_camera[ox][oy])
@@ -2381,6 +2382,7 @@ AddMethod("C3DWorldManager","setTile:atX:atY:atZ:",&WorldManagerSetTileAtXAtYAtZ
  DocClear;
 #include "UI.HC"
 InitWorld;
+PrintI("doofus",FrogSymbol("world")->value);
 I64 mp_thing_done=0;
 extern CDC *MakeMinimap1(C3DWorld *w,F64 x,F64 y,F64 angle,I64 radius,F64 height);
 U0 Draw3DWorld(CTask *,CDC *dc) {
@@ -2652,7 +2654,7 @@ CallScript("newLandscapeWithWidth:withHeight:",FrogSymbol("world")->value,FrogNu
 C3DWorldShell *shell=ConstructThing("C3DWorldShell");
 CallScript("init",shell);
 UIShellRun(shell);
-#endif
+#endif
 #endif
 #endif               
    

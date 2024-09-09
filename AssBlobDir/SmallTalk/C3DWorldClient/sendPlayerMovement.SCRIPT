@@ -1,6 +1,8 @@
 sendPlayerMovement ->*
 |
 |
+  'send p ' show .
+  player show .
   self sendMessage: #(
     (player->x)
     (player->y)

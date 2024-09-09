@@ -1,2 +1,5 @@
 getThingTemplate: name=CFrogStr ->C3DThingTemplate ||
+  'Template' show .
+  name show .
+  (thing_templates at: name) show .
   ^ thing_templates at: name .

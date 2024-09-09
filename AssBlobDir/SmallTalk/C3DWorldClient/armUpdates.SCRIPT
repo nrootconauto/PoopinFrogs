@@ -1,0 +1,16 @@
+armUpdates ->*
+|
+|
+  (update_thread hasClass: CFrogThread) ifFalse: [
+    update_thread _ CFrogThread spawn: [
+      [sock->closed not] whileTrue: [
+        (update hasClass: CFrogBlock) ifTrue: [
+          CFrogTime now asSeconds >= next_update_tS ifTrue: [
+            update value .
+            next_update_tS _ CFrogTime now asSeconds + .1 .
+          ] .
+        ] .
+        CFrogThread yield .
+      ]
+    ].
+  ]

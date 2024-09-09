@@ -14,5 +14,13 @@ initFromStream:s=CNetStream ->C3DWorldClient
     ] .
   ]
   #client _ self .
-  recur value .
- ^ self
+  update_thread _ CFrogThread spawn: [
+    (update hasClass: CFrogBlock) ifTrue: [
+      CFrogTime now asSeconds >= next_update_tS ifTrue: [
+        update value .
+      ] .
+    ]
+    CFrogThread yield .
+  ].
+   recur value .
+  ^ self

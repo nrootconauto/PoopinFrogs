@@ -1,2 +1,0 @@
-damage: amt=CFrogNum ->* ||
-  health _ health - amt .
