@@ -1,6 +1,9 @@
-at: key=CFrogStr put: value* | hash=CFrogNum bucket=CFrogArray |
+at: key=CFrogStr put: value* | hash=CFrogNum bucket=CFrogArray flat=CFrogArray |
   hash _ key hash .
   bucket _ hash rem: buckets size .
-  (buckets at: bucket ) add: #( (key copy) value )  .
+  flat _ buckets at: bucket.
+  flat _ flat reject: [:x=CFrogArray | x first = key ] .
+  flat add: #( (key copy) value ) .
+  buckets at: bucket put: flat .
   size _ size + 1 .
   ^ self 
