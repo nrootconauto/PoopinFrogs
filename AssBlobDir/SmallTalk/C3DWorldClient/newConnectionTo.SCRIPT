@@ -15,8 +15,7 @@ connectToServer: addr=CFrogStr atPort: p=CFrogNum ->*
     ] .
   ] .
   update _ [
-'armed 'show .
-    'self sendPlayerMovement' .
+    self sendPlayerMovement.
   ] .
   next_update_tS _ CFrogTime now asSeconds .
   self armUpdates .

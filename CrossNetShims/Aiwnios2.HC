@@ -106,7 +106,7 @@ while(a=accept(sock,NULL,0)) {
   close(a);
   }
 Sleep(3);
-}*/
+}*/
 /*sendString(sock,
 "NICK clayton\n"
 "USER clayotn 0 * :realname\n"

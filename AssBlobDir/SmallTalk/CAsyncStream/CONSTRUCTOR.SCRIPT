@@ -11,7 +11,8 @@ initFromStream: s=CNetStream
   sock _ s . 
   ops _ #() .
   thread  _ CFrogThread spawn: [
-     [ sock->closed not
+     [ sock->closed not show .
+       sock->closed not
      ] whileTrue: [
        tuple _ ops first .
        ops size ifTrue: [
@@ -34,11 +35,17 @@ initFromStream: s=CNetStream
        (tuple first = 'U32') ifTrue: [
          tuple last value: self  value: sock getU32 .
        ] .
-       ops size ifTrue: [
-       ] ifFalse: [
-       ] .
-         ops remove: tuple .
+       ops remove: tuple .
+'poop' show .
+       ops size show .
+       ops printString show .
+       sock->closed show .
+       ops size ifFalse: [
          CFrogThread yield .
+       ] .
      ] .
+'sock closed' show .
+     sock->closed show .
   ] .
   ^ self
+ 

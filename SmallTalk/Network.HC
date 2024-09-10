@@ -81,7 +81,7 @@ CNetStream *NetStreamRecvBytes(CNetStream *ns,...) {
 AddMethod("CNetStream","getBytes:",&NetStreamRecvBytes);
 CNetStream *NetStreamSendBytes(CNetStream *ns,...) {
   CFrogStr *str=argv[0];
-PrintI("send",str);
+PrintI("send",str);
   if(ThingHasClass(str,"CFrogStr")) {
     return AsF64(send(ns->sock,str->items->body,str->items->cnt,0));
   }

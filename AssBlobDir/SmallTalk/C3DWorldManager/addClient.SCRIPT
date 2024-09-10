@@ -51,7 +51,7 @@ h show .
     (p->y)
     (p->z)
     (p->angle)
-  ) withType: 'PMov' .
+  ) withType: 'PSpn' .
 
   recur _[
 'poo3 'show .

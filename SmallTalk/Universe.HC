@@ -5,7 +5,7 @@ class CUniverseInitPair {
   U8 (*destroy)(U8*);
 };
 CTask *universe_task=Fs;
-CI64Set *universe_names=I64SetNew; //U8*
+CI64Set *universe_names=I64SetNew; //U8*
 CI64Set *universe_values=I64SetNew; //I64
 CI64Set *universe_init_pairs=I64SetNew; //I64
 CI64Set *universe_methods=I64SetNew; //CI64Set(set of method indexes)

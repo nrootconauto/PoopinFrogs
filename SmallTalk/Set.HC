@@ -85,7 +85,7 @@ U0 U8SetAddBytes(CU8Set *s,U8 *body,I64 cnt) {
      Free(s->body);
      s->body=new;
   }
-  MemCpy(s->body+s->cnt,body,cnt);
+  MemCpy(s->body+s->cnt,body,cnt);
   s->cnt+=cnt;
 }
 

@@ -1188,7 +1188,6 @@ U0 PrepareThingsForDraw(C3DWorldManager *wm,F64 thing_scale=.6) {
   F64 normal;
   CDC *hit_texture;
   F64 width;
-PrintI("cnt",cnt);
   for(ox=0;ox!=2*VIEW_DIST;ox++)
     for(oy=0;oy!=2*VIEW_DIST;oy++) {
       if(!w->things_around_camera[ox][oy])
@@ -2654,7 +2653,7 @@ CallScript("newLandscapeWithWidth:withHeight:",FrogSymbol("world")->value,FrogNu
 C3DWorldShell *shell=ConstructThing("C3DWorldShell");
 CallScript("init",shell);
 UIShellRun(shell);
-#endif
+#endif
 #endif
 #endif               
    

@@ -26,8 +26,8 @@ array*
     player _ CPlayer new .
     #player _ player .
   ] .
-  type = 'PMov' ifTrue: [
-    'Server sets the player position' .
+  type = 'PSpn' ifTrue: [
+    'Server sets the player position(Player spawns)' .
     player ->x _ array first .
     player ->y _ array at: 1 .
     player ->z _ array at: 2 .

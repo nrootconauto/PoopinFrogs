@@ -34,7 +34,7 @@ handleMessage: m=CFrogStr forClient: c=C3DWorldClient
     ^ 0. .
   ] .
   type _ m copyFrom: 0 to: 4 .
-  m _ m copyFrom: 5 to m size .
+  m _ m copyFrom: 5 to: m size .
   array _ m restoreThing .
   type = 'PBlk' ifTrue: [
     'Place block ' .
@@ -56,11 +56,13 @@ handleMessage: m=CFrogStr forClient: c=C3DWorldClient
   type = 'PMov' ifTrue: [
     'Player move' .
      p _ c->player  .
+     p show .
+      array printString show .
+     self removeFromGrid: p .
      p->x _ array first .
      p->y _ array at: 1 .
      p->z _ array at: 2 .
      p->angle _ array at: 3 .
-     self removeFromGrid: p .
      self updateThingPos: p .
   ] .
   type = 'Damg' ifTrue: [

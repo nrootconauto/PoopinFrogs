@@ -698,7 +698,7 @@ U0 LoadMethodsFromBlob(U8 *blob_file=NULL,Bool dry_only=FALSE) {
 	    CompileToHolyC(tmp,name,hdr->name,TRUE,dry);
 	    Free(tmp);
 	  } catch {
-	    "In %s:",hdr->name;
+	    "In %s:",hdr->name;
 	    PutExcept(TRUE);
 	  }
         }

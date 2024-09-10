@@ -1,7 +1,7 @@
 #ifndef ST_COMPILER_HH
 #define ST_COMPILER_HH 1
 #include "RunTime.HC";
-//#define DEBUG 1
+#define DEBUG 1
 U0 GenerateUselessMethod(U8 *class_name,U8 *method_name,U8 *return_class)  {
   U8 *canon=MStrPrint("METHOD_%s.%s",class_name,method_name);
   U8 *rt=MStrPrint("RET_TYPE_%s.%s",class_name,method_name);
@@ -886,7 +886,7 @@ U0 NumPrim1(CDoc *doc,CLocals *l,CAST *ast,I64 stack_depth,U8 *op,U8 *alt_name=N
   DocPrint(doc,"))");
   StrCpy(ast->var_class_name,"CFrogNum");
 }
-U0 UnrollBlock(CDoc *doc,CLocals *l,I64 stack_depth,CAST *bl,I64 jump_to=INVALID_PTR) {
+U0 UnrollBlock(CDoc *doc,CLocals *l,I64 stack_depth,CAST *bl) {
   CAST *head,*cur; 
   I64 argc=0,idx;
   if(bl->type==AST_BLOCK)
@@ -898,7 +898,7 @@ U0 UnrollBlock(CDoc *doc,CLocals *l,I64 stack_depth,CAST *bl,I64 jump_to=INVALID
         for(cur=head->next;cur!=head;cur=cur->next) {
 	  if(cur->type!=AST_STR||cur==head->last) {
 	    if(cur==head->last) 
-              CompileAST(doc,cur,l,stack_depth,jump_to);
+              CompileAST(doc,cur,l,stack_depth);
 	    else
               CompileAST(doc,cur,l,stack_depth);
 	  }
@@ -918,9 +918,7 @@ U0 UnrollBlock(CDoc *doc,CLocals *l,I64 stack_depth,CAST *bl,I64 jump_to=INVALID
   DocPrint(doc,");");
   DocPrint(doc,"  %s=retval;\n",StackFrame2Var(stack_depth));
   DocPrint(doc,"if(return_flag[0]) goto ret;\n");
-fin:
-  if(jump_to!=INVALID_PTR)
-    DocPrint(doc,"goto L%d;\n",jump_to);
+fin:;
 }
 F64 MemberF64(U8 *self,U8 *expect_type,I64 offset,I64 raw_type) {
   if(!ThingHasClass2(self,expect_type)) return 0.;
@@ -1030,8 +1028,11 @@ todoby:
         ast->switch_num=ast_case_num++;
         DocPrint(doc,"L%d:\n",ast->switch_num);
         ent=DocPrint(doc,"if(AsF64(%s)==0.) {goto L$$LK,\"dummy1\"$$;}",StackFrame2Var(stack_depth));
-        UnrollBlock(doc,locals,stack_depth,ast->args.last,idx);
-        ReplaceElem(doc,ent,"%d",ast_case_num);
+        UnrollBlock(doc,locals,stack_depth,ast->args.last);
+        ReplaceElem(doc,ent,"%d",ast_case_num+1);
+//ast_case_num points to re-enter loop
+//ast_case_num+1 is the exit of the loop
+	DocPrint(doc,"L%d:goto L%d;\n",ast_case_num++,idx);
         goto fin;
       }
       if(!StrCmp(ast->op_name,"whileFalse:")) {
@@ -1040,8 +1041,11 @@ todoby:
         ast->switch_num=ast_case_num++;
         DocPrint(doc,"L%d:\n",ast->switch_num);
         ent=DocPrint(doc,"if(AsF64(%s)) {goto L$$LK,\"dummy2\"$$;}",StackFrame2Var(stack_depth));
-        UnrollBlock(doc,locals,stack_depth,ast->args.last,idx);
-        ReplaceElem(doc,ent,"%d",ast_case_num);
+        UnrollBlock(doc,locals,stack_depth,ast->args.last);
+//ast_case_num points to re-enter loop
+//ast_case_num+1 is the exit of the loop
+        ReplaceElem(doc,ent,"%d",ast_case_num+1);
+	DocPrint(doc,"L%d:goto L%d;\n",ast_case_num++,idx);
         goto fin;
       }
       if(!StrCmp(ast->op_name,"ifTrue:")) {
