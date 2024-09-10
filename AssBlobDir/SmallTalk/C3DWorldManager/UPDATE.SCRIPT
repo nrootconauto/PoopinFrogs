@@ -7,12 +7,18 @@ pickups=CFrogArray
 |
   p _self getPlayer .
   now _ CFrogTime now asSeconds .
-  last_update + .3333 > now ifTrue: [
+  ( last_update + .2 ) > now ifTrue: [
     ^ 0
   ] .
   simulation_dist _ 24 * 128 .
   last_update _ now .
+  clients do:[:c* |
+      self sendThingsToClient: c .
+  ] .
   things do: [:t* |
+    t->server_old_x _ t->x .
+    t->server_old_y _ t->y .
+    t->server_old_z _ t->z .
     dist _  (t->x - p->x) squared + (t->y - p->y) squared .
     dist > simulation_dist squared ifTrue: [
       'Outside of the simulation distance'.

@@ -1698,7 +1698,7 @@ CFrogThing *FrogBlobFileReadLump(CFrogBlobFile *f,...) {
 AddMethod("CFrogBlobFile","readLump:",&FrogBlobFileReadLump);
 
 F64 frog_time_offset=-tS;
-CFrogThing *FrogTimeNow(CFrogThing *ul,...) {
+CFrogTime *FrogTimeNow(CFrogThing *ul,...) {
   CFrogTime *t=UniverseConstructThing(#exe{StreamPrint("%d",UniverseAddClass("CFrogTime"));});
   t->ts=FrogNumNew(tS+frog_time_offset);
   return t;

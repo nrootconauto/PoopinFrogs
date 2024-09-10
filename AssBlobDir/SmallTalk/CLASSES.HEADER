@@ -246,6 +246,11 @@ class C3DThing:CFrogThing {
   CFrogClass *drop_thing; //CFrogClass
   C3DThingTemplate *template;
   F64 x,y,z,angle,health;
+//Used for interoplation between server frames
+  F64 server_old_x,server_old_y,server_old_z;
+  F64 server_new_x,server_new_y,server_new_z;
+  F64 interpolate_start_tS,interpolate_end_tS;
+//
   F64 momx,momy,momz,animation_start_tS;
   F64 momx2,momy2;
 //0->1 0 is full speed. 1 is completely stopped

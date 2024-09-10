@@ -18,9 +18,7 @@ addClient: sock=CNetStream ->C3DWorldClient
   -127 to: 127 by: 1 do: [:h=CFrogNum |
     (self getTileAtX: p->x / 128 atY: p->y / 128 atZ: h) ifFalse: [
 'Check for ground ' .
-h show .
       (self getTileAtX: p->x / 128 atY: p->y / 128 atZ: h - 1 ) ifTrue: [
-'h2' show .
         p->z _ h .
         best _ p->z max: best .
       ] .
@@ -32,20 +30,14 @@ h show .
   ] ifFalse: [
     p->z _ best .
   ] .
-'poo 0'show .
   self removeFromGrid: c->player.
   self updateThingPos: c->player.
 
   c->last_ping_tS _ CFrogTime now asSeconds .
   c->sock _ CAsyncStream newFromStream: sock .
-  c show .
-  c->sock show.
 
   world_str _ blocks_string .
-'poo 'show .
-  c->sock show.
   c sendMessage: #((world_str) (blocks_width) (blocks_height))  withType: 'Wrld' .
-'poo2 'show .
   c sendMessage: #(
     (p->x)
     (p->y)
@@ -54,7 +46,6 @@ h show .
   ) withType: 'PSpn' .
 
   recur _[
-'poo3 'show .
     c->sock readU32WithCallback: [:sock* :cnt=CFrogNum|
       c->sock readBytes: cnt withCallback: [:sock* :buf=CFrogStr|
         c->last_ping_tS _ CFrogTime asSeconds .
@@ -64,11 +55,7 @@ h show .
       ] .
     ] .
   ] . 
-  c->update _ [
-    self sendThingsToClient: c .
-  ].  
 
-  c armUpdates .
-'poop' show .
+  clients add: c .
 
   recur value .

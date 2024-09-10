@@ -27,9 +27,6 @@ handleMessage: m=CFrogStr forClient: c=C3DWorldClient
   ] .
 
   m size < 5 ifTrue: [
-    'Malformed message ' show .
-    m show .
-    'Closin client ' show. 
     c->sock close .
     ^ 0. .
   ] .
@@ -56,8 +53,6 @@ handleMessage: m=CFrogStr forClient: c=C3DWorldClient
   type = 'PMov' ifTrue: [
     'Player move' .
      p _ c->player  .
-     p show .
-      array printString show .
      self removeFromGrid: p .
      p->x _ array first .
      p->y _ array at: 1 .
@@ -84,7 +79,6 @@ handleMessage: m=CFrogStr forClient: c=C3DWorldClient
   ] . 
 
   type = 'Proj' ifTrue: [
-    'Projectile' show .
     proj _ (array first ) new .
     proj->from_ c->player .
     proj->x _ array at: 1 .

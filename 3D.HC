@@ -1182,7 +1182,7 @@ draw:
   return use_dc;
 }
 U0 PrepareThingsForDraw(C3DWorldManager *wm,F64 thing_scale=.6) {
-  CFrogArray *arr=WorldManagerThingsInRadius(wm,FrogNumNew(w->x),FrogNumNew(w->y),FrogNumNew(VIEW_DIST*128));
+  CFrogArray *arr=wm->things;WorldManagerThingsInRadius(wm,FrogNumNew(w->x),FrogNumNew(w->y),FrogNumNew(VIEW_DIST*128));
   C3DThing **things=arr->items->body,*thing;
   I64 cnt=arr->items->cnt,ix,iy,ox,oy;
   F64 normal;
@@ -2600,6 +2600,29 @@ CFrogThing *WorldPhysics(C3DWorldManager *wm,...) {
   C3DThing **body=MAllocIdent(w->_2d_things->body),*thing,*player;
   player=CallScript("getPlayer",wm);
   I64 c=w->_2d_things->cnt,idx;
+  F64 t,now=AsF64(FrogTimeNow(FROG_SMALL_NIL)->ts);
+//Heres the deal.
+//If we are a client,we will let the server do the physics on everyting except the player
+  if(wm->is_client) {
+    if(ThingHasClass(player,"CPlayer")) {
+      PhysicsOnThing(w,player,wm,0.);
+      player->momx2=0;
+      player->momy2=0;
+//interoplate things
+      for(idx=0;idx<c;idx++) {
+        thing=body[idx];
+	  if(thing!=player) {
+//interpolate_end_tS is the time we recived,start_tS is the frame before that
+	    t=(now-thing->interpolate_end_tS)/(thing->interpolate_end_tS-thing->interpolate_start_tS);
+            thing->x=Lerp(t,thing->server_old_x,thing->server_new_x);
+            thing->y=Lerp(t,thing->server_old_y,thing->server_new_y);
+            thing->z=Lerp(t,thing->server_old_z,thing->server_new_z);
+	  }
+      }
+    }
+    Free(body);
+    return FROG_SMALL_NIL;
+  }
   for(idx=0;idx<c;idx++) {
     thing=body[idx];
 //Only update when in view

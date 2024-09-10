@@ -3,34 +3,58 @@ receiveThings: data* ->*
   have=CFrogArray
   w=C3DWorldManager
   me=CPlayer
-  thing*
+  thing=C3DThing
+  now=CFrogNum
+  use_raw=CFrogNum
 |
+'poop' show .
   w _ #world .
   me _ w getPlayer .
-'got data ' show .
-  data size show .
   w->things do:[:t*|
     t ~= me ifTrue: [
       w removeThing: t .
     ]
   ] .
 
+
+  now  _ CFrogTime now asSeconds .
+
+  use_raw _ 0 .
+  (now - #old_interpolation_tS) > 1.5 ifTrue: [
+    #old_interpolation_tS _ now .
+    use_raw _ 1 .
+  ] .
+
   'Data isnt the whole picture'.
   'It has format ' .
   '#( x y z angle CFrogClass "Templatename" momx momy momz) ' .
   'Player is not included in things' .
-
   data do:[:entry=CFrogArray|
     thing _ (entry at:4) basicNew .
-    thing->x _ entry first .
-    thing->y _ entry at: 1 .
-    thing->z _ entry at: 2 .
+
+    thing show .
+
+    thing->interpolate_start_tS  _ #old_interpolation_tS .
+    thing->interpolate_end_tS  _ now .
+
+    thing->server_old_x _ entry at: 6 . 
+    thing->server_old_y _ entry at: 7 .  
+    thing->server_old_z _ entry at: 8 .
+    thing->server_new_x _ entry at: 0 . 
+    thing->server_new_y _ entry at: 1 . 
+    thing->server_new_z _ entry at: 2 . 
+  
+    thing->x _ thing->server_old_x .
+    thing->y _ thing->server_old_y .
+    thing->z _ thing->server_old_z .
+    
     thing->angle _ entry at: 3 .
     thing->template _ #world getThingTemplate: (entry at:5) .
     thing->momx _ entry at: 6 . 
     thing->momy _ entry at: 7 . 
     thing->momz _ entry at: 8 . 
-    thing show .
     w addThing: thing .
   ] .
+
+  #old_interpolation_tS _  now .
   

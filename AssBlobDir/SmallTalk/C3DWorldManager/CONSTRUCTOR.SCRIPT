@@ -14,5 +14,6 @@ init | gx=CFrogNum gy=CFrogNum col=CFrogArray |
   self initGrid .
 
   doors _ #() .
+  clients _ #().
 
   ^ self

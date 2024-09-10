@@ -1,3 +1,2 @@
 writeU32: n=CFrogNum ->* ||
-  n show .
   sock sendU32: n .

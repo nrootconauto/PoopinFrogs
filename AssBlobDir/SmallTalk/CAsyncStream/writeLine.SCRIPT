@@ -4,6 +4,4 @@ writeLine: s=CFrogStr
 t=CFrogStr
 |
  t _ s copy .
- t add: 10 asCharactor .
- t show .
  sock sendBytes: t  

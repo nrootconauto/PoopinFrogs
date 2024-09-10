@@ -25,7 +25,7 @@ CFrogThread *ThreadKill(CFrogThread *t,...) {
 }
 AddMethod("CFrogThread","kill",&ThreadKill);
 CFrogThread *ThreadYield(CFrogThread *t,...) {
-  Sleep(10);
+  Sleep(3);
   return FROG_SMALL_NIL;
 }
 AddClassMethod("CFrogThread","yield",&ThreadYield);

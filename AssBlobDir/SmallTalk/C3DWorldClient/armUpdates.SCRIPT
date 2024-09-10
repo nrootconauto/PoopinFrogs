@@ -7,7 +7,7 @@ armUpdates ->*
         (update hasClass: CFrogBlock) ifTrue: [
           CFrogTime now asSeconds >= next_update_tS ifTrue: [
             update value .
-            next_update_tS _ CFrogTime now asSeconds + .1 .
+            next_update_tS _ CFrogTime now asSeconds + .2 .
           ] .
         ] .
         CFrogThread yield .

@@ -11,7 +11,7 @@ U0 NetStreamDel(CNetStream *ns) {
   Free(ns);
 }
 
-CNetStream *NetStreamNewConnection(CFrogClass *c,...) {
+CNetStream *NetStreamNewConnection(CFrogClass *c,...) {
   CNetStream *ret=FROG_SMALL_NIL;
   U8 *addr=AsString(argv[0]);
 PrintI("addr",addr);
