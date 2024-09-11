@@ -35,6 +35,6 @@ altFire ->* |
     ] .
     w setTile: 0 atX: wx / 128 atY: wy / 128 atZ: wz .
     w->is_client ifTrue: [
-      #client sendPlaceBlock: tile_idx atX: wx/128 atY: wy / 128 atZ: wz 
+      #client sendPlaceBlock: 0 atX: wx/128 atY: wy / 128 atZ: wz 
     ] .
   ] .

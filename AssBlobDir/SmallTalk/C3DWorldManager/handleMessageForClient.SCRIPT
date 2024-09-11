@@ -11,8 +11,11 @@ handleMessage: m=CFrogStr forClient: c=C3DWorldClient
   things=CFrogArray
   best_thing=C3DThing
   closest=CFrogBlock
+  delegate=CFrogNum
   proj*
 |
+  delegate=0 .
+
   closest = [:x=CFrogNum :y=CFrogNum :z=CFrogNum|
     things _ self getThingsInRadius: 64 atX: x atY: y atZ: z .
     best_thing _ things first .
@@ -40,6 +43,7 @@ handleMessage: m=CFrogStr forClient: c=C3DWorldClient
       atX: (array at: 1)
       atY: (array at: 2)
       atZ: (array at: 3) .
+    delegate _ 1 .
   ] . 
   type = 'PThg' ifTrue:[
     'Place aThing' .
@@ -49,6 +53,7 @@ handleMessage: m=CFrogStr forClient: c=C3DWorldClient
     thing ->z _ array at: 3 .
     self removeFromGrid: thing .
     self updateThingPos: thing .
+    delegate _ 1 .
   ].
   type = 'PMov' ifTrue: [
     'Player move' .
@@ -87,4 +92,13 @@ handleMessage: m=CFrogStr forClient: c=C3DWorldClient
     proj->momx _ array at: 4 .
     proj->momy _ array at: 5 .
     proj->momz _ array at: 6 .
+  ] .
+
+
+  delegate ifTrue: [
+    clients do: [:c2=C3DWorldClient|
+      c ~= c2 ifTrue: [
+        c2 sendMessage: array withType: type .
+      ].
+    ] .
   ] .

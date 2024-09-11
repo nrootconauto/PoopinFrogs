@@ -131,8 +131,8 @@ init ->* |
        #ms_grabbed ifTrue: [
          player -> angle _ player->angle + ((v->m1 - (640 / 2) ) * (3.14 / 30 / 7 )) .
          player -> angle2 _ player -> angle2 + ((v -> m2 - (480 / 2) ) * (3.14 / 30 / 7 )) .
-         player -> angle2 _ player -> angle2 min: 3.14 / 3 .
-         player -> angle2 _ player -> angle2 max: -3.14 / 3 .
+         player -> angle2 _ player -> angle2 min: 3.14 / 2 .
+         player -> angle2 _ player -> angle2 max: -3.14 / 2 .
          handled _ 1 .
        ].
      ] .

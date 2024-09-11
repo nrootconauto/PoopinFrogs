@@ -7,7 +7,6 @@ initFromStream: s=CNetStream
  code=CFrogNum
 |
   buf _ '' .
-  s show .
   sock _ s . 
   ops _ #() .
   thread  _ CFrogThread spawn: [

@@ -1567,7 +1567,7 @@ CDC *WhichTexture(C3DWorld *w,I64 tile,F64 h,F64 h2,F64 *hit_h,Bool *hit_wall) {
 
 I64 mp_done=0;
 //https://github.com/shibenb/simple-c-raytracer
-#ifdef TARGET_X86
+#ifdef TARGET_X86dsasd
 
 U0 GenerateRay(C3DWorld *world,CD3 *ray_look,F64 i,F64 j,F64 w,F64 h,CD3 *pos,CD3 *lookat) {
   I32 vlookat[4];
@@ -1669,6 +1669,25 @@ U0 GenerateRay(C3DWorld *world,CD3 *ray_look,F64 i,F64 j,F64 w,F64 h,CD3 *pos,CD
   D3Unit(ray_look);
 }
 #endif
+
+//https://blog.scottlogic.com/2020/03/10/raytracer-how-to.html
+U0 GenerateRay(C3DWorld *w,CD3 *ray_look,F64 i,F64 j,F64 width,F64 height,CD3 *pos,CD3 *lookat) {
+  CD3 m,tmpy,tmpx;
+  D3Equ(&m,(i/width-.5)*-2,(j/height-.5)*2,1);
+  D3Equ(&tmpy,
+     m.x,
+     m.y*Cos(-w->angle2)-m.z*Sin(-w->angle2),
+     m.y*Sin(-w->angle2)+m.z*Cos(-w->angle2),
+
+   );
+  D3Equ(ray_look,
+     tmpy.x*Cos(-w->angle)+tmpy.z*Sin(-w->angle),
+     tmpy.y,
+     -tmpy.x*Sin(-w->angle)+tmpy.z*Cos(-w->angle),
+   );
+}
+
+
 U0 MPCastCol(C3DWorldManager *wm) {
   C3DWorld *w=wm->world_handle;
   F64 angle=w->angle-w->fov/2,angle2,hit_dist,ath;
@@ -1695,12 +1714,19 @@ U0 MPCastCol(C3DWorldManager *wm) {
   D3Equ(&look_at,
 	0,
 	Sin(xrot),
-	1
+	0
 	);
+if(Blink&&0) {
+  look_at.x=Sin(-w->angle)*Cos(xrot);
+  look_at.z=Cos(-w->angle)*Cos(xrot);
+} else {
   look_at.x=Sin(-w->angle);
   look_at.z=Cos(-w->angle);
+//  D3Unit(&look_at);
+}
   idx=ToF64(Gs->num)/ToF64(mp_cnt)*GR_WIDTH;
   cap=ToF64(Gs->num+1)/ToF64(mp_cnt)*GR_WIDTH;
+//  if(Blink) D3Unit(&look_at);
   for(x=idx;x<cap;x+=w->step_width) {
 // divide by cos2_lookup_table to get 32 blocks from the camera
 $SP,"<1>",BI=1$;
@@ -2617,7 +2643,7 @@ CFrogThing *WorldPhysics(C3DWorldManager *wm,...) {
             thing->x=Lerp(t,thing->server_old_x,thing->server_new_x);
             thing->y=Lerp(t,thing->server_old_y,thing->server_new_y);
             thing->z=Lerp(t,thing->server_old_z,thing->server_new_z);
-	  }
+	  }
       }
     }
     Free(body);

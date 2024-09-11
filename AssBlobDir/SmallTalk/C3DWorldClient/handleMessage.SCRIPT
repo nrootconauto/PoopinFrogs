@@ -41,3 +41,10 @@ array*
     'Send Things' .
     self receiveThings: array .
   ].
+  type = 'PBlk' ifTrue: [
+    #world setTile: array first 
+      atX: (array at: 1)
+      atY: (array at: 2)
+      atZ: (array at: 3)
+  ] .
+  
