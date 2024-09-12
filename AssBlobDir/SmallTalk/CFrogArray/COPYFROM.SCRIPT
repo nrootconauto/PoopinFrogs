@@ -1,9 +1,0 @@
-copyFrom: s=CFrogNum to: e=CFrogNum ->CFrogArray | ret=CFrogArray |
-  ret _ #( ) .
-  [
-    s < e
-  ] whileTrue: [
-    ret add: (self at: s) .
-    s _ s + 1 .
-  ] .
-  ^ ret 

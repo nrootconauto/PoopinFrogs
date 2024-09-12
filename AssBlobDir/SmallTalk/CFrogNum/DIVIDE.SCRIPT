@@ -1,3 +1,0 @@
-/ other | |
-  other = 0 ifTrue: [ ^ CFrogDivideError new ] .
-  ^ self basicDiv: other

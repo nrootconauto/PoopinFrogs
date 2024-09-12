@@ -1092,6 +1092,31 @@ CFrogThing *FrogThingCopy(CFrogThing *t) {
   } 
   return ret;
 }
+CFrogArray *FrogArrayCopyFrom(CFrogArray *a,...) {
+  I64 from=AsF64(argv[0]);
+  I64 to=AsF64(argv[1]),cnt;
+  CFrogArray *arr=FrogArrayNew,**body=a->items->body;
+  cnt=a->items->cnt;
+  while(from<to) {
+    if(0<=from<cnt) {
+      I64SetAdd(arr->items,body[from]);
+    } else 
+      break;
+    from++;
+  }
+  return arr;
+}
+CFrogStr *FrogStrCopyFrom(CFrogStr *a,...) {
+  I64 from=AsF64(argv[0]);
+  I64 to=AsF64(argv[1]),cnt;
+  CFrogArray *arr=FrogStrNew("");
+  cnt=a->items->cnt;
+  from=ClampI64(from,0,cnt);
+  to=ClampI64(to,0,cnt);
+  U8SetAddBytes(arr->items,a->items->body+from,to-from);
+  return arr;
+}
+
 #exe {
 //Char
   ConstructBuiltin("FrogChrIsAlNum(self)","CFrogChr","CFrogNum","isAlphaNumeric");
@@ -1109,6 +1134,7 @@ CFrogThing *FrogThingCopy(CFrogThing *t) {
 }
 #exe {
 //Set
+  ConstructBuiltin("FrogArrayCopyFrom(self,f,t)","CFrogArray","CFrogArray","copyFrom:to:","CFrogNum","f","CFrogNum","t");
   ConstructBuiltin("FrogArrayRemove(self,thing)","CFrogArray",NULL,"remove:","CFrogThing","thing");
   ConstructBuiltin("FROG_SMALL_NIL;I64SetAdd(self->items,FrogIncRefCnt(thing));","CFrogArray",NULL,"add:","CFrogThing","thing");
   ConstructBuiltin("FrogArrayAtPut(self,AsF64(idx),thing)","CFrogArray",NULL,"at:put:","CFrogNum","idx","CFrogThing","thing");
@@ -1121,6 +1147,7 @@ CFrogThing *FrogThingCopy(CFrogThing *t) {
 }
 #exe {
 //String
+  ConstructBuiltin("FrogStrCopyFrom(self,f,t)","CFrogStr","CFrogStr","copyFrom:to:","CFrogNum","f","CFrogNum","t");
   ConstructBuiltin("FrogArrayRemove(self,thing)","CFrogStr",NULL,"remove:","CFrogThing","thing");
   ConstructBuiltin("FROG_SMALL_NIL;U8SetAdd(self->items,AsChar(thing));","CFrogStr",NULL,"add:","CFrogChr","thing");
   ConstructBuiltin("FrogStrAtPut(self,AsF64(idx),thing)","CFrogStr",NULL,"at:put:","CFrogNum","idx","CFrogChr","thing");
@@ -1698,7 +1725,7 @@ CFrogThing *FrogBlobFileReadLump(CFrogBlobFile *f,...) {
 AddMethod("CFrogBlobFile","readLump:",&FrogBlobFileReadLump);
 
 F64 frog_time_offset=-tS;
-CFrogTime *FrogTimeNow(CFrogThing *ul,...) {
+CFrogTime *FrogTimeNow(CFrogThing *ul,...) {
   CFrogTime *t=UniverseConstructThing(#exe{StreamPrint("%d",UniverseAddClass("CFrogTime"));});
   t->ts=FrogNumNew(tS+frog_time_offset);
   return t;
