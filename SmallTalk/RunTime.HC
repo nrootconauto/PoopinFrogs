@@ -2,31 +2,6 @@
 #include "Parser.HC";
 #include "RunTime.HH";
 #include "Set.HC";
-I64 CallSTFast(U8 (*fun_ptr)(U8 *self,...),CFrogThing *self,I64 argc,I64 *argv) {
-  switch(argc) {
-    case:
-      return fun_ptr(self);
-    case:
-      return fun_ptr(self,argv[0]);
-    case:
-      return fun_ptr(self,argv[0],argv[1]);
-    case:
-      return fun_ptr(self,argv[0],argv[1],argv[2]);
-    case:
-      return fun_ptr(self,argv[0],argv[1],argv[2],argv[3]);
-    case:
-      return fun_ptr(self,argv[0],argv[1],argv[2],argv[3],argv[4]);
-    case:
-      return fun_ptr(self,argv[0],argv[1],argv[2],argv[3],argv[4],argv[5]);
-    case:
-      return fun_ptr(self,argv[0],argv[1],argv[2],argv[3],argv[4],argv[5],argv[6]);
-    case:
-      return fun_ptr(self,argv[0],argv[1],argv[2],argv[3],argv[4],argv[5],argv[6],argv[7]);
-    case:
-      return fun_ptr(self,argv[0],argv[1],argv[2],argv[3],argv[4],argv[5],argv[6],argv[7],argv[8]);
-  }
-  return CallVaArgs(fun_ptr,argc,argv,self);
-}
 
 
 //MAlloc'ed variables are aligned  to 8 0b1000,so we set bit 0 for "Small Var"
@@ -684,7 +659,7 @@ CFrogThing *CallPtr(U8 *fun_ptr,U8 *must_have,CFrogThing *self,...) {
      return FROG_SMALL_NIL;
     }
   }
-  CFrogThing *ret=CallSTFast(fun_ptr,self,argc,argv);
+  CFrogThing *ret=CallVaArgs(fun_ptr,argc,argv,self);
   if(!ret)
     ret=FROG_SMALL_NIL;
   return ret;
@@ -694,7 +669,7 @@ CFrogThing *CallPtr2(U8 *fun_ptr,I64 universe_class,CFrogThing *self,...) {
   if(!ThingHasClass2(self,universe_class)) {
     return FROG_SMALL_NIL;
   }
-  CFrogThing *ret=CallSTFast(fun_ptr,self,argc,argv);
+  CFrogThing *ret=CallVaArgs(fun_ptr,argc,argv,self);
   if(!ret)
     ret=FROG_SMALL_NIL;
   return ret;
@@ -710,20 +685,20 @@ CFrogThing *CallScript(U8 *name,CFrogThing *self,...) {
   if(ThingHasClass(self,"CFrogClass")) {
     fptr=UniverseGetClassMethodForClassByIdx(NameToUniverseNumber(name),self(CFrogClass*)->class_id);   
     if(fptr&&fptr!=&Useless)  { //Dumb hack
-      ret=CallSTFast(fptr,self,argc,argv);
+      ret=CallVaArgs(fptr,argc,argv,self);
       goto fin;
     }
   }
   if(!(self&1)) {
     fptr=UniverseGetMethodForClassByIdx(NameToUniverseNumber(name),self->id);   
     if(fptr) 
-      ret=CallSTFast(fptr,self,argc,argv);
+      ret=CallVaArgs(fptr,argc,argv,self);
     goto fin;
   } else {
     id=UniverseAddClass(FrogThingClassName(self));
     fptr=UniverseGetMethodForClassByIdx(NameToUniverseNumber(name),id);
     if(fptr) 
-      ret=CallSTFast(fptr,self,argc,argv);
+      ret=CallVaArgs(fptr,argc,argv,self);
     goto fin;
   }
 fin:
@@ -739,20 +714,20 @@ CFrogThing *CallScriptUniverse(I64 who,CFrogThing *self,...) {
     id=self(CFrogClass*)->class_id;
     fptr=UniverseGetClassMethodForClassByIdx(who,id);   
     if(fptr&&fptr!=&Useless) { //Dumb hack
-      ret=CallSTFast(fptr,self,argc,argv);
+      ret=CallVaArgs(fptr,argc,argv,self);
       goto fin;
     }
   }
   if(!(self&1)) {
     fptr=UniverseGetMethodForClassByIdx(who,self->id);   
     if(fptr) 
-      ret=CallSTFast(fptr,self,argc,argv);
+      ret=CallVaArgs(fptr,argc,argv,self);
     goto fin;
   } else {
     id=UniverseAddClass(FrogThingClassName(self));
     fptr=UniverseGetMethodForClassByIdx(who,id);
     if(fptr) 
-      ret=CallSTFast(fptr,self,argc,argv);
+      ret=CallVaArgs(fptr,argc,argv,self);
     goto fin;
   }
 fin:
@@ -1202,7 +1177,7 @@ CFrogThing *_FrogBlockValue(CFrogBlock *self,I64 argc,I64 *argv) {
   }
 fin:
   Fs->user_data=cur;
-  ret=CallSTFast(self->fun_ptr,self,argc,argv);
+  ret=CallVaArgs(self->fun_ptr,argc,argv,self);
   if(*cur->return_flag) {
 //Propigate the return upwards
     cur2=old_frame;
@@ -1725,18 +1700,18 @@ CFrogThing *CallMethodWithArgs(CFrogThing *self,...) {
     if(ThingHasClass(self,"CFrogClass")) {
       fptr=UniverseGetClassMethodForClassByIdx(NameToUniverseNumber(name),self(CFrogClass*)->class_id);   
       if(fptr&&fptr!=&Useless)  { //Dumb hack
-        ret=CallSTFast(fptr,self,argc,argv);
+        ret=CallVaArgs(fptr,self,argc,argv);
       }
     }
     if(!(self&1)) {
       fptr=UniverseGetMethodForClassByIdx(NameToUniverseNumber(name),self->id);   
       if(fptr) 
-        ret=CallSTFast(fptr,self,argc,argv);
+        ret=CallVaArgs(fptr,self,argc,argv);
     } else {
       id=UniverseAddClass(FrogThingClassName(self));
       fptr=UniverseGetMethodForClassByIdx(NameToUniverseNumber(name),id);
       if(fptr) 
-        ret=CallSTFast(fptr,self,argc,argv);
+        ret=CallVaArgs(fptr,self,argc,argv);
     }
   }
   return ret;
