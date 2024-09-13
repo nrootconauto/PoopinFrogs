@@ -19,6 +19,14 @@ fire ->* |
 'move 32 unit backwards to set closer block' .
     player _ w getPlayer .
     dist _ ((wx - player->x) squared + (wy - player->y) squared) sqrt - 32 max: 0 .
+
+    dist > (7 * 128) ifTrue: [
+      ^ 0 .
+    ]
+    (wz - player->z) abs > 7 ifTrue: [
+      ^ 0
+    ] .
+
     a _ wx - player->x arg: wy - player->y .
     wx _ player->x + (a cos * dist ) . 
     wy _ player->y + (a sin * dist ) .

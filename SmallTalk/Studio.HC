@@ -27,7 +27,7 @@ U0 SanitizeStr(U8 *tmp) {
 //Raw DolDoc editor likes to put in weird charactyors
     if(tmp[idx2]=='\n'||Bt(char_bmp_displayable,tmp[idx2])) {
       *tmp2++=tmp[idx2];
-    }
+    }
   }
   *tmp2=0;
 }

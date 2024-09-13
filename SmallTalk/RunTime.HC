@@ -1147,7 +1147,7 @@ CFrogStr *FrogStrCopyFrom(CFrogStr *a,...) {
 }
 #exe {
 //String
-  ConstructBuiltin("FrogStrCopyFrom(self,f,t)","CFrogStr","CFrogStr","copyFrom:to:","CFrogNum","f","CFrogNum","t");
+  ConstructBuiltin("FrogStrCopyFrom(self,f,t)","CFrogStr","CFrogStr","copyFrom:to:","CFrogNum","f","CFrogNum","t");
   ConstructBuiltin("FrogArrayRemove(self,thing)","CFrogStr",NULL,"remove:","CFrogThing","thing");
   ConstructBuiltin("FROG_SMALL_NIL;U8SetAdd(self->items,AsChar(thing));","CFrogStr",NULL,"add:","CFrogChr","thing");
   ConstructBuiltin("FrogStrAtPut(self,AsF64(idx),thing)","CFrogStr",NULL,"at:put:","CFrogNum","idx","CFrogChr","thing");
@@ -1687,10 +1687,8 @@ U8 *AsString(CFrogThing *t) {
       idx=0;
       items_str=t(CFrogStr*)->items;
       ret=CAlloc(items_str->cnt+1);
-      for(idx=0;idx<items_str->cnt;idx++) {
-        ret[idx]=items_str->body[idx];
-      }
-  } else {
+      MemCpy(ret,items_str->body,items_str->cnt);
+  } else {
     as_str=CallScript("printString",t);
     if(ThingHasClass(as_str,"CFrogStr")) {
       ret=AsString(as_str);

@@ -18,10 +18,17 @@ fire ->* |
 'move 1 unit backwards to set closer block' .
     player _ w getPlayer .
     dist _ ((wx - player->x) squared + (wy - player->y) squared) sqrt - 1 .
+
+    dist > (7 * 128) ifTrue: [
+      ^ 0 .
+    ]
+    (wz - player->z) abs > 7 ifTrue: [
+      ^ 0
+    ] .
+
     a _ wx - player->x arg: wy - player->y .
     wx _ player->x + (a cos * dist ) . 
     wy _ player->y + (a sin * dist ) .
-    dist show .
     w setTile: tile_idx atX: wx / 128 atY: wy / 128 atZ: wz .
 
     w->is_client ifTrue: [

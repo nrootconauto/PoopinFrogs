@@ -67,7 +67,7 @@ init ->* |
         button onLeftUp: [:elem* |
           new_texture _ CFrogImg newFromEditor .
           tile setFloor:  new_texture->name.
-
+          #client sendEditFloor: new_texture forBlock: tile->tile_idx .
         ] .
         button-> x _ 50 .
         button-> y _ 50 .
@@ -82,7 +82,8 @@ init ->* |
         button setLabel: 'Edit Wall' .
         button onLeftUp: [:elem* |
           new_texture _ CFrogImg newFromEditor .
-          tile setWall:  new_texture->name.
+          tile setWall:  new_texture->name .
+          #client sendEditWall: new_texture forBlock: tile->tile_idx .
         ] .
         button-> x _ 50 .
         button-> y _ 100 .
@@ -97,6 +98,7 @@ init ->* |
         button onLeftUp: [:elem* |
           new_texture _ CFrogImg newFromEditor .
           tile setCeil:  new_texture->name.
+          #client sendEditCeil: new_texture forBlock: tile->tile_idx .
         ] .
         button-> x _ 50 .
         button-> y _ 150 .

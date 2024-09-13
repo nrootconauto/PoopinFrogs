@@ -35,6 +35,7 @@ CDC *AnimDCLoad(U8 *ptr,I64 *_len=NULL,CTask *mem_task=NULL) {
   I64 cnt=*ptr(I64*);
   I64 len,cur_len,idx;
   CDC *ret=CAlloc((1+cnt)*sizeof(CDC),mem_task),*tmp;
+PrintI("CAP",cnt);
   ptr+=8;
   len=8;
   for(idx=0;idx!=cnt;idx++) {

@@ -85,7 +85,6 @@ CFrogImg *FrogImgNewFromEditor(CFrogImg *img,...) {
   return ret;
 }
 AddClassMethod("CFrogImg","newFromEditor",&FrogImgNewFromEditor);
-
 U0 FrogImgDel(CFrogImg *img) {
   AnimDCDel(img->dc);
   Free(img);
@@ -99,19 +98,18 @@ CFrogStr *FrogImgToString(CFrogImg *img,...) {
   Free(a);
   return s;
 }
-//AddClassMethod("CFrogImg","asString",&FrogImgToString);
+AddMethod("CFrogImg","asString",&FrogImgToString);
 CFrogStr *FrogImgFromString(CFrogImg *img,...) {
-  CFrogStr *s=AsString(argv[0]);
+  CFrogStr *s=argv[0];
   CDC *d=NULL;
   if(s) {
-    d=AnimDCLoad(s->items->body,,frog_mem_task);
-    Free(s);
+    d=AnimDCLoad(s->items->body,,frog_mem_task);
     AnimDCDel(img->dc);
     img->dc=d;
   }
   return FROG_SMALL_NIL;
 }
-//AddClassMethod("CFrogImg","setGraphicsFromString:",&FrogImgFromString);
+AddMethod("CFrogImg","setGraphicsFromString:",&FrogImgFromString);
 
 
 U64 Fog(I64 color,I64 dist) {
@@ -760,6 +758,13 @@ fix:;
       break;
     }
   }
+
+//Cant move anywhere but up
+  if(z==oz) {
+    while(HeightImpossible(w,x/GRID_SZ,y/GRID_SZ,z,TRUE,tallness))
+      ++z;
+  }
+
   if(hit)
     if(Abs(z-Floor(z))<=2*dir/128.)
       z=Floor(z);
@@ -1137,7 +1142,6 @@ fin:
 extern CDC *WhichTexture(C3DWorld *w,I64 tile,F64 h,F64 h2,F64 *hit_h,Bool *hit_wall);
 CDC *ThingFace(C3DWorld *w,C3DThing *thing,Bool *flip=NULL) {
   C3DThingTemplate *template=thing->template;
-PrintI("tt",template);
   if(template==FROG_SMALL_NIL) return NULL;
   F64 off=thing->angle-w->angle+pi,gap;
   I64 face=1;
@@ -1673,7 +1677,7 @@ U0 GenerateRay(C3DWorld *world,CD3 *ray_look,F64 i,F64 j,F64 w,F64 h,CD3 *pos,CD
 //https://blog.scottlogic.com/2020/03/10/raytracer-how-to.html
 U0 GenerateRay(C3DWorld *w,CD3 *ray_look,F64 i,F64 j,F64 width,F64 height,CD3 *pos,CD3 *lookat) {
   CD3 m,tmpy,tmpx;
-  D3Equ(&m,(i/width-.5)*-2,(j/height-.5)*2,1);
+  D3Equ(&m,(i/width-.5)*-2,(j/height-.5)*2,1);
   D3Equ(&tmpy,
      m.x,
      m.y*Cos(-w->angle2)-m.z*Sin(-w->angle2),
@@ -1712,18 +1716,10 @@ U0 MPCastCol(C3DWorldManager *wm) {
   CD3 at,look_at,ray;
   D3Equ(&at,0,0,0);
   D3Equ(&look_at,
-	0,
+	Sin(-w->angle),
 	Sin(xrot),
-	0
+	Cos(-w->angle)
 	);
-if(Blink&&0) {
-  look_at.x=Sin(-w->angle)*Cos(xrot);
-  look_at.z=Cos(-w->angle)*Cos(xrot);
-} else {
-  look_at.x=Sin(-w->angle);
-  look_at.z=Cos(-w->angle);
-//  D3Unit(&look_at);
-}
   idx=ToF64(Gs->num)/ToF64(mp_cnt)*GR_WIDTH;
   cap=ToF64(Gs->num+1)/ToF64(mp_cnt)*GR_WIDTH;
 //  if(Blink) D3Unit(&look_at);
@@ -2407,7 +2403,6 @@ AddMethod("C3DWorldManager","setTile:atX:atY:atZ:",&WorldManagerSetTileAtXAtYAtZ
  DocClear;
 #include "UI.HC"
 InitWorld;
-PrintI("doofus",FrogSymbol("world")->value);
 I64 mp_thing_done=0;
 extern CDC *MakeMinimap1(C3DWorld *w,F64 x,F64 y,F64 angle,I64 radius,F64 height);
 U0 Draw3DWorld(CTask *,CDC *dc) {

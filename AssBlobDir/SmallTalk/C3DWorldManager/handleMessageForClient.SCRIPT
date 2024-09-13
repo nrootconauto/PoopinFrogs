@@ -72,6 +72,15 @@ handleMessage: m=CFrogStr forClient: c=C3DWorldClient
        value: (array at:2) .
     best_thing damage: array last from: c->player .
   ] .
+  type = 'EBlC' ifTrue:[
+    delegate _ 1 .
+  ] .
+  type = 'EBlW' ifTrue:[
+    delegate _ 1 .
+  ] .
+  type = 'EBlF' ifTrue:[
+    delegate _ 1 .
+  ] .
   type = 'PkUp' ifTrue:[
      'Pickup item' .
     best_thing _ closest value: array first 

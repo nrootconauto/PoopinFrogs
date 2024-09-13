@@ -1,0 +1,10 @@
+sendEditCeil: img=CFrogImg forBlock: tile=CFrogNum ->*
+|
+|
+ self sendMessage:
+  #(
+    img->name 
+    (img asString )
+    tile 
+  ) 
+  withType: 'EBlC' . 

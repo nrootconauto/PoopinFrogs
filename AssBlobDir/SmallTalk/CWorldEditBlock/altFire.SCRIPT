@@ -19,6 +19,13 @@ altFire ->* |
 'move 1 unit forwards to set hit(?) block' .
     player _ w getPlayer .
     dist _ ((wx - player->x) squared + (wy - player->y) squared)sqrt + 3 .
+    dist > (128*7) ifTrue: [
+      ^ 0 
+    ] .
+    (wz - player->z) abs > 7 ifTrue: [
+      ^ 0 
+    ] .
+
     a _ wx - player->x arg: wy - player->y .
     wx _ player->x + (a cos * dist ) . 
     wy _ player->y + (a sin * dist ) .

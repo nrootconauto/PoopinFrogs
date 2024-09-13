@@ -1,5 +1,7 @@
 handleMessage:m=CFrogStr ->*
 |
+tile=CTileTemplate
+texture=CFrogImg
 type=CFrogStr
 array*
 |
@@ -47,4 +49,27 @@ array*
       atY: (array at: 2)
       atZ: (array at: 3)
   ] .
-  
+  type = 'EBlC' ifTrue: [
+    tile _ #world->tile_templates at: (array at:2) .
+    texture _ CFrogImg get: array first .
+    texture setGraphicsFromString: (array at:1) .
+    'Poo1' show .
+    texture show .
+    tile setCeil: texture->name .
+  ].
+  type = 'EBlW' ifTrue: [
+    tile _ #world->tile_templates at: (array at:2) .
+    texture _ CFrogImg get: array first .
+    texture setGraphicsFromString: (array at:1) .
+    'Poo2' show .
+    texture show .
+    tile setWall: texture->name .
+  ].
+  type = 'EBlF' ifTrue: [
+    tile _ #world->tile_templates at: (array at:2) .
+    texture _ CFrogImg get: array first .
+    texture setGraphicsFromString: (array at:1) .
+    'Poo3' show .
+    texture show .
+    tile setFloor: texture->name .
+  ].
