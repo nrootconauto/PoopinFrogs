@@ -46,13 +46,18 @@ handleMessage: m=CFrogStr forClient: c=C3DWorldClient
     delegate _ 1 .
   ] . 
   type = 'PThg' ifTrue:[
-    'Place aThing' .
-    thing _ (CFrogClass newFromString: array first) new .
+    'Place aThing' show .
+    array first show .
+    thing _ (CFrogClass fromString: array first) new .
     thing ->x _ array at: 1 .
     thing ->y _ array at: 2 .
     thing ->z _ array at: 3 .
     self removeFromGrid: thing .
     self updateThingPos: thing .
+    thing ->x show .
+    thing ->y show .
+    thing ->z show .
+    thing show .
   ].
   type = 'PMov' ifTrue: [
     'Player move' .

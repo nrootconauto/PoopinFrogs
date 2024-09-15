@@ -1,7 +1,7 @@
 #ifndef ST_COMPILER_HH
 #define ST_COMPILER_HH 1
 #include "RunTime.HC";
-//#define DEBUG 1
+//#define DEBUG 1
 U0 GenerateUselessMethod(U8 *class_name,U8 *method_name,U8 *return_class)  {
   U8 *canon=MStrPrint("METHOD_%s.%s",class_name,method_name);
   U8 *rt=MStrPrint("RET_TYPE_%s.%s",class_name,method_name);
@@ -664,7 +664,7 @@ U8 *CompileThunk(CAST *block,CLocals *parent=NULL) {
   DocPrint(doc,"};");
   ReplaceElem(doc,replace,"%d",MaxI64(FramePtr("ST@@stk_depth"),0));
 static I64 pass=0,fail=0;
-  if(escapes&&LocalsIsEscaped(locals))  {
+  if(1||(escapes&&LocalsIsEscaped(locals)))  {
     ReplaceElem(doc,frame,"Bool *return_flag=STNewBlockFrame(\"%Q\",parent_frame)->return_flag;\n",locals->name);
     fail++;
   } else {
@@ -1657,7 +1657,7 @@ FramePtrSet("Escapes",escapes);
     DocPrint(doc,"AddClassMethod(\"%Q\",\"%Q\",&%s);;",class_name,m->name,fun_name);
   }
   ReplaceElem(doc,replace,"%d",MaxI64(FramePtr("ST@@stk_depth"),0));
-  if(escapes)
+  if(1||escapes)
     ReplaceElem(doc,frame,"Bool *return_flag=STAddMethodFrame(%d,\"%Q\",\"%Q\")->return_flag;\n",m,locals->name,class_name);
   else
     ReplaceElem(doc,frame,"%Q stk_frame;MakeAnonBlockFrame(&stk_frame,%d,Fs->user_data,'Method');stk_frame._return_flag=&false;Bool *return_flag=&false;\n",locals->name,locals->cnt);

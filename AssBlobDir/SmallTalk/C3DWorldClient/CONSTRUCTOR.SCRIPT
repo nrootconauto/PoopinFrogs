@@ -16,6 +16,5 @@ initFromStream:s=CNetStream ->C3DWorldClient
       ].
     ] .
   ]
-  #client _ self .
    recur value .
   ^ self

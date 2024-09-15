@@ -22,7 +22,7 @@ update -> * |
   ] .
 
   cur_tS _ CFrogTime now asSeconds .
-  player _ #world getPlayer .  
+  player _ self lookForTarget .  
 
   (target hasClass: C3DThing) ifFalse: [
     target _ player

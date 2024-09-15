@@ -72,7 +72,7 @@ update ->*
   template _ w getThingTemplate: 'CCyberPoop'.
 
   (target hasClass: C3DThing) ifFalse: [
-    target _ w getPlayer .
+    target _ self lookForTarget .
   ] .
   (state = 'Wait' and: target->health > 0) ifTrue: [
     (self canSeeThing: target) ifTrue: [

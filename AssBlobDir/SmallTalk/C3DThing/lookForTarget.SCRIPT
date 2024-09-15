@@ -1,9 +1,11 @@
 lookForTarget -> C3DThing
 |
-  p=CPlayer
 |
-  p _ #world getPlayer.
-  ((self canSeeThing: p) and: p->health > 0) ifTrue: [
-    ^ p 
+  (#world getThingsInRadiusFromX: x fromY: y withRadius: 16 * 128 ) do:[:t=C3DThing|
+    (t hasClass: CPlayer) ifTrue: [
+      ((self canSeeThing: t) and: t->health > 0) ifTrue: [
+        ^ t
+      ] .
+    ]
   ] .
   ^ 0 .

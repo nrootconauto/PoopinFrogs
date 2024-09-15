@@ -623,7 +623,7 @@ class C3DWorldClient:CFrogThing {
   F64 next_update_tS;
   F64 last_ping_tS;
 //Private
-  F64 last_response_tS;
+  F64 last_response_tS;
   CFrogThread *update_thread;
 };
 

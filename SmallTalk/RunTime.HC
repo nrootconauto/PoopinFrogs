@@ -1307,7 +1307,7 @@ CFrogThing *FrogIfTrueIfFalse(CFrogNum *self,...) {
 AddMethod("CFrogNum","ifTrue:ifFalse:",&FrogIfTrueIfFalse);
 
 CFrogThing *FrogThingShow(CFrogStr *self,...) {
-  I64 attempt;
+  I64 attempt;
   I64 idx,ch;
   static I64 err_msg=NameToUniverseNumber("error_msg");
   CFrogStr *msg;
@@ -1717,7 +1717,7 @@ CFrogThing *FrogClassFromString(CFrogThing *ul,...) {
   Free(s);
   return ret;
 }
-AddClassMethod("CFrogClass","fromString:",&FrogClassFromString);
+AddClassMethod("CFrogClass","fromString:",&FrogClassFromString);
 
 CFrogThing *CallMethodWithArgs(CFrogThing *self,...) {
   U8 *name=AsString(argv[0]);

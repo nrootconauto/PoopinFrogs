@@ -1,7 +1,6 @@
 update->*
 |
   w=C3DWorldManager
-  p=CPlayer
   things=CFrogArray
   best_dist=CFrogNum
   dist=CFrogNum
@@ -33,7 +32,6 @@ update->*
     ^ 1
   ] .
 
-  p _ w getPlayer .
 
   floating _ 1 .
 
@@ -87,7 +85,7 @@ update->*
   steps_to_walk < 0 ifTrue: [
     steps_to_walk _ random_generator next * 10 * 1 . 
     (target hasClass: C3DThing) ifFalse: [
-       target _ p .
+       target _ self lookForTarget .
     ] .
     ((target hasClass: C3DThing) and: (self canSeeThing: target)) ifTrue: [
       target->health > 0. ifTrue: [
@@ -135,7 +133,7 @@ update->*
       'TODO check for "Small" enemy(also dont revive other CAssBirds)'.
        ((self canSeeThing: t) and: (t hasClass: CAssBird) not) ifTrue:[
          dist _ (t->x - x ) squared + (t->y - y) squared .
-         (dist < best_dist and: p ~= t ) ifTrue: [
+         (dist < best_dist and: (t hasClass: CPlayer) not ) ifTrue: [
            best_dist _ dist .
            state _ 'Heal0' .
            target _ t .

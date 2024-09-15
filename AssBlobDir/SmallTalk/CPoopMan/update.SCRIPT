@@ -48,13 +48,13 @@ update->* |
 
     (target hasClass: C3DThing) ifTrue: [
       (target->health <= 0) ifTrue: [
-        p _ w getPlayer .
+        p _ self lookForTarget .
         (self canSeeThing: p) ifTrue: [
           target _ p.
         ]
       ] .
     ] ifFalse: [
-      p _ w getPlayer .
+      p _ self lookForTarget .
       (self canSeeThing: p) ifTrue: [
         target _ p.
       ]

@@ -102,7 +102,7 @@ AddMethod("CFrogImg","asString",&FrogImgToString);
 CFrogStr *FrogImgFromString(CFrogImg *img,...) {
   CFrogStr *s=argv[0];
   CDC *d=NULL;
-  if(s) {
+  if(s) {
     d=AnimDCLoad(s->items->body,,frog_mem_task);
     AnimDCDel(img->dc);
     img->dc=d;
@@ -2556,7 +2556,7 @@ CFrogThing *WorldPhysics(C3DWorldManager *wm,...) {
   Free(body);
   return FROG_SMALL_NIL;
 }
-AddMethod("C3DWorldManager","physics",&WorldPhysics);
+AddMethod("C3DWorldManager","physics",&WorldPhysics);
 
 
 

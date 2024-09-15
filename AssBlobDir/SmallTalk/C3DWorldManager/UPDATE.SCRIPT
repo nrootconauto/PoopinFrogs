@@ -5,7 +5,11 @@ dist=CFrogNum
 simulation_dist=CFrogNum
 pickups=CFrogArray
 |
-  p _self getPlayer .
+  p _ self getPlayer .
+  (#client hasClass: C3DWorldClient) ifTrue: [
+   'Let server do updating '.
+    ^ 1 .
+  ].
   now _ CFrogTime now asSeconds .
   ( last_update + 1 / 10. ) > now ifTrue: [
     ^ 0
