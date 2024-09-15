@@ -1,11 +1,14 @@
 initFromStream:s=CNetStream ->C3DWorldClient 
 |
   recur=CFrogBlock
+  now=CFrogNum
 |
   sock _ CAsyncStream newFromStream s .
+  last_response_tS _ CFrogTime now asSeconds .
   
   recur _ [
     sock readU32WithCallback:[:w* :cnt=CFrogNum|
+     last_response_tS _ CFrogTime now asSeconds .
      sock readBytes: cnt withCallback: [:w* :buf=CFrogStr|
         self handleMessage: buf .
         'Re-arm callbackcs' .
@@ -14,13 +17,5 @@ initFromStream:s=CNetStream ->C3DWorldClient
     ] .
   ]
   #client _ self .
-  update_thread _ CFrogThread spawn: [
-    (update hasClass: CFrogBlock) ifTrue: [
-      CFrogTime now asSeconds >= next_update_tS ifTrue: [
-        update value .
-      ] .
-    ]
-    CFrogThread yield .
-  ].
    recur value .
   ^ self

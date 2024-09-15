@@ -7,14 +7,15 @@ pickups=CFrogArray
 |
   p _self getPlayer .
   now _ CFrogTime now asSeconds .
-  ( last_update + .2 ) > now ifTrue: [
+  ( last_update + 1 / 10. ) > now ifTrue: [
     ^ 0
   ] .
   simulation_dist _ 24 * 128 .
-  last_update _ now .
-  clients do:[:c* |
+  clients do: [:c=C3DWorldClient |
       self sendThingsToClient: c .
-  ] .
+  ].
+
+  last_update _ now .
   things do: [:t* |
     t->server_old_x _ t->x .
     t->server_old_y _ t->y .

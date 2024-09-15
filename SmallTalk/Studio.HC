@@ -5,7 +5,7 @@
 #exe {Cd(__DIR__);};
 #define STS_ADD_CLASS -100
 #define STS_METHOD_HELP -101
-#define ST_ROOT	"SmallTalk/" //Must be same length
+#define ST_ROOT	"SmallTalk/" //Must be same length
 #define ST_CLASS_ROOT	"STClsRoot/"
 #define ST_SCRIPT_ROOT	"STScripts/"
 extern U0 LoadMethodsFromBlob(U8 *blob_file=NULL,Bool dry_only=FALSE);
@@ -27,7 +27,7 @@ U0 SanitizeStr(U8 *tmp) {
 //Raw DolDoc editor likes to put in weird charactyors
     if(tmp[idx2]=='\n'||Bt(char_bmp_displayable,tmp[idx2])) {
       *tmp2++=tmp[idx2];
-    }
+    }
   }
   *tmp2=0;
 }

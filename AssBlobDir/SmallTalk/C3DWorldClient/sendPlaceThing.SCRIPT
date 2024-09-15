@@ -3,7 +3,7 @@ sendPlaceThing: t=CFrogClass atX: x* atY: y* atZ: z*
 |
 |
   self sendMessage: #(
-      (t)
+      (t name)
       (x)
       (y)
       (z)

@@ -1,16 +1,21 @@
 armUpdates ->*
 |
+  now=CFrogNum
 |
-  (update_thread hasClass: CFrogThread) ifFalse: [
-    update_thread _ CFrogThread spawn: [
-      [sock->closed not] whileTrue: [
-        (update hasClass: CFrogBlock) ifTrue: [
-          CFrogTime now asSeconds >= next_update_tS ifTrue: [
+  update_thread _ CFrogThread spawn: [
+    [sock->closed] whileFalse: [
+      (update hasClass: CFrogBlock) ifTrue: [
+        CFrogTime now asSeconds >= next_update_tS ifTrue: [
+          0 to: sock->ops size do: [
             update value .
-            next_update_tS _ CFrogTime now asSeconds + .2 .
           ] .
+          'Approxmate next update based on last response time' .
+          now _ CFrogTime now asSeconds .
+          next_update_tS _ (((now  - last_response_tS) * 1.5 max: 1 / 10) 
+            min: 1.5) + now  .
+          CFrogThread sleep: next_update_tS - now .
         ] .
-        CFrogThread yield .
-      ]
-    ].
-  ]
+      ] .
+      CFrogThread yield .
+    ] .
+  ].

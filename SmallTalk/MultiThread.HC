@@ -25,10 +25,15 @@ CFrogThread *ThreadKill(CFrogThread *t,...) {
 }
 AddMethod("CFrogThread","kill",&ThreadKill);
 CFrogThread *ThreadYield(CFrogThread *t,...) {
-  Sleep(3);
+  Sleep(3);
   return FROG_SMALL_NIL;
 }
 AddClassMethod("CFrogThread","yield",&ThreadYield);
+CFrogThread *ThreadSleep(CFrogThread *t,...) {
+  Sleep(1000*AsF64(argv[0]));
+  return FROG_SMALL_NIL;
+}
+AddClassMethod("CFrogThread","sleep:",&ThreadSleep);
 U0 ThreadDel(CFrogThread *t) {
   if(t->task) Kill(t->task,FALSE);
   Free(t);
