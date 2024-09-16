@@ -5,8 +5,8 @@
 #exe {Cd(__DIR__);};
 #define STS_ADD_CLASS -100
 #define STS_METHOD_HELP -101
-#define ST_ROOT	"SmallTalk/" //Must be same length
-#define ST_CLASS_ROOT	"STClsRoot/"
+#define ST_ROOT	"SmallTalk/" //Must be same length
+#define ST_CLASS_ROOT	"STClsRoot/"
 #define ST_SCRIPT_ROOT	"STScripts/"
 extern U0 LoadMethodsFromBlob(U8 *blob_file=NULL,Bool dry_only=FALSE);
 U8 *LumpNameToPath(U8 *str) {

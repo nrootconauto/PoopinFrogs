@@ -3,14 +3,14 @@ sendThingsToClient: c=C3DWorldClient ->*
   p=CPlayer
   to_send=CFrogArray
   struct=CFrogArray
+  now=CFrogNum
 |
+  now _ CFrogTime now asSeconds.
   p _ c->player .
   to_send _ #world getThingsInRadiusFromX: p->x fromY: p->y  withRadius: 32 * 128 .
   struct _ #() .
   to_send do:[:t=C3DThing |
     (t ~= p ) ifTrue: [
-    'oldx' show .
-     t->server_old_x show .
       struct add: #(
         t->x 
         t->y
@@ -21,6 +21,9 @@ sendThingsToClient: c=C3DWorldClient ->*
         t->server_old_x
         t->server_old_y
         t->server_old_z
+        t->health
+        t->animation_no_repeat
+        (t->animation_start_tS - now)
       ) .
     ] .
   ] . 

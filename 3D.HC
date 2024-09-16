@@ -1608,7 +1608,7 @@ U0 MPCastCol(C3DWorldManager *wm) {
   I32 *depth_ptr;
   I64 tx,ty;
   I64 segment;
-  I32 idist,row;
+  I64 idist,row;
   Bool hit_wall;
   CD2 ray;
   F64 angle_offset_table[GR_WIDTH];
@@ -1816,8 +1816,8 @@ U0 Mat4x4MulXYZ_F64(I64 *r,F64 *_x,F64 *_y,F64 *_z)
 U0 PointToScrn(C3DWorld *w,F64 x,F64 y,F64 z,CD3 *res) {
   F64 dist=Sqrt(Sqr(x-w->x)+Sqr(y-w->y));
   F64 dir=Arg(x-w->x,y-w->y);
-  F64 xrot=Arg(dist/128,z-w->cam_height)-w->angle2;
-  z=GR_HEIGHT/2-Wrap(xrot)/w->fov*GR_HEIGHT;
+  F64 xrot=Arg(dist/128,z-w->cam_height)+w->angle2;
+  z=GR_HEIGHT/2-xrot/w->fov*GR_HEIGHT;
   res->x=GR_WIDTH/2+Wrap(dir-w->angle)/((w->fov/GR_WIDTH));
   res->y=z;
   res->z=dist; //???
@@ -1836,6 +1836,7 @@ U0 DrawParticle(C3DWorld *w,C3DParticle *p) {
 Bool IsLeftSide(CD2 *a,CD2 *b,CD2 *c) {
   return (b->x-a->x)*(c->y-a->y)-(b->y-a->y)*(c->x-a->x)>=0.;
 }
+
 Bool ClipLineToCamera(C3DWorld *w,CD3 *a,CD3 *b) {
   CD2 cam,left,right;
   CD2 dst;
@@ -1889,132 +1890,36 @@ Bool ClipLineToCamera(C3DWorld *w,CD3 *a,CD3 *b) {
 //  return in_view||!IsLeftSide(&cam,&left,a)||!IsLeftSide(&cam,&left,b)
 //	||IsLeftSide(&cam,&right,a)||IsLeftSide(&cam,&right,b);
 }
+
 U0 Line3D(C3DWorld *w,CDC *dc,CD3 *st,CD3 *en) {
-  CD3 res,res2;
-  PointToScrn(w,st->x,st->y,st->z,&res);
-  PointToScrn(w,en->x,en->y,en->z,&res2);
+//Make sure the line isnt insanely cose the the camera.
+//I approximate the things based on angles,its pretty dumb.
+  CD3 clip,clip2,res,res2;
+  F64 angle=Arg(en->x-st->x,en->y-st->y);
+  clip.x=st->x;
+  clip.y=st->y;
+  clip.z=st->z;
+  clip2.x=en->x;
+  clip2.y=en->y;
+  clip2.z=en->z;
+
+  ClipLineToCamera(w,&clip,&clip2);
+
+
+  if(1.>Sqr(clip.x-w->x)+Sqr(clip.y-w->y)) {
+    clip.x=32*Cos(angle)+w->x;
+    clip.y=32*Sin(angle)+w->y;
+  }
+  if(1.>Sqr(clip2.x-w->x)+Sqr(clip2.y-w->y)) {
+    clip2.x=32*Cos(angle)+w->x;
+    clip2.y=32*Sin(angle)+w->y;
+  }
+
+  PointToScrn(w,clip.x,clip.y,clip.z,&res);
+  PointToScrn(w,clip2.x,clip2.y,clip2.z,&res2);
   GrLine3(dc,res.x,res.y,res.z,res2.x,res2.y,res2.z);
 }
 
-U0 DrawFrogTongue(C3DWorld *w,CFrogTongue *t) {
-  if(!ThingHasClass(t,"CFrogTongue"))
-    return;
-  if(!ThingHasClass(t->from,"C3DThing"))
-    return;
-  CD3 stp,enp;
-  CDC *dc=w->to_dc;
-  F64 stz,enz;
-  stp.x=t->x;
-  stp.y=t->y;
-  stp.z=t->z;
-  enp.x=t->from->x;
-  enp.y=t->from->y;
-  enp.z=t->from->z+.8;
-  if(ClipLineToCamera(w,&stp,&enp)){
-    dc->color=LTRED;
-    dc->thick=4;   
-    Line3D(w,dc,&stp,&enp);
-  }
-}
-
-U0 DrawDogTongue(C3DWorld *w,CDogTongue *t) {
-  if(!ThingHasClass(t,"CDogTongue"))
-    return;
-  if(!ThingHasClass(t->from,"C3DThing"))
-    return;
-  CD3 stp,enp;
-  CDC *dc=w->to_dc;
-  F64 stz,enz;
-  stp.x=t->x;
-  stp.y=t->y;
-  stp.z=t->z;
-  enp.x=t->from->x;
-  enp.y=t->from->y;
-  enp.z=t->from->z+.8;
-  if(ClipLineToCamera(w,&stp,&enp)){
-    dc->color=RED;
-    dc->thick=16;   
-    Line3D(w,dc,&stp,&enp);
-    dc->color=LTRED;
-    dc->thick=24;
-    GrPlot3(dc,enp.x,enp.y,enp.z);
-  }
-}
-
-U0 DrawLightningBolt(C3DWorld *w,CLightningBolt *l) {
-  CDC *dc=w->to_dc;
-  CD3 stp,enp,last;
-  CLightningLink **links=l->links(CFrogArray*)->items->body;
-  I64 idx,cnt=l->links(CFrogArray*)->items->cnt;
-  if(cnt<1) return;
-  last.x=links[0]->x;
-  last.y=links[0]->y;
-  last.z=links[0]->z;
-  dc->thick=4;
-  for(idx=1;idx!=cnt;idx++) {
-    dc->color=links[idx]->color;
-    stp.x=last.x;
-    stp.y=last.y;
-    stp.z=last.z;
-    enp.x=links[idx]->x;
-    enp.y=links[idx]->y;
-    enp.z=links[idx]->z;
-    if(ClipLineToCamera(w,&stp,&enp))
-      Line3D(w,dc,&stp,&enp);
-    last.x=links[idx]->x;
-    last.y=links[idx]->y;
-    last.z=links[idx]->z;
-  }
-}
-
-U0 DrawPissStream(C3DWorld *w,CPissStream *ps) {
-  CDC *dc=w->to_dc;
-  CD3 stp,enp,last;
-  if(!ThingHasClass(ps,"CPissStream"))
-    return;
-  CPissLink **links=ps->links(CFrogArray*)->items->body;
-  I64 idx,cnt=ps->links(CFrogArray*)->items->cnt;
-  if(cnt<1) {
-    return;
-  }
-  last.x=links[0]->x;
-  last.y=links[0]->y;
-  last.z=links[0]->z;
-//Massive piss
-  dc->color=YELLOW;
-  dc->thick=4;
-  for(idx=1;idx!=cnt;idx++) {
-    stp.x=last.x;
-    stp.y=last.y;
-    stp.z=last.z;
-    enp.x=links[idx]->x;
-    enp.y=links[idx]->y;
-    enp.z=links[idx]->z;
-    if(ClipLineToCamera(w,&stp,&enp))
-      Line3D(w,dc,&stp,&enp);
-    last.x=links[idx]->x;
-    last.y=links[idx]->y;
-    last.z=links[idx]->z;
-  }
-}
-U0  Draw2DThing(C3DWorld *w,C3DThing *thing) {
-fin:
-  if(ThingHasClass(thing,"CPorky")) {
-    DrawDogTongue(w,thing(CPorky*)->tongue);
-  }
-  if(ThingHasClass(thing,"CFrogNPC")) {
-    DrawFrogTongue(w,thing(CFrogNPC*)->tongue);
-  }
-  if(ThingHasClass(thing,"CPlayer")) {
-    DrawPissStream(w,thing(CPlayer*)->piss_stream);
-  }
-  if(ThingHasClass(thing,"CZombie")) {
-   DrawPissStream(w,thing(CZombie*)->piss_stream);
-  }
-  if(ThingHasClass(thing,"CAssBird")) {
-    DrawLightningBolt(w,thing(CAssBird*)->lightning_bolt);
-  }
-}
 U0 WallStainDel(CWallStain *s) {
   if(s->dc) AnimDCDel(s->dc);
   Free(s);
@@ -2304,6 +2209,7 @@ I64 mp_thing_done=0;
 extern CDC *MakeMinimap1(C3DWorld *w,F64 x,F64 y,F64 angle,I64 radius,F64 height);
 U0 Draw3DWorld(CTask *,CDC *dc) {
   C3DWorldManager *man=FrogSymbol("world")->value;
+  PrintI("c",FrogSymbol("client")->value);
   man->world_handle=w;
   w->_wall_stains=man->wall_stains->items;
   w->_floor_stains=man->floor_stains->items;
@@ -2315,6 +2221,7 @@ U0 Draw3DWorld(CTask *,CDC *dc) {
     return;
   }
   CFrogImg *hand_gr,*minimap;
+  C3DLine *line;
   I32 *odepth_buf;
   I64 tx,ty,c,f;
   CI64Set *s;
@@ -2333,19 +2240,8 @@ U0 Draw3DWorld(CTask *,CDC *dc) {
   InitTables(w->angle,w->fov);
   C3DWorldCastRays(w);   
   mp_thing_done=0;
-  CFrogThing ***body=MAllocIdent(w->_2d_things->body);
-  I64 idx=w->_2d_things->cnt;
-//Draw normal things first
-  while(--idx>=0)
-    if(!ThingHasClass(body[idx],"CPickup"))
-      Draw2DThing(w,body[idx]);
-//Draw powerups in front
-  idx=w->_2d_things->cnt;
-  while(--idx>=0)
-    if(ThingHasClass(body[idx],"CPickup"))
-      Draw2DThing(w,body[idx]);
-  Free(body);
-  
+  C3DLine ***body;
+  I64 idx;
   head=&w->particles;
   for(p=head->next;head!=p;p=n) {
     p->x+=p->momx;
@@ -2408,11 +2304,21 @@ U0 Draw3DWorld(CTask *,CDC *dc) {
 	  f=c-1;
 	else
           f%=c;
-      } else 
+      } else 
         f%=c;
       GrBlot(dc,hand->x+hand->xoff-hand_gr->dc->width/2,hand->y+hand->yoff-hand_gr->dc->height/2,hand_gr->dc+f);
     }
   }
+
+  cnt=man->lines->items->cnt;
+  body=MAllocIdent(man->lines->items->body);
+  for(idx=0;idx!=cnt;idx++) {
+    line=body[idx];
+    dc->color=line->color;
+    dc->thick=line->thick;
+    Line3D(w,dc,&line->x0,&line->x);
+  }
+  Free(body);
 fin:
 /*  minimap=MakeMinimap1(man,player->x,player->y,player->angle,64,player->z);
   GrBlot(dc,GR_WIDTH-128-16,30,minimap);
@@ -2556,7 +2462,7 @@ CFrogThing *WorldPhysics(C3DWorldManager *wm,...) {
   Free(body);
   return FROG_SMALL_NIL;
 }
-AddMethod("C3DWorldManager","physics",&WorldPhysics);
+AddMethod("C3DWorldManager","physics",&WorldPhysics);
 
 
 

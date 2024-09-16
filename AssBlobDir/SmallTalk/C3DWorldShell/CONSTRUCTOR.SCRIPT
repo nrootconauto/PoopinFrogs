@@ -168,10 +168,7 @@ init ->* |
      right ifTrue: [
        player move: 128 / 4 atAngle: player->angle  + (3.14 / 2 ) .
      ] .
-     (#world getThingsInRadiusFromX: player->x fromY: player->y withRadius: 32 * 128) do: [:t* |
-       t animate .
-     ] .
- 
+     #world animate . 
      #world handlePowerups .
      #ms_grabbed ifTrue: [
        ldown ifTrue: [

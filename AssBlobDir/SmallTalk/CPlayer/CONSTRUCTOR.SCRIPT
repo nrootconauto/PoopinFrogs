@@ -1,4 +1,5 @@
 init ->CPlayer | |
+
   #world addThing: self .
   #world getPlayer = self ifTrue: [
     no_draw _ 1 .

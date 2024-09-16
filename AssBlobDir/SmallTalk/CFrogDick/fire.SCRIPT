@@ -2,13 +2,12 @@ fire ->* |
   player=CPlayer
   piss=CPissLink
   a=CFrogNum
+  a2=CFrogNum
   force=CFrogNum
   piss_stream=CPissStream
   cur_ts=CFrogNum
   step=CFrogNum
   rand=CFrogRandom
-  targetd=CFrogNum
-  targetz=CFrogNum
   total*
   launch_angle=CFrogNum
  |
@@ -20,28 +19,27 @@ fire ->* |
       #world sweepSoundForTime: 100 withMin: 80 withMax:95 .
       rand _ CFrogRandom new .
       piss_stream _ player getPissStream .
-      targetd _ #world screenCoordToDist .
-      targetz _ .5  .
 
-      'https://en.wikipedia.org/wiki/Trajectory' .
-      launch_angle _ .35 arctan .
-      force _ (((#world gravity / 3 * ( 1 / (launch_angle cos squared ) )) / (((targetz - (targetd * launch_angle tan ))) / (targetd * targetd ) ))/2 ) negated.
-
+      force _ 80 . 
+ 
       'Make 3 pisses updated with weight for smooter looks' .
       a _ player getAngle + (3.14 / 100 * rand next )  .
       0 to: step do: [:v=CFrogNum |
         piss _ CPissLink new .
+        piss show .
         piss -> x _  player ->x + (16 * a cos ) .
         piss -> y _  player ->y + (16 * a sin ) .
         piss -> z _  player ->z + .3 .
-        piss -> momx _  (force * a cos).
-        piss -> momy _  (force * a sin).
-        piss -> momz _  .35 .
+        a2 _ player->angle2 negated .
+        piss -> momx _  (force * a cos * a2 cos ).
+        piss -> momy _  (force * a sin * a2 cos ).
+        'Its inverse(angle2)' .
+        piss -> momz _  force * a2 sin / 128 .
         piss -> from _ player .
-        (piss updateWithWeight:  1  / step * ( step - v )  makeParticles: 0) ifTrue: [ 
-          'test if wee havent hit the ground '.
+        'test if we havent hit the ground ' .
+'        (piss updateWithWeight:  1  / step * ( step - v )  makeParticles: 0) ifTrue: [ '.
           piss_stream addLink: piss .
-        ]
+'        ] .'.
       ] .
       timeout _ cur_ts + .1 .
     ] .

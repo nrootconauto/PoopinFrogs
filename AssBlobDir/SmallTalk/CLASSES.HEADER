@@ -285,6 +285,7 @@ class C3DWorldManager:CFrogThing {
   CFrogArray *grid;
   CFrogArray *doors;
   CFrogArray *clients; //CAsyncStream
+  CFrogArray *lines; //C3DLine
   CAsyncStream *server_sock;
   I64 is_client;
   I64 is_server;
@@ -385,7 +386,7 @@ class CEliza:CFrogThing {
 //
 
 //This [redacted for GH] is for picking up items in the world
-class CPickup:C3DThing {
+class CPickup:C3DThing {
   CFrogClass *item_class;
   I64 count;
 };
@@ -402,15 +403,21 @@ class CSmallKeyPickup:CPickup {};
 class CBigKey:CHandItem {};
 class CBigKeyPickup:CPickup{};
 
-class CPissLink:CFrogThing {
-  C3DThing *from ;
+class C3DLine:CFrogThing {
+  I32 color,thick;
   F64 oldx,oldy,oldz;
+  F64 x0,y0,z0;
   F64 x,y,z;
   F64 momx,momy,momz;
 };
 
+class CPissLink:C3DLine {
+  C3DThing *from no_serialize 1 ;
+//True if x0,y0,z0 are the same as from->x/y/z
+  I64 connected_to_thing;
+};
+
 class CLightningLink:CPissLink {
-  I64 color;
 };
 class CLightningBolt:CFrogThing {
   C3DThing *from;
@@ -420,7 +427,7 @@ class CLightningBolt:CFrogThing {
   F64 next_remove_link_tS;
 };
 class CPissStream:CFrogThing {
-  C3DThing *from;
+  C3DThing *from no_serialize 1 ;
 //CPissLink
   CFrogArray *links recur_serialize 1;
 };
@@ -433,10 +440,9 @@ class CHealthPickup:CPickup {
 class CShootgunPickup:CPickup {
 };
 
-class CFrogTongue:CFrogThing {
-  C3DThing *from;
+class CFrogTongue:C3DLine {
+  C3DThing *from no_serialize 1 ;
   F64 start_tS,speed;
-  F64 x,y,z;
   F64 target_x,target_y,target_z;
 //if going_back is set,target_x/y/z is the hit location
   I64 going_back;

@@ -2,4 +2,9 @@ init | |
   speed _ 3 .
   going_back _ 0 .
   hit _ #() .
+
+
+  color _ #color_LTRED .
+  thick _ 8 .
+
  ^ self

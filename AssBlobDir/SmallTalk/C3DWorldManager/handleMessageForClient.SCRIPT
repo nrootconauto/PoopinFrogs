@@ -46,8 +46,7 @@ handleMessage: m=CFrogStr forClient: c=C3DWorldClient
     delegate _ 1 .
   ] . 
   type = 'PThg' ifTrue:[
-    'Place aThing' show .
-    array first show .
+    'Place aThing'.
     thing _ (CFrogClass fromString: array first) new .
     thing ->x _ array at: 1 .
     thing ->y _ array at: 2 .
@@ -60,8 +59,11 @@ handleMessage: m=CFrogStr forClient: c=C3DWorldClient
     thing show .
   ].
   type = 'PMov' ifTrue: [
-    'Player move' .
-     p _ c->player  .
+    'Player move' show .
+     p _ c->player .
+     p->x show .
+     p->y show .
+     p->z show .
      self removeFromGrid: p .
      p->x _ array first .
      p->y _ array at: 1 .
@@ -74,6 +76,8 @@ handleMessage: m=CFrogStr forClient: c=C3DWorldClient
     best_thing _ closest value: array first 
        value: (array at:1)
        value: (array at:2) .
+    'damage' show .
+    best_thing show .
     best_thing damage: array last from: c->player .
   ] .
   type = 'EBlC' ifTrue:[

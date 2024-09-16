@@ -1,2 +1,4 @@
-init->CPissLink | |
- ^ self
+init->* | |
+  color _ #color_YELLOW .
+  thick _ 4 .
+  ^ self

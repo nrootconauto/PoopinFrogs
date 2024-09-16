@@ -7,7 +7,7 @@ addClient: sock=CNetStream ->C3DWorldClient
   buf=CFrogStr
   recur=CFrogBlock
 |
-  c _ C3DWorldClient new .
+  c _ C3DWorldClient basicNew .
   c -> player _ CPlayer new .
   'TODO place the player in a good spawn zone' .
   p _ c->player .

@@ -1,2 +1,2 @@
 new->CPissLink | |
- ^ self basicNew
+ ^ self basicNew init

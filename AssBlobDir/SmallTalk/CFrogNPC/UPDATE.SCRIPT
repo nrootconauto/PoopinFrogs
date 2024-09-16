@@ -6,6 +6,10 @@ update ->* |
   old_y=CFrogNum
   old_z=CFrogNum
 |
+'CFrogNPC' show .
+  state show .
+  target show .
+  target->health show .
   momx2 _ 0 .
   momy2 _ 0 .
   health <= 0 ifTrue: [

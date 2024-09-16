@@ -298,7 +298,8 @@ I64 GetClassMemberValI64(CFrogThing *t,U8 *member) {
   CMemberLstMeta *meta;
   if(!cls) return NULL;
   if(mlst=MemberFind(member,cls)) {
-     switch(mlst->member_class->raw_type) {
+
+     switch(OptClassFwd(mlst->member_class)->raw_type) {
        case RT_U8:
          return *(t(U8*)+mlst->offset);
        case RT_U16:
@@ -329,7 +330,7 @@ U0 SetClassMemberValI64(CFrogThing *t,U8 *member,I64 val) {
   CMemberLstMeta *meta;
   if(!cls) NULL;
   if(mlst=MemberFind(member,cls)) {
-     switch(mlst->member_class->raw_type) {
+     switch(OptClassFwd(mlst->member_class)->raw_type) {
        case RT_U8:
          *(t(U8*)+mlst->offset)=val;
 	 break;
@@ -380,7 +381,7 @@ U0 SetClassMemberVal(CFrogThing *t,U8 *member,I64 val) {
       }
     }
     v2=AsF64(val);
-    switch(mlst->member_class->raw_type) {
+    switch(OptClassFwd(mlst->member_class)->raw_type) {
       case RT_U8:
         *(t(U8*)+mlst->offset)=v2;
         break;
@@ -428,7 +429,7 @@ CFrogThing *GetClassMemberVal(CFrogThing *t,U8 *member) {
          return FrogIncRefCnt((t(U8*)+mlst->offset)(I64*)[0]);
        }
      }
-     switch(mlst->member_class->raw_type) {
+     switch(OptClassFwd(mlst->member_class)->raw_type) {
        case RT_U8:
          v=*(t(U8*)+mlst->offset);
 	 break;
@@ -469,7 +470,7 @@ U0 SetClassMemberValF64(CFrogThing *t,U8 *member,F64 val) {
   CMemberLstMeta *meta;
   if(!cls) NULL;
   if(mlst=MemberFind(member,cls)) {
-     switch(mlst->member_class->raw_type) {
+     switch(OptClassFwd(mlst->member_class)->raw_type) {
        case RT_U8:
          *(t(U8*)+mlst->offset)=val;
 	 break;
@@ -509,7 +510,7 @@ F64 GetClassMemberValF64(CFrogThing *t,U8 *member) {
   CMemberLst *mlst;
   CMemberLstMeta *meta;
   if(mlst=MemberFind(member,cls)) {
-     switch(mlst->member_class->raw_type) {
+     switch(OptClassFwd(mlst->member_class)->raw_type) {
        case RT_U8:
          return *(t(U8*)+mlst->offset);
        case RT_U16:
@@ -523,7 +524,7 @@ F64 GetClassMemberValF64(CFrogThing *t,U8 *member) {
        case RT_I16:
          return (t(U8*)+mlst->offset)(I16*)[0];
        case RT_I32:
-         return (t(U8*)+mlst->offset)(I32*)[0];
+         return (t(U8*)+mlst->offset)(I32*)[0];
        case RT_I64:
          return (t(U8*)+mlst->offset)(I64*)[0];
        case RT_F64:
@@ -562,7 +563,7 @@ CFrogThing *_ConstructThing(U8 *class_name,I64 argc,I64 *argv) {
   for(idx=0;idx<argc;idx+=2) {
     mlst=MemberFind(argv[idx],cls);
     if(mlst) {
-      switch(mlst->member_class->raw_type) {
+      switch(OptClassFwd(mlst->member_class)->raw_type) {
         case RT_U8:
 	  *(t(U8*)+mlst->offset)=argv[idx+1];
 	  break;
@@ -1717,7 +1718,7 @@ CFrogThing *FrogClassFromString(CFrogThing *ul,...) {
   Free(s);
   return ret;
 }
-AddClassMethod("CFrogClass","fromString:",&FrogClassFromString);
+AddClassMethod("CFrogClass","fromString:",&FrogClassFromString);
 
 CFrogThing *CallMethodWithArgs(CFrogThing *self,...) {
   U8 *name=AsString(argv[0]);

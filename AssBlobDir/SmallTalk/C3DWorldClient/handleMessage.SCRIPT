@@ -17,6 +17,7 @@ array*
 
   'msg type ' show .
   type show .
+  array size show .
  
   type = 'Wrld' ifTrue: [
     #world restoreBlocksFromString: array first
@@ -41,6 +42,7 @@ array*
   ] .
   type ='SThg' ifTrue: [
     'Send Things' .
+    m show .
     self receiveThings: array .
   ].
   type = 'PBlk' ifTrue: [
@@ -53,23 +55,21 @@ array*
     tile _ #world->tile_templates at: (array at:2) .
     texture _ CFrogImg get: array first .
     texture setGraphicsFromString: (array at:1) .
-    'Poo1' show .
-    texture show .
     tile setCeil: texture->name .
   ].
   type = 'EBlW' ifTrue: [
     tile _ #world->tile_templates at: (array at:2) .
     texture _ CFrogImg get: array first .
     texture setGraphicsFromString: (array at:1) .
-    'Poo2' show .
-    texture show .
     tile setWall: texture->name .
   ].
   type = 'EBlF' ifTrue: [
     tile _ #world->tile_templates at: (array at:2) .
     texture _ CFrogImg get: array first .
     texture setGraphicsFromString: (array at:1) .
-    'Poo3' show .
-    texture show .
     tile setFloor: texture->name .
   ].
+  type = 'Line' ifTrue: [
+    m show .
+    #world -> lines _ array .
+  ] .

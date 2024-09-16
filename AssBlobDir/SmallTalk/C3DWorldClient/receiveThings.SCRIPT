@@ -6,15 +6,18 @@ receiveThings: data* ->*
   thing=C3DThing
   now=CFrogNum
   use_raw=CFrogNum
+  new=CFrogArray
 |
-'poop' show .
   w _ #world .
   me _ w getPlayer .
   w->things do:[:t*|
     t ~= me ifTrue: [
-      w removeThing: t .
+      w removeFromGrid: t .
     ]
   ] .
+
+'data size showq '.
+  data size show .
 
 
   now  _ CFrogTime now asSeconds .
@@ -25,14 +28,14 @@ receiveThings: data* ->*
     use_raw _ 1 .
   ] .
 
+  new _ #() .
+
   'Data isnt the whole picture'.
   'It has format ' .
   '#( x y z angle CFrogClass "Templatename" momx momy momz) ' .
   'Player is not included in things' .
   data do:[:entry=CFrogArray|
     thing _ (entry at:4) basicNew .
-
-    thing show .
 
     thing->interpolate_start_tS  _ #old_interpolation_tS .
     thing->interpolate_end_tS  _ now .
@@ -50,11 +53,17 @@ receiveThings: data* ->*
     
     thing->angle _ entry at: 3 .
     thing->template _ #world getThingTemplate: (entry at:5) .
-    thing->momx _ entry at: 6 . 
-    thing->momy _ entry at: 7 . 
-    thing->momz _ entry at: 8 . 
-    w addThing: thing .
+
+    thing->health _ entry at: 9 .
+    thing->animation_no_repeat _ entry at: 10 .
+    thing->animation_start_tS _ (entry at: 11) + now .
+
+    w updateThingPos: thing .
+
+    new add: thing .
   ] .
+
+  w->things _ new .
 
   #old_interpolation_tS _  now .
   

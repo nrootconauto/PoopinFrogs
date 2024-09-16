@@ -19,6 +19,7 @@ shootAtX: x=CFrogNum atY: y=CFrogNum atZ: z=CFrogNum ->*
   link->x _ from->x .
   link->y _ from->y .
   link->z _ from->z +.5 .
+  link->thick _ 4 .
 'YELLOW/WHITE' .
   link->color _ 14 + (random_generator next * 2) floor .
   links add: link .

@@ -1,9 +1,14 @@
 update ->* |
-p=CPlayer
-now=CFrogNum
-dist=CFrogNum
-simulation_dist=CFrogNum
-pickups=CFrogArray
+  p=CPlayer
+  now=CFrogNum
+  dist=CFrogNum
+  simulation_dist=CFrogNum
+  pickups=CFrogArray
+  tmp=CFrogArray
+  ps=CPissStream
+  lnb=CLightningBolt
+  line=C3DLine
+  line2=C3DLine
 |
   p _ self getPlayer .
   (#client hasClass: C3DWorldClient) ifTrue: [
@@ -16,7 +21,7 @@ pickups=CFrogArray
   ] .
   simulation_dist _ 24 * 128 .
   clients do: [:c=C3DWorldClient |
-      self sendThingsToClient: c .
+    self sendThingsToClient: c .
   ].
 
   last_update _ now .
@@ -24,19 +29,15 @@ pickups=CFrogArray
     t->server_old_x _ t->x .
     t->server_old_y _ t->y .
     t->server_old_z _ t->z .
-    dist _  (t->x - p->x) squared + (t->y - p->y) squared .
-    dist > simulation_dist squared ifTrue: [
-      'Outside of the simulation distance'.
-      (t hasClass: CRocket) ifTrue: [
-        'Explode far away rockets' .
-        t explode .
-      ].
-    ] ifFalse: [
-      t update .
-    ].
-  ] .
+    t update .
+  ].
 
   'UI and stuf' .
   (#hand_item hasClass: CHandItem) ifTrue: [
     #hand_item animate
+  ] .
+
+  self updateLines .
+  clients do: [:c=C3DWorldClient|
+    self sendLinesToClient: c .
   ] .

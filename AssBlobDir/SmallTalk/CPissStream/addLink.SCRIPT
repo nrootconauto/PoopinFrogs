@@ -1,9 +1,19 @@
-addLink:l=CPissLink | tmp=CFrogArray |
+addLink:l=CPissLink ->*
+|
+  tmp=CFrogArray
+  last=CPissLink
+|
   'newest pisses come firstr in the stream' .
+  l->connected_to_thing _ 1 .
+  links do:[:p=CPissLink|
+    p->connected_to_thing _ 0 .
+  ] .
   tmp _  #( l ) .
   tmp addAll: links .
   tmp size > 10 ifTrue: [
    tmp removeAt: tmp size - 1 
   ] .
   l -> from _ from .
+
+
   links _ tmp .
