@@ -1,0 +1,6 @@
+sendPickupToClient: p=CPickup ->*
+| 
+|
+  self sendMessage: #(
+    p
+  ) withType: 'PkUp' .

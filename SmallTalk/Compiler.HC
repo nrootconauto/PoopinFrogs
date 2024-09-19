@@ -431,7 +431,7 @@ Bool BlockRefsExternVars(CLocals *l,CAST *ast) {
     if(head->next) {
       for(cur=head->next;cur!=head;cur=cur->next)
         ret|=BlockRefsExternVars(l,cur);
-    }
+    }
   }
 
   if(ast->type==AST_BLOCK) {
@@ -1606,7 +1606,7 @@ U0 CompileToHolyC(U8 *src,U8 *class_name,U8 *src_path=NULL,Bool class_method=FAL
     BlockRefsExternVars(locals,var);
     escapes|=BlockEscapesFromMethod(locals,var);
  }
-FramePtrSet("Escapes",escapes);
+  FramePtrSet("Escapes",escapes);
 //MUST SET THIS
   fun_name=MStrPrint("%s@%d",class_name,fun_num++);
   DocPrint(doc,"CFrogThing *%s(CFrogThing *self,...) {\n",fun_name);
@@ -1657,7 +1657,7 @@ FramePtrSet("Escapes",escapes);
     DocPrint(doc,"AddClassMethod(\"%Q\",\"%Q\",&%s);;",class_name,m->name,fun_name);
   }
   ReplaceElem(doc,replace,"%d",MaxI64(FramePtr("ST@@stk_depth"),0));
-  if(1||escapes)
+  if(1||escapes)
     ReplaceElem(doc,frame,"Bool *return_flag=STAddMethodFrame(%d,\"%Q\",\"%Q\")->return_flag;\n",m,locals->name,class_name);
   else
     ReplaceElem(doc,frame,"%Q stk_frame;MakeAnonBlockFrame(&stk_frame,%d,Fs->user_data,'Method');stk_frame._return_flag=&false;Bool *return_flag=&false;\n",locals->name,locals->cnt);

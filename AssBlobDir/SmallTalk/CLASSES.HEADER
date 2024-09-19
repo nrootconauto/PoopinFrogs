@@ -1,3 +1,6 @@
+#ifndef CI64Set 
+extern class CI64Set;
+#endif
 class CFrogThing:CQue {
 #define THINGF_TO_DELETE 1
 #define THINGF_FRAME_TYPE 2
@@ -45,10 +48,8 @@ class CFrogBlock:CFrogThing {
   CFrogThing *self;
   CFrogThing *frame;
   U8 (*fun_ptr)(CFrogThing *self,U8 *);//CSTFrame
+  CI64Set *byte_code;
 };
-#ifndef CI64Set 
-extern class CI64Set;
-#endif
 class CFrogArray:CFrogThing {
   CI64Set *items;
   U8 *constructor dft "FrogArrayInit";
@@ -270,6 +271,7 @@ class C3DThing:CFrogThing {
 //Private,See GetColorForRay/PrepareThingsForDraw
   CDC *draw_face no_serialize 1 ; //Private
   CD2 scrn_st,scrn_en; //Private
+  CD3 draw_normal; //Private
 };
 class C3DWorldManager:CFrogThing {
   U8 *world_handle;
@@ -386,7 +388,7 @@ class CEliza:CFrogThing {
 //
 
 //This [redacted for GH] is for picking up items in the world
-class CPickup:C3DThing {
+class CPickup:C3DThing {
   CFrogClass *item_class;
   I64 count;
 };

@@ -5,8 +5,9 @@
 #exe {Cd(__DIR__);};
 #define STS_ADD_CLASS -100
 #define STS_METHOD_HELP -101
+#define STS_FIND -102
 #define ST_ROOT	"SmallTalk/" //Must be same length
-#define ST_CLASS_ROOT	"STClsRoot/"
+#define ST_CLASS_ROOT	"STClsRoot/"
 #define ST_SCRIPT_ROOT	"STScripts/"
 extern U0 LoadMethodsFromBlob(U8 *blob_file=NULL,Bool dry_only=FALSE);
 U8 *LumpNameToPath(U8 *str) {
@@ -276,6 +277,67 @@ U0 STValidateCode(U8 *blob_file="../ASS",U8 *code,U8 *path,Bool script=FALSE) {
 //
   HashTableDel(dummy);
 }
+U0 STFindText(CDoc *help_doc,U8 *blob_file="../ASS",U8 *search_text,Bool include_src=TRUE) {
+  blob_file=ExtDft(blob_file,"BLOB");
+  if(!FileFind(blob_file)) {
+    PopUpOk("Cant Find Blob file!!!");
+    Free(blob_file);
+    return;
+  }
+  CI64Set *matches=I64SetNew;
+  CDocEntry *doc_e;
+  I64 idx,cnt;
+  U8 *data,*en,*tmp,*needle,*filename,*tmp2;
+  CLumpHeader *hdr;
+  CBlobFileHeader *lumps=FileRead(blob_file);
+  DocPrint(help_doc,"$$PURPLE$$$$TX+CX,\"Results for \\\"%Q\\\"\"$$$$FD$$\n",search_text); 
+  DocMax(help_doc);
+  Silent(TRUE);  
+  DocTreeAppend(help_doc,"Results/",FALSE,"");
+  cnt=lumps->lump_cnt;
+  for(idx=0;idx!=lumps->lump_cnt;idx++) {
+    hdr=&lumps->lump_table[idx];
+    if(!StrNCmp(hdr->name,ST_ROOT,StrLen(ST_ROOT))) {
+      if(data=BlobFileGetLump(blob_file,hdr->name)) {
+	if(StrIMatch(search_text,data)) {
+	  if(en=StrLastOcc(hdr->name,"/")) {
+	    DocBottom(help_doc);
+	    DocPrint(help_doc,"$$AN+CX,\"%Q\",A=\"%Q\"$$\n",en+1,hdr->name);
+	    DocPrint(help_doc,"$$ID,2$$\n");
+	    STSyntaxHighlight(help_doc,data,FALSE);
+	    DocPrint(help_doc,"$$ID,-2$$\n");
+            tmp=LumpNameToPath(hdr->name);
+	    tmp2=MStrPrint("Results/%s",tmp);
+	    DocTreeAppend(help_doc,tmp2,FALSE,"$$LK,\"%Q\",A=\"FA:/SmallTalkFind.DD,%Q\"$$\n",en+1,hdr->name);
+	    Free(tmp),Free(tmp2);
+	  }
+	}
+	Free(data);
+      } 
+    }
+  }
+  I64 num;
+  DocCollapse(FALSE,help_doc);
+  DocRecalc(help_doc);
+  for(doc_e=help_doc->head.next;doc_e!=&help_doc->head;doc_e=doc_e->next) {
+    if(doc_e->type_u8==DOCT_LINK&&doc_e->de_flags&DOCEF_AUX_STR) {
+      if(LK_FILE_ANCHOR==EdLinkCvt(tmp=StrNew(doc_e->aux_str),&filename,&needle,&num)) {
+        if(DocAnchorFind(help_doc,needle)) {
+	  idx=help_doc->cur_entry->y;
+	  help_doc->cur_entry=doc_e;
+	  DocPrint(help_doc,"$$LK\"%Q\",A=\"FL:/SmallTalkHelp.DD,%d\"$$",doc_e->tag,idx);
+	  DocEntryDel(help_doc,doc_e);
+          DocRecalc(help_doc);
+        }
+      }
+      Free(tmp);
+      Free(filename);
+      Free(needle);
+    }
+  }
+  I64SetDel(matches);
+  Free(lumps);
+}
 U0 STHelpIdx(CDoc *help_doc,U8 *blob_file="../ASS",U8 *method_wildcard="*",Bool include_src=TRUE) {
   blob_file=ExtDft(blob_file,"BLOB");
   if(!FileFind(blob_file)) {
@@ -283,7 +345,6 @@ U0 STHelpIdx(CDoc *help_doc,U8 *blob_file="../ASS",U8 *method_wildcard="*",Bool 
     Free(blob_file);
     return;
   }
-again:;
   CI64Set *matches=I64SetNew;
   STStudioRegisterNewClasses(blob_file);
   CHashTable *new=HashTableNew(0x100);
@@ -422,7 +483,7 @@ again:;
   for(doc_e=help_doc->head.next;doc_e!=&help_doc->head;doc_e=doc_e->next) {
     if(doc_e->type_u8==DOCT_LINK&&doc_e->de_flags&DOCEF_AUX_STR) {
       if(LK_FILE_ANCHOR==EdLinkCvt(tmp=StrNew(doc_e->aux_str),&filename,&needle,&num)) {
-        if(DocAnchorFind(help_doc,needle)) {
+        if(DocAnchorFind(help_doc,needle)) {
 	  idx=help_doc->cur_entry->y;
 	  help_doc->cur_entry=doc_e;
 	  DocPrint(help_doc,"$$LK\"%Q\",A=\"FL:/SmallTalkHelp.DD,%d\"$$",doc_e->tag,idx);
@@ -457,8 +518,9 @@ again:;
   CBlobFileHeader *lumps=FileRead(blob_file);
   CLumpHeader *hdr;
   DocPrint(main_menu,"$$PURPLE$$$$TX+CX,\"SmallTalk Studio\"$$$$FD$$\n");
-  DocPrint(main_menu,"\n\n$$BT+CX,\"Add Class\",LE=STS_ADD_CLASS$$\n\n");
+  DocPrint(main_menu,"\n\n$$BT+CX,\"Add/Edit Class\",LE=STS_ADD_CLASS$$\n\n");
   DocPrint(main_menu,"\n\n$$BT+CX,\"Method Name Search\",LE=STS_METHOD_HELP$$\n\n");
+  DocPrint(main_menu,"\n\n$$BT+CX,\"Text Search\",LE=STS_FIND$$\n\n");
   DocPrint(main_menu,"$$RED$$$$TX+CX,\"Edit A Method\"$$$$FD$$\n");
  
 //Phase 1,New method button
@@ -538,6 +600,16 @@ again:;
     case DOCM_CANCEL:
       repeat=FALSE;
     break;
+    case STS_FIND:
+      edit=DocNew;
+      tmp=PopUpGetStr("Enter Text to find:\n");
+      if(StrLen(tmp)) {
+	STFindText(edit,blob_file,tmp);
+        PopUpPrint("DocEd(0x%X);\n",edit);
+      }
+      Free(tmp);
+      DocDel(edit);
+     break;
     case STS_ADD_CLASS:
     edit=DocNew;
     en=BlobFileGetLump(blob_file,ST_ROOT"CLASSES");
@@ -563,7 +635,7 @@ again:;
       en=StrNew("*");
     STHelpIdx(edit,blob_file,en);
     DocWrite(edit);
-    PopUpMenu(edit);
+    PopUpPrint("DocEd(0x%X);\n",edit);
     Free(tmp),Free(en);
     DocDel(edit);
     break;

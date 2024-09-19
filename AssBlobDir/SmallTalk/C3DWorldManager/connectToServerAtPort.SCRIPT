@@ -5,6 +5,5 @@ connectToGameAt: addr=CFrogStr atPort: p=CFrogNum ->*
   addr show .
   p show .
   #client _ C3DWorldClient basicNew .
-  #world->is_client _ 1 .
   #client connectToServer: addr atPort: p .
-  
+  is_client _ 1 .

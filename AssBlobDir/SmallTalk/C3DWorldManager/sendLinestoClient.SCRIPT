@@ -1,0 +1,9 @@
+sendLinesToClient: c=C3DWorldClient ->*
+|
+|
+  (lines hasClass: CFrogArray) ifTrue: [
+    c sendMessage: lines withType: 'Line'.
+  ] ifFalse: [
+    c sendMessage: #() withType: 'Line'.
+  ] .
+  

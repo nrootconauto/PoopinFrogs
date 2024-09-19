@@ -243,6 +243,8 @@ class C3DWorld {
    CQue particles;
    I64 particle_cnt;
    CD3 to_point[GR_WIDTH/4][GR_HEIGHT/4];
+   I64 things_around_camera_origin_x;
+   I64 things_around_camera_origin_y;
    CI64Set *things_around_camera[VIEW_DIST*2][VIEW_DIST*2];
 };
 C3DWorld *w;
@@ -1185,6 +1187,22 @@ draw:
     use_dc+=frame%AnimDCCnt(use_dc);
   return use_dc;
 }
+Bool PreparePlot(C3DThing *t,I64 x,I64 y,I64 z) {
+  CI64Set *use;
+  I64 ox=0,oy=0;
+  x-=w->things_around_camera_origin_x*128;
+  y-=w->things_around_camera_origin_y*128;
+//Add offsets to avoid integer truncation issues with divdie
+  for(ox=-1;ox<=1;ox++)
+    for(oy=-1;oy<=1;oy++)
+     if(0<=x/128+ox<2*VIEW_DIST)
+       if(0<=y/128+oy<2*VIEW_DIST) {
+         use=w->things_around_camera[x/128+ox][y/128+oy];
+         if(!I64SetHas(use,t))
+          I64SetAdd(use,t);
+       }
+  return TRUE;
+}
 U0 PrepareThingsForDraw(C3DWorldManager *wm,F64 thing_scale=.6) {
   CFrogArray *arr=wm->things;WorldManagerThingsInRadius(wm,FrogNumNew(w->x),FrogNumNew(w->y),FrogNumNew(VIEW_DIST*128));
   C3DThing **things=arr->items->body,*thing;
@@ -1199,6 +1217,8 @@ U0 PrepareThingsForDraw(C3DWorldManager *wm,F64 thing_scale=.6) {
       else
 	w->things_around_camera[ox][oy]->cnt=0;
     }
+  w->things_around_camera_origin_x=Floor(w->x/128.)-VIEW_DIST;
+  w->things_around_camera_origin_y=Floor(w->y/128.)-VIEW_DIST;
   while(--cnt>=0) {
     thing=things[cnt];
     if(thing->no_draw)
@@ -1212,17 +1232,16 @@ U0 PrepareThingsForDraw(C3DWorldManager *wm,F64 thing_scale=.6) {
     thing->scrn_st.y=thing->y-hit_texture->width/2.*Sin(normal)*thing_scale;
     thing->scrn_en.x=thing->scrn_st.x+hit_texture->width*Cos(normal)*thing_scale;
     thing->scrn_en.y=thing->scrn_st.y+hit_texture->width*Sin(normal)*thing_scale;
-    ix=ToI64((thing->x-w->x)/128.);
-    iy=ToI64((thing->y-w->y)/128.);
-    for(ox=-Floor(hit_texture->width/2./128.)-1;ox<Ceil(hit_texture->width/2./128.)+1;ox++) {
-      for(oy=-Floor(hit_texture->width/2./128.)-1;oy<Ceil(hit_texture->width/2./128.)+1;oy++) {
-	if(-VIEW_DIST<ox+ix<VIEW_DIST) {
-	  if(-VIEW_DIST<oy+iy<VIEW_DIST) {
-	    I64SetAdd(w->things_around_camera[ox+ix+VIEW_DIST][oy+iy+VIEW_DIST],thing);
-	  }
-        }
-      }
-    }
+    Line(thing,
+	thing->scrn_st.x,
+	thing->scrn_st.y,
+	0,
+	thing->scrn_en.x,
+	thing->scrn_en.y,
+	0,
+	&PreparePlot,
+	64
+	);
 skip:;
   }
 }
@@ -1362,9 +1381,11 @@ I64 GetColorForRay(C3DWorldManager *man,CD3 *ray,F64 dist,F64 *hit_at,CD3 *hit_c
   I64 stain_x,stain_y;
   I64 color;
   I64 relx,rely;
-  CD2 long;
+  CD2 long,long128,xyhit,origin_d_128;
   long.x=x+VIEW_DIST*cos;
   long.y=y+VIEW_DIST*sin;
+  long128.x=long.x*128;
+  long128.y=long.y*128;
   tx=x;
   ty=y;
   tz=Floor(w->cam_height);
@@ -1372,35 +1393,30 @@ I64 GetColorForRay(C3DWorldManager *man,CD3 *ray,F64 dist,F64 *hit_at,CD3 *hit_c
   for(cur=0;cur!=cnt&&!hit;cur++) {
     if(0<=tx<w->world_width)
       if(0<=ty<w->world_height) {
-	relx=(tx-w->x/128.)+VIEW_DIST;
-	rely=(ty-w->y/128.)+VIEW_DIST;
+	relx=tx-w->things_around_camera_origin_x;
+	rely=ty-w->things_around_camera_origin_y;
 	if(0<=relx<2*VIEW_DIST)
-	  if(0<=rely<2*VIEW_DIST)
-	    if((do_things=w->things_around_camera[relx][rely])->cnt)
+	  if(0<=rely<2*VIEW_DIST) {
+	    if((do_things=w->things_around_camera[relx][rely])->cnt) {
 	      goto has_thing;
+	    }
+	}
         goto check_tile;
 has_thing:;
 	C3DThing *thing;
         for(thing_idx=0;thing_idx!=do_things->cnt;thing_idx++) {
 	  thing=do_things->body[thing_idx];
 	  if(!thing->no_draw) {
-	    CD2 origin128;
 	    F64 scale=.6;
-	    CD2 st,en,xyhit;
-	    origin128.x=w->x/128;
-	    origin128.y=w->y/128;
 	    if(hit_texture=thing->draw_face) {
 	      h=hit_texture->height/128.*scale;
 	      if(!(Floor(thing->z)<=tz<=h+thing->z+1.))
 		goto next_thing;
-	      st.x=thing->scrn_st.x/128.;
-	      st.y=thing->scrn_st.y/128.;
-	      en.x=thing->scrn_en.x/128.;
-	      en.y=thing->scrn_en.y/128.;
 	      F64 i1=.5,i2=.5;
-	      if(SegmentSegmentIntersect(&xyhit,&origin128,&long,&st,&en,&i1,&i2)) {
-		if(1) {
-		  dist=Sqrt(Sqr(xyhit.x-w->x/128)+Sqr(xyhit.y-w->y/128));
+	      if(SegmentSegmentIntersect(&xyhit,&w->x,&long128,&thing->scrn_st,&thing->scrn_en,&i1,&i2)) {
+//Integer truncation is weird,make sure our hit is in the right tile
+		if(ToI64(xyhit.x/128)==tx&&ToI64(xyhit.y/128)==ty) {
+		  dist=Sqrt(Sqr(xyhit.x-w->x)+Sqr(xyhit.y-w->y))/128.;
 		  h=dist*slope+w->cam_height;
 		  h2=hit_texture->height/128.*scale;
 		  if(thing->z<=h<h2+thing->z) {
@@ -1409,14 +1425,14 @@ has_thing:;
 		    texture_x=ClampI64(i2*hit_texture->width,0,hit_texture->width-1);
 		    color=GrPeek0(hit_texture,texture_x,texture_y);
 		    if(TRANSPARENT!=color) {
-	              dist=Sqrt(Sqr(origin128.x-xyhit.x)+Sqr(origin128.y-xyhit.y))*128.;
+	              dist=Sqrt(Sqr(w->x-xyhit.x)+Sqr(w->y-xyhit.y));
 		      if(dist<hit_dist) {
 			hit=TRUE;
 			hit_dist=dist;
                         if(hit_at) *hit_at=dist;
 		        if(hit_cords) {
-		  	  hit_cords->x=xyhit.x*128;
-			  hit_cords->y=xyhit.y*128;
+		  	  hit_cords->x=xyhit.x;
+			  hit_cords->y=xyhit.y;
 			  hit_cords->z=h;
 		        }
 	                hit_color=Fog(color,dist);
@@ -1447,11 +1463,11 @@ tile:;
         corners[3].x=tx;
         corners[3].y=ty+1;
 
-	origin128.x=w->x/128;
-	origin128.y=w->y/128;
+	origin_d_128.x=w->x/128;
+	origin_d_128.y=w->y/128;
 
         for(thing_idx=0;thing_idx!=4;thing_idx++) {
-          if(SegmentSegmentIntersect(NULL,&corners[thing_idx],&corners[(thing_idx+1)&3],&origin128,&long,&fsegment,&tmp)) {
+          if(SegmentSegmentIntersect(NULL,&corners[thing_idx],&corners[(thing_idx+1)&3],&origin_d_128,&long,&fsegment,&tmp)) {
             nearest=Min(nearest,tmp);
             farest=Max(farest,tmp);
 	    if(nearest==tmp) {
@@ -2304,7 +2320,7 @@ U0 Draw3DWorld(CTask *,CDC *dc) {
 	  f=c-1;
 	else
           f%=c;
-      } else 
+      } else 
         f%=c;
       GrBlot(dc,hand->x+hand->xoff-hand_gr->dc->width/2,hand->y+hand->yoff-hand_gr->dc->height/2,hand_gr->dc+f);
     }
@@ -2502,7 +2518,7 @@ CallScript("init",shell);
 UIShellRun(shell);
 #endif
 #endif
-#endif               
+#endif               
    
 *   ]   g   3   
 )   _   l   ‚   #   '   i   '   !   ‰   k   ‹   '   _   j   [         32 Away from camera    ^      

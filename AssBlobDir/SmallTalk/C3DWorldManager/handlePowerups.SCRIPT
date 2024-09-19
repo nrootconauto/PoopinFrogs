@@ -1,14 +1,31 @@
 handlePowerups ->* |
   p=CPlayer
   things=CFrogArray 
+  do_it=CFrogBlock
+  client=C3DWorldClient
 |
-  p _ self getPlayer .
-  things _ self getThingsInRadiusFromX: p->x fromY: p->y withRadius: 64 .
-  things do: [:pu=C3DThing |
-    (pu hasClass: CPickup ) ifTrue: [
-      'canSeeThing doesnt acount for angles tahnkfully(we are alreadt in radius)' .
-      (pu canSeeThing: p) ifTrue: [
-        pu addToPlayer: p .
-      ].
+  do_it _ [:p=CPlayer|
+    things _ self getThingsInRadiusFromX: p->x fromY: p->y withRadius: 64 .
+    things do: [:pu=CPickup |
+      (pu hasClass: CPickup ) ifTrue: [
+        'canSeeThing doesnt acount for angles tahnkfully(we are alreadt in radius)' .
+        (pu canSeeThing: p) ifTrue: [
+          pu addToPlayer: p .
+          is_server ifTrue: [
+             client sendPickupToClient: pu .
+          ] .          
+        ].
+      ]
     ]
-  ]
+  ] . 
+  is_server ifTrue: [
+    clients do:[:c=C3DWorldClient |
+     client _ c .
+      do_it value: client->player
+    ] .
+  ] ifFalse: [
+    is_client ifFalse: [
+      p _ self getPlayer .
+      do_it value: p .
+    ]
+  ]. 

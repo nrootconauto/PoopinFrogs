@@ -69,7 +69,7 @@ regen:
   Free(filename);
   return data;
 }
-U8 *BlobFileGetLump(U8 *filename=NULL,U8 *name,I64 *len=NULL,U64 *type=NULL) {
+U8 *BlobFileGetLump(U8 *filename=NULL,U8 *name,I64 *len=NULL,U64 *type=NULL) {
   if(!filename) filename=dft_blob_path;
   CLumpHeader *lump;
   U8 *ret=NULL,*ftxt;

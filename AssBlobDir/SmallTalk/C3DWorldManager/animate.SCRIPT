@@ -1,0 +1,7 @@
+animate ->*
+|
+|
+  things do: [:t*|
+   t animate .
+  ] .
+  self updateLines .

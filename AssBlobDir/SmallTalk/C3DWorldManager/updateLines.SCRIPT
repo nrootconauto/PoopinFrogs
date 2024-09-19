@@ -1,0 +1,54 @@
+updateLines ->* |
+  tmp=CFrogArray
+  line=C3DLine
+  line2=C3DLine
+  ps=CPissStream
+  lnb=CLightningBolt
+|
+  '(Temporary)let server do the lines'.
+  (#client hasClass: C3DWorldClient) ifTrue: [
+    ^ 0
+  ] .
+
+  'Send lines to level' .
+  tmp _ #() .
+  things do: [:t* |
+    ((t hasClass: CFrogNPC) or: (t hasClass: CPorky))ifTrue: [
+     tmp add: t->tongue .
+     line _ t->tongue .
+     line->x0 _ t->x .
+     line->y0 _ t->y .
+     line->z0 _ t->z .
+    ].
+    (t hasClass: CAssBird) ifTrue: [
+      lnb _ t->lightning_bol .
+      tmp addAll: lnb->links .
+      1 to: lnb->links size do: [:n=CFrogNum|
+        line _ lnb ->links at: n .
+        line2 _ lnb ->links at: n - 1 .
+        line2->x0 _ line->x .
+        line2->y0 _ line->y .
+        line2->z0 _ line->z .
+      ].
+      tmp addAll: ps->links .
+
+    ]
+    ((t hasClass: CPlayer) or: (t hasClass: CZombie)) ifTrue: [
+      ps _ t->piss_stream .
+      line _ ps->links first .
+      line->x0 _ line->x - line->momx .
+      line->y0 _ line->y - line->momy .
+      line->z0 _ line->z - line->momz .
+      1 to: ps->links size do: [:n=CFrogNum|
+        line _ ps ->links at: n .
+        line2 _ ps ->links at: n - 1 .
+        line->x0 _ line2->x .
+        line->y0 _ line2->y .
+        line->z0 _ line2->z .
+      ].
+      tmp addAll: ps->links .
+    ].
+  ] .
+  lines _ tmp select: [:f*|
+    f hasClass: C3DLine
+  ].

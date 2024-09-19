@@ -4,6 +4,7 @@ tile=CTileTemplate
 texture=CFrogImg
 type=CFrogStr
 array*
+tmp*
 |
   m size <5 ifTrue: [
    'Malformed server response ' show .
@@ -70,6 +71,11 @@ array*
     tile setFloor: texture->name .
   ].
   type = 'Line' ifTrue: [
-    m show .
     #world -> lines _ array .
+  ] .
+  type = 'PkUp' ifTrue: [
+    tmp _ array first .
+'Pickup 'show .
+    tmp->show show .
+    tmp addToPlayer: player .
   ] .

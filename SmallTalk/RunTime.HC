@@ -524,7 +524,7 @@ F64 GetClassMemberValF64(CFrogThing *t,U8 *member) {
        case RT_I16:
          return (t(U8*)+mlst->offset)(I16*)[0];
        case RT_I32:
-         return (t(U8*)+mlst->offset)(I32*)[0];
+         return (t(U8*)+mlst->offset)(I32*)[0];
        case RT_I64:
          return (t(U8*)+mlst->offset)(I64*)[0];
        case RT_F64:
@@ -708,7 +708,7 @@ fin:
     ret=FROG_SMALL_NIL;
   return ret;
 }
-CFrogThing *CallScriptUniverse(I64 who,CFrogThing *self,...) {
+CFrogThing *CallScriptUniverse0(I64 who,CFrogThing *self,I64 argc,I64 *argv) {
   U8* fptr;
   I64 id;
   CFrogThing *ret=NULL;
@@ -738,6 +738,9 @@ fin:
   if(!ret)
     ret=FROG_SMALL_NIL;
   return ret;
+}
+CFrogThing *CallScriptUniverse(I64 who,CFrogThing *self,...) {
+  return CallScriptUniverse0(who,self,argc,argv);
 }
 
 CFrogClass *FrogClassNew(I64 cls_idx) {
@@ -1690,6 +1693,7 @@ CFrogThing *FrogBlobFileReadLump(CFrogBlobFile *f,...) {
     if(data=BlobFileGetLump(blob_name,lump_name)) {
       ret=ConstructThing("CFrogBin");
       ret->data=data;
+      Free(data);
     } 
   }
   Free(lump_name);

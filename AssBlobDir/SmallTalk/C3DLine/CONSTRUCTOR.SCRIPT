@@ -1,0 +1,3 @@
+init | |
+  thick _ 4 .
+  ^ self

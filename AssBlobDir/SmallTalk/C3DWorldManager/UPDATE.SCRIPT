@@ -11,10 +11,11 @@ update ->* |
   line2=C3DLine
 |
   p _ self getPlayer .
-  (#client hasClass: C3DWorldClient) ifTrue: [
+  is_client ifTrue: [
    'Let server do updating '.
     ^ 1 .
   ].
+  self handlePowerups .
   now _ CFrogTime now asSeconds .
   ( last_update + 1 / 10. ) > now ifTrue: [
     ^ 0
