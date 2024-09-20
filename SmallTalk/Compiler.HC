@@ -431,7 +431,7 @@ Bool BlockRefsExternVars(CLocals *l,CAST *ast) {
     if(head->next) {
       for(cur=head->next;cur!=head;cur=cur->next)
         ret|=BlockRefsExternVars(l,cur);
-    }
+    }
   }
 
   if(ast->type==AST_BLOCK) {

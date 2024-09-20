@@ -2437,9 +2437,9 @@ CDC *MakeMinimap1(C3DWorldManager *wm,F64 x,F64 y,F64 angle,I64 radius,F64 heigh
   return DCNew(1,1);
 }
 CFrogThing *WorldPhysics(C3DWorldManager *wm,...) {
-  C3DThing **body=MAllocIdent(w->_2d_things->body),*thing,*player;
+  C3DThing **body=MAllocIdent(wm->things->items->body),*thing,*player;
   player=CallScript("getPlayer",wm);
-  I64 c=w->_2d_things->cnt,idx;
+  I64 c=wm->things->items->cnt,idx;
   F64 t,now=AsF64(FrogTimeNow(FROG_SMALL_NIL)->ts);
 //Heres the deal.
 //If we are a client,we will let the server do the physics on everyting except the player
@@ -2518,7 +2518,7 @@ CallScript("init",shell);
 UIShellRun(shell);
 #endif
 #endif
-#endif               
+#endif               
    
 *   ]   g   3   
 )   _   l   ‚   #   '   i   '   !   ‰   k   ‹   '   _   j   [         32 Away from camera    ^      

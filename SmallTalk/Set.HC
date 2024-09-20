@@ -76,7 +76,7 @@ U0 U8SetAdd(CU8Set *s,I64 v) {
   s->body[s->cnt++]=v;
 }
 
-U0 U8SetAddBytes(CU8Set *s,U8 *body,I64 cnt) {
+U0 U8SetAddBytes(CU8Set *s,U8 *body,I64 cnt) {
   U8 *new;
   if(s->cnt+cnt>=s->cap) {
      s->cap=2*s->cnt+cnt+16;

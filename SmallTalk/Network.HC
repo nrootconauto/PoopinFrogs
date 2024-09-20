@@ -42,9 +42,12 @@ CNetStream *NetStreamSendString(CNetStream *ns,...) {
 AddMethod("CNetStream","sendString:",&NetStreamSendString);
 CNetStream *NetStreamGetLine(CNetStream *ns,...) {
   U8 buf[4048];
+  FrogGarbageCollectUnlock;
   if(0<recvLine(ns->sock,buf,4047,0)) {
+    FrogGarbageCollectLock;
     return FrogStrNew(buf);
   } else {
+    FrogGarbageCollectLock;
     CallScript("close",ns);
     return FROG_SMALL_NIL;
   }
@@ -55,9 +58,11 @@ CNetStream *NetStreamRecvBytes(CNetStream *ns,...) {
   CU8Set *bytes=U8SetNew(frog_mem_task);
   I64 want=AsF64(argv[0]),got;
   U8 buf[2048];
+  FrogGarbageCollectUnlock;
   for(;want>0;) {
     got=recv(ns->sock,buf,MinI64(2048,want),0);
     if(got<=0) {
+      FrogGarbageCollectLock;
       CallScript("close",ns);
       U8SetDel(bytes);
       break;
@@ -65,6 +70,7 @@ CNetStream *NetStreamRecvBytes(CNetStream *ns,...) {
     U8SetAddBytes(bytes,buf,got);
     want-=got;
   }
+  FrogGarbageCollectLock;
 //recv Sleeps which may lead to garbage collection
 //Create the string after we sleep.
   if(want==0) {
@@ -94,7 +100,9 @@ AddMethod("CNetStream","close",&NetStreamClose);
 
 CNetStream *NetStreamAccept(CNetStream *ns,...) {
   U8 buf[4048];
+  FrogGarbageCollectUnlock;
   I64 sock=accept(ns->sock,NULL,0);
+  FrogGarbageCollectLock;
   CNetStream *ret=FROG_SMALL_NIL;
   if(sock>0) {
     ret=ConstructThing("CNetStream");
@@ -109,9 +117,12 @@ CNetStream *NetStreamReadU32(CNetStream *ns,...) {
   U8 buf[4048];
   CFrogThing *t;
   U32 num;
+  FrogGarbageCollectUnlock;
   if(4==recv(ns->sock,&num,4,0)) {
+    FrogGarbageCollectLock;
     return FrogNumNew(num);
   }
+  FrogGarbageCollectLock;
   return FROG_SMALL_NIL;
 }
 AddMethod("CNetStream","getU32",&NetStreamReadU32);
@@ -119,9 +130,12 @@ CNetStream *NetStreamReadI32(CNetStream *ns,...) {
   U8 buf[4048];
   CFrogThing *t;
   I32 num;
+  FrogGarbageCollectUnlock;
   if(4==recv(ns->sock,&num,4,0)) {
+  FrogGarbageCollectLock;
     return FrogNumNew(num);
   }
+  FrogGarbageCollectLock;
   return FROG_SMALL_NIL;
 }
 AddMethod("CNetStream","getI32",&NetStreamReadI32);
@@ -129,9 +143,12 @@ CNetStream *NetStreamReadU8(CNetStream *ns,...) {
   U8 buf[4048];
   CFrogThing *t;
   U8 num;
+  FrogGarbageCollectUnlock;
   if(1==recv(ns->sock,&num,1,0)) {
+    FrogGarbageCollectLock;
     return FrogNumNew(num);
   }
+  FrogGarbageCollectLock;
   return FROG_SMALL_NIL;
 }
 AddMethod("CNetStream","getU8",&NetStreamReadU8);
@@ -144,7 +161,7 @@ CNetStream *NetStreamSendI32(CNetStream *ns,...) {
   send(ns->sock,&num,4,0);
   return FROG_SMALL_NIL;
 }
-AddMethod("CNetStream","sendI32:",&NetStreamSendI32);
+AddMethod("CNetStream","sendI32:",&NetStreamSendI32);
 CNetStream *NetStreamSendU8(CNetStream *ns,...) {
   U8 buf[4048];
   CFrogThing *t;

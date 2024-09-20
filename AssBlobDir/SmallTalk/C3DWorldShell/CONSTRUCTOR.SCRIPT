@@ -178,6 +178,7 @@ init ->* |
          #hand_item altFire .
        ] .
      ] .
+'ANIMATE' show .
      #hand_item animate .
      #world physics .
   ] .

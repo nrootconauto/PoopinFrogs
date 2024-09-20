@@ -63,6 +63,7 @@ receiveThings: data* ->*
     new add: thing .
   ] .
 
+  new add: player .
   w->things _ new .
 
   #old_interpolation_tS _  now .

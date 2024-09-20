@@ -739,7 +739,7 @@ fin:
     ret=FROG_SMALL_NIL;
   return ret;
 }
-CFrogThing *CallScriptUniverse(I64 who,CFrogThing *self,...) {
+CFrogThing *CallScriptUniverse(I64 who,CFrogThing *self,...) {
   return CallScriptUniverse0(who,self,argc,argv);
 }
 
@@ -1579,8 +1579,28 @@ U0 FrogNullifySymbols() {
   }
   FrogEnableScripts;
 }
+I64 gc_lock_cnt=0;
+U0 FrogGarbageCollectLock() {
+//See MultThreaded.HC
+  if(!FramePtr("ThreadSelf")) return;
+  if(FramePtr("ThreadGCLock"))
+    return;
+  FramePtrAdd("ThreadGCLock",1);
+  ++gc_lock_cnt;
+}
+U0 FrogGarbageCollectUnlock() {
+//See MultThreaded.HC
+  if(!FramePtr("ThreadSelf")) return;
+  if(!FramePtr("ThreadGCLock"))
+     return;
+  FramePtrDel("ThreadGCLock");
+  --gc_lock_cnt;
+}
 //Run this on core 0,it will wait for cores to be done
 U0 FrogGarbageCollect(CFrogThing *root=FROG_SMALL_NIL,Bool debug=FALSE) {
+PrintI("collect",gc_lock_cnt);
+  if(gc_lock_cnt)
+    return;
   FrogDisableScripts;
   CFrogThing *head=&allocs_head,*cur,*next;
   for(cur=head->next;cur!=head;cur=cur->next) {

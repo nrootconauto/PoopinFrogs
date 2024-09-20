@@ -2,7 +2,7 @@ sendAttackOfThing: t=C3DThing withDamage: dmg=CFrogNum
 ->* 
 |
 |
-  self sendOutMessage: #(
+  self sendMessage: #(
     (t->x)
     (t->y)
     (t->z)

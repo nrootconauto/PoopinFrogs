@@ -10,18 +10,20 @@ handleMessage: m=CFrogStr forClient: c=C3DWorldClient
   z_pos=CFrogNum
   things=CFrogArray
   best_thing=C3DThing
+  best_dist=CFrogNum
   closest=CFrogBlock
   delegate=CFrogNum
   proj*
 |
   delegate=0 .
+  best_dist _ 100000 .
 
-  closest = [:x=CFrogNum :y=CFrogNum :z=CFrogNum|
-    things _ self getThingsInRadius: 64 atX: x atY: y atZ: z .
+  closest _ [:x=CFrogNum :y=CFrogNum :z=CFrogNum|
+    things _ self getThingsInRadiusFromX: x fromY: y withRadius: 1.5 * 64 .
     best_thing _ things first .
     things do:[:t=C3DThing|
-      (t->x - x + t->y - y + ((t->z - z) *128)) <
-      (best_thing->x - x + best_thing->y - y + ((best_thing->z - z) *128))
+      ((t->x - x) squared + (t->y - y) squared + ((t->z - z) *128) squared ) <
+      best_dist 
         ifTrue: [
          best_thing _ t .
       ].

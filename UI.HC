@@ -701,8 +701,8 @@ skip:
       draw_it=fun->exe_addr;
       (*draw_it)(Fs,dc);
     }
-    if(tick++&15==0)
-      ;//FrogGarbageCollect(FROG_SMALL_NIL);
+//    if(tick++&15==0)
+    FrogGarbageCollect(FROG_SMALL_NIL);
     Refresh;
     if(ThingHasClass(shell->on_refresh,"CFrogBlock"))
       FrogBlockValue(shell->on_refresh);

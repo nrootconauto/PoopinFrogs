@@ -38,7 +38,7 @@ I64 NameToUniverseNumber(U8 *name) {
   if(r=FramePtr(buf,universe_task)) {
     return r;
   }
-  r=universe_cnt++;
+  r=universe_cnt++;
   FramePtrAdd(buf,r);
   I64SetInsAt(universe_names,r,StrNew(name));
   I64SetInsAt(universe_values,r,NULL);

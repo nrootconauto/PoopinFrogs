@@ -483,7 +483,7 @@ U0 STHelpIdx(CDoc *help_doc,U8 *blob_file="../ASS",U8 *method_wildcard="*",Bool 
   for(doc_e=help_doc->head.next;doc_e!=&help_doc->head;doc_e=doc_e->next) {
     if(doc_e->type_u8==DOCT_LINK&&doc_e->de_flags&DOCEF_AUX_STR) {
       if(LK_FILE_ANCHOR==EdLinkCvt(tmp=StrNew(doc_e->aux_str),&filename,&needle,&num)) {
-        if(DocAnchorFind(help_doc,needle)) {
+        if(DocAnchorFind(help_doc,needle)) {
 	  idx=help_doc->cur_entry->y;
 	  help_doc->cur_entry=doc_e;
 	  DocPrint(help_doc,"$$LK\"%Q\",A=\"FL:/SmallTalkHelp.DD,%d\"$$",doc_e->tag,idx);
