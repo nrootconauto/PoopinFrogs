@@ -48,7 +48,7 @@ class CFrogBlock:CFrogThing {
   CFrogThing *self;
   CFrogThing *frame;
   U8 (*fun_ptr)(CFrogThing *self,U8 *);//CSTFrame
-  CI64Set *byte_code;
+  CI64Set *byte_code;
 };
 class CFrogArray:CFrogThing {
   CI64Set *items;
@@ -244,6 +244,7 @@ class C3DThingTemplate:CFrogThing {
 };
 extern class CEliza;
 class C3DThing:CFrogThing {
+  I64  server_id;
   CFrogClass *drop_thing; //CFrogClass
   C3DThingTemplate *template;
   F64 x,y,z,angle,health;
@@ -274,6 +275,7 @@ class C3DThing:CFrogThing {
   CD3 draw_normal; //Private
 };
 class C3DWorldManager:CFrogThing {
+  CFrogArray *free_ids no_serialize 1;
   U8 *world_handle;
   CFrogArray *things recur_serialize 1;
 //See CWallStain mofo

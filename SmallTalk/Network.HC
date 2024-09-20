@@ -107,7 +107,8 @@ CNetStream *NetStreamAccept(CNetStream *ns,...) {
   if(sock>0) {
     ret=ConstructThing("CNetStream");
     ret->sock=sock;
-  }
+  } else
+    CallScript("close",ns);
   return ret;
 }
 AddMethod("CNetStream","accept",&NetStreamAccept);
@@ -122,6 +123,7 @@ CNetStream *NetStreamReadU32(CNetStream *ns,...) {
     FrogGarbageCollectLock;
     return FrogNumNew(num);
   }
+  CallScript("close",ns);
   FrogGarbageCollectLock;
   return FROG_SMALL_NIL;
 }
@@ -135,6 +137,7 @@ CNetStream *NetStreamReadI32(CNetStream *ns,...) {
   FrogGarbageCollectLock;
     return FrogNumNew(num);
   }
+  CallScript("close",ns);
   FrogGarbageCollectLock;
   return FROG_SMALL_NIL;
 }
@@ -148,6 +151,7 @@ CNetStream *NetStreamReadU8(CNetStream *ns,...) {
     FrogGarbageCollectLock;
     return FrogNumNew(num);
   }
+  CallScript("close",ns);
   FrogGarbageCollectLock;
   return FROG_SMALL_NIL;
 }

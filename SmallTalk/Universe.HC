@@ -39,8 +39,8 @@ I64 NameToUniverseNumber(U8 *name) {
     return r;
   }
   r=universe_cnt++;
-  FramePtrAdd(buf,r);
-  I64SetInsAt(universe_names,r,StrNew(name));
+  FramePtrAdd(buf,r,universe_task);
+  I64SetInsAt(universe_names,r,StrNew(name,universe_task));
   I64SetInsAt(universe_values,r,NULL);
   return r;
 }
@@ -49,7 +49,7 @@ I64 UniverseAddClass(U8 *name) {
   if(!universe_values->body[idx]) {
     I64SetInsAt(universe_methods,idx,I64SetNew);
     I64SetInsAt(universe_class_methods,idx,I64SetNew);
-    universe_values->body[idx]=StrNew(name);
+    universe_values->body[idx]=StrNew(name,universe_task);
   }
   return idx;
 }

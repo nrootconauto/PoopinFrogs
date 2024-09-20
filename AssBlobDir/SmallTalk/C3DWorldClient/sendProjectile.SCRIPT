@@ -9,6 +9,7 @@ shootProjectile: type=CFrogClass
 |
 |
   self sendMessage: #(
+    (type)
     (x)
     (y)
     (z)

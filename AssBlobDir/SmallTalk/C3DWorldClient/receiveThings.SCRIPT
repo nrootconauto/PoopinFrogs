@@ -57,6 +57,7 @@ receiveThings: data* ->*
     thing->health _ entry at: 9 .
     thing->animation_no_repeat _ entry at: 10 .
     thing->animation_start_tS _ (entry at: 11) + now .
+    thing->server_id _ entry at: 12 .
 
     w updateThingPos: thing .
 

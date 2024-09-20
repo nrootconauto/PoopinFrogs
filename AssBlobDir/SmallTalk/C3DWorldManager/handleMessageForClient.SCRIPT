@@ -18,14 +18,17 @@ handleMessage: m=CFrogStr forClient: c=C3DWorldClient
   delegate=0 .
   best_dist _ 100000 .
 
-  closest _ [:x=CFrogNum :y=CFrogNum :z=CFrogNum|
-    things _ self getThingsInRadiusFromX: x fromY: y withRadius: 1.5 * 64 .
+'Closest item with ID to point'.
+  closest _ [:x=CFrogNum :y=CFrogNum :z=CFrogNum :id=CFrogNum |
+    things _ self getThingsInRadiusFromX: x fromY: y withRadius: 8 * 64 .
     best_thing _ things first .
     things do:[:t=C3DThing|
       ((t->x - x) squared + (t->y - y) squared + ((t->z - z) *128) squared ) <
       best_dist 
         ifTrue: [
-         best_thing _ t .
+         t ->server_id = id ifTrue: [
+           best_thing _ t .
+         ]
       ].
     ].
     best_thing 
@@ -75,12 +78,14 @@ handleMessage: m=CFrogStr forClient: c=C3DWorldClient
   ] .
   type = 'Damg' ifTrue: [
     'Damage Entity closest to point' .
+    '(x y z dmg server_id)'.
     best_thing _ closest value: array first 
        value: (array at:1)
-       value: (array at:2) .
+       value: (array at:2) 
+       value: (array at:4) .
     'damage' show .
     best_thing show .
-    best_thing damage: array last from: c->player .
+    best_thing damage: (array at: 3) from: c->player .
   ] .
   type = 'EBlC' ifTrue:[
     delegate _ 1 .
@@ -95,7 +100,8 @@ handleMessage: m=CFrogStr forClient: c=C3DWorldClient
      'Pickup item' .
     best_thing _ closest value: array first 
        value: (array at:1)
-       value: (array at:2) .
+       value: (array at:2)
+       value: (array at:3) .
     (best_thing hasClass:CPickup) ifTrue: [
       best_thing addToPlayer: c->player .
       self removeThing: best_thing .
@@ -111,6 +117,7 @@ handleMessage: m=CFrogStr forClient: c=C3DWorldClient
     proj->momx _ array at: 4 .
     proj->momy _ array at: 5 .
     proj->momz _ array at: 6 .
+    proj->angle _ proj->momx arg: proj->momy .
   ] .
 
 

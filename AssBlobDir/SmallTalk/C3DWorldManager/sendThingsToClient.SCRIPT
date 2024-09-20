@@ -24,6 +24,7 @@ sendThingsToClient: c=C3DWorldClient ->*
         t->health
         t->animation_no_repeat
         (t->animation_start_tS - now)
+        t->server_id
       ) .
     ] .
   ] . 

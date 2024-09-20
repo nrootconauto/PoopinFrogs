@@ -16,5 +16,6 @@ init | gx=CFrogNum gy=CFrogNum col=CFrogArray |
   doors _ #() .
   clients _ #().
   lines _ #() .
+  free_ids _ #().
 
   ^ self

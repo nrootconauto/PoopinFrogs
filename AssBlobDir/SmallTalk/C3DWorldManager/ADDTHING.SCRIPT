@@ -1,4 +1,4 @@
-addThing: thing* ->* |
+addThing: thing=C3DThing ->* |
     hash=CFrogNum
     names=CFrogArray
     first=CFrogStr
@@ -75,3 +75,7 @@ addThing: thing* ->* |
   first show .
   thing->chat_bot _ self getQuestChatBot: thing->chat_bot_name .
   self updateThingPos: thing .
+
+  is_server ifTrue: [
+    thing assignID .
+  ]

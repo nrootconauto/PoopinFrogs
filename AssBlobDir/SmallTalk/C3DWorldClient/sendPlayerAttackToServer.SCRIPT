@@ -7,5 +7,7 @@ sendAttackOfThing: t=C3DThing withDamage: dmg=CFrogNum
     (t->y)
     (t->z)
     (dmg)
+    t->server_id
+    (t class name)
   ) withType: 'Damg' .
  
