@@ -1563,7 +1563,6 @@ U0 CompileToHolyC(U8 *src,U8 *class_name,U8 *src_path=NULL,Bool class_method=FAL
   FramePtrAdd("Escapes",0);
   try {
   Bool old=Option(OPTf_WARN_UNUSED_VAR,FALSE);
-  Bool old2=Option(OPTf_NO_REG_VAR,TRUE);
   Bool escapes=FALSE;
   U8 *ret,*fun_name,*tmp;
   static I64 fun_num=0;
@@ -1669,7 +1668,7 @@ U0 CompileToHolyC(U8 *src,U8 *class_name,U8 *src_path=NULL,Bool class_method=FAL
   Free(fun_name);
   LocalsDel(locals);
   Option(OPTf_WARN_UNUSED_VAR,old);
-  Option(OPTf_NO_REG_VAR,old2);
+//  Option(OPTf_NO_REG_VAR,old2);
 //DONE WITH IT
 fin:
   FramePtrDel("ST@@stk_depth");

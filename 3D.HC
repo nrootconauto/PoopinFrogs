@@ -1369,7 +1369,6 @@ I64 GetColorForRay(C3DWorldManager *man,CD3 *ray,F64 dist,F64 *hit_at,CD3 *hit_c
   F64 angle=Arg(ray->z,-ray->x);
   F64 cos=Cos(angle),sin=Sin(angle);
   F64 slope=-ray->y/Sqrt(Sqr(ray->z)+Sqr(ray->x)); //???
-  F64 tan=Tan(angle);
   F64 r_abs_rx=1./Abs(ray->x);
   F64 r_abs_ry=1./Abs(ray->y);
   F64 r_abs_rz=1./Abs(ray->z);
@@ -1410,13 +1409,14 @@ has_thing:;
 	    F64 scale=.6;
 	    if(hit_texture=thing->draw_face) {
 	      h=hit_texture->height/128.*scale;
-	      if(!(Floor(thing->z)<=tz<=h+thing->z+1.))
+	      if(!(Floor(thing->z)<=tz<=h+thing->z))
 		goto next_thing;
 	      F64 i1=.5,i2=.5;
 	      if(SegmentSegmentIntersect(&xyhit,&w->x,&long128,&thing->scrn_st,&thing->scrn_en,&i1,&i2)) {
 //Integer truncation is weird,make sure our hit is in the right tile
 		if(ToI64(xyhit.x/128)==tx&&ToI64(xyhit.y/128)==ty) {
-		  dist=Sqrt(Sqr(xyhit.x-w->x)+Sqr(xyhit.y-w->y))/128.;
+		  dist=i1*VIEW_DIST; //dist/128.
+		  if(dist*128>hit_dist) goto next_thing;
 		  h=dist*slope+w->cam_height;
 		  h2=hit_texture->height/128.*scale;
 		  if(thing->z<=h<h2+thing->z) {
@@ -1425,18 +1425,16 @@ has_thing:;
 		    texture_x=ClampI64(i2*hit_texture->width,0,hit_texture->width-1);
 		    color=GrPeek0(hit_texture,texture_x,texture_y);
 		    if(TRANSPARENT!=color) {
-	              dist=Sqrt(Sqr(w->x-xyhit.x)+Sqr(w->y-xyhit.y));
-		      if(dist<hit_dist) {
-			hit=TRUE;
-			hit_dist=dist;
-                        if(hit_at) *hit_at=dist;
-		        if(hit_cords) {
-		  	  hit_cords->x=xyhit.x;
-			  hit_cords->y=xyhit.y;
-			  hit_cords->z=h;
-		        }
-	                hit_color=Fog(color,dist);
+		      dist*=128.; //Regular dist
+		      hit=TRUE;
+		      hit_dist=dist;
+                      if(hit_at) *hit_at=dist;
+		      if(hit_cords) {
+		  	hit_cords->x=xyhit.x;
+			hit_cords->y=xyhit.y;
+			hit_cords->z=h;
 		      }
+	              hit_color=Fog(color,dist);
 		    }
 		  }
 		}
