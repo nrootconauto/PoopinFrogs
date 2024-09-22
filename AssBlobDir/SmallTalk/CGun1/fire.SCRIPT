@@ -31,6 +31,10 @@ fire ->* |
       inventory_item setCount: ammo .
       dmg _ 10 * CFrogRandom new next + 5 .
       player rangeAttackAtAngle: player->angle withDamage: dmg .
+
+      CWallStain newStainAtX: w screenCoordToX atY: w screenCoordToY atZ: w screenCoordToZ
+        withGraphicsLump: 'GR/GUN1/BULLET_HOLE' .
+
     ] .
   ] .
 

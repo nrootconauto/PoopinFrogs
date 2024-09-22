@@ -1,0 +1,7 @@
+newStainAtX: x=CFrogNum atY: y=CFrogNum atZ: z=CFrogNum
+  withGraphicsLump: lump=CFrogStr
+  ->CWallStain
+|
+|
+  ^ CWallStain newStainAtX: x atY: y atZ: z
+    withGraphicsLump: lump withSpread: 0 . 

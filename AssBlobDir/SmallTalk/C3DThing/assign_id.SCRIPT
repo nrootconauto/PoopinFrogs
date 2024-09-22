@@ -1,0 +1,26 @@
+assignID -> CFrogNum
+|
+  id=CFrogNum
+  ids=CFrogArray
+  cnt=CFrogNum
+|
+  #world -> is_server ifTrue: [
+    'TODOless dumb method of doing this'.
+    (#next_id hasClass: CFrogNum) ifTrue: [
+      #world->free_ids size = 0 ifTrue: [
+        #next_id _ #next_id + 1 .
+        server_id _ #next_id .
+        ^ #next_id
+      ] ifFalse: [
+        id _ #world->free_ids last .
+        #world->free_ids remove: id .
+        server_id _ id .
+        ^ id
+      ] .
+    ] ifFalse: [
+      server_id _ 1 .
+      #next_id _ 1 .
+      ^ 1 .
+    ] .
+  ] .
+  ^ 0 .

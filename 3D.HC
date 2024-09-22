@@ -1024,76 +1024,6 @@ F64 Lerp(F64 per,F64 min,F64 max) {
   return Clamp(per*(max-min)+min,max,min);
 }
 
-CDC *WallStain(C3DWorld *w,I64 tile_idx,F64 h,I64 side,I64 *offx,I64 *offy) {
-  CWallStain **body=w->_wall_stains->body,*stain;
-  I64 idx=w->_wall_stains->cnt,dx,dy,tile_idx2,have;
-  Bool changed=FALSE;
-  while(--idx>=0) {
-    stain=body[idx];
-    if(!stain->dc) goto skip;
-    if(stain->side==side)  {
-      have=stain->tile->x+stain->tile->y*w->world_width;
-      if(tile_idx==have) {
-	*offx=stain->x-stain->center_x;
-	*offy=stain->y+h*GRID_SZ-stain->center_y;
-	return stain->dc;
-      } else {
-	switch(side) {
-	  case 0 ... 1:
-//Hits left/right,so check top/bottom tile
-		dx=0;
-	      tile_idx2=tile_idx+dx;
-	      if(tile_idx2==have) {
-		*offx=stain->x+dx*GRID_SZ-stain->center_x;
-		*offy=stain->y+h*GRID_SZ-stain->center_y;
-		return stain->dc;
-	      }
-	    break;
-	  case 2 ... 3:
-//Hits top/bottom,so check left/right tile
-	      dy=0;
-	      tile_idx2=tile_idx+dy*w->world_width;
-	      if(tile_idx2==have) {
-		*offx=stain->x-stain->center_x+dy*GRID_SZ;
-		*offy=stain->y+h*GRID_SZ-stain->center_y;
-		return stain->dc;
-	      }
-	    break;
-        }
-      }
-    }
-skip:;
-  }
-en:;
-  return NULL;
-}
-CDC *FloorStain(C3DWorld *w,I64 tx,I64 ty,I64 *xoff,I64 *yoff,Bool ceil) {
-  CFloorStain **body=w->_floor_stains->body,*f;
-  I64 idx=w->_floor_stains->cnt;
-  I64 adjx,adjy;
-  while(--idx>=0) {
-    f=body[idx];
-//    if(ThingHasClass(f,"CFloorStain"))
-    if(f->tile_x==tx&&f->tile_y==ty&&f->dc&&ceil==f->is_ceil) {
-      if(xoff) *xoff=f->x-f->center_x;
-      if(yoff) *yoff=f->y-f->center_y;
-      return f->dc;
-    }
-  }
-//Check adjacents
-  idx=w->_floor_stains->cnt;
-  while(--idx>=0) {
-      for(adjx=-1;adjx<=1;adjx+=1)
-        for(adjy=-1;adjy<=1;adjy+=1) {
-          if(f->tile_x==tx+adjx&&f->tile_y==ty+adjy&&f->dc&&ceil==f->is_ceil) {
-  	    if(xoff) *xoff=f->x-f->center_x+adjx*GRID_SZ;
- 	    if(yoff) *yoff=f->y-f->center_y+adjy*GRID_SZ;
-            return f->dc;
-          }
-        }
-  }
-  return NULL;
-}
 //-1 terminated
 //https://github.com/cgyurgyik/fast-voxel-traversal-algorithm/blob/master/overview/FastVoxelTraversalOverview.md
 I64 *GetTilesInPath(C3DWorld *w,F64 angle,F64 dist) {
@@ -1203,9 +1133,11 @@ Bool PreparePlot(C3DThing *t,I64 x,I64 y,I64 z) {
        }
   return TRUE;
 }
+//Also prepares CWallStain's
 U0 PrepareThingsForDraw(C3DWorldManager *wm,F64 thing_scale=.6) {
   CFrogArray *arr=wm->things;WorldManagerThingsInRadius(wm,FrogNumNew(w->x),FrogNumNew(w->y),FrogNumNew(VIEW_DIST*128));
   C3DThing **things=arr->items->body,*thing;
+  CWallStain **stains,*stain;
   I64 cnt=arr->items->cnt,ix,iy,ox,oy;
   F64 normal;
   CDC *hit_texture;
@@ -1243,6 +1175,16 @@ U0 PrepareThingsForDraw(C3DWorldManager *wm,F64 thing_scale=.6) {
 	64
 	);
 skip:;
+  }
+  stains=wm->wall_stains->items->body;
+  cnt=wm->wall_stains->items->cnt;
+  while(--cnt>=0) {
+    stain=stains[cnt];
+    ix=stain->tile_x-w->things_around_camera_origin_x;
+    iy=stain->tile_y-w->things_around_camera_origin_y;
+    if(0<=ix<2*VIEW_DIST)
+      if(0<=iy<2*VIEW_DIST)
+        I64SetAdd(w->things_around_camera[ix][iy],stain);
   }
 }
 I64 ToTile(I64 block) {
@@ -1342,6 +1284,8 @@ Bool SegmentSegmentIntersect(CD2 *hit_at,CD2 *a,CD2 *b,CD2 *a2,CD2 *b2,F64 *t,F6
 #endif
 //https://github.com/cgyurgyik/fast-voxel-traversal-algorithm/blob/master/overview/FastVoxelTraversalOverview.md
 I64 GetColorForRay(C3DWorldManager *man,CD3 *ray,F64 dist,F64 *hit_at,CD3 *hit_cords) {  
+  static I64 thing_id=UniverseAddClass("C3DThing");
+  static I64 stain_id=UniverseAddClass("CWallStain");
   C3DWorld *w=man->world_handle;
   CFrogArray *grid=man->grid;
   CI64Set *do_things;
@@ -1349,6 +1293,8 @@ I64 GetColorForRay(C3DWorldManager *man,CD3 *ray,F64 dist,F64 *hit_at,CD3 *hit_c
   CDoor *door;
   Bool hit=FALSE;
   F64 hit_dist=1e100;
+  CWallStain **wall_stains,*wall_stain;
+  I64 wall_stain_cnt;
   I64 hit_color=-1;
   I64 tx=x,ty=y,idx,tz;
   I64 cnt=dist/128.;  
@@ -1381,6 +1327,7 @@ I64 GetColorForRay(C3DWorldManager *man,CD3 *ray,F64 dist,F64 *hit_at,CD3 *hit_c
   I64 color;
   I64 relx,rely;
   CD2 long,long128,xyhit,origin_d_128;
+  I64 side,ttx,tty;
   long.x=x+VIEW_DIST*cos;
   long.y=y+VIEW_DIST*sin;
   long128.x=long.x*128;
@@ -1405,6 +1352,9 @@ has_thing:;
 	C3DThing *thing;
         for(thing_idx=0;thing_idx!=do_things->cnt;thing_idx++) {
 	  thing=do_things->body[thing_idx];
+	  if(thing&1) goto next_thing;
+	  if(!UniverseIsSubClassOf(thing->universe_class_idx,thing_id))
+	    goto next_thing;
 	  if(!thing->no_draw) {
 	    F64 scale=.6;
 	    if(hit_texture=thing->draw_face) {
@@ -1464,12 +1414,17 @@ tile:;
 	origin_d_128.x=w->x/128;
 	origin_d_128.y=w->y/128;
 
+	side=-1;
         for(thing_idx=0;thing_idx!=4;thing_idx++) {
           if(SegmentSegmentIntersect(NULL,&corners[thing_idx],&corners[(thing_idx+1)&3],&origin_d_128,&long,&fsegment,&tmp)) {
             nearest=Min(nearest,tmp);
             farest=Max(farest,tmp);
 	    if(nearest==tmp) {
-	      segment=fsegment*127;
+	      side=thing_idx;
+	      if(side>=2)
+	        segment=(1.-fsegment)*127;
+	      else
+	        segment=fsegment*127;
 	    }
 	  }
         }
@@ -1492,14 +1447,72 @@ tile:;
 	hit_texture=WhichTexture(w,idx,h,h2,&ath,&hit_wall);
 	F64 hit_dist2;
         if(hit_texture&&AnimDCCnt(hit_texture)) {
+	  if(0<=relx<2*VIEW_DIST)
+	    if(0<=rely<2*VIEW_DIST)
+	      if(cnt=(do_things=w->things_around_camera[relx][rely])->cnt)
+	        goto try_stains;
+	  goto try_block;
+try_stains:;
+          wall_stains=do_things->body;
+	  wall_stain_cnt=cnt;
+	  I64 sidex=0,sidey=0,sidez=0;
+          while(--wall_stain_cnt>=0) {
+	     wall_stain=wall_stains[wall_stain_cnt];
+	     if(thing&1) goto next_thing;
+	     if(!UniverseIsSubClassOf(thing->universe_class_idx,stain_id))
+	       goto next_stain;
+	     if(wall_stain->tile_x==tx&&wall_stain->tile_y==ty&&wall_stain->tile_z==tz) {
+	       if(!hit_wall) {
+		if(slope<0) {
+		  sidez=1;
+		} else
+		  sidez=-1;
+	       } else {
+		switch(side) {
+		  case 0:
+		   sidey=-1;
+		   break;
+		  case 1:
+		   sidex=1;
+		   break;
+		  case 2:
+		   sidey=1;
+		   break;
+		  case 3:
+		   sidex=-1;
+		   break;
+		}
+	       }
+	       if(sidez&&wall_stain->sidez==sidez) {
+ 	          hit_dist2=(ath-w->cam_height)/slope*128;
+		  ttx=hit_dist2*cos+w->x;
+		  tty=hit_dist2*sin+w->y;
+	          dist=hit_dist2;
+		  if(0<=GrPeek(wall_stain->dc,
+			(ttx&127),
+			(tty&127)
+			)<TRANSPARENT) {
+		    color=GrPeek(wall_stain->dc,ttx&127,tty&127);
+		    goto valid_color;
+		  }
+	       } else if((sidex&&wall_stain->sidex==sidex)||(sidey&&wall_stain->sidey==sidey)) {
+ 	          color=GrPeek(wall_stain->dc,segment&127,ToI64(ath*128+texture_y_offset)&127); 
+		  if(0<=color<TRANSPARENT) {
+		    goto valid_color;
+		  }
+	       }
+next_stain:;
+	     }
+          }
+try_block:;
 	  if(hit_wall)  {
  	    color=GrPeek0(hit_texture,segment&127,ToI64(ath*128+texture_y_offset)&127);
 	  } else {
 	    hit_dist2=(ath-w->cam_height)/slope*128;
-	    tx=hit_dist2*cos+w->x;
-	    ty=hit_dist2*sin+w->y;
-	    dist=Sqrt(Sqr(tx-w->x)+Sqr(ty-w->y));
- 	    color=GrPeek0(hit_texture,tx&127,(ty+texture_y_offset)&127);
+	    ttx=hit_dist2*cos+w->x;
+	    tty=hit_dist2*sin+w->y;
+	    dist=hit_dist2;
+ 	    color=GrPeek0(hit_texture,ttx&127,(tty+texture_y_offset)&127);
 	  }
 valid_color:
 	  if(dist<hit_dist) {
@@ -1553,7 +1566,6 @@ CDC *WhichTexture(C3DWorld *w,I64 tile,F64 h,F64 h2,F64 *hit_h,Bool *hit_wall) {
     mx=h2;
     mn=h;
   }
-
   I64 tileh=(tile&255)+I8_MIN;
   have=tileh;
   have2=tileh+1;
@@ -1941,64 +1953,6 @@ U0 WallStainDel(CWallStain *s) {
 //
 // SmallTalk Section
 //
-CFrogThing *FloorStainSetGr(CFloorStain *self,...) {
-  CFrogStr *str=argv[0];
-  F64 angle=AsF64(argv[1]);
-  U8 *name=AsString(str),*raw=BlobFileGetLump("ASS",name);
-  CDC *orig,*rotated;
-  if(raw) {
-    if(self->dc) AnimDCDel(self->dc);
-    orig=AnimDCLoad(raw);
-    rotated=AnimDCNew(orig->width*1.4,orig->height*1.4);
-    self->dc=rotated;
-    rotated->flags|=DCF_TRANSFORMATION;
-    DCFill(rotated,TRANSPARENT);
-    Mat4x4IdentEqu(rotated->r);
-    Mat4x4TranslationAdd(rotated->r,-orig->width/2,-orig->height/2,0);
-    Mat4x4RotZ(rotated->r,angle);
-    Mat4x4TranslationAdd(rotated->r,orig->width/2,orig->height/2,0);
-    GrBlot3(rotated,0,0,0,orig);
-    self->center_x=self->dc->width/2;
-    self->center_y=self->dc->height/2;
-    AnimDCDel(orig);
-    Free(raw);
-  }
-  Free(name);
-  return FROG_SMALL_NIL;
-}
-AddMethod("CFloorStain","setGraphics:atAngle:",&FloorStainSetGr);
-CFrogThing *FloorStainMerge(CFloorStain *self,...) {
-  CFloorStain *other=argv[0];
-  CFloorStain *ret=FROG_SMALL_NIL;
-  if(!ThingHasClass(other,"CFloorStain"))
-    goto fin;
-  if(!self->dc||!other->dc)
-   goto fin;
-  I64 x1=0,y1=0,x2=0,y2=0,
-	xoff=GRID_SZ*(other->tile_x-self->tile_x),
-	yoff=GRID_SZ*(other->tile_y-self->tile_y);
-  x1=MinI64(self->x-self->center_x,xoff+other->x-other->center_x);
-  x2=MaxI64(self->x-self->center_x+self->dc->width,xoff+other->x-other->center_x+other->dc->width);
-  y1=MinI64(self->y-self->center_y,yoff+other->y-other->center_y);
-  y2=MaxI64(self->y-self->center_y+self->dc->height,yoff+other->y-other->center_y+other->dc->height);
-  CDC *new=AnimDCNew(x2-x1+1,y2-y1+1);
-  ret=ConstructThing("CFloorStain");
-  ret->dc=new;
-  ret->x=x1;
-  ret->y=y1;
-  ret->center_x=0;
-  ret->center_y=0;
-  ret->tile_x=self->tile_x;
-  ret->tile_y=self->tile_y;
-  DCFill(new,TRANSPARENT);
-  if(self->dc)
-    GrBlot(new,self->x-self->center_x-x1,self->y-self->center_y-y1,self->dc);
-  if(other->dc)
-    GrBlot(new,xoff+other->x-other->center_x-x1,yoff+other->y-other->center_y-y1,other->dc);
-fin:;
-  return ret;
-}
-AddMethod("CFloorStain","mergeWith:",&FloorStainMerge);
 U0 FloorStainDel(CFloorStain *s) {
   if(s->dc) AnimDCDel(s->dc);
   Free(s);
@@ -2007,47 +1961,24 @@ U0 FloorStainDel(CFloorStain *s) {
 CFrogThing *WallStainSetGr(CWallStain *self,...) {
   CFrogStr *str=argv[0];
   U8 *name=AsString(str),*raw=BlobFileGetLump("ASS",name);
+  I64 x=AsF64(argv[1]),y=AsF64(argv[2]);
+  CDC *loaded;
+  CFrogNum *ret=FrogNumNew(0);
   if(raw) {
-    if(self->dc) AnimDCDel(self->dc);
-    self->dc=AnimDCLoad(raw);
-    self->center_x=self->dc->width/2;
-    self->center_y=self->dc->height/2;
+    if(!self->dc) {
+      self->dc=AnimDCNew(128,128);
+      DCFill(self->dc);
+    }
+    loaded=AnimDCLoad(raw);
+    ret=FrogNumNew(GrBlot(self->dc,x-loaded->width/2,y-loaded->height/2,loaded));
+    AnimDCDel(loaded);
     Free(raw);
   }
   Free(name);
-  return FROG_SMALL_NIL;
-}
-AddMethod("CWallStain","setGraphics:",&WallStainSetGr);
-CFrogThing *WallStainMerge(CWallStain *self,...) {
-  CWallStain *other=argv[0];
-  CWallStain *ret=FROG_SMALL_NIL;
-  if(!ThingHasClass(other,"CWallStain"))
-    goto fin;
-  if(!other->dc||!self->dc)
-    goto fin;
-  I64 x1=0,y1=0,x2=0,y2=0;
-  x1=MinI64(self->x-self->center_x,other->x-other->center_x);
-  x2=MaxI64(self->x-self->center_x+self->dc->width,other->x-other->center_x+other->dc->width);
-  y1=MinI64(self->y-self->center_y,other->y-other->center_y);
-  y2=MaxI64(self->y-self->center_y+self->dc->height,other->y-other->center_y+other->dc->height);
-  CDC *new=AnimDCNew(x2-x1+1,y2-y1+1);
-  ret=ConstructThing("CWallStain");
-  ret->dc=new;
-  ret->x=x1;
-  ret->y=y1;
-  ret->side=self->side;
-  ret->tile=ConstructThing("C2DPoint");
-  ret->tile->x=self->tile->x;
-  ret->tile->y=self->tile->y;
-  DCFill(new,TRANSPARENT);
-  GrBlot(new,self->x-self->center_x-x1,self->y-self->center_y-y1,self->dc);
-  GrBlot(new,other->x-other->center_x-x1,other->y-other->center_y-y1,other->dc);
-fin:;
+PrintI("poopoopoo0",AsF64(ret));
   return ret;
 }
-AddMethod("CWallStain","mergeWith:",&WallStainMerge);
-
-
+AddMethod("CWallStain","addGraphics:atX:atY:",&WallStainSetGr);
 CFrogThing *WorldManagerNewParticle(C3DWorldManager *man,...) {
   F64 x=AsF64(argv[0]);
   F64 y=AsF64(argv[1]);
@@ -2223,7 +2154,6 @@ I64 mp_thing_done=0;
 extern CDC *MakeMinimap1(C3DWorld *w,F64 x,F64 y,F64 angle,I64 radius,F64 height);
 U0 Draw3DWorld(CTask *,CDC *dc) {
   C3DWorldManager *man=FrogSymbol("world")->value;
-  PrintI("c",FrogSymbol("client")->value);
   man->world_handle=w;
   w->_wall_stains=man->wall_stains->items;
   w->_floor_stains=man->floor_stains->items;

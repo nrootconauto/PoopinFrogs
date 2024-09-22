@@ -2,7 +2,6 @@ fire ->CFrogNum |
  cur_ts=CFrogNum
  player=CPlayer
  canidates=CFrogArray 
- wall_hole=CWallStain
  case*
  sz=CFrogNum
  floor_stain=CFloorStain
@@ -12,7 +11,11 @@ fire ->CFrogNum |
  from_angle=CFrogNum
  best_thing*
  w=C3DWorldManager
+ dist=CFrogNum
  dmg=CFrogNum
+ hx=CFrogNum
+ hy=CFrogNum
+ hz=CFrogNum
  |
   w _ #world .
   player _ w getPlayer .
@@ -33,10 +36,16 @@ fire ->CFrogNum |
       inventory_item setCount: ammo .
       canidates _ w thingsInDist: 128 * 64 atAngle: player getAngle fromThing: player .
       w noiseSoundForTime: 200 withMin: 20 withMax: 30 .
+      
+      dist _ w screenCoordToDist .
+
       0 to: 6 do: [
         spread _ CFrogRandom new next - .5  * (3.14 / 16 ) .
         dmg _ 10 * CFrogRandom new next + 5 .
         player rangeAttackAtAngle: player->angle + spread withDamage: dmg .
+
+        CWallStain newStainAtX: w screenCoordToX atY: w screenCoordToY atZ: w screenCoordToZ
+          withGraphicsLump: 'GR/GUN1/BULLET_HOLE' withSpread: spread sin * dist  .
       ]
     ].
   ] .

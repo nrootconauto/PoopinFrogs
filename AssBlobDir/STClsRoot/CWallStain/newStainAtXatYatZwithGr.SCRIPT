@@ -1,0 +1,34 @@
+newStainAtX: x=CFrogNum atY: y=CFrogNum atZ: z=CFrogNum
+  withGraphicsLump: lump=CFrogStr withSpread: sp=CFrogNum
+  ->CWallStain
+|
+  ws=CWallStain
+  coords=CFrogArray
+  stains=CFrogArray
+  r=CFrogRandom
+  sx=CFrogNum
+  sy=CFrogNum
+|
+  stains _ #world -> wall_stains .
+  ws _ CWallStain new .
+  'poop2 ' show.
+  (ws placeAtX: x atY: y atZ: z) ifTrue: [
+    r _ CFrogRandom new .
+    sx _ (r next - .5) * sp * 2 .
+    sy _ (r next - .5) * sp * 2 .
+    sx show .
+    sy show .
+    stains do:[:ws2=CWallStain |
+      ((ws2->tile_x = ws->tile_x and: ws2->tile_y = ws->tile_y)
+        and: ws2->tile_z = ws->tile_z) ifTrue: [
+        ((ws2->sidex = ws->sidex and: ws2->sidey = ws->sidey) and:
+          ws2->sidez = ws->sidez) ifTrue: [
+          ws2 putGraphics: lump atX: ws->center_x + sx atY: ws->center_y + sy .
+          ^ ws2
+        ].
+      ] .
+    ] .
+    ws putGraphics: lump atX: ws->center_x + sx atY: ws->center_y + sy .
+    #world addWallStain:  ws . 
+    ^ ws 
+  ] .

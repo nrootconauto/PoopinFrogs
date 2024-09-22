@@ -4,6 +4,6 @@ addWallStain: s=CWallStain ->*
   color=CFrogNum
   type=CFrogNum
 |
-
- 'TODO '.
+  'TODO' .
+  wall_stains add: s .
   ^ 0 .

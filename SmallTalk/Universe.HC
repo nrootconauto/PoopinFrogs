@@ -109,7 +109,7 @@ loop:;
   }
   return NULL;
 }
-Bool UniverseIsSubClassOf(I64 a,I64 b) {
+Bool UniverseIsSubClassOf(I64 a,I64 b) {
   CI64Set *vec=I64SetGetAt(universe_class_matrix,a);
   I64 answer;
 //empty values are filled  with 0,so be sure to use -1 for failure,and 1 for pass

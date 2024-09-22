@@ -1,0 +1,108 @@
+placeAtX: x=CFrogNum
+  atY: y=CFrogNum
+  atZ: z=CFrogNum
+  ->*
+|
+  tile=CFrogNum
+  fx=CFrogNum
+  fy=CFrogNum
+  fz=CFrogNum
+  cx=CFrogNum
+  cy=CFrogNum
+  cz=CFrogNum
+|
+  x _ x / 128 .
+  y _ y / 128 .
+
+  tile_x _ x floor .
+  tile_y _ y floor .
+  tile_z _ z floor .
+
+
+  fx _ x floor .
+  fy _ y floor .
+  cx _ x ceil .
+  cy _ y ceil .
+
+  sidex _ 0 .
+  sidey _ 0 .
+  sidez _ 0 .
+
+'Account for negative numbers'.
+'Things get weird' .
+  z _ z + 512 . 
+  fz _ z floor .
+  cz _ z ceil .
+
+'poop' show .
+  x show .
+  y show .
+  z show .
+
+  z < (fz + .1) ifTrue: [
+    tile _ #world getTileAtX: tile_x atY: tile_y atZ: tile_z - 1 .
+    tile ifTrue: [
+      sidez _ 1 .
+      center_x _ x * 128 rem: 128 .
+      center_y _ y * 128 rem: 128 .
+      tile_z _ tile_z - 1 .
+      ^ 1 .
+    ]
+  ] .
+ 
+  z > (cz - .1) ifTrue: [
+    tile _ #world getTileAtX: tile_x atY: tile_y atZ: tile_z + 1 .
+    tile ifTrue: [
+      sidez _ -1 .
+      center_x _ x * 128 rem: 128 .
+      center_y _ y * 128 rem: 128 .
+      tile_z _ tile_z + 1 .
+      ^ 1 .
+    ]
+  ] .
+ 
+  x < (fx + .1) ifTrue: [
+    tile _ #world getTileAtX: tile_x - 1 atY: tile_y atZ: tile_z .
+    tile ifTrue: [
+      tile_x _ tile_x - 1 .
+      center_x _ y * 128 rem: 128 .
+      center_y _ z * 128 rem: 128 .
+      sidex _ 1 .
+      ^ 1 .
+    ]
+  ] .
+ 
+  x > (cx - .1) ifTrue: [
+    tile _ #world getTileAtX: tile_x + 1 atY: tile_y atZ: tile_z .
+    tile ifTrue: [
+      center_x _ y * 128 rem: 128 .
+      center_y _ z * 128 rem: 128 .
+      tile_x _ tile_x + 1 .
+      sidex _ -1 .
+      ^ 1 .
+    ]
+  ] .
+ 
+  y < (fy + .1) ifTrue: [
+    tile _ #world getTileAtX: tile_x atY: tile_y - 1 atZ: tile_z .
+    tile ifTrue: [
+      center_x _ x * 128 rem: 128 .
+      center_y _ z * 128 rem: 128 .
+      tile_y _ tile_y - 1 .
+      sidey _ 1 .
+      ^ 1 .
+    ]
+  ] .
+ 
+  y > (cy - .1) ifTrue: [
+    tile _ #world getTileAtX: tile_x atY: tile_y + 1 atZ: tile_z .
+    tile ifTrue: [
+      center_x _ x * 128 rem: 128 .
+      center_y _ z * 128 rem: 128 .
+      tile_y _ tile_y + 1 .
+      sidey _ -1 .
+      ^ 1 .
+    ]
+  ] .
+  
+  ^ 0 .

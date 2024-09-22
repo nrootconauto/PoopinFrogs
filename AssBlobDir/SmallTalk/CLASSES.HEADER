@@ -275,7 +275,7 @@ class C3DThing:CFrogThing {
   CD3 draw_normal; //Private
 };
 class C3DWorldManager:CFrogThing {
-  CFrogArray *free_ids no_serialize 1;
+  CFrogArray *free_ids no_serialize 1;
   U8 *world_handle;
   CFrogArray *things recur_serialize 1;
 //See CWallStain mofo
@@ -338,11 +338,10 @@ class CCeilStain:CFloorStain {
 
 //Things like bullet holes or piss stains on the walls
 class CWallStain:CFrogThing {
-  C2DPoint *tile;
-  I64 side;
-  F64 x,y;
+  I64 tile_x,tile_y,tile_z;
+//sidez==1 for top,sidez==0 for walls,sidez==-1 for floor
+  I64 sidex,sidey,sidez;
   F64 center_x,center_y;
-  I64 is_ceil_wall; //If hits the ceiling wall
  CDC *dc;
   U8 *destroy dft "WallStainDel";
 };
