@@ -1970,12 +1970,11 @@ CFrogThing *WallStainSetGr(CWallStain *self,...) {
       DCFill(self->dc);
     }
     loaded=AnimDCLoad(raw);
-    ret=FrogNumNew(GrBlot(self->dc,x-loaded->width/2,y-loaded->height/2,loaded));
+    ret=FrogNumNew(GrBlot(self->dc,x-loaded->width/2,y-loaded->height/2,loaded));
     AnimDCDel(loaded);
     Free(raw);
   }
   Free(name);
-PrintI("poopoopoo0",AsF64(ret));
   return ret;
 }
 AddMethod("CWallStain","addGraphics:atX:atY:",&WallStainSetGr);

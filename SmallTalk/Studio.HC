@@ -325,7 +325,7 @@ U0 STFindText(CDoc *help_doc,U8 *blob_file="../ASS",U8 *search_text,Bool include
         if(DocAnchorFind(help_doc,needle)) {
 	  idx=help_doc->cur_entry->y;
 	  help_doc->cur_entry=doc_e;
-	  DocPrint(help_doc,"$$LK\"%Q\",A=\"FL:/SmallTalkHelp.DD,%d\"$$",doc_e->tag,idx);
+	  DocPrint(help_doc,"$$LK\"%Q\",A=\"FL:/SmallTalkFind.DD,%d\"$$",doc_e->tag,idx);
 	  DocEntryDel(help_doc,doc_e);
           DocRecalc(help_doc);
         }
@@ -487,7 +487,7 @@ U0 STHelpIdx(CDoc *help_doc,U8 *blob_file="../ASS",U8 *method_wildcard="*",Bool 
 	  idx=help_doc->cur_entry->y;
 	  help_doc->cur_entry=doc_e;
 	  DocPrint(help_doc,"$$LK\"%Q\",A=\"FL:/SmallTalkHelp.DD,%d\"$$",doc_e->tag,idx);
-	  DocEntryDel(help_doc,doc_e);
+	  DocEntryDel(help_doc,doc_e);
           DocRecalc(help_doc);
         }
       }

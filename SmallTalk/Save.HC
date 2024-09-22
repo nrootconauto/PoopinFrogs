@@ -122,7 +122,7 @@ nil:
   } else if(ThingHasClass(have,"CFrogChr")) {
     DocPrint(doc,"-0.%s.CFrogChr:{%d}\n",str,have(CFrogChr*)->ch);
   } else if(ThingHasClass(have,"CFrogClass")) {
-    DocPrint(doc,"-%d.%s.CFrogClass:{%s}\n",have,str,have(CFrogClass*)->name);
+    DocPrint(doc,"-%d.%s.CFrogClass:{%s}\n",have,str,UniverseNumberToName(have>>16));
   } else if(ThingHasClass(have,"CFrogBlock")) {
     goto nil;
   } else if(ThingHasClass(have,"CFrogStr")) {

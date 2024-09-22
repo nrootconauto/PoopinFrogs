@@ -44,6 +44,13 @@ I64 NameToUniverseNumber(U8 *name) {
   I64SetInsAt(universe_values,r,NULL);
   return r;
 }
+
+U8 *UniverseNumberToName(I64 num) {
+  U8 *have=I64SetGetAt(universe_names,num);
+  if(have) return StrNew(have);
+  return NULL;
+}
+
 I64 UniverseAddClass(U8 *name) {
   I64 idx=NameToUniverseNumber(name);
   if(!universe_values->body[idx]) {
@@ -109,7 +116,7 @@ loop:;
   }
   return NULL;
 }
-Bool UniverseIsSubClassOf(I64 a,I64 b) {
+Bool UniverseIsSubClassOf(I64 a,I64 b) {
   CI64Set *vec=I64SetGetAt(universe_class_matrix,a);
   I64 answer;
 //empty values are filled  with 0,so be sure to use -1 for failure,and 1 for pass
@@ -179,7 +186,7 @@ U8 *UniverseConstructThingS(U8 *name) {
   return UniverseConstructThing(idx);
 }
 U0 UniverseDestroyThing(CFrogThing *t) {
-  CUniverseInitPair *p=I64SetGetAt(universe_init_pairs,t->id);
+  CUniverseInitPair *p=I64SetGetAt(universe_init_pairs,t->universe_class_idx);
   if(!p) {Free(t);return NULL;}
   if(p->destroy) (*p->destroy)(t);
   else Free(t);

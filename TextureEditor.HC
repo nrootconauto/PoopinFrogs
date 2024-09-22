@@ -922,7 +922,7 @@ new:
     goto fin;
   }
   StrCpy(write_to,lump_name);
-  _TextureEdit(&dc,blob_file,write_to);
+  _TextureEdit(&dc,blob_file,write_to);
   Free(data);
   data=AnimDCSave(dc,&len);
   BlobFileAddLump(blob_file,write_to,data,len,'GR');
