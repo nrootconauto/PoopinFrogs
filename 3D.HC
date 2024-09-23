@@ -1,3 +1,4 @@
+#define mp_cnt 1
 #include "AnimDC.HC"
 #include "BlobFile.HC"
 #include "SmallTalk/Load.HC"
@@ -11,10 +12,10 @@
 #define FOG0_DIST 8
 #define FOG1_DIST 16
 #define FOG2_DIST 20
-U64 fog0_table[0x10];
-U64 fog1_table[0x10];
-U64 fog2_table[0x10];
-U0 ErectFogTable(U64 *table,I64 fog_color,F64 ratio) {
+U64 fog0_table[0x10][COLORS_NUM];
+U64 fog1_table[0x10][COLORS_NUM];
+U64 fog2_table[0x10][COLORS_NUM];
+U0 ErectFogTable0(U64 *table,I64 fog_color,F64 ratio) {
   CBGR48 palette[COLORS_NUM];
   I64 idx,which;
   F64 r,g,b,dist,best_dist;
@@ -47,10 +48,14 @@ U0 ErectFogTable(U64 *table,I64 fog_color,F64 ratio) {
     table[idx].u8[7]=best_color>>4;
   }
 }
-
-ErectFogTable(fog0_table,BLACK,.75);
-ErectFogTable(fog1_table,BLACK,.5);
-ErectFogTable(fog2_table,BLACK,.25);
+U0 ErectFogTable(U64 *table,F64 ratio) {
+  I64 c;
+  for(c=0;c!=16;c++)
+     ErectFogTable0(&table[c*16],c,ratio);
+}
+ErectFogTable(fog0_table,.75);
+ErectFogTable(fog1_table,.5);
+ErectFogTable(fog2_table,.25);
 U0 FrogImgBlank(CFrogImg *img) {
   img->dc=DCNew(1,1,frog_mem_task);
   img->name=FrogStrNew("");
@@ -112,15 +117,15 @@ CFrogStr *FrogImgFromString(CFrogImg *img,...) {
 AddMethod("CFrogImg","setGraphicsFromString:",&FrogImgFromString);
 
 
-U64 Fog(I64 color,I64 dist) {
+U64 Fog(I64 color,I64 dist,U8 fcolor=BLACK) {
   dist>>=7; //GRID_SZ is 128(7 bits)
   if(dist<=FOG0_DIST)
     return gr.to_8_colors[color];
   if(dist<=FOG1_DIST)
-    return fog0_table[color];
+    return fog0_table[fcolor][color];
   if(dist<=FOG2_DIST)
-    return fog1_table[color];
-  return fog2_table[color];
+    return fog1_table[fcolor][color];
+  return fog2_table[fcolor][color];
 }
 
 Bool IsLiquidTile(I64 t) {
@@ -1283,13 +1288,14 @@ Bool SegmentSegmentIntersect(CD2 *hit_at,CD2 *a,CD2 *b,CD2 *a2,CD2 *b2,F64 *t,F6
 }
 #endif
 //https://github.com/cgyurgyik/fast-voxel-traversal-algorithm/blob/master/overview/FastVoxelTraversalOverview.md
-I64 GetColorForRay(C3DWorldManager *man,CD3 *ray,F64 dist,F64 *hit_at,CD3 *hit_cords) {  
+#define RAY_TRACE_MAX_DEPTH 3
+I64 GetColorForRay(C3DWorldManager *man,CD3 *origin,CD3 *ray,F64 dist,F64 *hit_at,CD3 *hit_cords,I64 depth=0,I64 last_block=0,I64 fog_color=BLACK) { 
   static I64 thing_id=UniverseAddClass("C3DThing");
   static I64 stain_id=UniverseAddClass("CWallStain");
-  C3DWorld *w=man->world_handle;
   CFrogArray *grid=man->grid;
+  C3DWorld *w=man->world_handle;
   CI64Set *do_things;
-  F64 x=w->x/128,y=w->y/128;
+  F64 x=origin->x/128,y=origin->y/128;
   CDoor *door;
   Bool hit=FALSE;
   F64 hit_dist=1e100;
@@ -1303,13 +1309,13 @@ I64 GetColorForRay(C3DWorldManager *man,CD3 *ray,F64 dist,F64 *hit_at,CD3 *hit_c
   I64 stepz=Sign(-ray->y);
   F64 current_x_index=Ceil(x);
   F64 current_y_index=Ceil(y);
-  F64 current_z_index=Ceil(w->cam_height);
+  F64 current_z_index=Ceil(origin->z);
   if(stepx<0) current_x_index--;
   if(stepy<0) current_y_index--;
   if(stepz<0) current_z_index--;
   F64 tMaxX=(current_x_index-x)/ray->z;
   F64 tMaxY=(current_y_index-y)/-ray->x;
-  F64 tMaxZ=(current_z_index-w->cam_height)/-ray->y;
+  F64 tMaxZ=(current_z_index-origin->z)/-ray->y;
   F64 dist2;
   F64 h,h2;
   F64 angle=Arg(ray->z,-ray->x);
@@ -1334,7 +1340,7 @@ I64 GetColorForRay(C3DWorldManager *man,CD3 *ray,F64 dist,F64 *hit_at,CD3 *hit_c
   long128.y=long.y*128;
   tx=x;
   ty=y;
-  tz=Floor(w->cam_height);
+  tz=Floor(origin->z);
   idx=ty*w->world_width+tx;
   for(cur=0;cur!=cnt&&!hit;cur++) {
     if(0<=tx<w->world_width)
@@ -1362,12 +1368,12 @@ has_thing:;
 	      if(!(Floor(thing->z)<=tz<=h+thing->z))
 		goto next_thing;
 	      F64 i1=.5,i2=.5;
-	      if(SegmentSegmentIntersect(&xyhit,&w->x,&long128,&thing->scrn_st,&thing->scrn_en,&i1,&i2)) {
+	      if(SegmentSegmentIntersect(&xyhit,origin,&long128,&thing->scrn_st,&thing->scrn_en,&i1,&i2)) {
 //Integer truncation is weird,make sure our hit is in the right tile
 		if(ToI64(xyhit.x/128)==tx&&ToI64(xyhit.y/128)==ty) {
 		  dist=i1*VIEW_DIST; //dist/128.
 		  if(dist*128>hit_dist) goto next_thing;
-		  h=dist*slope+w->cam_height;
+		  h=dist*slope+origin->z;
 		  h2=hit_texture->height/128.*scale;
 		  if(thing->z<=h<h2+thing->z) {
 		    texture_y=ClampI64((1.-(h-thing->z)/h2)*hit_texture->height,0,hit_texture->height-1);
@@ -1384,7 +1390,7 @@ has_thing:;
 			hit_cords->y=xyhit.y;
 			hit_cords->z=h;
 		      }
-	              hit_color=Fog(color,dist);
+	              hit_color=Fog(color,dist+ToBool(depth)*FOG0_DIST,fog_color);
 		    }
 		  }
 		}
@@ -1397,7 +1403,7 @@ check_tile:;
 //Check for hitting a tile(WhichTexture also accounts for doors)
         texture_y_offset=0; //Ffor Dooors
         idx=(ty*w->world_width+tx)*256+tz-I8_MIN;
-	if(w->world_blocks[idx]) {
+	if(w->world_blocks[idx]!=last_block&&w->world_blocks[idx]) {
 tile:;
 	I64 segment=0;
         CD2 corners[4];
@@ -1411,12 +1417,12 @@ tile:;
         corners[3].x=tx;
         corners[3].y=ty+1;
 
-	origin_d_128.x=w->x/128;
-	origin_d_128.y=w->y/128;
+	origin_d_128.x=origin->x/128;
+	origin_d_128.y=origin->y/128;
 
 	side=-1;
         for(thing_idx=0;thing_idx!=4;thing_idx++) {
-          if(SegmentSegmentIntersect(NULL,&corners[thing_idx],&corners[(thing_idx+1)&3],&origin_d_128,&long,&fsegment,&tmp)) {
+          if(SegmentSegmentIntersect(&xyhit,&corners[thing_idx],&corners[(thing_idx+1)&3],&origin_d_128,&long,&fsegment,&tmp)) {
             nearest=Min(nearest,tmp);
             farest=Max(farest,tmp);
 	    if(nearest==tmp) {
@@ -1434,13 +1440,13 @@ tile:;
           dist2=farest*VIEW_DIST*128;
         }
 
-	if(ToI64(w->x/128)==tx&&ty==ToI64(w->y/128)) {
-	  h=w->cam_height;
-	  h2=slope*(dist2/128.)+w->cam_height;
+	if(ToI64(origin->x/128)==tx&&ty==ToI64(origin->y/128)) {
+	  h=origin->z;
+	  h2=slope*(dist2/128.)+origin->z;
 	}
 	else {
-	  h=slope*(dist/128.)+w->cam_height;
-	  h2=slope*(dist2/128.)+w->cam_height;
+	  h=slope*(dist/128.)+origin->z;
+	  h2=slope*(dist2/128.)+origin->z;
 	}
 	F64 ath=0;
 	Bool hit_wall=FALSE;
@@ -1484,9 +1490,9 @@ try_stains:;
 		}
 	       }
 	       if(sidez&&wall_stain->sidez==sidez) {
- 	          hit_dist2=(ath-w->cam_height)/slope*128;
-		  ttx=hit_dist2*cos+w->x;
-		  tty=hit_dist2*sin+w->y;
+ 	          hit_dist2=(ath-origin->z)/slope*128;
+		  ttx=hit_dist2*cos+origin->x;
+		  tty=hit_dist2*sin+origin->y;
 	          dist=hit_dist2;
 		  if(0<=GrPeek(wall_stain->dc,
 			(ttx&127),
@@ -1505,28 +1511,47 @@ next_stain:;
 	     }
           }
 try_block:;
-	  if(hit_wall)  {
- 	    color=GrPeek0(hit_texture,segment&127,ToI64(ath*128+texture_y_offset)&127);
-	  } else {
-	    hit_dist2=(ath-w->cam_height)/slope*128;
-	    ttx=hit_dist2*cos+w->x;
-	    tty=hit_dist2*sin+w->y;
-	    dist=hit_dist2;
- 	    color=GrPeek0(hit_texture,ttx&127,(tty+texture_y_offset)&127);
+          CD3 new_origin;
+          idx=(ty*w->world_width+tx)*256+tz-I8_MIN;
+	  idx=w->world_blocks[idx];
+	    if(hit_wall)  {
+	      SegmentSegmentIntersect(&xyhit,&corners[side],&corners[(side+1)&3],&origin_d_128,&long,NULL,NULL);
+ 	      color=GrPeek0(hit_texture,segment&127,ToI64(ath*128+texture_y_offset)&127);
+	      //For-recursive
+	      new_origin.x=xyhit.x*128;
+	      new_origin.y=xyhit.y*128;
+	      new_origin.z=ath;
+	    } else {
+	      hit_dist2=(ath-origin->z)/slope*128;
+	      ttx=hit_dist2*cos+origin->x;
+	      tty=hit_dist2*sin+origin->y;
+	      dist=hit_dist2;
+ 	      color=GrPeek0(hit_texture,ttx&127,(tty+texture_y_offset)&127);
+	      //For-recursive
+	      new_origin.x=tty;
+	      new_origin.y=ttx;
+	      new_origin.z=ath;
+	    }
+          if(IsLiquidTile(idx)&&depth<RAY_TRACE_MAX_DEPTH) {
+	    //TODO displace ray based on "wavew"
+	    fog_color=color&0xff;
+	    depth++;
+	    last_block=idx;
+	    goto pass;
 	  }
 valid_color:
 	  if(dist<hit_dist) {
 	    if(hit_cords) {
               //Slightly before our wall(not in wall).
 	      dist=Clamp(dist-2.,0,128*VIEW_DIST);
-	      hit_cords->x=w->x+cos*dist;
-	      hit_cords->y=w->y+sin*dist;
-	      hit_cords->z=slope*(dist/128.)+w->cam_height;
+	      hit_cords->x=origin->x+cos*dist;
+	      hit_cords->y=origin->y+sin*dist;
+	      hit_cords->z=slope*(dist/128.)+origin->z;
 	    }
 	    if(hit_at) *hit_at=dist;
             hit=TRUE;
 	    hit_dist=dist;
-	    hit_color=Fog(color,dist);
+	    hit_color=Fog(color,dist+depth*FOG1_DIST*128,fog_color);
 	  }
         }
 	}
@@ -1553,6 +1578,9 @@ pass:;
     } 
   }
 fin:
+  if(depth&&!hit) {
+    return gr.to_8_colors[fog_color&0xff];
+  }
   return hit_color;
 }
 CDC *WhichTexture(C3DWorld *w,I64 tile,F64 h,F64 h2,F64 *hit_h,Bool *hit_wall) {
@@ -1678,7 +1706,11 @@ $SP,"<1>",BI=1$;
       p->x=w->x+ray.x*I16_MAX;
       p->y=w->y+ray.y*I16_MAX;
       p->z=w->cam_height;
-      color=GetColorForRay(wm,&ray,32*GRID_SZ,&dist,p);
+      CD3 origin;
+      origin.x=w->x;
+      origin.y=w->y;
+      origin.z=w->cam_height;
+      color=GetColorForRay(wm,&origin,&ray,32*GRID_SZ,&dist,p);
       idist=dist;
       idist|=idist<<32;
       if(color!=-1&&w->step_width==2) {
