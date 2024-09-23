@@ -251,6 +251,7 @@ class C3DWorld {
    I64 things_around_camera_origin_x;
    I64 things_around_camera_origin_y;
    CI64Set *things_around_camera[VIEW_DIST*2][VIEW_DIST*2];
+   CI64Set *stains_around_camera[VIEW_DIST*2][VIEW_DIST*2];
 };
 C3DWorld *w;
 extern U0 Draw2DThing(C3DWorld *w,C3DThing *thing);
@@ -1181,6 +1182,16 @@ U0 PrepareThingsForDraw(C3DWorldManager *wm,F64 thing_scale=.6) {
 	);
 skip:;
   }
+
+  //Stains
+  for(ox=0;ox!=2*VIEW_DIST;ox++)
+    for(oy=0;oy!=2*VIEW_DIST;oy++) {
+      if(!w->stains_around_camera[ox][oy])
+	w->stains_around_camera[ox][oy]=I64SetNew;
+      else
+	w->stains_around_camera[ox][oy]->cnt=0;
+    }
+
   stains=wm->wall_stains->items->body;
   cnt=wm->wall_stains->items->cnt;
   while(--cnt>=0) {
@@ -1189,7 +1200,7 @@ skip:;
     iy=stain->tile_y-w->things_around_camera_origin_y;
     if(0<=ix<2*VIEW_DIST)
       if(0<=iy<2*VIEW_DIST)
-        I64SetAdd(w->things_around_camera[ix][iy],stain);
+        I64SetAdd(w->stains_around_camera[ix][iy],stain);
   }
 }
 I64 ToTile(I64 block) {
@@ -1290,8 +1301,6 @@ Bool SegmentSegmentIntersect(CD2 *hit_at,CD2 *a,CD2 *b,CD2 *a2,CD2 *b2,F64 *t,F6
 //https://github.com/cgyurgyik/fast-voxel-traversal-algorithm/blob/master/overview/FastVoxelTraversalOverview.md
 #define RAY_TRACE_MAX_DEPTH 3
 I64 GetColorForRay(C3DWorldManager *man,CD3 *origin,CD3 *ray,F64 dist,F64 *hit_at,CD3 *hit_cords,I64 depth=0,I64 last_block=0,I64 fog_color=BLACK) { 
-  static I64 thing_id=UniverseAddClass("C3DThing");
-  static I64 stain_id=UniverseAddClass("CWallStain");
   CFrogArray *grid=man->grid;
   C3DWorld *w=man->world_handle;
   CI64Set *do_things;
@@ -1358,9 +1367,6 @@ has_thing:;
 	C3DThing *thing;
         for(thing_idx=0;thing_idx!=do_things->cnt;thing_idx++) {
 	  thing=do_things->body[thing_idx];
-	  if(thing&1) goto next_thing;
-	  if(!UniverseIsSubClassOf(thing->universe_class_idx,thing_id))
-	    goto next_thing;
 	  if(!thing->no_draw) {
 	    F64 scale=.6;
 	    if(hit_texture=thing->draw_face) {
@@ -1388,7 +1394,7 @@ has_thing:;
 		      if(hit_cords) {
 		  	hit_cords->x=xyhit.x;
 			hit_cords->y=xyhit.y;
-			hit_cords->z=h;
+			hit_cords->z=h-Sign(slope)*.001;
 		      }
 	              hit_color=Fog(color,dist+ToBool(depth)*FOG0_DIST,fog_color);
 		    }
@@ -1403,7 +1409,8 @@ check_tile:;
 //Check for hitting a tile(WhichTexture also accounts for doors)
         texture_y_offset=0; //Ffor Dooors
         idx=(ty*w->world_width+tx)*256+tz-I8_MIN;
-	if(w->world_blocks[idx]!=last_block&&w->world_blocks[idx]) {
+	if(w->world_blocks[idx]) {
+          if(w->world_blocks[idx]==last_block) goto pass;
 tile:;
 	I64 segment=0;
         CD2 corners[4];
@@ -1452,10 +1459,10 @@ tile:;
 	Bool hit_wall=FALSE;
 	hit_texture=WhichTexture(w,idx,h,h2,&ath,&hit_wall);
 	F64 hit_dist2;
-        if(hit_texture&&AnimDCCnt(hit_texture)) {
+        if(hit_texture) {
 	  if(0<=relx<2*VIEW_DIST)
 	    if(0<=rely<2*VIEW_DIST)
-	      if(cnt=(do_things=w->things_around_camera[relx][rely])->cnt)
+	      if(cnt=(do_things=w->stains_around_camera[relx][rely])->cnt)
 	        goto try_stains;
 	  goto try_block;
 try_stains:;
@@ -1464,9 +1471,6 @@ try_stains:;
 	  I64 sidex=0,sidey=0,sidez=0;
           while(--wall_stain_cnt>=0) {
 	     wall_stain=wall_stains[wall_stain_cnt];
-	     if(thing&1) goto next_thing;
-	     if(!UniverseIsSubClassOf(thing->universe_class_idx,stain_id))
-	       goto next_stain;
 	     if(wall_stain->tile_x==tx&&wall_stain->tile_y==ty&&wall_stain->tile_z==tz) {
 	       if(!hit_wall) {
 		if(slope<0) {
@@ -1512,31 +1516,56 @@ next_stain:;
           }
 try_block:;
           CD3 new_origin;
+          CD3 new_ray;
           idx=(ty*w->world_width+tx)*256+tz-I8_MIN;
 	  idx=w->world_blocks[idx];
 	    if(hit_wall)  {
 	      SegmentSegmentIntersect(&xyhit,&corners[side],&corners[(side+1)&3],&origin_d_128,&long,NULL,NULL);
  	      color=GrPeek0(hit_texture,segment&127,ToI64(ath*128+texture_y_offset)&127);
 	      //For-recursive
-	      new_origin.x=xyhit.x*128;
-	      new_origin.y=xyhit.y*128;
+	      hit_dist2=Sqrt(Sqr(xyhit.x*128-origin->x)+Sqr(xyhit.y*128-origin->y))+2.;
+	      new_origin.x=origin->x+hit_dist2*cos;
+	      new_origin.y=origin->y+hit_dist2*sin;
 	      new_origin.z=ath;
 	    } else {
-	      hit_dist2=(ath-origin->z)/slope*128;
+	      hit_dist2=(ath-origin->z)/slope*128+2.;
 	      ttx=hit_dist2*cos+origin->x;
 	      tty=hit_dist2*sin+origin->y;
 	      dist=hit_dist2;
  	      color=GrPeek0(hit_texture,ttx&127,(tty+texture_y_offset)&127);
 	      //For-recursive
-	      new_origin.x=tty;
-	      new_origin.y=ttx;
-	      new_origin.z=ath;
+	      new_origin.x=ttx;
+	      new_origin.y=tty;
+	      new_origin.z=hit_dist2/128.*slope+origin->z;
 	    }
           if(IsLiquidTile(idx)&&depth<RAY_TRACE_MAX_DEPTH) {
 	    //TODO displace ray based on "wavew"
 	    fog_color=color&0xff;
 	    depth++;
 	    last_block=idx;
+//Weird issues  with exact values
+	    //Snells law
+	    F64 snell_a,snell_a2,normal;
+	    F64 t=tS/30.;
+	    F64 rand_refrac=1.1+.1*(Abs(Sin((t/4.)*200))-Abs(Cos(t*125)))+.3*(Rand-.5)*2;
+	    if(hit_wall) {
+	      normal=(1+side)*pi/2;
+	      snell_a=Arg(origin->x-xyhit.x*128,origin->y-xyhit.y*128)-normal;
+	      snell_a=ASin(Sin(snell_a)/rand_refrac);
+	      snell_a=normal-snell_a+pi;
+	      new_ray.x=Sin(snell_a);
+	      new_ray.y=ray->y*ASin(Sin((pi/2-ATan(slope)))/(rand_refrac+.2));
+	      new_ray.z=-Cos(snell_a);
+	    } else {
+	      normal=pi/2;
+	      snell_a=ATan(slope)-normal;
+	      snell_a=ASin(Sin(snell_a)/rand_refrac);
+	      snell_a=normal-snell_a+pi;
+	      new_ray.x=ray->x;
+	      new_ray.y=-Sin(snell_a);
+	      new_ray.z=ray->z;
+	    }
+	    return GetColorForRay(man,&new_origin,&new_ray,128*VIEW_DIST,hit_at,hit_cords,depth,last_block,fog_color);
 	    goto pass;
 	  }
 valid_color:
@@ -1587,6 +1616,8 @@ CDC *WhichTexture(C3DWorld *w,I64 tile,F64 h,F64 h2,F64 *hit_h,Bool *hit_wall) {
   F64 have,have2;
   F64 mx,mn;
   CDoor *door;
+  I64 cnt;
+  CDC *ret=NULL;
   if(h>h2) {
     mx=h;
     mn=h2;
@@ -1602,24 +1633,30 @@ CDC *WhichTexture(C3DWorld *w,I64 tile,F64 h,F64 h2,F64 *hit_h,Bool *hit_wall) {
   if(Max(mn,have)<=Min(mx,have2)) {
     if(have<=h<=have2) {
       if(hit_h) *hit_h=h;
-      return w->wall_textures[w->world_blocks[tile]];
+      ret=w->wall_textures[w->world_blocks[tile]];
+      goto en;
     }
     if(h>h2) {
 //Looking  Down
       if(h>=have2) {//Hit top
         if(hit_wall) *hit_wall=FALSE;
         if(hit_h)*hit_h=have2;
-        return w->floor_textures[w->world_blocks[tile]];
+        ret=w->floor_textures[w->world_blocks[tile]];
+	goto en;
       }
     }
     if(h<h2) {
       if(h2>=have) {//Hit bottom
         if(hit_wall) *hit_wall=FALSE;
         if(hit_h) *hit_h=have;
-        return w->ceil_textures[w->world_blocks[tile]];
+        ret=w->ceil_textures[w->world_blocks[tile]];
+	goto en;
       }
     }
   }
+en:
+  if(ret&&(cnt=AnimDCCnt(ret)))
+    return ret+ToI64(tS/ANIM_DELAY)%cnt;
   return NULL;
 }
 
