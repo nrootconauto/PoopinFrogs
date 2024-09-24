@@ -24,10 +24,12 @@ newStainAtX: x=CFrogNum atY: y=CFrogNum atZ: z=CFrogNum
         ((ws2->sidex = ws->sidex and: ws2->sidey = ws->sidey) and:
           ws2->sidez = ws->sidez) ifTrue: [
           ws2 putGraphics: lump atX: ws->center_x + sx atY: ws->center_y + sy .
+          'mergee' show .
           ^ ws2
         ].
       ] .
     ] .
+'add' show .
     ws putGraphics: lump atX: ws->center_x + sx atY: ws->center_y + sy .
     #world addWallStain:  ws . 
     ^ ws 

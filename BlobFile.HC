@@ -41,7 +41,7 @@ U8 *GetBlobFileData(U8 *filename=NULL,I64 *len=NULL) {
     filename=dft_blob_path ;
   filename=ExtDft(filename,"BLOB");
   CDirEntry de;
-  U8 *data=NULL;
+  U8 *data=NULL,*fn;
 //Dumb hack,seth_task(on differnt core) has different Fs->cur_dir so use the cached one.
   if(Gs->num) goto force_cache;
 
@@ -58,7 +58,8 @@ force_cache:;
     Free(de.full_name);
 regen:
     Free(blob_file_cache.filename);
-    blob_file_cache.filename=StrNew(de.full_name,blob_file_cache.mem_task);
+    blob_file_cache.filename=StrNew(fn=FileNameAbs(de.full_name),blob_file_cache.mem_task);
+    Free(fn);
     data=FileRead(de.full_name,&blob_file_cache.sz);
     blob_file_cache.data=MAllocIdent(data,blob_file_cache.mem_task);
     blob_file_cache.datetime=de.datetime;
@@ -335,6 +336,7 @@ U0 UndumpBlobFile(U8 *filename,U8 *dir="/Tmp",Bool delete=FALSE) {
   lump_hdr=final->lump_table;
   cnt=0;
   for(cur=finds;cur;cur=cur->next) {
+PrintI(cur->full_name,1);
     tmp=FileRead(cur->full_name,&len);
     MemCpy(final(U8*)+total,tmp,len);
 

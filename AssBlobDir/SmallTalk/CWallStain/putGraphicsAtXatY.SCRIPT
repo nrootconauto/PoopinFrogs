@@ -5,8 +5,36 @@ putGraphics: lump=CFrogStr atX: x=CFrogNum atY: y=CFrogNum
   ws=CWallStain
   inher_props=CFrogBlock
   w=C3DWorldManager
+  getstainXYZ=CFrogBlock
 |
- 
+  getstainXYZ _ [
+    :xx=CFrogNum
+    :yy=CFrogNum
+    :zz=CFrogNum |
+    xx floor show .
+    yy floor show .
+    zz floor show .
+    ws _ 0 .
+    ws _ (w->wall_stains select:[:w=CWallStain |
+      ((((w->tile_x = xx floor and: w->tile_y = yy floor)
+        and: w->tile_z = zz floor) and: w->sidex = sidex)
+        and: w->sidey = sidey)
+        and: w->sidez = sidez
+    ]) first .
+    'have' show .
+    ws show .
+    
+    (ws addGraphics: lump atX: (xx - tile_x) * -128 + x atY: ( yy - tile_y + zz - tile_z ) * -128 + y) ifTrue: [
+      (ws hasClass: CWallStain) ifFalse: [
+        ws _ CWallStain new .
+        inher_props value .
+        w addWallStain: ws .
+      ] .
+      1
+    ] ifFalse: [ 
+      0
+    ]
+  ] .
   inher_props _ [
     ws->tile_x _ tile_x .
     ws->tile_y _ tile_y .
@@ -24,15 +52,12 @@ putGraphics: lump=CFrogStr atX: x=CFrogNum atY: y=CFrogNum
          (w getTileAtX: tile_x + o atY: tile_y atZ: tile_z + oz) ifTrue: [
 'poopieant2' show .             
           o show .
-           ws _ CWallStain new .
-           inher_props value .
-           (ws addGraphics: lump atX:  -128 * o + x atY: -128 * oz +  y) ifTrue: [
+          (getstainXYZ value: tile_x + o value: tile_y + oz value: tile_z ) ifTrue: [
              ws->tile_x _ tile_x + o .
              ws->tile_z _ tile_z + oz .
              'sidex' show .
              o show .
              oz show .
-             w addWallStain: ws .
            ] .
          ] .
       ] .
@@ -41,15 +66,12 @@ putGraphics: lump=CFrogStr atX: x=CFrogNum atY: y=CFrogNum
       -1 to: 2 do: [:o=CFrogNum|
          (w getTileAtX: tile_x atY: tile_y + o  atZ: tile_z + oz) ifTrue: [
 'poopieant3' show .             
-           ws _ CWallStain new .
-           inher_props value .
-           (ws addGraphics: lump atX: -128 * o + x  atY:  -128 * oz + y) ifTrue: [
+           (getstainXYZ value: tile_x + o value: tile_y + oz value: tile_z ) ifTrue: [
              'sidey' show .
              ws->tile_y _ tile_y + o .
              ws->tile_z _ tile_z + oz .
              o show .
              oz show .
-             w addWallStain: ws .
            ] .
          ] .
          
@@ -63,14 +85,9 @@ putGraphics: lump=CFrogStr atX: x=CFrogNum atY: y=CFrogNum
         'sz' show .
         sidez show .
         (w getTileAtX: tile_x + ox atY: tile_y + oy atZ: tile_z) ifTrue: [
-'gassed up' show .
-           ws _ CWallStain new .
-           inher_props value .
-           (ws addGraphics: lump atX: ox * -128 + x atY: oy * -128 + y) ifTrue: [
-'ass ' show .
+           (getstainXYZ value: tile_x + ox value: tile_y + oy value: tile_z ) ifTrue: [
              ws->tile_x _ tile_x + ox .
              ws->tile_y _ tile_y + oy .
-             w addWallStain: ws .
            ] .
          ] .
       ] .

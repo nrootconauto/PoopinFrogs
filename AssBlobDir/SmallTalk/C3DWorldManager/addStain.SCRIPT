@@ -4,6 +4,10 @@ addWallStain: s=CWallStain ->*
   color=CFrogNum
   type=CFrogNum
 |
-  'TODO' .
+  wall_stains size > 64 ifTrue: [
+    wall_stains removeAt: 0 .
+  ] .
+  'wall_stains size' show .
+  wall_stains size show. 
   wall_stains add: s .
   ^ 0 .

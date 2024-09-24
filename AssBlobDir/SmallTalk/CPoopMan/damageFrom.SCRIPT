@@ -1,6 +1,6 @@
 damage: d=CFrogNum from: t=C3DThing ->* ||
   1 to: d / 6 + 5 do:[ 
-    #world newParticleAtX: x atY: y atZ: z + .5 withSpread: 64 withColor: #color_BROWN 
+    #world newParticleAtX: x atY: y atZ: z + .5 withSpread: 64 withColor: #color_BROWN withSplatLump: 'GR/PoopRocket/Splat' .
   ] .
 
   target _  t .

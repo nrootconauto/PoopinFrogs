@@ -1,4 +1,3 @@
-#define mp_cnt 1
 #include "AnimDC.HC"
 #include "BlobFile.HC"
 #include "SmallTalk/Load.HC"
@@ -212,6 +211,7 @@ class C3DParticle:CQue {
   F64 x,y,z,born_at;
   F64 momx,momy,momz;
   I32 color,size;
+  U8 splat_lump_name[STR_LEN];
 };
 
 I64 class CWallCommand {
@@ -256,14 +256,14 @@ class C3DWorld {
 C3DWorld *w;
 extern U0 Draw2DThing(C3DWorld *w,C3DThing *thing);
 #define MAX_PARTICLES 64
-U0 NewParticle(C3DWorld *w,I64 color,I64 sz,F64 x,F64 y,F64 z,F64 mx,F64 my,F64 mz) {
+U0 NewParticle(C3DWorld *w,I64 color,I64 sz,F64 x,F64 y,F64 z,F64 mx,F64 my,F64 mz,U8 *splat_lump_name=NULL) {
   C3DParticle *p;
   if(w->particle_cnt>=MAX_PARTICLES) {
     w->particle_cnt--;
     QueRem(p=w->particles.next);
     Free(p);
   }
-  p=MAlloc(sizeof(C3DParticle),w->mem_task);
+  p=CAlloc(sizeof(C3DParticle),w->mem_task);
   p->color=color;
   p->size=sz;
   p->x=x;
@@ -273,6 +273,8 @@ U0 NewParticle(C3DWorld *w,I64 color,I64 sz,F64 x,F64 y,F64 z,F64 mx,F64 my,F64 
   p->momy=my;
   p->momz=mz;
   p->born_at=Frog_tS;
+  if(splat_lump_name)
+    StrCpy(p->splat_lump_name,splat_lump_name);
   QueIns(p,w->particles.last);
   w->particle_cnt++;
 }
@@ -1547,7 +1549,7 @@ try_block:;
 	    //Snells law
 	    F64 snell_a,snell_a2,normal;
 	    F64 t=tS/30.;
-	    F64 rand_refrac=1.1+.1*(Abs(Sin((t/4.)*200))-Abs(Cos(t*125)))+.3*(Rand-.5)*2;
+	    F64 rand_refrac=1.1+.1*(Abs(Sin((t/4.)*200))-Abs(Cos(t*125)))+.1*(Rand-.5)*2;
 	    if(hit_wall) {
 	      normal=(1+side)*pi/2;
 	      snell_a=Arg(origin->x-xyhit.x*128,origin->y-xyhit.y*128)-normal;
@@ -2058,6 +2060,19 @@ CFrogThing *WorldManagerNewParticle(C3DWorldManager *man,...) {
 }
 
 AddMethod("C3DWorldManager","newParticleAtX:atY:atZ:withSpread:withColor:",&WorldManagerNewParticle);
+CFrogThing *WorldManagerNewParticle2(C3DWorldManager *man,...) {
+  F64 x=AsF64(argv[0]);
+  F64 y=AsF64(argv[1]);
+  F64 z=AsF64(argv[2]);
+  F64 spread=AsF64(argv[3]);
+  F64 color=AsF64(argv[4]);
+  U8 *splat_lump=AsString(argv[5]);
+  NewParticle(w,color,16,x,y,z,spread*(Rand-.5),spread*(Rand-.5),man->gravity*3,splat_lump);
+  Free(splat_lump);
+  return FROG_SMALL_NIL;
+}
+
+AddMethod("C3DWorldManager","newParticleAtX:atY:atZ:withSpread:withColor:withSplatLump:",&WorldManagerNewParticle2);
 CFrogThing *WorldManagerNewSweepSound(C3DWorldManager *man,...) {
   if(man->sound_task) Kill(man->sound_task,FALSE);
   man->sound_task=Sweep(
@@ -2222,6 +2237,7 @@ I64 mp_thing_done=0;
 extern CDC *MakeMinimap1(C3DWorld *w,F64 x,F64 y,F64 angle,I64 radius,F64 height);
 U0 Draw3DWorld(CTask *,CDC *dc) {
   C3DWorldManager *man=FrogSymbol("world")->value;
+  static CFrogClass *ws_class=FrogClassNew(UniverseAddClass("CWallStain"));
   man->world_handle=w;
   w->_wall_stains=man->wall_stains->items;
   w->_floor_stains=man->floor_stains->items;
@@ -2270,19 +2286,32 @@ U0 Draw3DWorld(CTask *,CDC *dc) {
 	  if(p->momz>0.) {
 	    p->momz=0;
 	    p->z=Floor(p->z);
+stain:
+	    if(p->splat_lump_name[0]) {
+	      CallScript("newStainAtX:atY:atZ:withGraphicsLump:withSpread:",ws_class,
+		FrogNumNew(p->x-p->momx),
+		FrogNumNew(p->y-p->momy),
+		FrogNumNew(p->z-p->momz),
+		FrogStrNew(p->splat_lump_name),
+		FrogNumNew(32.)
+		);
+              p->splat_lump_name[0]=0;
+	    }
 	  } else if(p->momz<0.) {
 	    p->z=Ceil(p->z);
 	    p->momz=0.;
+	    goto stain;
 	  }
 	}
       }
     DrawParticle(w,p);
     n=p->next;
     if(Frog_tS>1+p->born_at) {
+
       QueRem(p);
       Free(p);
       w->particle_cnt--;
-    }
+$WW,1$    }
   }
   doors=man->doors->items->body;
   c=man->doors->items->cnt;

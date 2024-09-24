@@ -17,7 +17,8 @@ explode ->CFrogNum
     ]
   ] .
   0 to: 10 do: [
-    #world newParticleAtX: x atY: y atZ: z + .5 withSpread: 128 withColor: #color_BROWN
+    #world newParticleAtX: x atY: y atZ: z + .5 withSpread: 128 withColor: #color_BROWN withSplatLump: 'GR/PoopRocket/Splat'.
   ] .
   #world removeThing: self .
+  CWallStain newStainAtX: x atY: y atZ: z withGraphicsLump: 'GR/PoopRocket/Splat' .
   ^ 1 
