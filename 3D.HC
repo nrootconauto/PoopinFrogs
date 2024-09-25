@@ -1398,7 +1398,8 @@ has_thing:;
 			hit_cords->y=xyhit.y;
 			hit_cords->z=h-Sign(slope)*.001;
 		      }
-	              hit_color=Fog(color,dist+ToBool(depth)*FOG0_DIST,fog_color);
+		      dist2=Sqrt(Sqr((h-origin->z)*128)+Sqr(xyhit.y-origin->y)+Sqr(xyhit.x-origin->x));
+	              hit_color=Fog(color,dist2+ToBool(depth)*FOG0_DIST,fog_color);
 		    }
 		  }
 		}
@@ -1572,6 +1573,7 @@ try_block:;
 	  }
 valid_color:
 	  if(dist<hit_dist) {
+	    dist2=Sqrt(Sqr((slope*(dist/128.)-origin->z)*128)+Sqr(cos*dist)+Sqr(sin*dist));
 	    if(hit_cords) {
               //Slightly before our wall(not in wall).
 	      dist=Clamp(dist-2.,0,128*VIEW_DIST);
@@ -1582,7 +1584,7 @@ valid_color:
 	    if(hit_at) *hit_at=dist;
             hit=TRUE;
 	    hit_dist=dist;
-	    hit_color=Fog(color,dist+depth*FOG1_DIST*128,fog_color);
+	    hit_color=Fog(color,dist2+depth*FOG1_DIST*128,fog_color);
 	  }
         }
 	}
@@ -2059,7 +2061,7 @@ CFrogThing *WorldManagerNewParticle(C3DWorldManager *man,...) {
   return FROG_SMALL_NIL;
 }
 
-AddMethod("C3DWorldManager","newParticleAtX:atY:atZ:withSpread:withColor:",&WorldManagerNewParticle);
+AddMethod("C3DWorldManager","basicNewParticleAtX:atY:atZ:withSpread:withColor:",&WorldManagerNewParticle);
 CFrogThing *WorldManagerNewParticle2(C3DWorldManager *man,...) {
   F64 x=AsF64(argv[0]);
   F64 y=AsF64(argv[1]);
@@ -2072,7 +2074,7 @@ CFrogThing *WorldManagerNewParticle2(C3DWorldManager *man,...) {
   return FROG_SMALL_NIL;
 }
 
-AddMethod("C3DWorldManager","newParticleAtX:atY:atZ:withSpread:withColor:withSplatLump:",&WorldManagerNewParticle2);
+AddMethod("C3DWorldManager","basicNewParticleAtX:atY:atZ:withSpread:withColor:withSplatLump:",&WorldManagerNewParticle2);
 CFrogThing *WorldManagerNewSweepSound(C3DWorldManager *man,...) {
   if(man->sound_task) Kill(man->sound_task,FALSE);
   man->sound_task=Sweep(

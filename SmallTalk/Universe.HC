@@ -81,7 +81,7 @@ loop:;
   if(!set) {return NULL;}
   U8 *ret=I64SetGetAt(set,idx);
   if(ret) {
-    if(set=I64SetGetAt(universe_class_methods,orig))
+    if(set=I64SetGetAt(universe_methods,orig))
       I64SetInsAt(set,idx,ret);
     return ret;
   }

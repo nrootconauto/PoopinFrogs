@@ -1,0 +1,16 @@
+newParticleAtX: x=CFrogNum atY: y=CFrogNum
+  atZ: z=CFrogNum
+  withSpread: s=CFrogNum 
+  withColor: c=CFrogNum 
+->*
+|
+|
+  is_server ifTrue: [
+    clients do: [:cl=C3DWorldClient |
+      cl sendMessage: #(
+        x y z  s c 0
+      ) withType: 'NPrt' .
+    ] . 
+  ] .
+  self basicNewParticleAtX: x atY: y atZ: z withSpread: s
+  withColor: c

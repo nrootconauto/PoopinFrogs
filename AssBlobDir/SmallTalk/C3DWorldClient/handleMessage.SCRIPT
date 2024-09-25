@@ -75,7 +75,13 @@ tmp*
   ] .
   type = 'PkUp' ifTrue: [
     tmp _ array first .
-'Pickup 'show .
-    tmp->show show .
     tmp addToPlayer: player .
+  ] .
+  type = 'NPrt' ifTrue: [
+    #world newParticleAtX: (array at: 0)
+      atY: (array at: 1)
+      atZ: (array at: 2)
+      withSpread: (array at: 3)
+      withColor: (array at: 4)
+      withSplatLump: (array at: 5)
   ] .

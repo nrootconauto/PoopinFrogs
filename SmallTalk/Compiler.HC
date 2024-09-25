@@ -1,7 +1,7 @@
 #ifndef ST_COMPILER_HH
 #define ST_COMPILER_HH 1
 #include "RunTime.HC";
-//#define DEBUG 1
+#define DEBUG 1
 U0 GenerateUselessMethod(U8 *class_name,U8 *method_name,U8 *return_class)  {
   U8 *canon=MStrPrint("METHOD_%s.%s",class_name,method_name);
   U8 *rt=MStrPrint("RET_TYPE_%s.%s",class_name,method_name);

@@ -715,13 +715,14 @@ CFrogThing *CallScriptUniverse0(I64 who,CFrogThing *self,I64 argc,I64 *argv) {
   U8* fptr;
   I64 id;
   CFrogThing *ret=NULL;
-  if(self&FROG_SMALL_CLASS==FROG_SMALL_CLASS) {
+  if(self&0xFFff==FROG_SMALL_CLASS) {
     id=self>>16;
-    fptr=UniverseGetClassMethodForClassByIdx(who,id);   
+    fptr=UniverseGetClassMethodForClassByIdx(who,id);
     if(fptr&&fptr!=&Useless) { //Dumb hack
       ret=CallVaArgs(fptr,argc,argv,self);
       goto fin;
     }
+    goto fin;
   }
   if(!(self&1)) {
     fptr=UniverseGetMethodForClassByIdx(who,self->universe_class_idx);   
@@ -788,7 +789,7 @@ CFrogThing *STSetVar(U8 *self,U8 *name,CFrogThing *val) {
 
 CFrogNum *FrogThingIsKindOf(CFrogThing *obj,CFrogClass *cls) {
   U8 *cname,*ret=FROG_SMALL_NIL;
-  if(cls&FROG_SMALL_CLASS==cls) {
+  if(cls&0xffFF==FROG_SMALL_CLASS) {
     cname=UniverseNumberToName(cls>>16);
     ret=FrogNumNew(ThingHasClass(obj,cname));
     Free(cname);
@@ -1648,7 +1649,7 @@ U32 AsChar(CFrogThing *t) {
 
 //This is temporary,exepct changes
 CFrogThing *FrogThingNew(CFrogClass *cls,...) {
-  if(cls&FROG_SMALL_CLASS!=FROG_SMALL_CLASS) return FROG_SMALL_NIL;
+  if(cls&0xffFF!=FROG_SMALL_CLASS) return FROG_SMALL_NIL;
   return UniverseConstructThing(cls>>16);
 }
 AddClassMethod("CFrogThing","basicNew",&FrogThingNew);
@@ -1660,7 +1661,7 @@ CFrogNum *FrogHasClass(CFrogClass *self,...) {
   } else 
     id=self->universe_class_idx;
   CFrogClass *c=argv[0];
-  if(c&FROG_SMALL_CLASS==FROG_SMALL_CLASS) {
+  if(c&0xffFF==FROG_SMALL_CLASS) {
     return FrogNumNew(UniverseIsSubClassOf(id,c>>16));
   }
   return FROG_SMALL_NIL;
