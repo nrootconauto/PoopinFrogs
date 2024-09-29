@@ -363,8 +363,8 @@ C3DWorld *InitWorld(U8 *blob_file="ASS",F64 fov=pi/2) {
   QueInit(&ret->particles);
   ret->step_width=4; 
   ret->step_width_y=4;
-  ret->world_width=100;
-  ret->world_height=100;
+  ret->world_width=64;
+  ret->world_height=64;
   ret->world_blocks=CAlloc(ret->world_width*ret->world_height*256);
   w=ret;
   QueInit(&ret->_2d_thing_templates);
@@ -506,7 +506,7 @@ I64 PassesThoughBlock(C3DWorld *w,F64 slope,I64 x,I64 y,F64 *dist,F64 cos,F64 si
         biggest=Max(biggest,tmp);
       }
       found=TRUE;
-    }
+    }
   }
   if(dist) {
     if(!far_side)
@@ -2313,7 +2313,7 @@ stain:
       QueRem(p);
       Free(p);
       w->particle_cnt--;
-$WW,1$    }
+    }
   }
   doors=man->doors->items->body;
   c=man->doors->items->cnt;
@@ -2539,7 +2539,7 @@ AddMethod("CTileTemplate","updateTextures",&TileTemplateUpdate);
 //
 //
 #if __CMD_LINE__
-CallScript("newLandscapeWithWidth:withHeight:",FrogSymbol("world")->value,FrogNumNew(100),FrogNumNew(100));
+CallScript("newLandscapeWithWidth:withHeight:",FrogSymbol("world")->value,FrogNumNew(64),FrogNumNew(64));
 C3DWorldShell *shell=ConstructThing("C3DWorldShell");
 CallScript("init",shell);
 UIShellRun(shell);

@@ -115,9 +115,6 @@ U0 SynViewAssist(CDoc *who) {
   CHashClass *cls=NULL;
   LBts(&(Fs->display_flags),DISPLAYf_SHOW);
 
-  //Load method definitions
-  LoadMethodsFromBlob(,TRUE);
-
   if(t=BlobFileGetLump(,ST_ROOT"CLASSES")) {
     ExePutS(t);
     Free(t);
@@ -744,7 +741,7 @@ U0 LoadMethodsFromBlob(U8 *blob_file=NULL,Bool dry_only=FALSE) {
   tmp=BlobFileGetLump(blob_file,ST_ROOT"CLASSES");
   ExePutS(tmp);
   Free(tmp);
-  for(dry=1;dry>=0;dry--) {
+  for(dry=0;dry>=0;dry--) {
     Silent(dry); 
     for(idx=0;idx!=lumps->lump_cnt;idx++) {
       hdr=&lumps->lump_table[idx];
@@ -790,11 +787,12 @@ U0 LoadMethodsFromBlob(U8 *blob_file=NULL,Bool dry_only=FALSE) {
       break;
     }
   }
+  CompilerCacheFlushToDisk;
   Free(lumps);
   Free(blob_file);
 }
 #if __CMD_LINE__
-STStudio;
+STStudio;;
 LoadMethodsFromBlob;
 //STRepl;
 //CDoc *d=DocNew("/WWW/SmallTalkHelp.DD");

@@ -16,30 +16,10 @@ fire ->* |
   step _ 1 .
   ammo ifTrue: [
     timeout < cur_ts ifTrue: [
-      #world sweepSoundForTime: 100 withMin: 80 withMax:95 .
-      rand _ CFrogRandom new .
-      piss_stream _ player getPissStream .
-
-      force _ 80 . 
- 
-      'Make 3 pisses updated with weight for smooter looks' .
-      a _ player getAngle + (3.14 / 100 * rand next )  .
-      0 to: step do: [:v=CFrogNum |
-        piss _ CPissLink new .
-        piss show .
-        piss -> x _  player ->x + (16 * a cos ) .
-        piss -> y _  player ->y + (16 * a sin ) .
-        piss -> z _  player ->z + .3 .
-        a2 _ player->angle2 negated .
-        piss -> momx _  (force * a cos * a2 cos ).
-        piss -> momy _  (force * a sin * a2 cos ).
-        'Its inverse(angle2)' .
-        piss -> momz _  force * a2 sin / 128 .
-        piss -> from _ player .
-        'test if we havent hit the ground ' .
-'        (piss updateWithWeight:  1  / step * ( step - v )  makeParticles: 0) ifTrue: [ '.
-          piss_stream addLink: piss .
-'        ] .'.
+      #world->is_client ifTrue: [
+        #client sendPiss .
+      ] ifFalse: [
+        player piss .
       ] .
       timeout _ cur_ts + .1 .
     ] .

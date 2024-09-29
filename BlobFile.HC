@@ -21,7 +21,8 @@ class CBlobFileCache {
   U8 *filename;
   CTask *mem_task;
   I64 sz;
-} blob_file_cache={0,NULL,NULL,Fs,0};
+  Bool dirty;
+} blob_file_cache={0,NULL,NULL,Fs,0,FALSE};
 U8 *dft_blob_path=__DIR__"/ASS.BLOB";
 
 CLumpHeader *BlobFileGetLumpInfo(CBlobFileHeader *hd,U8 *blob) {
@@ -37,14 +38,16 @@ CLumpHeader *BlobFileGetLumpInfo(CBlobFileHeader *hd,U8 *blob) {
 //This consults the cache
 //DO NOT FREE
 U8 *GetBlobFileData(U8 *filename=NULL,I64 *len=NULL) {
-  if(!filename)
-    filename=dft_blob_path ;
+  if(!filename) {
+    filename=dft_blob_path;
+  }
+  if(!blob_file_cache.dirty)
+    goto force_cache;
   filename=ExtDft(filename,"BLOB");
   CDirEntry de;
   U8 *data=NULL,*fn;
 //Dumb hack,seth_task(on differnt core) has different Fs->cur_dir so use the cached one.
   if(Gs->num) goto force_cache;
-
   if(FileFind(filename,&de)) {
     if(blob_file_cache.filename&&de.datetime<=blob_file_cache.datetime) {
       if(!StrCmp(blob_file_cache.filename,de.full_name)) {
@@ -71,7 +74,8 @@ regen:
   return data;
 }
 U8 *BlobFileGetLump(U8 *filename=NULL,U8 *name,I64 *len=NULL,U64 *type=NULL) {
-  if(!filename) filename=dft_blob_path;
+  if(!filename)
+    filename=dft_blob_path;
   CLumpHeader *lump;
   U8 *ret=NULL,*ftxt;
   filename=ExtDft(filename,"BLOB");
@@ -166,6 +170,7 @@ U0 BlobFileAddLump(U8 *filename=NULL,U8 *name,U8 *data,I64 dlen,U64 type='DATA')
   if(blob_file_cache.filename) {
     ret=FileNameAbs(filename);
     if(!StrCmp(ret,blob_file_cache.filename)) {
+      blob_file_cache.dirty=TRUE;
       blob_file_cache.datetime=0;
     }
     Free(ret);
@@ -359,6 +364,7 @@ PrintI(cur->full_name,1);
   FileWrite(filename,final,total);
   Free(final);
   blob_file_cache.datetime=0;
+  blob_file_cache.dirty=TRUE;
   GetBlobFileData(filename); //Update cache
   DirTreeDel(finds);
   Free(filename); 

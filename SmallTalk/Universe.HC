@@ -2,7 +2,7 @@
 class CUniverseInitPair {
   U8 *blob;
   U8 (*init)(U8*);
-  U8 (*destroy)(U8*);
+  U8 (*destroy)(U8*);
 };
 CTask *universe_task=Fs;
 CI64Set *universe_names=I64SetNew; //U8*
@@ -203,4 +203,7 @@ CFrogSymbol *FrogSymbol0(I64 idx) {
 CFrogSymbol *FrogSymbol(U8 *s) {
   CFrogSymbol *fs=FrogSymbol0(NameToUniverseNumber(s));
   return fs;
+}
+U0 ExeUniverse(U8 *d) {
+  StreamPrint("%d",UniverseAddClass(d));
 }

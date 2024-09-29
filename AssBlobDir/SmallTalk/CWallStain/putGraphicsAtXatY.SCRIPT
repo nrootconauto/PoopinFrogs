@@ -11,9 +11,6 @@ putGraphics: lump=CFrogStr atX: x=CFrogNum atY: y=CFrogNum
     :xx=CFrogNum
     :yy=CFrogNum
     :zz=CFrogNum |
-    xx floor show .
-    yy floor show .
-    zz floor show .
     ws _ 0 .
     ws _ (w->wall_stains select:[:w=CWallStain |
       ((((w->tile_x = xx floor and: w->tile_y = yy floor)
@@ -21,8 +18,6 @@ putGraphics: lump=CFrogStr atX: x=CFrogNum atY: y=CFrogNum
         and: w->sidey = sidey)
         and: w->sidez = sidez
     ]) first .
-    'have' show .
-    ws show .
     
     (ws addGraphics: lump atX: (xx - tile_x) * -128 + x atY: ( yy - tile_y + zz - tile_z ) * -128 + y) ifTrue: [
       (ws hasClass: CWallStain) ifFalse: [
@@ -50,14 +45,9 @@ putGraphics: lump=CFrogStr atX: x=CFrogNum atY: y=CFrogNum
     sidey ifTrue: [
       -1 to: 2 do: [:o=CFrogNum|
          (w getTileAtX: tile_x + o atY: tile_y atZ: tile_z + oz) ifTrue: [
-'poopieant2' show .             
-          o show .
           (getstainXYZ value: tile_x + o value: tile_y + oz value: tile_z ) ifTrue: [
              ws->tile_x _ tile_x + o .
              ws->tile_z _ tile_z + oz .
-             'sidex' show .
-             o show .
-             oz show .
            ] .
          ] .
       ] .
@@ -65,13 +55,9 @@ putGraphics: lump=CFrogStr atX: x=CFrogNum atY: y=CFrogNum
     sidex ifTrue: [
       -1 to: 2 do: [:o=CFrogNum|
          (w getTileAtX: tile_x atY: tile_y + o  atZ: tile_z + oz) ifTrue: [
-'poopieant3' show .             
            (getstainXYZ value: tile_x + o value: tile_y + oz value: tile_z ) ifTrue: [
-             'sidey' show .
              ws->tile_y _ tile_y + o .
              ws->tile_z _ tile_z + oz .
-             o show .
-             oz show .
            ] .
          ] .
          
@@ -82,8 +68,6 @@ putGraphics: lump=CFrogStr atX: x=CFrogNum atY: y=CFrogNum
   sidez ifTrue: [
     -1 to: 2 do:[:ox=CFrogNum |
       -1 to: 2  do:[:oy=CFrogNum |
-        'sz' show .
-        sidez show .
         (w getTileAtX: tile_x + ox atY: tile_y + oy atZ: tile_z) ifTrue: [
            (getstainXYZ value: tile_x + ox value: tile_y + oy value: tile_z ) ifTrue: [
              ws->tile_x _ tile_x + ox .

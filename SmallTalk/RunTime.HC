@@ -1099,7 +1099,6 @@ CFrogStr *FrogStrCopyFrom(CFrogStr *a,...) {
   U8SetAddBytes(arr->items,a->items->body+from,to-from);
   return arr;
 }
-
 #exe {
 //Char
   ConstructBuiltin("FrogChrIsAlNum(self)","CFrogChr","CFrogNum","isAlphaNumeric");
@@ -1776,7 +1775,6 @@ CFrogThing *CallMethodWithArgs(CFrogThing *self,...) {
   return ret;
 }
 AddClassMethod("CFrogThing","callMethod:withArguments:",&CallMethodWithArgs);
-
 #exe{Cd(__DIR__);}; //???
 #include "Network.HC";
 #include "MultiThread.HC";

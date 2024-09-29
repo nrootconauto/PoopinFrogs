@@ -1,0 +1,8 @@
+sendPiss ->*
+|
+| 
+'PIIS222' show .
+  self sendMessage: #(
+    player -> angle
+    player -> angle2
+  ) withType: 'Piss' .

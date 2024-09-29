@@ -41,6 +41,7 @@ handleMessage: m=CFrogStr forClient: c=C3DWorldClient
   type _ m copyFrom: 0 to: 4 .
   m _ m copyFrom: 5 to: m size .
   array _ m restoreThing .
+  type show .
   type = 'PBlk' ifTrue: [
     'Place block ' .
     'Use 0 for remove block' . 
@@ -50,6 +51,13 @@ handleMessage: m=CFrogStr forClient: c=C3DWorldClient
       atZ: (array at: 3) .
     delegate _ 1 .
   ] . 
+  type = 'Piss' ifTrue:[
+    p _ c->player .
+    p->angle _ array first .
+    p->angle2 _ array at: 1 .
+'piis' show .
+    p piss . 
+  ] .
   type = 'PThg' ifTrue:[
     'Place aThing'.
     thing _ (CFrogClass fromString: array first) new .

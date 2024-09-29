@@ -1,7 +1,100 @@
 #ifndef ST_COMPILER_HH
 #define ST_COMPILER_HH 1
 #include "RunTime.HC";
-#define DEBUG 1
+//#define DEBUG 1
+#define C_CACHE_DOC "/STCompilerCache.DD"
+#define C_CACHE_DIR "/STCompilerCacheDir"
+CDoc *cache_doc=DocRead(C_CACHE_DOC);
+U8 *SanePath(U8 *path) {
+  CDoc *sane=DocNew;
+  I64 i,l;
+  sane->flags|=DOCF_NO_CURSOR;
+  l=StrLen(path);
+  for(i=0;i!=l;i++) {
+    if(!Bt(char_bmp_filename,path[i])&&path[i]!='/')
+      DocPrint(sane,"X%2X",path[i]);
+    else
+      DocPrint(sane,"%c",path[i]);
+  }
+  path=DocSave(sane);
+  DocDel(sane);
+  return path;
+}
+U0 CompilerCacheFlushToDisk() {
+  DocWrite(cache_doc);
+}
+Bool CompilerCacheGet(U8 *path) {
+  path=SanePath(path);
+  Bool ret=FALSE;
+  U8 *fn;
+  U8 *lump=BlobFileGetLump(,path),*tmp,*have;
+  if(!lump) {
+    Free(path);
+    return FALSE;
+  }
+  I64 h=HashStr(lump);
+  tmp=MStrPrint("Cache/%s/%d/Old",path,h);
+  if(fn=DocTreeExe(cache_doc,tmp)) {
+    if(have=FileRead(fn))  {
+      if(StrCmp(have,lump)) {
+	Free(have);
+	goto fail;
+      }
+      Free(have);
+      
+      Free(tmp);
+      tmp=MStrPrint("Cache/%s/%d/Cache",path,h);
+      Free(fn);
+      if(have=FileRead(fn=DocTreeExe(cache_doc,tmp))) {
+        ret=Silent(0);
+        ExePutS2(have);
+        Silent(ret);
+	Free(have);
+        ret=TRUE;
+      }
+    }
+  }
+fail:;
+  Free(fn);
+  Free(lump);
+  Free(tmp);
+  Free(path);
+  return ret;
+}
+U0 CompilerCacheSet(U8 *path,U8 *flat) {
+  path=SanePath(path);
+  U8  *tmp,*fn,*lump;  
+  I64 h;
+  if(!FileFind(C_CACHE_DIR))
+    DirMk(C_CACHE_DIR);
+
+  if(flat&&tmp) {
+    lump=BlobFileGetLump(,path);
+    if(!lump) {
+      Free(path);
+      return;
+    }
+    h=HashStr(lump);
+
+    tmp=MStrPrint("Cache/%s/%d/Old",path,h);
+    fn=MStrPrint(C_CACHE_DIR"/%X.%X.TXT",HashStr(path),h);
+    DocTreeWrite(cache_doc,tmp,FALSE,"StrNew(\"%Q\");\n",fn);
+    FileWrite(fn,lump,StrLen(lump));
+    Free(tmp);
+    Free(fn);
+    Free(lump);
+
+    fn=MStrPrint(C_CACHE_DIR"/%X.%X.HC",HashStr(path),h);
+    
+    tmp=MStrPrint("Cache/%s/%d/Cache",path,h);
+    DocTreeWrite(cache_doc,tmp,FALSE,"StrNew(\"%Q\");\n",fn);
+    FileWrite(fn,flat,StrLen(flat));
+    Free(fn);
+    Free(tmp);
+  }
+  Free(path);
+}
+
 U0 GenerateUselessMethod(U8 *class_name,U8 *method_name,U8 *return_class)  {
   U8 *canon=MStrPrint("METHOD_%s.%s",class_name,method_name);
   U8 *rt=MStrPrint("RET_TYPE_%s.%s",class_name,method_name);
@@ -198,54 +291,19 @@ U8 *ClassHasMethod(U8 *cn,U8 *method) {
 //Returns classname that has the method or NULL.
 U8 *VarHasMethod(CLocals *l,U8 *var,U8 *method) {
   U8 *cn=VarClassName(l,var);
-  return ClassHasMethod(cn,method);
+  return ClassHasMethod(cn,method);
 }
 U0 GenerateMethodCall(CDoc *doc,U8 *into=NULL,U8 *class_name,U8 *method_name,I64 stk_index,I64 argc,Bool check=TRUE) {
-  CHashGeneric *gen;
-  CHashFun *fun;
   I64 idx,off;
-//See AddMethod
-  U8 *canon=MStrPrint("METHOD_%s.%s",class_name,method_name),*rc;
-  U8 *call_str=StrNew("(*fun_ptr)(");
-  if(!FramePtr(canon)) {
-    FramePtrAdd(canon,&Useless);
-  }
-  gen=HashFind(canon,Fs->hash_table,HTT_FRAME_PTR);
-//Checking numbers will be too tiresome
-  if(gen->user_data0!=&Useless) {
-    if(fun=FunSegFind(gen->user_data0,&off)) {
-      //Check for function name
-      if(!off) {
-	Free(call_str);
-	call_str=MStrPrint("%s(",fun->str);
-        goto enter;
-      }
-    }
-    DocPrint(doc,"fun_ptr=%d; /* %s */ \n",gen->user_data0,method_name);
-  } else
-    DocPrint(doc,"fun_ptr=%d(I64**)[0]; /* %s */ \n",&gen->user_data0,method_name);
-  
-enter:
-  if(StrCmp("CFrogNum",class_name)||check) {
-    DocPrint(doc,"if(!ThingHasClass2(%s,%d)) %s=FROG_SMALL_NIL; else %s=%s",
-	StackFrame2Var(stk_index),
-	UniverseAddClass(class_name),
-	into,
-	into,
-	call_str);
-  } else {
-    DocPrint(doc,"%s=%s",into,call_str);
-  }
-  Free(canon);
+  DocPrint(doc,"%s=CallScriptUniverse(#exe {ExeUniverse(\"%Q\");},",into,method_name);
   for(idx=0;idx!=argc;idx++)
     if(!idx)
       DocPrint(doc,"%s",StackFrame2Var(stk_index+idx));
     else
       DocPrint(doc,",%s",StackFrame2Var(stk_index+idx));
   DocPrint(doc,");\n");
-  Free(call_str);
 }
-CLocals *GenerateLocalsFromMethod(CMethod *method,U8 *for_class) {
+CLocals *GenerateLocalsFromMethod(CMethod *method,U8 *for_class,CDoc *ins_into=NULL) {
   CLocals *ret=CAlloc(sizeof CLocals);
   static I64 cnt=0;
   CDoc *dummy=DocNew;
@@ -307,11 +365,16 @@ CLocals *GenerateLocalsFromMethod(CMethod *method,U8 *for_class) {
   }
   ret->raw_mask=mask;
   DocPrint(dummy,"};\n");
-  ExeDoc(dummy);
+  if(ins_into) {
+    DocTop(ins_into);
+    DocInsDoc(ins_into,dummy);
+    DocBottom(ins_into);
+  } else 
+    ExeDoc(dummy);
   DocDel(dummy);
   return ret;
 }
-CLocals *GenerateLocalsFromThunk(CAST *thunk) {
+CLocals *GenerateLocalsFromThunk(CAST *thunk,CDoc *ins_into=NULL) {
   CLocals *ret=CAlloc(sizeof CLocals);
   static I64 cnt=0;
   U8 *tmp;
@@ -342,7 +405,12 @@ CLocals *GenerateLocalsFromThunk(CAST *thunk) {
   }
   DocPrint(dummy,"};\n");
   ret->raw_mask=mask;
-  ExeDoc(dummy);
+  if(ins_into) {
+    DocTop(ins_into);
+    DocInsDoc(ins_into,dummy);
+    DocBottom(ins_into);
+  } else 
+    ExeDoc(dummy);
   DocDel(dummy);
   return ret;
 }
@@ -591,7 +659,7 @@ U0 ReplaceElem(CDoc *doc,CDocEntry *ent,U8 *with,...) {
   Free(with);
 }
 
-U8 *CompileThunk(CAST *block,CLocals *parent=NULL) {
+U8 *CompileThunk(CAST *block,CLocals *parent=NULL,CDoc *ins_into=NULL) {
   static I64 thunk_cnt=0;
   U8 *ret,*tmp;
   I64 idx,thunk_idx=thunk_cnt++;
@@ -613,7 +681,7 @@ U8 *CompileThunk(CAST *block,CLocals *parent=NULL) {
 #endif
   Bool escapes=FramePtr("Escapes");
   CDocEntry *replace,*frame;
-  CLocals *locals=GenerateLocalsFromThunk(block);
+  CLocals *locals=GenerateLocalsFromThunk(block,ins_into);
   locals->next=parent;
   CAST *var,*head;
   FramePtrAdd("ST@@stk_depth",0);
@@ -676,7 +744,12 @@ static I64 pass=0,fail=0;
 #ifdef DEBUG
   DocWrite(doc);
 #endif
-  ExePutS(ret);
+  if(ins_into) {
+    DocTop(ins_into);
+    DocInsDoc(ins_into,doc);
+    DocBottom(ins_into);
+  } else 
+    ExePutS(ret);
   Free(ret);
   DocDel(doc);
   FramePtrDel("ST@@stk_depth");
@@ -717,7 +790,7 @@ try_class:
   }
 //TODO static return-type of method
   I64 idx;
-  DocPrint(doc,"  retval=CallScriptUniverse(%d,\n",NameToUniverseNumber(op));
+  DocPrint(doc,"  retval=CallScriptUniverse(#exe {ExeUniverse(\"%Q\");},\n",op);
 args:
   DocPrint(doc,"%s\n",StackFrame2Var(stack_depth));
   for(idx=0;idx<cnt;idx++) {
@@ -839,7 +912,7 @@ U0 NumPrimDft(CDoc *doc,CLocals *l,CAST *ast,I64 stack_depth) {
 ///  if(cls_name=ClassHasMethod("CFrogNum",ast->name))
 //    GenerateMethodCall(doc,"retval",cls_name,ast->name,stack_depth,QueCnt(&ast->args),FALSE);
 //  else
-    DocPrint(doc,"CallScriptUniverse(%d,\n",NameToUniverseNumber(ast->name));
+    DocPrint(doc,"CallScriptUniverse(#exe {ExeUniverse(\"%Q\");},\n",ast->name);
   for(cur=head->next;cur!=head;cur=cur->next) {
     DocPrint(doc,"FrogNumNew(");
     CompileAST(doc,cur,l,stack_depth,,TRUE);
@@ -971,7 +1044,6 @@ U0 CompileAST(CDoc *doc,CAST *ast,CLocals *locals,I64 stack_depth,I64 jump_to=IN
   }
   if(ast->type!=AST_STACK_TEMPORARY)
     if(ast->compiled++) {
-      DocInsDoc(,doc);
       idx=64;
       while(--idx>=0) "%P\n",Caller(idx);
       throw('AST2');
@@ -1296,7 +1368,7 @@ prim_skip:
       break;case AST_SYMBOL:
       ast->switch_num=ast_case_num++;
       DocPrint(doc,"L%d:\n",ast->switch_num);
-      DocPrint(doc,"  %s=FrogSymbol0(%d)->value;\n",StackFrame2Var(stack_depth),NameToUniverseNumber(ast->name));
+      DocPrint(doc,"  %s=FrogSymbol0(#exe {ExeUniverse(\"%Q\");})->value;\n",StackFrame2Var(stack_depth),ast->name);
       break;case AST_KEYWORD:
       cnt=StrOcc(ast->op_name,':');
       goto pass;
@@ -1309,7 +1381,7 @@ prim_skip:
         DocPrint(doc,"");
         if(STIsSelfMember(locals,cur->name)) {
 	  mlst=MemberFind(cur->name,HashFind(FramePtr("MethodClass"),frog_mem_task->hash_table,HTT_CLASS));
-	  DocPrint(doc,"(ToI64(self)+%d)(%s*)[0]=",mlst->offset,raw_class_name);
+	  DocPrint(doc,"self(%s*)->%s=\n",FramePtr("MethodClass"),mlst->str);
         } else {
 	  STGetLocal(doc,locals,cur->name);
 	  DocPrint(doc,"(%s)=",raw_class_name);
@@ -1322,12 +1394,12 @@ prim_skip:
       DocPrint(doc,"L%d:\n",ast->switch_num);
       if(cur->type==AST_SYMBOL) {
         CompileAST(doc,ast->args.last,locals,stack_depth);
-        DocPrint(doc,"\n  FrogSymbol0(%d)->value=%s;\n",NameToUniverseNumber(cur->name),StackFrame2Var(stack_depth));
+        DocPrint(doc,"\n  FrogSymbol0(#exe {ExeUniverse(\"%Q\");})->value=%s;\n",cur->name,StackFrame2Var(stack_depth));
       } else if(cur->type==AST_VAR) {      
         CompileAST(doc,ast->args.last,locals,stack_depth);
         if(STIsSelfMember(locals,cur->name)) {
 	  mlst=MemberFind(cur->name,HashFind(FramePtr("MethodClass"),frog_mem_task->hash_table,HTT_CLASS));
-	  DocPrint(doc,"  tmp=ToI64(self)+%d;\n",mlst->offset);
+	  DocPrint(doc,"  tmp=&(self(%s*)->%s);\n",FramePtr("MethodClass"),mlst->str);
 	  if(STIsRawMember(locals,cur->name))
 	    goto assign_raw;
 	  goto assign_st;
@@ -1356,16 +1428,16 @@ assign_raw:
         cur=cur->args.next; //AST_MEMBER
         DocPrint(doc,"FrogThingLock(%s);\n",StackFrame2Var(stack_depth));
         if(HashFind(cur->var_class_name,Fs->hash_table,HTT_CLASS)) { 
-	  DocPrint(doc,"if(ThingHasClass2(%s,%d)) /* %s */ {\n",StackFrame2Var(stack_depth),UniverseAddClass(cur->var_class_name),cur->var_class_name);
+	  DocPrint(doc,"if(ThingHasClass2(%s,#exe {ExeUniverse(\"%Q\");})) /* %s */ {\n",StackFrame2Var(stack_depth),cur->var_class_name,cur->var_class_name);
 	  mlst=MemberFind(cur2->name,HashFind(cur->var_class_name,Fs->hash_table,HTT_CLASS));
 	  if(mlst) {
 	    if(mlst->member_class->ptr_stars_cnt==0) {
 	      raw_class_name=mlst->member_class->str;
-	      DocPrint(doc,"(ToI64(%s)+%d)(%s*)[0]=AsF64(%s);",StackFrame2Var(stack_depth),mlst->offset,raw_class_name,StackFrame2Var(stack_depth+1));
+	      DocPrint(doc,"%s(%s*)->%s=AsF64(%s);",StackFrame2Var(stack_depth),cur->var_class_name,mlst->str,StackFrame2Var(stack_depth+1));
 	      StrCpy(ast->var_class_name,"CFrogNum");
 	    } else if(mlst->member_class->ptr_stars_cnt==1) {
 //TODO check for class
-	      DocPrint(doc,"(ToI64(%s)+%d)(CFrogThing**)[0]=%s;",StackFrame2Var(stack_depth),mlst->offset,StackFrame2Var(stack_depth+1));
+	      DocPrint(doc,"%s(%s*)->%s=%s;",StackFrame2Var(stack_depth),cur->var_class_name,mlst->str,StackFrame2Var(stack_depth+1));
 	      StrCpy(ast->var_class_name,mlst->member_class[-1].str);
 	    } else
 	      throw('Fuck');
@@ -1404,11 +1476,11 @@ write_generic_member:
 	  if(STIsRawMember(locals,ast->name)) {
 	    if(ast->is_f64&&!StrCmp(raw_class_name,"F64"))
 	      conv_name="";
-	    DocPrint(doc,"  %s((ToI64(self)+%d)(%s*)[0])",conv_name,mlst->offset,raw_class_name);
+	    DocPrint(doc,"  %s(self(%s*)->%s)",conv_name,FramePtr("MethodClass"),mlst->str);
 	  } else {
 	    if(ast->is_f64)
 	      DocPrint(doc,"AsF64(");
-	    DocPrint(doc,"  ((ToI64(self)+%d)(CFrogThing**)[0])",mlst->offset);
+	    DocPrint(doc,"self(%s*)->%s",FramePtr("MethodClass"),mlst->str);
 	    if(ast->is_f64)
 	      DocPrint(doc,")");
 	  }
@@ -1428,7 +1500,7 @@ write_generic_member:
 	  DocPrint(doc,")(%s*)[0])",raw_class_name);
         }
       } else if(HashFind(ast->name,Fs->hash_table,HTT_CLASS)) {
-        DocPrint(doc,"FrogClassNew(%d);",UniverseAddClass(ast->name));
+        DocPrint(doc,"FrogClassNew(#exe {ExeUniverse(\"%Q\");});",ast->name);
       } else
         DocPrint(doc,"FROG_SMALL_NIL;");
       if(!ast->is_f64) DocPrint(doc,";");
@@ -1461,7 +1533,7 @@ write_generic_member:
       break;case AST_BLOCK:
       ast->switch_num=ast_case_num++;
       DocPrint(doc,"L%d:\n",ast->switch_num);
-      thunk_name=CompileThunk(ast,locals);
+      thunk_name=CompileThunk(ast,locals,doc);
       DocPrint(doc,"  %s=FrogBlockNew(&%s,parent_frame,self);\n",StackFrame2Var(stack_depth),thunk_name);
       Free(thunk_name);
       break;case AST_CHR:
@@ -1495,13 +1567,13 @@ write_generic_member:
         if(mlst) {
 	  DocPrint(doc,"MemberF64(");
 	  if(STIsSelfMember(locals,cur->name)) {
-	    DocPrint(doc,"(ToI64(self)+%d)(CFrogThing**)[0]",
-		  MemberFind(cur->name,HashFind(FramePtr("MethodClass"),frog_mem_task->hash_table,HTT_CLASS))->offset,
-		  raw_class_name);
+	    DocPrint(doc,"self(%s*)->%s",FramePtr("MethodClass"),
+		  MemberFind(cur->name,HashFind(FramePtr("MethodClass"),frog_mem_task->hash_table,HTT_CLASS))->str,
+	    );
 	  } else {
 	    STGetLocal(doc,locals,cur->name);
 	  }
-	  DocPrint(doc,",%d,%d,%d)",UniverseAddClass(cur->var_class_name),mlst->offset,mlst->member_class->raw_type);
+	  DocPrint(doc,",#exe {ExeUniverse(\"%Q\");},%d,%d)",cur->var_class_name,mlst->offset,mlst->member_class->raw_type);
 	  return;
         }
       }
@@ -1509,7 +1581,7 @@ write_generic_member:
         DocPrint(doc,"GetClassMemberValF64(");
         if(STIsSelfMember(locals,cur->name)) {
 	  mlst=MemberFind(cur->name,HashFind(FramePtr("MethodClass"),frog_mem_task->hash_table,HTT_CLASS));
-	  DocPrint(doc,"(ToI64(self)+%d)(CFrogThing**)[0]",mlst->offset,raw_class_name);
+	  DocPrint(doc,"self(%s*)->%s",FramePtr("MethodClass"),mlst->str);
         } else {
 	  STGetLocal(doc,locals,cur->name);
         }
@@ -1522,14 +1594,14 @@ write_generic_member:
       if(HashFind(cur->var_class_name,Fs->hash_table,HTT_CLASS)) { 
         mlst=MemberFind(ast->name,HashFind(cur->var_class_name,Fs->hash_table,HTT_CLASS));
         if(mlst) {
-	  DocPrint(doc,"if(ThingHasClass2(%s,%d)) /* %s */ \n ",StackFrame2Var(stack_depth),UniverseAddClass(cur->var_class_name),cur->var_class_name);
+	  DocPrint(doc,"if(ThingHasClass2(%s,#exe {ExeUniverse(\"%Q\");})) /* %s */ \n ",StackFrame2Var(stack_depth),cur->var_class_name,cur->var_class_name);
 	  if(mlst->member_class->ptr_stars_cnt==0) {
 	    raw_class_name=mlst->member_class->str;
-	    DocPrint(doc,"  %s=FrogNumNew((ToI64(%s)+%d)(%s*)[0]);",StackFrame2Var(stack_depth),StackFrame2Var(stack_depth),mlst->offset,raw_class_name);
+	    DocPrint(doc,"  %s=FrogNumNew(%s(%s*)->%s);",StackFrame2Var(stack_depth),StackFrame2Var(stack_depth),cur->var_class_name,mlst->str);
 	    StrCpy(ast->var_class_name,"CFrogNum");
 	  } else if(mlst->member_class->ptr_stars_cnt==1) {
 	    raw_class_name=mlst->member_class[-1].str;
-	    DocPrint(doc,"  %s=FrogIncRefCnt((ToI64(%s)+%d)(CFrogThing**)[0]);",StackFrame2Var(stack_depth),StackFrame2Var(stack_depth),mlst->offset);
+	    DocPrint(doc,"  %s=%s(%s*)->%s;",StackFrame2Var(stack_depth),StackFrame2Var(stack_depth),cur->var_class_name,mlst->str);
 	    StrCpy(ast->var_class_name,raw_class_name);
 	  }
 	  DocPrint(doc,"else %s=FROG_SMALL_NIL;",StackFrame2Var(stack_depth));
@@ -1559,6 +1631,10 @@ fin:
 }
 U0 CompileToHolyC(U8 *src,U8 *class_name,U8 *src_path=NULL,Bool class_method=FALSE,Bool register_method=FALSE) {
 //Make a dummy hash table for the parser(may liter with dumb FramePtrs on throw)
+  if(src_path) {
+    if(CompilerCacheGet(src_path))
+      return;
+  }
   FramePtrAdd("MethodClass",class_name);
   FramePtrAdd("Escapes",0);
   try {
@@ -1598,7 +1674,7 @@ U0 CompileToHolyC(U8 *src,U8 *class_name,U8 *src_path=NULL,Bool class_method=FAL
     FramePtrDel("MethodClass");
     return;
   }
-  CLocals *locals=GenerateLocalsFromMethod(m,class_name);
+  CLocals *locals=GenerateLocalsFromMethod(m,class_name,doc);
   head=&m->body;
   for(var=head->next;var!=head;var=var->next) {
     VarCheck(locals,var);
@@ -1645,7 +1721,7 @@ U0 CompileToHolyC(U8 *src,U8 *class_name,U8 *src_path=NULL,Bool class_method=FAL
   DocPrint(doc,"  *return_flag=0;\n"); //Allow blocks made in the method to be called agian
   DocPrint(doc,"  STFrameDel;\n"); //Does not Free(frame data may be on stack)
   if(*m->return_class) {
-     DocPrint(doc,"if(!ThingHasClass2(retval,%d)) {retval=FROG_SMALL_NIL;}",UniverseAddClass(m->return_class));
+     DocPrint(doc,"if(!ThingHasClass2(retval,#exe {ExeUniverse(\"%Q\");})) {retval=FROG_SMALL_NIL;}",m->return_class);
   }
 //DocPrint(doc,"DbgPrint(\"LEAVE:%s,%Q\n\");",class_name,m->name);
   DocPrint(doc,"  return retval;\n");
@@ -1663,6 +1739,12 @@ U0 CompileToHolyC(U8 *src,U8 *class_name,U8 *src_path=NULL,Bool class_method=FAL
   #ifdef DEBUG
   DocWrite(doc);
   #endif
+  if(src_path) {
+    doc->flags|=DOCF_NO_CURSOR;
+    tmp=DocSave(doc);
+    CompilerCacheSet(src_path,tmp);
+    Free(tmp);
+  }
   ExeDoc(doc);
   DocDel(doc);
   Free(fun_name);
