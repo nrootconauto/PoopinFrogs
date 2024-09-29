@@ -6,12 +6,14 @@ putGraphics: lump=CFrogStr atX: x=CFrogNum atY: y=CFrogNum
   inher_props=CFrogBlock
   w=C3DWorldManager
   getstainXYZ=CFrogBlock
+  add=CFrogNum
 |
   getstainXYZ _ [
     :xx=CFrogNum
     :yy=CFrogNum
     :zz=CFrogNum |
     ws _ 0 .
+    add _ 0 .
     ws _ (w->wall_stains select:[:w=CWallStain |
       ((((w->tile_x = xx floor and: w->tile_y = yy floor)
         and: w->tile_z = zz floor) and: w->sidex = sidex)
@@ -19,10 +21,13 @@ putGraphics: lump=CFrogStr atX: x=CFrogNum atY: y=CFrogNum
         and: w->sidez = sidez
     ]) first .
     
+    (ws hasClass: CWallStain) ifFalse: [
+      ws _ CWallStain new .
+      inher_props value .
+      add _ 1 .
+    ] .
     (ws addGraphics: lump atX: (xx - tile_x) * -128 + x atY: ( yy - tile_y + zz - tile_z ) * -128 + y) ifTrue: [
-      (ws hasClass: CWallStain) ifFalse: [
-        ws _ CWallStain new .
-        inher_props value .
+      add ifTrue: [    
         w addWallStain: ws .
       ] .
       1
@@ -72,8 +77,12 @@ putGraphics: lump=CFrogStr atX: x=CFrogNum atY: y=CFrogNum
            (getstainXYZ value: tile_x + ox value: tile_y + oy value: tile_z ) ifTrue: [
              ws->tile_x _ tile_x + ox .
              ws->tile_y _ tile_y + oy .
+'ox oy ' show .
+ox show .
+oy show .
            ] .
          ] .
       ] .
     ] .
   ] .
+ 
