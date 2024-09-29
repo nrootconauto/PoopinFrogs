@@ -787,7 +787,6 @@ U0 LoadMethodsFromBlob(U8 *blob_file=NULL,Bool dry_only=FALSE) {
       break;
     }
   }
-  CompilerCacheFlushToDisk;
   Free(lumps);
   Free(blob_file);
 }
@@ -803,4 +802,5 @@ LoadMethodsFromBlob;
 F64 t=tS;
 LoadMethodsFromBlob;
 PrintF("load time ",tS-t);
+#endif
 #endif

@@ -2,9 +2,7 @@
 #define ST_COMPILER_HH 1
 #include "RunTime.HC";
 //#define DEBUG 1
-#define C_CACHE_DOC "/STCompilerCache.DD"
 #define C_CACHE_DIR "/STCompilerCacheDir"
-CDoc *cache_doc=DocRead(C_CACHE_DOC);
 U8 *SanePath(U8 *path) {
   CDoc *sane=DocNew;
   I64 i,l;
@@ -20,81 +18,72 @@ U8 *SanePath(U8 *path) {
   DocDel(sane);
   return path;
 }
-U0 CompilerCacheFlushToDisk() {
-  DocWrite(cache_doc);
-}
 Bool CompilerCacheGet(U8 *path) {
   path=SanePath(path);
   Bool ret=FALSE;
   U8 *fn;
-  U8 *lump=BlobFileGetLump(,path),*tmp,*have;
+  U8 *lump=BlobFileGetLump(,path),*tmp2,*tmp=NULL;
   if(!lump) {
     Free(path);
-    return FALSE;
+    return;
   }
   I64 h=HashStr(lump);
-  tmp=MStrPrint("Cache/%s/%d/Old",path,h);
-  if(fn=DocTreeExe(cache_doc,tmp)) {
-    if(have=FileRead(fn))  {
-      if(StrCmp(have,lump)) {
-	Free(have);
-	goto fail;
-      }
-      Free(have);
-      
-      Free(tmp);
-      tmp=MStrPrint("Cache/%s/%d/Cache",path,h);
-      Free(fn);
-      if(have=FileRead(fn=DocTreeExe(cache_doc,tmp))) {
-        ret=Silent(0);
-        ExePutS2(have);
-        Silent(ret);
-	Free(have);
-        ret=TRUE;
-      }
+  fn=MStrPrint(C_CACHE_DIR"/%s/%X.HC",path,h);    
+  tmp2=ExtChg(fn,"TXT");
+  if(tmp=FileRead(tmp2)) {
+    if(!StrCmp(lump,tmp)) {
+      ret=Silent(1);
+      ExeFile2(fn);
+      Silent(ret);
+      ret=TRUE;
     }
   }
-fail:;
+  Free(tmp2);
   Free(fn);
   Free(lump);
   Free(tmp);
   Free(path);
   return ret;
 }
+U0 EnsurePathExists(U8 *path) {
+  U8 *tmp=StrNew(path),*opath=DirCur,*sl;
+  if(sl=StrLastOcc(tmp,"/")) {
+    *sl=0;
+    Cd(tmp,TRUE);
+    Cd(opath);
+  }
+  Free(tmp),Free(opath);
+}
+
+U0 FileWrite2(U8 *p,U8 *d,I64 len) {
+  EnsurePathExists(p);
+  FileWrite(p,d,len);
+}
 U0 CompilerCacheSet(U8 *path,U8 *flat) {
   path=SanePath(path);
-  U8  *tmp,*fn,*lump;  
+  U8  *tmp,*fn;  
   I64 h;
   if(!FileFind(C_CACHE_DIR))
     DirMk(C_CACHE_DIR);
 
   if(flat&&tmp) {
-    lump=BlobFileGetLump(,path);
-    if(!lump) {
+    tmp=BlobFileGetLump(,path);
+    h=HashStr(tmp);
+    fn=MStrPrint(C_CACHE_DIR"/%s/%X.TXT",path,h);
+    FileWrite2(fn,tmp,StrLen(tmp));
+    Free(fn);
+    if(!tmp) {
       Free(path);
       return;
     }
-    h=HashStr(lump);
-
-    tmp=MStrPrint("Cache/%s/%d/Old",path,h);
-    fn=MStrPrint(C_CACHE_DIR"/%X.%X.TXT",HashStr(path),h);
-    DocTreeWrite(cache_doc,tmp,FALSE,"StrNew(\"%Q\");\n",fn);
-    FileWrite(fn,lump,StrLen(lump));
     Free(tmp);
-    Free(fn);
-    Free(lump);
 
-    fn=MStrPrint(C_CACHE_DIR"/%X.%X.HC",HashStr(path),h);
-    
-    tmp=MStrPrint("Cache/%s/%d/Cache",path,h);
-    DocTreeWrite(cache_doc,tmp,FALSE,"StrNew(\"%Q\");\n",fn);
-    FileWrite(fn,flat,StrLen(flat));
+    fn=MStrPrint(C_CACHE_DIR"/%s/%X.HC",path,h);    
+    FileWrite2(fn,flat,StrLen(flat));
     Free(fn);
-    Free(tmp);
   }
   Free(path);
 }
-
 U0 GenerateUselessMethod(U8 *class_name,U8 *method_name,U8 *return_class)  {
   U8 *canon=MStrPrint("METHOD_%s.%s",class_name,method_name);
   U8 *rt=MStrPrint("RET_TYPE_%s.%s",class_name,method_name);
@@ -291,7 +280,7 @@ U8 *ClassHasMethod(U8 *cn,U8 *method) {
 //Returns classname that has the method or NULL.
 U8 *VarHasMethod(CLocals *l,U8 *var,U8 *method) {
   U8 *cn=VarClassName(l,var);
-  return ClassHasMethod(cn,method);
+  return ClassHasMethod(cn,method);
 }
 U0 GenerateMethodCall(CDoc *doc,U8 *into=NULL,U8 *class_name,U8 *method_name,I64 stk_index,I64 argc,Bool check=TRUE) {
   I64 idx,off;

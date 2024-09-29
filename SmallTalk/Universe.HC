@@ -2,7 +2,7 @@
 class CUniverseInitPair {
   U8 *blob;
   U8 (*init)(U8*);
-  U8 (*destroy)(U8*);
+  U8 (*destroy)(U8*);
 };
 CTask *universe_task=Fs;
 CI64Set *universe_names=I64SetNew; //U8*

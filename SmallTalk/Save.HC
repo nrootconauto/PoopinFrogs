@@ -234,4 +234,4 @@ AddMethod("CFrogThing","saveThingToSaveFile:",&SaveThingToSaveFile);
 AddMethod("CFrogStr","restoreThingFromSaveFile",&RestoreThingFromSaveFile);
 AddMethod("CFrogThing","saveThing",&SaveThing);
 AddMethod("CFrogThing","basicSaveThing",&SaveThing);
-AddMethod("CFrogStr","restoreThing",&RestoreThing);
+AddMethod("CFrogStr","restoreThing",&RestoreThing);

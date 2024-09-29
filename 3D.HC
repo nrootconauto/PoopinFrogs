@@ -506,7 +506,7 @@ I64 PassesThoughBlock(C3DWorld *w,F64 slope,I64 x,I64 y,F64 *dist,F64 cos,F64 si
         biggest=Max(biggest,tmp);
       }
       found=TRUE;
-    }
+    }
   }
   if(dist) {
     if(!far_side)
