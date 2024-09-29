@@ -1,3 +1,12 @@
+//Somewhere in here is being nuaghty
+//
+//$BK,1$DO NOT CHANGE!!!$BK,0$
+//
+U8 *CAlloc2(I64 s,CTask *t=NULL) {
+  return CAlloc(s+16,t);
+}
+#define MAlloc CAlloc2
+#define CAlloc CAlloc2
 #include "AnimDC.HC"
 #include "BlobFile.HC"
 #include "SmallTalk/Load.HC"
@@ -2039,11 +2048,11 @@ CFrogThing *WallStainSetGr(CWallStain *self,...) {
   CFrogNum *ret=FrogNumNew(0);
   if(raw) {
     if(!self->dc) {
-      self->dc=AnimDCNew(128,128);
+      self->dc=AnimDCNew(128,128,frog_mem_task);
       DCFill(self->dc);
     }
     loaded=AnimDCLoad(raw);
-    ret=FrogNumNew(GrBlot(self->dc,x-loaded->width/2,y-loaded->height/2,loaded));
+    ret=FrogNumNew(GrBlot(self->dc,x-loaded->width/2,y-loaded->height/2,loaded)); 
     AnimDCDel(loaded);
     Free(raw);
   }
@@ -2309,7 +2318,6 @@ stain:
     DrawParticle(w,p);
     n=p->next;
     if(Frog_tS>1+p->born_at) {
-
       QueRem(p);
       Free(p);
       w->particle_cnt--;

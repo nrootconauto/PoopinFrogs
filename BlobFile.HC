@@ -41,8 +41,6 @@ U8 *GetBlobFileData(U8 *filename=NULL,I64 *len=NULL) {
   if(!filename) {
     filename=dft_blob_path;
   }
-  if(!blob_file_cache.dirty)
-    goto force_cache;
   filename=ExtDft(filename,"BLOB");
   CDirEntry de;
   U8 *data=NULL,*fn;
