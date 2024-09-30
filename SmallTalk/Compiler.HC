@@ -167,13 +167,12 @@ class CLocalsGeneric0:CFrogFrame {
 };
 
 
-CLocalsGeneric *STNewBlockFrame(U8 *frame_title,CLocalsGeneric *parent) {
-  CHashClass *as=HashFind(frame_title,frog_mem_task->hash_table,HTT_CLASS);
-  CLocalsGeneric *fr2,*fr=MAlloc(as->size,frog_mem_task);
-  MemSetI64(fr,FROG_SMALL_NIL,as->size/8);
+CLocalsGeneric *STNewBlockFrame(I64 size,CLocalsGeneric *parent) {
+  CLocalsGeneric *fr2,*fr=MAlloc(8*size+sizeof(CLocalsGeneric),frog_mem_task);
+  MemSetI64(fr,FROG_SMALL_NIL,(size*8+sizeof(CLocalsGeneric))/8);
   QueIns(fr,&allocs_head);
   fr2=Fs->user_data;
-  fr->item_cnt=(as->size-sizeof(CLocalsGeneric))/8;
+  fr->item_cnt=size;
   fr->thing_flags=THINGF_FRAME_TYPE;
   fr->parent=parent;
   fr->type='Block';
@@ -207,14 +206,13 @@ U0 STSetReturnFlags(I64 *who) {
   }
 }
 
-CLocalsGeneric *STAddMethodFrame(CMethod *method,U8 *frame_title,U8*class_name) {
-  CHashClass *as=HashFind(frame_title,frog_mem_task->hash_table,HTT_CLASS);
+CLocalsGeneric *STAddMethodFrame(CMethod *method,I64 size,U8*class_name) {
   CHashClass *cls;
   CMemberLst *mlst,*mlst2;
-  CLocalsGeneric *fr=MAlloc(as->size,frog_mem_task);
-  MemSetI64(fr,FROG_SMALL_NIL,as->size/8);
+  CLocalsGeneric *fr=MAlloc(8*size+sizeof(CLocalsGeneric),frog_mem_task);
+  MemSetI64(fr,FROG_SMALL_NIL,(size*8+sizeof(CLocalsGeneric))/8);
   QueIns(fr,&allocs_head);
-  fr->item_cnt=(as->size-sizeof(CLocalsGeneric))/8;
+  fr->item_cnt=size;
   fr->thing_flags=THINGF_FRAME_TYPE;
   fr->ref_cnt=1;
   fr->type='Method';
@@ -722,7 +720,7 @@ U8 *CompileThunk(CAST *block,CLocals *parent=NULL,CDoc *ins_into=NULL) {
   ReplaceElem(doc,replace,"%d",MaxI64(FramePtr("ST@@stk_depth"),0));
 static I64 pass=0,fail=0;
   if(1||(escapes&&LocalsIsEscaped(locals)))  {
-    ReplaceElem(doc,frame,"Bool *return_flag=STNewBlockFrame(\"%Q\",parent_frame)->return_flag;\n",locals->name);
+    ReplaceElem(doc,frame,"Bool *return_flag=STNewBlockFrame(%d,parent_frame)->return_flag;\n",locals->cnt);
     fail++;
   } else {
     ReplaceElem(doc,frame,"%Q stk_frame;MakeAnonBlockFrame(&stk_frame,%d,parent_frame); Bool *return_flag=parent_frame->_return_flag;\n",locals->name,locals->cnt);
@@ -1627,7 +1625,7 @@ U0 CompileToHolyC(U8 *src,U8 *class_name,U8 *src_path=NULL,Bool class_method=FAL
   FramePtrAdd("MethodClass",class_name);
   FramePtrAdd("Escapes",0);
   try {
-  Bool old=Option(OPTf_WARN_UNUSED_VAR,FALSE);
+  Bool old=Option(OPTf_WARN_UNUSED_VAR,FALSE);
   Bool escapes=FALSE;
   U8 *ret,*fun_name,*tmp;
   static I64 fun_num=0;
@@ -1722,7 +1720,7 @@ U0 CompileToHolyC(U8 *src,U8 *class_name,U8 *src_path=NULL,Bool class_method=FAL
   }
   ReplaceElem(doc,replace,"%d",MaxI64(FramePtr("ST@@stk_depth"),0));
   if(1||escapes)
-    ReplaceElem(doc,frame,"Bool *return_flag=STAddMethodFrame(%d,\"%Q\",\"%Q\")->return_flag;\n",m,locals->name,class_name);
+    ReplaceElem(doc,frame,"Bool *return_flag=STAddMethodFrame(%d,%d,\"%Q\")->return_flag;\n",m,locals->cnt,class_name);
   else
     ReplaceElem(doc,frame,"%Q stk_frame;MakeAnonBlockFrame(&stk_frame,%d,Fs->user_data,'Method');stk_frame._return_flag=&false;Bool *return_flag=&false;\n",locals->name,locals->cnt);
   #ifdef DEBUG

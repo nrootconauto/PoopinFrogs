@@ -1,12 +1,3 @@
-//Somewhere in here is being nuaghty
-//
-//$BK,1$DO NOT CHANGE!!!$BK,0$
-//
-U8 *CAlloc2(I64 s,CTask *t=NULL) {
-  return CAlloc(s+16,t);
-}
-#define MAlloc CAlloc2
-#define CAlloc CAlloc2
 #include "AnimDC.HC"
 #include "BlobFile.HC"
 #include "SmallTalk/Load.HC"
