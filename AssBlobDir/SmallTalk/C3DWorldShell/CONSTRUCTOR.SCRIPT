@@ -156,18 +156,34 @@ init ->* |
      ] .
      player->momx2 _ 0 .
      player->momy2 _ 0 .
-     up ifTrue: [
-       player move: 128 / 4 atAngle: player->angle .
-     ] .
-     down ifTrue: [
-       player move: 128 / 4 atAngle: player->angle  +  3.14  .
-     ] .
-     left ifTrue: [
-       player move: 128 / 4 atAngle: player->angle  - (3.14 / 2 ) .
-     ] .
-     right ifTrue: [
-       player move: 128 / 4 atAngle: player->angle  + (3.14 / 2 ) .
-     ] .
+     player->momz2 _ 0 .
+     (#world tileIsLiquidAtX: player->x /128 atY: player->y /128  atZ: player->z) ifTrue: [
+       up ifTrue: [
+         player swim: 128 /4 atAngle: player->angle atAngle2: player->angle2 negated .
+       ] .
+       down ifTrue: [
+         player swim: 128 /4 atAngle: player->angle atAngle2: player->angle2  negated + 3.14 .
+       ] .
+       left ifTrue: [
+         player swim: 128 /4 atAngle: player->angle - (3.14 / 2) atAngle2: player->angle2 negated.
+       ] .
+       right ifTrue: [
+         player swim: 128 /4 atAngle: player->angle + (3.14 / 2) atAngle2: player->angle2 negated.
+       ] .
+     ] ifFalse: [
+       up ifTrue: [
+         player move: 128 / 4 atAngle: player->angle .
+       ] .
+       down ifTrue: [
+         player move: 128 / 4 atAngle: player->angle  +  3.14  .
+       ] .
+       left ifTrue: [
+         player move: 128 / 4 atAngle: player->angle  - (3.14 / 2 ) .
+       ] .
+       right ifTrue: [
+         player move: 128 / 4 atAngle: player->angle  + (3.14 / 2 ) .
+       ] .
+     ].
      #world animate . 
      #world handlePowerups .
      #ms_grabbed ifTrue: [
@@ -178,7 +194,6 @@ init ->* |
          #hand_item altFire .
        ] .
      ] .
-'ANIMATE' show .
      #hand_item animate .
      #world physics .
   ] .

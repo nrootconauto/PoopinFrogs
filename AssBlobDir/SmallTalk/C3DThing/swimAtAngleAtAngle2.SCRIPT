@@ -1,0 +1,30 @@
+swim: d=CFrogNum atAngle: a=CFrogNum atAngle2: a2=CFrogNum
+  ->CFrogNum
+|
+  xx=CFrogNum
+  yy=CFrogNum
+  zz=CFrogNum
+  xx2=CFrogNum
+  yy2=CFrogNum
+  zz2=CFrogNum
+|
+  xx _ d .
+  yy _ 0 .
+  zz _ 0 .
+
+ 'Rotate around y axis ' .
+  xx2 _ (xx * a2 cos) + (zz * a2 sin ).
+  yy2 _ yy .
+  zz2 _ (xx * a2 sin) - (zz * a2 cos ).
+
+  'Rotate around z axis ' .
+  xx _ xx2 . 
+  yy _ yy2 . 
+  zz _ zz2 . 
+
+  xx2  _ (xx * a cos) - (yy * a sin) . 
+  yy2  _ (xx * a sin) + (yy * a cos) .
+  zz2 _ zz .
+
+  momz2 _ zz2/ 128  .
+  ^ self move: (xx2 squared + yy2 squared ) sqrt atAngle: (xx2 arg: yy2) . 

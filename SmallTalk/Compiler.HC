@@ -1625,7 +1625,7 @@ U0 CompileToHolyC(U8 *src,U8 *class_name,U8 *src_path=NULL,Bool class_method=FAL
   FramePtrAdd("MethodClass",class_name);
   FramePtrAdd("Escapes",0);
   try {
-  Bool old=Option(OPTf_WARN_UNUSED_VAR,FALSE);
+  Bool old=Option(OPTf_WARN_UNUSED_VAR,FALSE);
   Bool escapes=FALSE;
   U8 *ret,*fun_name,*tmp;
   static I64 fun_num=0;

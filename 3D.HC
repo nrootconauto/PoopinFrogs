@@ -525,17 +525,20 @@ I64 BlockAtXYZ(I64 x,I64 y,I64 z) {
   }
   return -1;
 }
-
+Bool IsSolidTile(I64 t) {
+  if(!t) return FALSE;
+  return !IsLiquidTile(t);
+}
 Bool HeightImpossible(C3DWorld *w,I64 ix,I64 iy,F64 above,Bool allow_ceil,F64 tallness=.1,F64 wiggle_room=0) {
   I64 iz=Floor(above);
-  I64 c,idx2;
+  I64 c,idx2,t;
   F64 h;
-  if(BlockAtXYZ(ix,iy,iz)) {
+  if(IsSolidTile(BlockAtXYZ(ix,iy,iz))) {
      return TRUE;
   }
   for(idx2=0;idx2<tallness;idx2++) {
     idx2++;
-    if(BlockAtXYZ(ix,iy,iz+idx2))
+    if(IsSolidTile(BlockAtXYZ(ix,iy,iz+idx2)))
       return TRUE;
   }
   return FALSE;
@@ -940,11 +943,15 @@ U0 PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm,F64 last_tS) {
   if(ThingHasClass(t,"CRocket"))
     rocket=t;
   WorldManagerRemoveFromGrid(wm,t);
-  if(C3DWorldMoveZWithCollision(w,t->momz*weight,t->x,t->y,&t->z)) {
+  if(C3DWorldMoveZWithCollision(w,t->momz*weight+t->momz2*weight,t->x,t->y,&t->z)) {
     if(!rocket)  //Explode later(computer hitting floor after we move x/y)
       t->momz=0;
-  } else if(!rocket&&!t->floating)
+  } else if(!rocket&&!t->floating) {
+    if(IsLiquidTile(BlockAtXYZ(t->x/128,t->y/128,t->z))) {
+      t->momz=t->momz2-wm->gravity/3*weight;
+    } else 
       t->momz-=wm->gravity*weight;
+  }
   ox=t->x;
   oy=t->y;
   if(t->momy+t->momy2||t->momx+t->momx2) {
@@ -1321,6 +1328,12 @@ I64 GetColorForRay(C3DWorldManager *man,CD3 *origin,CD3 *ray,F64 dist,F64 *hit_a
   F64 current_x_index=Ceil(x);
   F64 current_y_index=Ceil(y);
   F64 current_z_index=Ceil(origin->z);
+  if(current_x_index==x)
+    current_x_index-=.0001;
+  if(current_y_index==x)
+    current_y_index-=.0001;
+  if(current_z_index==x)
+    current_z_index-=.0001;
   if(stepx<0) current_x_index--;
   if(stepy<0) current_y_index--;
   if(stepz<0) current_z_index--;
@@ -1684,6 +1697,7 @@ U0 GenerateRay(C3DWorld *world,CD2 *ray_look,F64 i,F64 j,F64 width,F64 height,F6
      tmpy.y,
      -tmpy.x*sa+tmpy.z*ca,
    );
+  D3Norm(ray_look);
 }
 
 
@@ -1705,7 +1719,8 @@ U0 MPCastCol(C3DWorldManager *wm) {
   I64 segment;
   I64 idist,row;
   Bool hit_wall;
-  CD2 ray;
+  I64 fogc;
+  CD3 ray;
   F64 angle_offset_table[GR_WIDTH];
   F64 y_angle_offset_table[GR_HEIGHT];
   F64 xrot=w->angle2;
@@ -1713,6 +1728,11 @@ U0 MPCastCol(C3DWorldManager *wm) {
   F64 ca=Cos(-w->angle);
   F64 sa2=Sin(-w->angle2);
   F64 ca2=Cos(-w->angle2);
+  Bool in_water=FALSE;
+  F64 t=tS/30.,rand_refrac,snell_a,snell_a2;
+  if(IsLiquidTile(BlockAtXYZ(w->x/128.,w->y/128.,Floor(w->cam_height)))) {
+    in_water=TRUE;
+  }
   idx=ToF64(Gs->num)/ToF64(mp_cnt)*GR_WIDTH;
   cap=ToF64(Gs->num+1)/ToF64(mp_cnt)*GR_WIDTH;
   for(x=idx;x<cap;x+=w->step_width) {
@@ -1742,6 +1762,26 @@ $SP,"<1>",BI=1$;
     for(y=0;y<GR_HEIGHT;y+=w->step_width) {
 //Nroot has no idea what he was doing here.Literaly typing random stuff
       GenerateRay(w,&ray,x,y,GR_WIDTH,GR_HEIGHT,ca,sa,ca2,sa2);   
+      if(in_water) {
+	 rand_refrac=1.1+.1*(Abs(Sin((t/4.)*200))-Abs(Cos(t*125)))+.1*(Rand-.5)*2;
+	 snell_a2=(y/ToF64(GR_HEIGHT)-.5)*w->fov;
+         snell_a=(x/ToF64(GR_WIDTH)-.5)*w->fov;
+         snell_a=ASin(Sin(snell_a)/rand_refrac)/2.;
+         snell_a2=ASin(Sin(snell_a2)/(rand_refrac+.2))/2.;
+         D3Equ(&ray,
+	   ray.x*Cos(snell_a)+ray.z*Sin(snell_a),
+	   ray.y,
+	   -ray.x*Sin(snell_a)+ray.z*Cos(snell_a),
+	 );
+	D3Equ(&ray,
+	  ray.x,
+	  ray.y*Cos(snell_a2)-ray.z*Sin(snell_a2),
+	  ray.y*Sin(snell_a2)+ray.z*Cos(snell_a2)
+	);
+//TODO what kind of liquid are we in TOODO
+        fogc=LTBLUE;
+      } else
+	fogc=BLACK;
       p=&w->to_point[x/4][y/4];
 //If we dont hit a wall,just fill with "far out in the distacnve"
       p->x=w->x+ray.x*I16_MAX;
@@ -1751,7 +1791,11 @@ $SP,"<1>",BI=1$;
       origin.x=w->x;
       origin.y=w->y;
       origin.z=w->cam_height;
-      color=GetColorForRay(wm,&origin,&ray,32*GRID_SZ,&dist,p);
+//depth==1 to simulate going through a (liquid) block
+      if(in_water) {
+        color=GetColorForRay(wm,&origin,&ray,32*GRID_SZ,&dist,p,1*in_water,BlockAtXYZ(w->x/128.,w->y/128.,Floor(w->cam_height)),fogc);
+      } else
+        color=GetColorForRay(wm,&origin,&ray,32*GRID_SZ,&dist,p);
       idist=dist;
       idist|=idist<<32;
       if(color!=-1&&w->step_width==2) {
@@ -2102,17 +2146,17 @@ CFrogThing *WorldManagerGetQuestChatBot(C3DWorldManager *man,...) {
   return e;
 }
 AddMethod("C3DWorldManager","getQuestChatBot:",&WorldManagerGetQuestChatBot);
-Bool WorldManagerFloorIsLiquid(C3DWorldManager *man,...) {
+CFrogNum *WorldManagerIsLiquid(C3DWorldManager *man,...) {
   I64 x=AsF64(argv[0]);
   I64 y=AsF64(argv[1]);
-  I64 z=AsF64(argv[2]);
+  I64 z=Floor(AsF64(argv[2]));
   I64 tile=(x+y*w->world_width)*256+z-I8_MIN;
   if(0<=tile<w->world_width*w->world_height) {
     return FrogNumNew(IsLiquidTile(w->world_blocks[tile]));
   }
   return FrogNumNew(0);
 }
-AddMethod("C3DWorldManager","floorIsLiquidAtX:atY:atZ:",&WorldManagerFloorIsLiquid);
+AddMethod("C3DWorldManager","tileIsLiquidAtX:atY:atZ:",&WorldManagerIsLiquid);
 
 //Returns 1. if COLLISION,else 0
 CFrogThing *C3DThingMoveAtAngle(C3DThing *self,...) {
@@ -2384,84 +2428,6 @@ CFrogThing *WorldManagerEmptyWithDim(C3DWorldManager *man,...) {
   return man;
 }
 AddMethod("C3DWorldManager","emptyWorldWithWidth:withHeight:",&WorldManagerEmptyWithDim);
-CDC *MakeMinimap1(C3DWorldManager *wm,F64 x,F64 y,F64 angle,I64 radius,F64 height) {
-/*
-  CDC *mask=DCNew(radius*2,radius*2),*tile_dc;
-  CDC *res=DCNew(radius*2,radius*2);
-  I64 px,py;
-  I64 x2,y2;
-  I64 wx,wy,wz=0,tmp;
-  I64 mat2[16];
-  F64 angle2,dist;
-  CFrogArray *near;
-  C3DThing *thing;
-  CI64Set *near_set;
-  U8 *ptr,*mask_ptr,color;
-  Mat4x4IdentEqu(mat2);
-  angle+=pi/2;
-  Mat4x4RotZ(mat2,angle);
-  Mat4x4Scale(mat2,12.);
-  Mat4x4TranslationEqu(mat2,x,y,0);
-
-  DCFill(res,TRANSPARENT);
-  mask->color=WHITE;
-  GrFillCircle(mask,radius,radius,0,radius*2);
-  for(py=0;py!=res->height;py++) {
-    ptr=res->body+py*res->width_internal;
-    mask_ptr=mask->body+py*mask->width_internal;
-    for(px=0;px!=res->width;px++)  {
-      x2=px;
-      y2=py;
-      if(*mask_ptr) {
-        wx=x2-radius;
-        wy=y2-radius;
-	wz=0;
-        Mat4x4MulXYZ(mat2,&wx,&wy,&wz);
-        color=BLACK;
-	x2=wx%128/128.*16;
-	y2=wy%128/128.*16;
-	wx/=128;
-	wy/=128;
-	if(0<=wx<w->world_width)
-	  if(0<=wy<w->world_height) {
-	    tmp=wx+wy*w->world_width;
-	    tile_dc=NULL;
-	    if(height>=w->ceilmap[tmp])
-              tile_dc=w->floor_textures1616[w->world_mat[tmp].u8[1]];
-	    if(!tile_dc)
-              tile_dc=w->floor_textures1616[w->world_mat[tmp].u8[0]];
-	    if(tile_dc)
-	      color=GrPeek0(tile_dc,x2,y2);
-	  }
-        *ptr=color;
-      }
-      mask_ptr++;
-      ptr++;
-    }
-  }
-  near=WorldManagerThingsInRadius(wm,FrogNumNew(x),FrogNumNew(y),FrogNumNew(radius*128));
-  if(near!=FROG_SMALL_NIL) {
-    near_set=near->items;
-    for(tmp=0;tmp!=near_set->cnt;tmp++) {
-      thing=near_set->body[tmp];
-      if(thing->health>0.||ThingHasClass(thing,"CPickup")) {
-        angle2=Arg(thing->x-x,thing->y-y)-angle;
-        dist=Sqrt(Sqr(thing->x-x)+Sqr(thing->y-y))*(12./128.);
-        res->color=LTPURPLE; //TODO change
-        res->thick=6;
-        GrPlot3(res,
-	  radius+dist*Cos(angle2),
-	  radius+dist*Sin(angle2),
-	  0
-	);
-      }
-    }
-  }
-  DCDel(mask);
-  return res;
-*/
-  return DCNew(1,1);
-}
 CFrogThing *WorldPhysics(C3DWorldManager *wm,...) {
   C3DThing **body=MAllocIdent(wm->things->items->body),*thing,*player;
   player=CallScript("getPlayer",wm);
@@ -2474,6 +2440,7 @@ CFrogThing *WorldPhysics(C3DWorldManager *wm,...) {
       PhysicsOnThing(w,player,wm,0.);
       player->momx2=0;
       player->momy2=0;
+      player->momz2=0;
 //interoplate things
       for(idx=0;idx<c;idx++) {
         thing=body[idx];
@@ -2498,6 +2465,7 @@ CFrogThing *WorldPhysics(C3DWorldManager *wm,...) {
       if(body[idx]==player) {
 	player->momx2=0;
 	player->momy2=0;
+	player->momz2=0;
       }
     }
   }
