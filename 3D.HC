@@ -522,7 +522,7 @@ I64 BlockAtXYZ(I64 x,I64 y,I64 z) {
     if(I8_MIN<=z<=I8_MAX) {
       return w->world_blocks[tile*256+z-I8_MIN];
     }
-  }
+  }
   return -1;
 }
 Bool IsSolidTile(I64 t) {
@@ -2381,7 +2381,6 @@ stain:
   } 
 
   if(ThingHasClass(hand,"CHandItem")) {
-    hand->x=ms.pos.x;
     if(ThingHasClass(hand_gr=hand->gr,"CFrogImg")) {
       c=AnimDCCnt(hand_gr->dc);
       f=(Frog_tS-hand->anim_start_tS)/ANIM_DELAY;

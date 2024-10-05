@@ -10,9 +10,23 @@ init ->* |
   idx=CFrogNum
   ldown=CFrogNum
   rdown=CFrogNum
+  hand_animate_state=CFrogStr
+  hand_animate_mom_x=CFrogNum
+  hand_animate_mom_y=CFrogNum
+  hand_animate_gravity=CFrogNum
+  hand_animate_xoff=CFrogNum
+  hand_animate_yoff=CFrogNum
+  xdiff=CFrogNum
+  ydiff=CFrogNum
 |
   draw_it_name _ 'Draw3DWorld' .
 
+  hand_animate_state _ 'Normal' .
+  hand_animate_mom_x _ 0 .
+  hand_animate_mom_y _ 0 .
+  hand_animate_xoff _ 320 .
+  hand_animate_yoff _ 300 .
+  hand_animate_gravity _ 20 .
   on_init _ [
     #ms_grabbed _ 1 .
     up _ 0 . 
@@ -128,6 +142,9 @@ init ->* |
        
      ] .
      v->type = 'MsMove' ifTrue: [
+       hand_animate_xoff _ v->m1 - (640 / 2 ) + hand_animate_xoff .
+       hand_animate_yoff _ v->m2 - (480 / 2 ) + hand_animate_yoff .
+
        #ms_grabbed ifTrue: [
          player -> angle _ player->angle + ((v->m1 - (640 / 2) ) * (3.14 / 30 / 7 )) .
          player -> angle2 _ player -> angle2 + ((v -> m2 - (480 / 2) ) * (3.14 / 30 / 7 )) .
@@ -196,5 +213,36 @@ init ->* |
      ] .
      #hand_item animate .
      #world physics .
+
+     'Hand item movement'
+     hand_animate_xoff < 100 ifTrue: [
+       hand_animate_xoff _ 100 .
+     ].       
+     hand_animate_xoff > 540 ifTrue: [
+       hand_animate_xoff _ 540 .
+     ].       
+     hand_animate_yoff < 300 ifTrue: [
+       hand_animate_yoff _ 300 .
+     ].       
+     hand_animate_yoff > 450 ifTrue: [
+       hand_animate_yoff _ 450 .
+     ].
+     'base position' .
+     #hand_item->x _ 320 . 
+     #hand_item->xoff _ hand_animate_xoff - #hand_item->x .
+     #hand_item->yoff _ hand_animate_yoff - #hand_item->y .
+
+     xdiff _ #hand_item->x - hand_animate_xoff .
+     ydiff _ #hand_item->y - hand_animate_yoff .
+     xdiff abs < hand_animate_gravity ifTrue: [
+       hand_animate_xoff _ #hand_item -> x .
+     ] ifFalse: [
+       hand_animate_xoff _ (xdiff sign * hand_animate_gravity) + hand_animate_xoff.
+     ] .
+     ydiff abs < hand_animate_gravity ifTrue: [
+       hand_animate_yoff _ #hand_item -> y .
+     ] ifFalse: [
+       hand_animate_yoff _ (ydiff sign * hand_animate_gravity) + hand_animate_yoff.
+     ] .
   ] .
   ^ self 
