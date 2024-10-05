@@ -562,6 +562,8 @@ pass:
           return FALSE;
         }
       }
+      if(!StrCmp(ast->name,"spawn:"))
+	return TRUE;
       first=cur;
       for(;cur!=head;cur=cur->next) {
 //Ignore [block] value: stuff
@@ -719,11 +721,11 @@ U8 *CompileThunk(CAST *block,CLocals *parent=NULL,CDoc *ins_into=NULL) {
   DocPrint(doc,"};");
   ReplaceElem(doc,replace,"%d",MaxI64(FramePtr("ST@@stk_depth"),0));
 static I64 pass=0,fail=0;
-  if(1||(escapes&&LocalsIsEscaped(locals)))  {
+  if(escapes&&LocalsIsEscaped(locals))  {
     ReplaceElem(doc,frame,"Bool *return_flag=STNewBlockFrame(%d,parent_frame)->return_flag;\n",locals->cnt);
     fail++;
   } else {
-    ReplaceElem(doc,frame,"%Q stk_frame;MakeAnonBlockFrame(&stk_frame,%d,parent_frame); Bool *return_flag=parent_frame->_return_flag;\n",locals->name,locals->cnt);
+    ReplaceElem(doc,frame,"U8 stk_frame[sizeof(CLocalsGeneric0)+8*%d];MakeAnonBlockFrame(&stk_frame,%d,parent_frame); Bool *return_flag=parent_frame->_return_flag;\n",locals->cnt,locals->cnt);
     pass++;
   }
   DbgPrint("p:%d,f:%d\n",pass,fail);
@@ -946,28 +948,86 @@ U0 NumPrim1(CDoc *doc,CLocals *l,CAST *ast,I64 stack_depth,U8 *op,U8 *alt_name=N
   DocPrint(doc,"))");
   StrCpy(ast->var_class_name,"CFrogNum");
 }
+U0 ReplaceVarsWithStackTmps(CLocals *l,CAST *ast) {
+  CAST *head,*cur;
+  I64 stk;
+  if(ast->type==AST_VAR) {
+    if(0<(stk=FramePtr(ast->name))<INVALID_PTR) {
+      AssignTypeToNode(l,ast);
+      ast->type=AST_STACK_TEMPORARY;
+      ast->stk_idx=stk-1 ; //See `UnrollBlock
+    }
+    return;
+  }
+  if(ast->type==AST_BLOCK) {
+    head=&ast->args;
+    for(cur=head->next;cur!=head;cur=cur->next)
+      FramePtrAdd(cur->name,INVALID_PTR);
+    head=&ast->body;
+
+    for(cur=head->next;cur!=head;cur=cur->next)
+       ReplaceVarsWithStackTmps(l,cur);
+
+    head=&ast->args;
+    for(cur=head->next;cur!=head;cur=cur->next)
+      FramePtrDel(cur->name);
+    return;
+  }
+  if(ast->args.next) {
+    head=&ast->args;
+    for(cur=head->next;cur!=head;cur=cur->next) {
+      ReplaceVarsWithStackTmps(l,cur);
+    }
+  }
+  if(ast->body.next) {
+    head=&ast->body;
+    for(cur=head->next;cur!=head;cur=cur->next) {
+       ReplaceVarsWithStackTmps(l,cur);
+    }
+  }
+}
 U0 UnrollBlock(CDoc *doc,CLocals *l,I64 stack_depth,CAST *bl) {
   CAST *head,*cur; 
   I64 argc=0,idx;
   if(bl->type==AST_BLOCK)
     argc=QueCnt(&bl->args);
-  if(bl) {
-    if(bl->type==AST_BLOCK) {
-      head=&bl->body;
-      if(!argc) {
-        for(cur=head->next;cur!=head;cur=cur->next) {
-	  if(cur->type!=AST_STR||cur==head->last) {
-	    if(cur==head->last) 
-              CompileAST(doc,cur,l,stack_depth);
-	    else
-              CompileAST(doc,cur,l,stack_depth);
-	  }
+  if(bl->type==AST_BLOCK) {
+    head=&bl->body;
+    if(!argc) {
+      for(cur=head->next;cur!=head;cur=cur->next) {
+        if(cur->type!=AST_STR||cur==head->last) {
+	  if(cur==head->last) 
+	    CompileAST(doc,cur,l,stack_depth);
+	  else
+	    CompileAST(doc,cur,l,stack_depth);
         }
-        return;
       }
+      return;
+    } else {
+      head=&bl->args;
+      idx=stack_depth;
+      for(cur=head->next;cur!=head;cur=cur->next)
+	FramePtrAdd(cur->name,1+idx++); //1+ is important for "not 0"
+      head=&bl->body;
+      for(cur=head->next;cur!=head;cur=cur->next) {
+        if(cur->type!=AST_STR||cur==head->last) {
+	  ReplaceVarsWithStackTmps(l,cur);
+	  if(cur==head->last)  {
+	    CompileAST(doc,cur,l,stack_depth+idx);
+//Copy result
+	    DocPrint(doc,"%s=%s;\n",StackFrame2Var(stack_depth),StackFrame2Var(stack_depth+idx));
+	  } else
+	    CompileAST(doc,cur,l,stack_depth+idx);
+        }
+      }
+      head=&bl->args;
+      for(cur=head->next;cur!=head;cur=cur->next)
+	FramePtrDel(cur->name);
+      DocPrint(doc,"L%d:;",ast_case_num++);
+      return;
     }
-    CompileAST(doc,bl,l,stack_depth+argc+1);
   }
+  CompileAST(doc,bl,l,stack_depth+argc+1);
   if(!bl->switch_num) {
     bl->switch_num=ast_case_num++;
     DocPrint(doc,"L%d:\n",bl->switch_num);
@@ -980,6 +1040,23 @@ U0 UnrollBlock(CDoc *doc,CLocals *l,I64 stack_depth,CAST *bl) {
   DocPrint(doc,"if(return_flag[0]) goto ret;\n");
 fin:;
 }
+/*U0 CompileArrayIntern1(CDoc *doc,CAST *ast,CLocals *locals,I64 stack_depth) {
+  I64 idx=ast_case_num++;
+  if(!StrCmp("collect:",ast->name)) {
+    DocPrint("%s=FrogArrayNew;",StackFrame2Var(stack_depth));
+  } else if(!S)
+    DocPrint("%s=%d;",StackFrame2Var(stack_depth)),FrogNumNew(0);
+  DocPrint(doc,"I64 idx%d=0;\n",idx);
+  DocPrint(doc,"if(!ThingHasClass2(%s,#exe{ExeUniverse(\"CFrogArray\")})) goto L%d_end;",StackVar2Frame(idx),idx);
+  DocPrint(doc,"L%d_ent:\n",idx);
+  DocPrint(doc,"if(idx%d>=%s(CFrogArray*)->items->cnt) goto L%d_end;",idx,idx)
+  if(!StrCmp("collect:",ast->name)) {
+    UnrollBlock(doc,locals,stack_depth+1,ast->args.last);
+  } else {
+    DocPrint(doc,"if(CallScriptUniverse(#exe {ExeUniverse(\"=\")},%s,)) goto ;",StackFrameToVar(stack_depth));
+  }
+  DocPrint(doc,"goto L%d_ent;L%d_end:;\n",idx,idx);
+}*/
 F64 MemberF64(U8 *self,U8 *expect_type,I64 offset,I64 raw_type) {
   if(!ThingHasClass2(self,expect_type)) return 0.;
   self+=offset;
@@ -1029,15 +1106,9 @@ U0 CompileAST(CDoc *doc,CAST *ast,CLocals *locals,I64 stack_depth,I64 jump_to=IN
     }
     return;
   }
-  if(ast->type!=AST_STACK_TEMPORARY)
-    if(ast->compiled++) {
-      idx=64;
-      while(--idx>=0) "%P\n",Caller(idx);
-      throw('AST2');
-    }
   switch(ast->type) {
       break;case AST_STACK_TEMPORARY:
-      DocPrint(doc,"AsF64(%s)",StackFrame2Var(ast->stk_idx));
+      DocPrint(doc,"%s=%s;\n",StackFrame2Var(stack_depth),StackFrame2Var(ast->stk_idx));
       return;
       break;case AST_UNOP:
       cnt=0;
@@ -1379,7 +1450,10 @@ prim_skip:
       }
       ast->switch_num=ast_case_num++;
       DocPrint(doc,"L%d:\n",ast->switch_num);
-      if(cur->type==AST_SYMBOL) {
+      if(cur->type==AST_STACK_TEMPORARY) {
+        CompileAST(doc,ast->args.last,locals,stack_depth);
+        DocPrint(doc,"\n%s=%s;\n",StackFrame2Var(cur->stk_idx),StackFrame2Var(stack_depth));
+      } else if(cur->type==AST_SYMBOL) {
         CompileAST(doc,ast->args.last,locals,stack_depth);
         DocPrint(doc,"\n  FrogSymbol0(#exe {ExeUniverse(\"%Q\");})->value=%s;\n",cur->name,StackFrame2Var(stack_depth));
       } else if(cur->type==AST_VAR) {      
@@ -1719,7 +1793,7 @@ U0 CompileToHolyC(U8 *src,U8 *class_name,U8 *src_path=NULL,Bool class_method=FAL
     DocPrint(doc,"AddClassMethod(\"%Q\",\"%Q\",&%s);;",class_name,m->name,fun_name);
   }
   ReplaceElem(doc,replace,"%d",MaxI64(FramePtr("ST@@stk_depth"),0));
-  if(1||escapes)
+  if(escapes)
     ReplaceElem(doc,frame,"Bool *return_flag=STAddMethodFrame(%d,%d,\"%Q\")->return_flag;\n",m,locals->cnt,class_name);
   else
     ReplaceElem(doc,frame,"%Q stk_frame;MakeAnonBlockFrame(&stk_frame,%d,Fs->user_data,'Method');stk_frame._return_flag=&false;Bool *return_flag=&false;\n",locals->name,locals->cnt);
@@ -1814,7 +1888,7 @@ U0 STRunStmt(U8 *str) {
 #include "Studio.HC";
 STRunStmt(
 "  #Y _ [:f=CFrogBlock | [:x=CFrogBlock | x value: x] value: [:g=CFrogBlock| f value: [:x| (g value: g) value: x] ] ]."
-"  #fib _ #Y value: [:f| [:i=CFrogNum | i <= 1 ifTrue: [i] ifFalse: [(f value: i - 1) + (f value: i - 2)] ] ]."
+"  #fib _ #Y value: [:f| [:i=CFrogNum | i <= 1 ifTrue: [i] ifFalse: [ (f value: i - 1) + (f value: i - 2)] ] ]."
 "  (#fib value: 10 ) show ."
 );
 #endif

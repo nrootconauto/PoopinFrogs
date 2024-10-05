@@ -22,6 +22,7 @@ extern U8 *MethodReturnClass(U8 *class_name,U8 *method_name);
 extern Bool HasMethod(U8 *class_name,U8 *method_name);
 class CAST:CQue {
   CQue args;
+  CQue body;
   I32 type,is_literal;
   I32 switch_num,is_f64; //For compiler
   union {
@@ -34,7 +35,6 @@ class CAST:CQue {
     F64 num;
     CAST *cascade_head;
     U8 *str;
-    CQue body;
   };
   Bool compiled;
 //Used by escape analysis

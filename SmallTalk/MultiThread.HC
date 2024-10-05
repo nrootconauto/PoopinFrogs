@@ -38,8 +38,6 @@ CFrogThread *ThreadKill(CFrogThread *t,...) {
 AddMethod("CFrogThread","kill",&ThreadKill);
 CFrogThread *ThreadYield(CFrogThread *t,...) {
   FrogGarbageCollectUnlock;
-PrintI("poo",Fs);
-PrintI("poo.2",gc_lock_cnt);
   Sleep(3);
   FrogGarbageCollectLock;
   return FROG_SMALL_NIL;
@@ -47,8 +45,6 @@ PrintI("poo.2",gc_lock_cnt);
 AddClassMethod("CFrogThread","yield",&ThreadYield);
 CFrogThread *ThreadSleep(CFrogThread *t,...) {
   FrogGarbageCollectUnlock;
-PrintI("poo2",Fs);
-PrintI("poo2.5",gc_lock_cnt);
   Sleep(1000*AsF64(argv[0]));
   FrogGarbageCollectLock;
   return FROG_SMALL_NIL;

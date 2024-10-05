@@ -799,8 +799,6 @@ LoadMethodsFromBlob;
 //DocWrite(d);
 //DocDel(d);
 #else
-F64 t=tS;
 LoadMethodsFromBlob;
-PrintF("load time ",tS-t);
 #endif
 #endif
