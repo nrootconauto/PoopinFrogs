@@ -721,7 +721,7 @@ U8 *CompileThunk(CAST *block,CLocals *parent=NULL,CDoc *ins_into=NULL) {
   DocPrint(doc,"};");
   ReplaceElem(doc,replace,"%d",MaxI64(FramePtr("ST@@stk_depth"),0));
 static I64 pass=0,fail=0;
-  if(1||(escapes&&LocalsIsEscaped(locals)))  {
+  if(1||(escapes&&LocalsIsEscaped(locals)))  {
     ReplaceElem(doc,frame,"Bool *return_flag=STNewBlockFrame(%d,parent_frame)->return_flag;\n",locals->cnt);
     fail++;
   } else {

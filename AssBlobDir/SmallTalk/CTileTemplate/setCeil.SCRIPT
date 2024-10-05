@@ -4,3 +4,4 @@ setCeil: str=CFrogStr
 |
   ceil_texture _ CFrogImg get: str .
   self updateTextures .
+  self save .

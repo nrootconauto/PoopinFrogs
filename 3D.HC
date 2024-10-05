@@ -522,7 +522,7 @@ I64 BlockAtXYZ(I64 x,I64 y,I64 z) {
     if(I8_MIN<=z<=I8_MAX) {
       return w->world_blocks[tile*256+z-I8_MIN];
     }
-  }
+  }
   return -1;
 }
 Bool IsSolidTile(I64 t) {
@@ -2280,7 +2280,54 @@ AddMethod("C3DWorldManager","setTile:atX:atY:atZ:",&WorldManagerSetTileAtXAtYAtZ
 #include "UI.HC"
 InitWorld;
 I64 mp_thing_done=0;
-extern CDC *MakeMinimap1(C3DWorld *w,F64 x,F64 y,F64 angle,I64 radius,F64 height);
+CFrogThing *UpdateParticles(C3DWorldManager *man,...) {
+  I64 tx,ty;
+  static CFrogClass *ws_class=FrogClassNew(UniverseAddClass("CWallStain"));
+  C3DParticle *head,*p,*n;
+  head=&w->particles;
+  for(p=head->next;head!=p;p=n) {
+    p->x+=p->momx;
+    p->y+=p->momy;
+    p->z+=p->momz;
+    p->momx*=20/30.;
+    p->momy*=20/30.;
+    p->momz-=.2;
+    tx=p->x/GRID_SZ;
+    ty=p->y/GRID_SZ;
+    if(0<=tx<w->world_width)
+      if(0<=ty<w->world_height) {
+	if(BlockAtXYZ(tx,ty,Floor(p->z))) {
+	  if(p->momz>0.) {
+	    p->momz=0;
+	    p->z=Floor(p->z);
+stain:
+	    if(p->splat_lump_name[0]) {
+	      CallScript("newStainAtX:atY:atZ:withGraphicsLump:withSpread:",ws_class,
+		FrogNumNew(p->x-p->momx),
+		FrogNumNew(p->y-p->momy),
+		FrogNumNew(p->z-p->momz),
+		FrogStrNew(p->splat_lump_name),
+		FrogNumNew(32.)
+		);
+              p->splat_lump_name[0]=0;
+	    }
+	  } else if(p->momz<0.) {
+	    p->z=Ceil(p->z);
+	    p->momz=0.;
+	    goto stain;
+	  }
+	}
+      }
+    n=p->next;
+    if(Frog_tS>1+p->born_at) {
+      QueRem(p);
+      Free(p);
+      w->particle_cnt--;
+    }
+  }
+  return FROG_SMALL_NIL;
+}
+AddMethod("C3DWorldManager","updateParticles",&UpdateParticles);
 U0 Draw3DWorld(CTask *,CDC *dc) {
   C3DWorldManager *man=FrogSymbol("world")->value;
   static CFrogClass *ws_class=FrogClassNew(UniverseAddClass("CWallStain"));
@@ -2326,37 +2373,8 @@ U0 Draw3DWorld(CTask *,CDC *dc) {
     p->momz-=.2;
     tx=p->x/GRID_SZ;
     ty=p->y/GRID_SZ;
-    if(0<=tx<w->world_width)
-      if(0<=ty<w->world_height) {
-	if(BlockAtXYZ(tx,ty,Floor(p->z))) {
-	  if(p->momz>0.) {
-	    p->momz=0;
-	    p->z=Floor(p->z);
-stain:
-	    if(p->splat_lump_name[0]) {
-	      CallScript("newStainAtX:atY:atZ:withGraphicsLump:withSpread:",ws_class,
-		FrogNumNew(p->x-p->momx),
-		FrogNumNew(p->y-p->momy),
-		FrogNumNew(p->z-p->momz),
-		FrogStrNew(p->splat_lump_name),
-		FrogNumNew(32.)
-		);
-              p->splat_lump_name[0]=0;
-	    }
-	  } else if(p->momz<0.) {
-	    p->z=Ceil(p->z);
-	    p->momz=0.;
-	    goto stain;
-	  }
-	}
-      }
-    DrawParticle(w,p);
     n=p->next;
-    if(Frog_tS>1+p->born_at) {
-      QueRem(p);
-      Free(p);
-      w->particle_cnt--;
-    }
+    DrawParticle(w,p);
   }
   doors=man->doors->items->body;
   c=man->doors->items->cnt;
