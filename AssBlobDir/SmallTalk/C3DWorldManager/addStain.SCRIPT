@@ -4,7 +4,7 @@ addWallStain: s=CWallStain ->*
   color=CFrogNum
   type=CFrogNum
 |
-  wall_stains size > 64 ifTrue: [
+  wall_stains size > 512 ifTrue: [
     wall_stains removeAt: 0 .
   ] .
   'wall_stains size' show .

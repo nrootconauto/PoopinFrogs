@@ -212,6 +212,7 @@ class C3DParticle:CQue {
   F64 momx,momy,momz;
   I32 color,size;
   U8 splat_lump_name[STR_LEN];
+  Bool hit;
 };
 
 I64 class CWallCommand {
@@ -533,6 +534,7 @@ Bool HeightImpossible(C3DWorld *w,I64 ix,I64 iy,F64 above,Bool allow_ceil,F64 ta
   I64 iz=Floor(above);
   I64 c,idx2,t;
   F64 h;
+  if(!(-128<iz<128)) return FALSE;
   if(IsSolidTile(BlockAtXYZ(ix,iy,iz))) {
      return TRUE;
   }
@@ -785,7 +787,7 @@ fix:;
   return hit;
 }
 //Returns true on wall hit
-Bool C3DWorldMoveWithCollision(C3DWorld *w,F64 angle,F64 dist,F64 *x,F64 *y,Bool walk_along_wall=TRUE,F64 height=0) {
+Bool C3DWorldMoveWithCollision(C3DWorld *w,F64 angle,F64 dist,F64 *x,F64 *y,Bool adjust_smart=TRUE,F64 height=0) {
   F64 dist2=0,boundary;
   Bool hit_wall=FALSE,force;
   F64 old_x=w->x,old_y=w->y,deflect_angle;
@@ -798,6 +800,7 @@ Bool C3DWorldMoveWithCollision(C3DWorld *w,F64 angle,F64 dist,F64 *x,F64 *y,Bool
       hit_wall=TRUE;
       goto fin;
     }
+  if(adjust_smart)
   while(dist2<dist) {
     for(idx=0;idx!=5;idx++) {
     dist2+=GRID_SZ/5.;
@@ -977,7 +980,7 @@ U0 PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm,F64 last_tS) {
     angle=Arg(t->momx+t->momx2,t->momy+t->momy2);
     i_am_moving=TRUE;
     dist=Sqrt(Sqr(t->momx+t->momx2)+Sqr(t->momy+t->momy2))*(1.-t->friction);
-    on_ground=AsF64(CallScript("`isOnGround",t));
+    on_ground=AsF64(CallScript("isOnGround",t));
     if(C3DWorldMoveWithCollision(w,angle,dist*weight,
 	&t->x,
 	&t->y,
@@ -2098,7 +2101,7 @@ AddMethod("CWallStain","addGraphics:atX:atY:",&WallStainSetGr);
 CFrogThing *WorldManagerNewParticle(C3DWorldManager *man,...) {
   F64 x=AsF64(argv[0]);
   F64 y=AsF64(argv[1]);
-  F64 z=AsF64(argv[2]);
+  F64 z=AsF64(argv[2])+.001; //For not hiting floor at spawn 
   F64 spread=AsF64(argv[3]);
   F64 color=AsF64(argv[4]);
   NewParticle(w,color,16,x,y,z,spread*(Rand-.5),spread*(Rand-.5),man->gravity*3);
@@ -2109,7 +2112,7 @@ AddMethod("C3DWorldManager","basicNewParticleAtX:atY:atZ:withSpread:withColor:",
 CFrogThing *WorldManagerNewParticle2(C3DWorldManager *man,...) {
   F64 x=AsF64(argv[0]);
   F64 y=AsF64(argv[1]);
-  F64 z=AsF64(argv[2]);
+  F64 z=AsF64(argv[2])+.001; //For not hiting floor at spawn 
   F64 spread=AsF64(argv[3]);
   F64 color=AsF64(argv[4]);
   U8 *splat_lump=AsString(argv[5]);
@@ -2282,43 +2285,74 @@ InitWorld;
 I64 mp_thing_done=0;
 CFrogThing *UpdateParticles(C3DWorldManager *man,...) {
   I64 tx,ty;
+  F64 fx,cx,fy,cy,dx,dy;
   static CFrogClass *ws_class=FrogClassNew(UniverseAddClass("CWallStain"));
   C3DParticle *head,*p,*n;
   head=&w->particles;
   for(p=head->next;head!=p;p=n) {
-    p->x+=p->momx;
-    p->y+=p->momy;
-    p->z+=p->momz;
+    n=p->next;
+    if(!p->hit&&BlockAtXYZ(p->x/128,p->y/128,Floor(p->z))) {
+      //Pick nearest "wall"
+      fx=Floor(p->x/128.);
+      cx=Ceil(p->x/128.);
+      fy=Floor(p->y/128.);
+      cy=Ceil(p->y/128.);
+      dx=Min(cx-p->x/128.,p->x/128.-fx);
+      dy=Min(cy-p->y/128.,p->y/128.-fy);
+      if(dy<dx) {
+	if(p->y/128-fy>.5)
+	  p->y=(fy-.1)*128;
+	else
+	  p->y=(cy+.1)*128;
+      } else {
+	if(p->x/128.-fx>.5)
+	  p->x=(fx-.1)*128;
+	else
+	  p->x=(cx+.1)*128;
+      }
+      if(!p->hit)
+        goto hit;
+    }
+    if(p->momx||p->momy)
+    if(C3DWorldMoveWithCollision(
+	  w,
+	  Arg(p->momx,p->momy),
+	  Sqrt(p->momx*p->momx+p->momy*p->momy), 
+	  &p->x,
+	  &p->y,
+	  FALSE,
+	  p->z
+	  )) {         
+	goto hit;
+    }
+    if(C3DWorldMoveZWithCollision(w,p->momz,p->x,p->y,&p->z)) {
+        goto hit;
+    }
     p->momx*=20/30.;
     p->momy*=20/30.;
     p->momz-=.2;
     tx=p->x/GRID_SZ;
     ty=p->y/GRID_SZ;
-    if(0<=tx<w->world_width)
-      if(0<=ty<w->world_height) {
-	if(BlockAtXYZ(tx,ty,Floor(p->z))) {
-	  if(p->momz>0.) {
+   if(0) {
+hit:
+	  if(p->momz<=0.) {
+ 	    p->hit=1;
+	    p->momx=0;
+	    p->momy=0;
 	    p->momz=0;
-	    p->z=Floor(p->z);
 stain:
 	    if(p->splat_lump_name[0]) {
 	      CallScript("newStainAtX:atY:atZ:withGraphicsLump:withSpread:",ws_class,
-		FrogNumNew(p->x-p->momx),
-		FrogNumNew(p->y-p->momy),
-		FrogNumNew(p->z-p->momz),
-		FrogStrNew(p->splat_lump_name),
-		FrogNumNew(32.)
-		);
-              p->splat_lump_name[0]=0;
+		    FrogNumNew(p->x),
+		    FrogNumNew(p->y),
+		    FrogNumNew(p->z),
+		    FrogStrNew(p->splat_lump_name),
+		    FrogNumNew(32.)
+	      );
+	      p->splat_lump_name[0]=0;
 	    }
-	  } else if(p->momz<0.) {
-	    p->z=Ceil(p->z);
-	    p->momz=0.;
-	    goto stain;
 	  }
-	}
-      }
-    n=p->next;
+        }
     if(Frog_tS>1+p->born_at) {
       QueRem(p);
       Free(p);

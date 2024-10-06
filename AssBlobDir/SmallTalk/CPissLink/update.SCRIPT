@@ -23,7 +23,7 @@ updateWithWeight: w=CFrogNum makeParticles: part=CFrogNum ->* |
     (t ->health > 0 and: t ~= from ) ifTrue: [
       (z - t ->z) abs < 25 ifTrue: [
         1 to: 3 do:  [
-          world newParticleAtX: x atY: y atZ: (oldz + 1 ) floor withSpread: 8 withColor: #color_YELLOW  withSplatLump: 'GR/Dick/PISS_STAIN'.
+          world newParticleAtX: x atY: y atZ: oldz withSpread: 8 withColor: #color_YELLOW  withSplatLump: 'GR/Dick/PISS_STAIN'.
         ] .
         t damage: 5 * rand next + 4 from: from .
         ^ #(x y z)
@@ -37,7 +37,7 @@ updateWithWeight: w=CFrogNum makeParticles: part=CFrogNum ->* |
 
   (old_under and: part) ifTrue: [
     1 to: 3 do:  [
-      world newParticleAtX: x atY: y atZ: (oldz + 1 ) floor withSpread: 8 withColor: #color_YELLOW  withSplatLump: 'GR/Dick/PISS_STAIN'.
+      world newParticleAtX: oldx - momx atY: oldy -momy atZ: oldz -momz  withSpread: 8 withColor: #color_YELLOW  withSplatLump: 'GR/Dick/PISS_STAIN'.
     ] .
     CWallStain newStainAtX: oldx atY: oldy atZ: oldz round withGraphicsLump: 'GR/Dick/PISS_STAIN' withSpread: 64 .
     ^ #(x y z ) .
