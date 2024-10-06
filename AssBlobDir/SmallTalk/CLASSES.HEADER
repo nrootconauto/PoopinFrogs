@@ -252,7 +252,7 @@ class C3DThing:CFrogThing {
   F64 interpolate_start_tS,interpolate_end_tS;
 //
   F64 momx,momy,momz,animation_start_tS;
-  F64 momx2,momy2,momz2;
+  F64 momx2,momy2,momz2;
 //0->1 0 is full speed. 1 is completely stopped
   F64 friction; 
   CFrogStr *name; //Like Jimmy Crooks
@@ -642,4 +642,6 @@ class CUITree:CUIElem {
   CFrogArray *sub_trees;
   CFrogArray *sub_elems2;
   CUITree *parent;
+};
+class CUIList:CUIElem {
 };

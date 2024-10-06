@@ -1002,6 +1002,7 @@ U0 UnrollBlock(CDoc *doc,CLocals *l,I64 stack_depth,CAST *bl) {
 	    CompileAST(doc,cur,l,stack_depth);
         }
       }
+      DocPrint(doc,"L%d:;",ast_case_num++);
       return;
     } else {
       head=&bl->args;
@@ -1040,7 +1041,7 @@ U0 UnrollBlock(CDoc *doc,CLocals *l,I64 stack_depth,CAST *bl) {
   DocPrint(doc,"if(return_flag[0]) goto ret;\n");
 fin:;
 }
-/*U0 CompileArrayIntern1(CDoc *doc,CAST *ast,CLocals *locals,I64 stack_depth) {
+/* CompileArrayIntern1(CDoc *doc,CAST *ast,CLocals *locals,I64 stack_depth) {
   I64 idx=ast_case_num++;
   if(!StrCmp("collect:",ast->name)) {
     DocPrint("%s=FrogArrayNew;",StackFrame2Var(stack_depth));

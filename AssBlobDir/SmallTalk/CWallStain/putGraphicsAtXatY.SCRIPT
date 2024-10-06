@@ -27,8 +27,10 @@ putGraphics: lump=CFrogStr atX: x=CFrogNum atY: y=CFrogNum
       inher_props value .
       add _ 1 .
     ] .
+    (ws addGraphics: lump atX: (xx - tile_x) * -128 + x atY: ( yy - tile_y + zz - tile_z ) * -128 + y) show .
     (ws addGraphics: lump atX: (xx - tile_x) * -128 + x atY: ( yy - tile_y + zz - tile_z ) * -128 + y) ifTrue: [
       add ifTrue: [
+       'added' show .
         w addWallStain: ws
       ] .
       added _ 1
@@ -46,7 +48,10 @@ putGraphics: lump=CFrogStr atX: x=CFrogNum atY: y=CFrogNum
     ws->sidez _ sidez .
   ] . 
   more _ self addGraphics: lump atX: x atY: y . 
-  'Infect adjacent tiles' .
+  'Infect adjacent tiles' show.
+   sidex show.
+   sidey show .
+   sidez show .
    w _ #world .
   -1 to: 2 do:[:oz=CFrogNum|
     sidey ifTrue: [

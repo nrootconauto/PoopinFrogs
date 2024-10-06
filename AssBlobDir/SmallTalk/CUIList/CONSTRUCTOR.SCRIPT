@@ -1,0 +1,28 @@
+init: items=CFrogArray ->CUIList |
+  w=CFrogNum
+  button=CUIButton
+  elems=CFrogArray
+|
+  sub_elems _ #(). 
+  w _ 100 .
+  elems _ items collect: [:i*|
+    button _ CUIButton new.
+    button->label _ i first copy .
+    button->sz_x _ button->label size * 8 + 20 .
+    button->sz_y _ 20 .
+    button->ms_ldown _ i at: 1 .
+    button->ms_ldown  show .
+    button->bg_color _ #color_YELLOW .
+    self addChild: button .
+    w _ button->sz_x max: w . 
+    button
+  ] .
+  sz_x _ w + 20 .
+  sz_y _ items size * 30 + 15 .
+  0 to: elems size do: [:idx=CFrogNum|
+    button _ elems at: idx .
+    button->y _ 30 * idx + 10 .
+    button->x _ 10 .
+    button->sz_x _ w .
+  ] .
+  ^ self

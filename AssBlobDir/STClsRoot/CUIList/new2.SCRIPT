@@ -1,0 +1,4 @@
+new: pairs=CFrogArray ->CUIList
+|
+|
+ ^ self basicNew init: pairs .

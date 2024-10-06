@@ -180,6 +180,7 @@ Bool SynView(CDoc *doc) {
 
 
 Bool STStudioRegisterNewClasses(U8 *blob_file) {
+  Bool old=Option(OPTf_NO_REG_VAR,TRUE);
   if(!FileFind(blob_file)) return;
   CHashTable *new=HashTableNew(0x100);
   CHashClass *cls;
@@ -223,6 +224,7 @@ Bool STStudioRegisterNewClasses(U8 *blob_file) {
   Fs->hash_table=new->next;
   Free(new_header);
   HashTableDel(new);
+  Option(OPTf_NO_REG_VAR,old);
   return ret;
 };
 //Blob file is needed for headers
@@ -801,4 +803,4 @@ LoadMethodsFromBlob;
 #else
 LoadMethodsFromBlob;
 #endif
-#endif
+#endif

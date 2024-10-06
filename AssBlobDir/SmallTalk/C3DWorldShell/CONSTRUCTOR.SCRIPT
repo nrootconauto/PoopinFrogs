@@ -1,4 +1,6 @@
 init ->* |
+  e*
+  e2*
   handled=CFrogNum
   next_refresh=CFrogNum
   now=CFrogNum
@@ -19,6 +21,8 @@ init ->* |
   hand_active=CFrogNum
   xdiff=CFrogNum
   ydiff=CFrogNum
+  ask_exit=CFrogBlock
+  ask_exit_active=CFrogNum
 |
   draw_it_name _ 'Draw3DWorld' .
 
@@ -39,6 +43,53 @@ init ->* |
     hand_animate_yoff _ 300 .
     hand_animate_gravity _ 20 .
     hand_active _ 1 .
+    ask_exit_active _ 0 .
+
+    ask_exit _ [
+      #ui_root removeChild: e. 
+      
+      (e hasClass: CUIElem ) ifTrue: [
+       #ui_root removeChild: e .
+       #ms_grabbed _ 1 .
+       ask_exit_active _ 0 .
+       e _ 0 .
+      ] ifFalse: [
+        e _ CUIBackground new .
+        e->bg_color _ #color_DKGRAY .
+        e2 _ CUIList new: #(
+          #('Yes,fuck this poopy garbage' [
+            #ui_root removeChild: e .
+            exited _ 1 .
+          ]) 
+          #('No,I like this shit(correct aswer)' [
+            #ms_grabbed _ 1 .
+            #ui_root removeChild: e .
+            ask_exit_active _ 0 .
+            'Diry hack,dont fire weapon on press ' .
+            ldown _ 0 . 
+            handled _ 1 .
+            e _ 0 .
+          ]) 
+        ) .
+        e->sz_x _ e2->sz_x .
+        e->sz_y _ e2->sz_y + 10 .
+        e addChild: e2 .
+        e2->y _ 10 .
+        e2 _ CUILabel new .
+        e2->color _ #color_LTCYAN .
+        e2 setLabel:  'Quit the AssLicking Game?' .
+         e2->y _ 2 .
+        e2->x _ e->sz_x - e2->sz_x / 2 .
+        e addChild: e2 .
+
+        e ->x _ 320 - (e ->sz_x /2 ) .
+        e ->y _ 240 - (e ->sz_y /2 ) .
+        #ui_root addChild: e .
+        #ms_grabbed _ 0 .
+        ask_exit_active _ 1 .
+        handled _ 1 .
+      ] .
+    ] .
   ] .
 
   next_refresh _ CFrogTime now asSeconds .
@@ -92,12 +143,12 @@ init ->* |
        'CH_ESC' .
        v->m1 = 27 ifTrue: [
          handled _ 1 .
-         exited _ 1  .
+         ask_exit value .
        ] .
        'CH_SHIFT_ESC' .
        v->m1 = 28 ifTrue: [
          handled _ 1 .
-         exited _ 1  .
+         ask_exit value .
        ] .
        'Space '.
        v->m1 = 32 ifTrue: [
@@ -221,10 +272,10 @@ init ->* |
      #hand_item animate .
      #world physics .
 
-     (hand_active and: (
+     (hand_active and: ((
         player->main_inventory_active or:
         player->chatting_active
-      ) not )ifTrue: [
+      ) or: ask_exit_active) not) ifTrue: [
        'Hand item movement'.
        hand_animate_xoff < 100 ifTrue: [
          hand_animate_xoff _ 100 .

@@ -2416,6 +2416,15 @@ U0 Draw3DWorld(CTask *,CDC *dc) {
   doors=man->doors->items->body;
   c=man->doors->items->cnt;
 //Rely on wall commands to choose what part of door to draw
+  cnt=man->lines->items->cnt;
+  body=MAllocIdent(man->lines->items->body);
+  for(idx=0;idx!=cnt;idx++) {
+    line=body[idx];
+    dc->color=line->color;
+    dc->thick=line->thick;
+    Line3D(w,dc,&line->x0,&line->x);
+  }
+  Free(body);
   w->to_dc->depth_buf=NULL;
 
   
@@ -2449,16 +2458,6 @@ U0 Draw3DWorld(CTask *,CDC *dc) {
       GrBlot(dc,hand->x+hand->xoff-hand_gr->dc->width/2,hand->y+hand->yoff-hand_gr->dc->height/2,hand_gr->dc+f);
     }
   }
-
-  cnt=man->lines->items->cnt;
-  body=MAllocIdent(man->lines->items->body);
-  for(idx=0;idx!=cnt;idx++) {
-    line=body[idx];
-    dc->color=line->color;
-    dc->thick=line->thick;
-    Line3D(w,dc,&line->x0,&line->x);
-  }
-  Free(body);
 fin:
 /*  minimap=MakeMinimap1(man,player->x,player->y,player->angle,64,player->z);
   GrBlot(dc,GR_WIDTH-128-16,30,minimap);

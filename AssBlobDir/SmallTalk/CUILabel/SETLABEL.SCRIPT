@@ -1,3 +1,4 @@
 setLabel: l=CFrogStr -> * ||
   label _ l copy .
+  sz_x _ l size * 8 .
   ^ 0
