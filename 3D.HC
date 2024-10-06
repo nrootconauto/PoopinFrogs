@@ -1313,6 +1313,12 @@ Bool SegmentSegmentIntersect(CD2 *hit_at,CD2 *a,CD2 *b,CD2 *a2,CD2 *b2,F64 *t,F6
 //https://github.com/cgyurgyik/fast-voxel-traversal-algorithm/blob/master/overview/FastVoxelTraversalOverview.md
 #define RAY_TRACE_MAX_DEPTH 3
 I64 GetColorForRay(C3DWorldManager *man,CD3 *origin,CD3 *ray,F64 dist,F64 *hit_at,CD3 *hit_cords,I64 depth=0,I64 last_block=0,I64 fog_color=BLACK) { 
+  if(Abs(ray->x-Ceil(ray->x))<.001)
+    ray->x+=.001;
+  if(Abs(ray->y-Ceil(ray->y))<.001)
+    ray->y+=.001;
+  if(Abs(ray->z-Ceil(ray->z))<.001)
+    ray->z+=.001;
   CFrogArray *grid=man->grid;
   C3DWorld *w=man->world_handle;
   CI64Set *do_things;
@@ -1331,12 +1337,6 @@ I64 GetColorForRay(C3DWorldManager *man,CD3 *origin,CD3 *ray,F64 dist,F64 *hit_a
   F64 current_x_index=Ceil(x);
   F64 current_y_index=Ceil(y);
   F64 current_z_index=Ceil(origin->z);
-  if(current_x_index==x)
-    current_x_index-=.0001;
-  if(current_y_index==x)
-    current_y_index-=.0001;
-  if(current_z_index==x)
-    current_z_index-=.0001;
   if(stepx<0) current_x_index--;
   if(stepy<0) current_y_index--;
   if(stepz<0) current_z_index--;
@@ -1576,7 +1576,10 @@ try_block:;
 	      new_ray.y=ray->y*ASin(Sin((pi/2-ATan(slope)))/(rand_refrac+.2));
 	      new_ray.z=-Cos(snell_a);
 	    } else {
-	      normal=pi/2;
+              if(slope<0.)
+	        normal=pi/2;
+	      else
+	        normal=-pi/2;
 	      snell_a=ATan(slope)-normal;
 	      snell_a=ASin(Sin(snell_a)/rand_refrac);
 	      snell_a=normal-snell_a+pi;
