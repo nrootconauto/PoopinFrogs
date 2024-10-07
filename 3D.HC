@@ -135,10 +135,6 @@ Bool IsLiquidTile(I64 t) {
   }
   return FALSE;
 }
-
-F64 Frog_tS() {
-  return tS+frog_time_offset;
-}
 extern I64 *GetTilesInPath(U8 *w,F64 angle,F64 dist);
 #define ENGINE_3D 1
 #define SCRN_TURN_MARGIN 100
@@ -1314,11 +1310,11 @@ Bool SegmentSegmentIntersect(CD2 *hit_at,CD2 *a,CD2 *b,CD2 *a2,CD2 *b2,F64 *t,F6
 #define RAY_TRACE_MAX_DEPTH 3
 I64 GetColorForRay(C3DWorldManager *man,CD3 *origin,CD3 *ray,F64 dist,F64 *hit_at,CD3 *hit_cords,I64 depth=0,I64 last_block=0,I64 fog_color=BLACK) { 
   if(Abs(ray->x-Ceil(ray->x))<.001)
-    ray->x+=.001;
+    ray->x-=.001;
   if(Abs(ray->y-Ceil(ray->y))<.001)
-    ray->y+=.001;
+    ray->y-=.001;
   if(Abs(ray->z-Ceil(ray->z))<.001)
-    ray->z+=.001;
+    ray->z-=.001;
   CFrogArray *grid=man->grid;
   C3DWorld *w=man->world_handle;
   CI64Set *do_things;
@@ -1565,7 +1561,7 @@ try_block:;
 //Weird issues  with exact values
 	    //Snells law
 	    F64 snell_a,snell_a2,normal;
-	    F64 t=tS/30.;
+	    F64 t=Frog_tS/30.;
 	    F64 rand_refrac=1.1+.1*(Abs(Sin((t/4.)*200))-Abs(Cos(t*125)))+.1*(Rand-.5)*2;
 	    if(hit_wall) {
 	      normal=(1+side)*pi/2;
@@ -1679,7 +1675,7 @@ CDC *WhichTexture(C3DWorld *w,I64 tile,F64 h,F64 h2,F64 *hit_h,Bool *hit_wall) {
   }
 en:
   if(ret&&(cnt=AnimDCCnt(ret)))
-    return ret+ToI64(tS/ANIM_DELAY)%cnt;
+    return ret+ToI64(Frog_tS/ANIM_DELAY)%cnt;
   return NULL;
 }
 
@@ -1735,7 +1731,7 @@ U0 MPCastCol(C3DWorldManager *wm) {
   F64 sa2=Sin(-w->angle2);
   F64 ca2=Cos(-w->angle2);
   Bool in_water=FALSE;
-  F64 t=tS/30.,rand_refrac,snell_a,snell_a2;
+  F64 t=Frog_tS/30.,rand_refrac,snell_a,snell_a2;
   if(IsLiquidTile(BlockAtXYZ(w->x/128.,w->y/128.,Floor(w->cam_height)))) {
     in_water=TRUE;
   }
@@ -2424,9 +2420,8 @@ U0 Draw3DWorld(CTask *,CDC *dc) {
     dc->thick=line->thick;
     Line3D(w,dc,&line->x0,&line->x);
   }
-  Free(body);
+  Free(body);
   w->to_dc->depth_buf=NULL;
-
   
   Fs->user_data=0;
   if(ThingHasClass(player,"CPlayer")) {

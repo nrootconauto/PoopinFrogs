@@ -1,6 +1,9 @@
 animate ->*
 |
 |
+  is_paused ifTrue: [
+    ^0 
+  ] .
   things do: [:t*|
    t animate .
   ] .

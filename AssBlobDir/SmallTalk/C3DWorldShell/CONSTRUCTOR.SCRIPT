@@ -27,6 +27,7 @@ init ->* |
   draw_it_name _ 'Draw3DWorld' .
 
   on_init _ [
+    #world unpause
     #ms_grabbed _ 1 .
     up _ 0 . 
     down _ 0 . 
@@ -53,13 +54,18 @@ init ->* |
        #ms_grabbed _ 1 .
        ask_exit_active _ 0 .
        e _ 0 .
+       #world unpause
       ] ifFalse: [
+        'Checks if client for us' .
+        #world pause .
+
         e _ CUIBackground new .
         e->bg_color _ #color_DKGRAY .
         e2 _ CUIList new: #(
           #('Yes,fuck this poopy garbage' [
             #ui_root removeChild: e .
             exited _ 1 .
+            #world unpause
           ]) 
           #('No,I like this shit(correct aswer)' [
             #ms_grabbed _ 1 .
@@ -69,6 +75,7 @@ init ->* |
             ldown _ 0 . 
             handled _ 1 .
             e _ 0 .
+            #world unpause
           ]) 
         ) .
         e->sz_x _ e2->sz_x .
@@ -223,92 +230,94 @@ init ->* |
      ] .
   ] .
   on_refresh _ [
-     player _ #world getPlayer .
-     now _ CFrogTime now asSeconds .
-     now >= next_refresh ifTrue: [
-       next_refresh _ now + (1 / 10 ).
-       #world update
-     ] .
-     player->momx2 _ 0 .
-     player->momy2 _ 0 .
-     player->momz2 _ 0 .
-     (#world tileIsLiquidAtX: player->x /128 atY: player->y /128  atZ: player->z) ifTrue: [
-       up ifTrue: [
-         player swim: 128 /4 atAngle: player->angle atAngle2: player->angle2 negated .
+     #world ->is_paused ifFalse: [
+       player _ #world getPlayer .
+       now _ CFrogTime now asSeconds .
+       now >= next_refresh ifTrue: [
+         next_refresh _ now + (1 / 10 ).
+         #world update
        ] .
-       down ifTrue: [
-         player swim: 128 /4 atAngle: player->angle atAngle2: player->angle2  negated + 3.14 .
-       ] .
-       left ifTrue: [
-         player swim: 128 /4 atAngle: player->angle - (3.14 / 2) atAngle2: player->angle2 negated.
-       ] .
-       right ifTrue: [
-         player swim: 128 /4 atAngle: player->angle + (3.14 / 2) atAngle2: player->angle2 negated.
-       ] .
-     ] ifFalse: [
-       up ifTrue: [
-         player move: 128 / 4 atAngle: player->angle .
-       ] .
-       down ifTrue: [
-         player move: 128 / 4 atAngle: player->angle  +  3.14  .
-       ] .
-       left ifTrue: [
-         player move: 128 / 4 atAngle: player->angle  - (3.14 / 2 ) .
-       ] .
-       right ifTrue: [
-         player move: 128 / 4 atAngle: player->angle  + (3.14 / 2 ) .
-       ] .
-     ].
-     #world animate . 
-     #world handlePowerups .
-     #ms_grabbed ifTrue: [
-       ldown ifTrue: [
-         #hand_item fire .
-       ] .
-       rdown ifTrue: [
-         #hand_item altFire .
-       ] .
-     ] .
-     #hand_item animate .
-     #world physics .
-
-     (hand_active and: ((
-        player->main_inventory_active or:
-        player->chatting_active
-      ) or: ask_exit_active) not) ifTrue: [
-       'Hand item movement'.
-       hand_animate_xoff < 100 ifTrue: [
-         hand_animate_xoff _ 100 .
-       ].       
-       hand_animate_xoff > 540 ifTrue: [
-         hand_animate_xoff _ 540 .
-       ].       
-       hand_animate_yoff < 300 ifTrue: [
-         hand_animate_yoff _ 300 .
-       ].       
-       hand_animate_yoff > 450 ifTrue: [
-         hand_animate_yoff _ 450 .
+       player->momx2 _ 0 .
+       player->momy2 _ 0 .
+       player->momz2 _ 0 .
+       (#world tileIsLiquidAtX: player->x /128 atY: player->y /128  atZ: player->z) ifTrue: [
+         up ifTrue: [
+           player swim: 128 /4 atAngle: player->angle atAngle2: player->angle2 negated .
+         ] .
+         down ifTrue: [
+           player swim: 128 /4 atAngle: player->angle atAngle2: player->angle2  negated + 3.14 .
+         ] .
+         left ifTrue: [
+           player swim: 128 /4 atAngle: player->angle - (3.14 / 2) atAngle2: player->angle2 negated.
+         ] .
+         right ifTrue: [
+           player swim: 128 /4 atAngle: player->angle + (3.14 / 2) atAngle2: player->angle2 negated.
+         ] .
+       ] ifFalse: [
+         up ifTrue: [
+           player move: 128 / 4 atAngle: player->angle .
+         ] .
+         down ifTrue: [
+           player move: 128 / 4 atAngle: player->angle  +  3.14  .
+         ] .
+         left ifTrue: [
+           player move: 128 / 4 atAngle: player->angle  - (3.14 / 2 ) .
+         ] .
+         right ifTrue: [
+           player move: 128 / 4 atAngle: player->angle  + (3.14 / 2 ) .
+         ] .
        ].
-       'base position' .
-       #hand_item->x _ 320 . 
-       #hand_item->xoff _ hand_animate_xoff - #hand_item->x .
-       #hand_item->yoff _ hand_animate_yoff - #hand_item->y .
+       #world animate . 
+       #world handlePowerups .
+       #ms_grabbed ifTrue: [
+         ldown ifTrue: [
+           #hand_item fire .
+         ] .
+         rdown ifTrue: [
+           #hand_item altFire .
+         ] .
+       ] .
+       #hand_item animate .
+       #world physics .
 
-       xdiff _ #hand_item->x - hand_animate_xoff .
-       ydiff _ #hand_item->y - hand_animate_yoff .
-       xdiff abs < hand_animate_gravity ifTrue: [
-         hand_animate_xoff _ #hand_item -> x .
+       (hand_active and: ((
+          player->main_inventory_active or:
+          player->chatting_active
+        ) or: ask_exit_active) not) ifTrue: [
+         'Hand item movement'.
+         hand_animate_xoff < 100 ifTrue: [
+           hand_animate_xoff _ 100 .
+         ].       
+         hand_animate_xoff > 540 ifTrue: [
+           hand_animate_xoff _ 540 .
+         ].       
+         hand_animate_yoff < 300 ifTrue: [
+           hand_animate_yoff _ 300 .
+         ].       
+         hand_animate_yoff > 450 ifTrue: [
+           hand_animate_yoff _ 450 .
+         ].
+         'base position' .
+         #hand_item->x _ 320 . 
+         #hand_item->xoff _ hand_animate_xoff - #hand_item->x .
+         #hand_item->yoff _ hand_animate_yoff - #hand_item->y .
+
+         xdiff _ #hand_item->x - hand_animate_xoff .
+         ydiff _ #hand_item->y - hand_animate_yoff .
+         xdiff abs < hand_animate_gravity ifTrue: [
+           hand_animate_xoff _ #hand_item -> x .
+         ] ifFalse: [
+           hand_animate_xoff _ (xdiff sign * hand_animate_gravity) + hand_animate_xoff.
+         ] .
+         ydiff abs < hand_animate_gravity ifTrue: [
+           hand_animate_yoff _ #hand_item -> y .
+         ] ifFalse: [
+           hand_animate_yoff _ (ydiff sign * hand_animate_gravity) + hand_animate_yoff.
+         ] .
        ] ifFalse: [
-         hand_animate_xoff _ (xdiff sign * hand_animate_gravity) + hand_animate_xoff.
-       ] .
-       ydiff abs < hand_animate_gravity ifTrue: [
-         hand_animate_yoff _ #hand_item -> y .
-       ] ifFalse: [
-         hand_animate_yoff _ (ydiff sign * hand_animate_gravity) + hand_animate_yoff.
-       ] .
-     ] ifFalse: [
-       hand_animate_xoff _ #hand_item->x .
-       hand_animate_yoff _ #hand_item->y .
-     ]
+         hand_animate_xoff _ #hand_item->x .
+         hand_animate_yoff _ #hand_item->y .
+       ]
+     ] .
   ] .
   ^ self 

@@ -292,6 +292,7 @@ class C3DWorldManager:CFrogThing {
   I64 is_client;
   I64 is_server;
   CTask *sound_task no_serialize 1;
+  I64 is_paused;
 //Private
   F64 game_load_tS;  //The CFrogTime now asSeconds that the game world is at when loaded
   CFrogThing *player;
@@ -643,5 +644,5 @@ class CUITree:CUIElem {
   CFrogArray *sub_elems2;
   CUITree *parent;
 };
-class CUIList:CUIElem {
+class CUIList:CUIElem {
 };

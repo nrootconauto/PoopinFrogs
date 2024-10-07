@@ -1728,9 +1728,33 @@ CFrogThing *FrogBlobFileReadLump(CFrogBlobFile *f,...) {
 AddMethod("CFrogBlobFile","readLump:",&FrogBlobFileReadLump);
 
 F64 frog_time_offset=-tS;
+Bool frog_time_paused=FALSE;
+F64 frog_pause_tS;
+F64 Frog_tS() {
+  if(frog_time_paused)
+    return frog_pause_tS;
+  return tS+frog_time_offset;
+}
+CFrogNum *FrogTimePause() {
+  if(!frog_time_paused) {
+    frog_pause_tS=Frog_tS;
+    frog_time_paused=TRUE;
+  }
+  return FROG_SMALL_NIL;
+}
+AddClassMethod("CFrogTime","pause",&FrogTimePause);
+CFrogNum *FrogTimeUnpause() {
+  if(frog_time_paused) {
+    frog_time_offset=frog_pause_tS-tS;
+    frog_time_paused=FALSE;
+  }
+  return FROG_SMALL_NIL;
+}
+AddClassMethod("CFrogTime","unpause",&FrogTimeUnpause);
+
 CFrogTime *FrogTimeNow(CFrogThing *ul,...) {
   CFrogTime *t=UniverseConstructThing(#exe{StreamPrint("%d",UniverseAddClass("CFrogTime"));});
-  t->ts=FrogNumNew(tS+frog_time_offset);
+  t->ts=FrogNumNew(Frog_tS);
   return t;
 }
 AddClassMethod("CFrogTime","now",&FrogTimeNow);

@@ -1,0 +1,7 @@
+pause->*
+|
+|
+ is_client ifFalse: [
+   CFrogTime pause .
+   is_paused _ 1 .
+ ] .

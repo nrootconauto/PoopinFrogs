@@ -1,6 +1,9 @@
 #ifndef ANIM_DC
 #define ANIM_DC
 #define ANIM_DELAY .25
+#ifndef Frog_tS
+extern F64 Frog_tS();
+#endif
 U0 AnimDCDel(CDC *dc) {
   I64 idx=0;
   while(dc[idx].dc_signature==DCS_SIGNATURE_VAL) {

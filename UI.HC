@@ -41,7 +41,7 @@ U0 RenderUI(CDC *dc,CUIElem *e,I64 left_x=0,I64 left_y=0,I64 right_x=GR_WIDTH,I6
     if(draw_it) {
       fun=HashFind(draw_it,frog_mem_task->hash_table,HTT_FUN);
       if(fun) {
-        fptr=fun->exe_addr;
+        fptr=fun->exe_addr;
 	(*fptr)(dc,x,y,draw);
       }
     }

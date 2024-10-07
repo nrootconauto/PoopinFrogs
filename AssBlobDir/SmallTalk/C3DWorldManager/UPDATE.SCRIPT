@@ -10,7 +10,11 @@ update ->* |
   line=C3DLine
   line2=C3DLine
 |
+  is_paused ifTrue: [
+    ^0 
+  ] .
   p _ self getPlayer .
+
   is_client ifTrue: [
    'Let server do updating '.
     ^ 1 .
