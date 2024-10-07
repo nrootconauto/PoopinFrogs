@@ -2103,7 +2103,8 @@ CFrogThing *WorldManagerNewParticle(C3DWorldManager *man,...) {
   F64 z=AsF64(argv[2])+.001; //For not hiting floor at spawn 
   F64 spread=AsF64(argv[3]);
   F64 color=AsF64(argv[4]);
-  NewParticle(w,color,16,x,y,z,spread*(Rand-.5),spread*(Rand-.5),man->gravity*3);
+  F64 a=Rand*2*pi;
+  NewParticle(w,color,16,x,y,z,spread*Cos(a),spread*Sin(a),man->gravity*3);
   return FROG_SMALL_NIL;
 }
 
@@ -2115,7 +2116,8 @@ CFrogThing *WorldManagerNewParticle2(C3DWorldManager *man,...) {
   F64 spread=AsF64(argv[3]);
   F64 color=AsF64(argv[4]);
   U8 *splat_lump=AsString(argv[5]);
-  NewParticle(w,color,16,x,y,z,spread*(Rand-.5),spread*(Rand-.5),man->gravity*3,splat_lump);
+  F64 a=Rand*2*pi;
+  NewParticle(w,color,16,x,y,z,spread*Cos(a),spread*Sin(a),man->gravity*3,splat_lump);
   Free(splat_lump);
   return FROG_SMALL_NIL;
 }
@@ -2283,6 +2285,7 @@ AddMethod("C3DWorldManager","setTile:atX:atY:atZ:",&WorldManagerSetTileAtXAtYAtZ
 InitWorld;
 I64 mp_thing_done=0;
 CFrogThing *UpdateParticles(C3DWorldManager *man,...) {
+  if(man->is_paused) return;
   I64 tx,ty;
   F64 fx,cx,fy,cy,dx,dy;
   static CFrogClass *ws_class=FrogClassNew(UniverseAddClass("CWallStain"));
@@ -2312,7 +2315,6 @@ CFrogThing *UpdateParticles(C3DWorldManager *man,...) {
       if(!p->hit)
         goto hit;
     }
-    if(p->momx||p->momy)
     if(C3DWorldMoveWithCollision(
 	  w,
 	  Arg(p->momx,p->momy),
@@ -2335,9 +2337,8 @@ CFrogThing *UpdateParticles(C3DWorldManager *man,...) {
    if(0) {
 hit:
 	  if(p->momz<=0.) {
+	    p->z=Floor(p->z)+.001; //Sit on floors
  	    p->hit=1;
-	    p->momx=0;
-	    p->momy=0;
 	    p->momz=0;
 stain:
 	    if(p->splat_lump_name[0]) {
@@ -2398,14 +2399,6 @@ U0 Draw3DWorld(CTask *,CDC *dc) {
   I64 idx;
   head=&w->particles;
   for(p=head->next;head!=p;p=n) {
-    p->x+=p->momx;
-    p->y+=p->momy;
-    p->z+=p->momz;
-    p->momx*=20/30.;
-    p->momy*=20/30.;
-    p->momz-=.2;
-    tx=p->x/GRID_SZ;
-    ty=p->y/GRID_SZ;
     n=p->next;
     DrawParticle(w,p);
   }
@@ -2560,7 +2553,7 @@ CallScript("init",shell);
 UIShellRun(shell);
 #endif
 #endif
-#endif               
+~#endif               
    
 *   ]   g   3   
 )   _   l   ‚   #   '   i   '   !   ‰   k   ‹   '   _   j   [         32 Away from camera    ^      
