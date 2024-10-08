@@ -1,0 +1,4 @@
+lighting ->* 
+|
+|
+  self skylight: 4 

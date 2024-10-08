@@ -23,6 +23,7 @@ init ->* |
   ydiff=CFrogNum
   ask_exit=CFrogBlock
   ask_exit_active=CFrogNum
+  last_lighting_tS=CFrogNum
 |
   draw_it_name _ 'Draw3DWorld' .
 
@@ -230,6 +231,10 @@ init ->* |
      ] .
   ] .
   on_refresh _ [
+     last_lighting_tS < CFrogTime now asSeconds ifTrue: [
+       last_lighting_tS _ CFrogTime now asSeconds  + 1 .
+       #world lighting .
+     ] .
      #world ->is_paused ifFalse: [
        player _ #world getPlayer .
        now _ CFrogTime now asSeconds .

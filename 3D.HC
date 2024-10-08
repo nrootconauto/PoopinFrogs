@@ -8,12 +8,9 @@
 #ifndef ENGINE_3D
 #include "SSE.HC";
 #define VIEW_DIST 32
-#define FOG0_DIST 8
-#define FOG1_DIST 16
-#define FOG2_DIST 20
-U64 fog0_table[0x10][COLORS_NUM];
-U64 fog1_table[0x10][COLORS_NUM];
-U64 fog2_table[0x10][COLORS_NUM];
+#define FOG_DIVISIONS 0x10
+#define FOG_DIST (128*4)
+U64 fog_table[COLORS_NUM][COLORS_NUM][FOG_DIVISIONS];
 U0 ErectFogTable0(U64 *table,I64 fog_color,F64 ratio) {
   CBGR48 palette[COLORS_NUM];
   I64 idx,which;
@@ -47,14 +44,14 @@ U0 ErectFogTable0(U64 *table,I64 fog_color,F64 ratio) {
     table[idx].u8[7]=best_color>>4;
   }
 }
-U0 ErectFogTable(U64 *table,F64 ratio) {
-  I64 c;
-  for(c=0;c!=16;c++)
-     ErectFogTable0(&table[c*16],c,ratio);
+U0 ErectFogTable(U64 *table,I64 divisions) {
+  I64 f,d;
+  for(d=0;d!=divisions;d++) {
+    for(f=0;f!=16;f++)
+      ErectFogTable0(&table[f*COLORS_NUM+d*COLORS_NUM*FOG_DIVISIONS],f,d/ToF64(divisions));
+  }
 }
-ErectFogTable(fog0_table,.75);
-ErectFogTable(fog1_table,.5);
-ErectFogTable(fog2_table,.25);
+ErectFogTable(fog_table,0x10);
 U0 FrogImgBlank(CFrogImg *img) {
   img->dc=DCNew(1,1,frog_mem_task);
   img->name=FrogStrNew("");
@@ -116,17 +113,13 @@ CFrogStr *FrogImgFromString(CFrogImg *img,...) {
 AddMethod("CFrogImg","setGraphicsFromString:",&FrogImgFromString);
 
 
-U64 Fog(I64 color,I64 dist,U8 fcolor=BLACK) {
-  dist>>=7; //GRID_SZ is 128(7 bits)
-  if(dist<=FOG0_DIST)
-    return gr.to_8_colors[color];
-  if(dist<=FOG1_DIST)
-    return fog0_table[fcolor][color];
-  if(dist<=FOG2_DIST)
-    return fog1_table[fcolor][color];
-  return fog2_table[fcolor][color];
+U64 Fog(I64 color,U64 dist,U8 fcolor=BLACK) {
+  dist>>=(7+2); //GRID_SZ
+  if(dist<FOG_DIVISIONS) {
+    return fog_table[dist][color][fcolor];
+  }
+  return fcolor;
 }
-
 Bool IsLiquidTile(I64 t) {
   switch(t) {
     case 6: //water
@@ -227,8 +220,8 @@ class C3DWorld {
    I64 step_width,step_width_y;
    I64 world_width;
    I64 world_height;
-   I8 *world_blocks; //x*y*256
-   I8 *heightmap,*ceilmap,*ceilmap2;
+   I8 *world_blocks; //x*y*256+z
+   I8 *world_lighting; //x*y*256+z
    CDC *wall_textures[0x10000/2],*to_dc;
    CDC *floor_textures[0x10000/2];
    CDC *floor_textures1616[0x10000/2];
@@ -251,8 +244,7 @@ class C3DWorld {
    CI64Set *stains_around_camera[VIEW_DIST*2][VIEW_DIST*2];
 };
 C3DWorld *w;
-extern U0 Draw2DThing(C3DWorld *w,C3DThing *thing);
-#define MAX_PARTICLES 64
+#define MAX_PARTICLES 128
 U0 NewParticle(C3DWorld *w,I64 color,I64 sz,F64 x,F64 y,F64 z,F64 mx,F64 my,F64 mz,U8 *splat_lump_name=NULL) {
   C3DParticle *p;
   if(w->particle_cnt>=MAX_PARTICLES) {
@@ -363,6 +355,7 @@ C3DWorld *InitWorld(U8 *blob_file="ASS",F64 fov=pi/2) {
   ret->world_width=64;
   ret->world_height=64;
   ret->world_blocks=CAlloc(ret->world_width*ret->world_height*256);
+  ret->world_lighting=CAlloc(ret->world_width*ret->world_height*256);
   w=ret;
   QueInit(&ret->_2d_thing_templates);
 
@@ -526,6 +519,125 @@ Bool IsSolidTile(I64 t) {
   if(!t) return FALSE;
   return !IsLiquidTile(t);
 }
+#define LIGHT_DECAY 1.
+I8 BlockLightLevel(I64 t) {
+  if(t==13)
+    return 12;
+  return 0;
+}
+Bool SetLightAtXYZ(I64 x,I64 y,I64 z,I64 light) {
+  I64 tp=x+y*w->world_width;
+  I64 l;
+  if(IsSolidTile(BlockAtXYZ(x,y,z)))
+    return FALSE;
+  if(0<=x<w->world_width)
+    if(0<=y<w->world_height)
+      if(I8_MIN<=z<=I8_MAX) {
+	l=w->world_lighting[tp*256+z-I8_MIN];
+	if(l<light) {
+	  w->world_lighting[tp*256+z-I8_MIN]=light;
+	  return TRUE;
+	}
+      }
+  return FALSE;
+}
+U0 LightingLight(I64 x,I64 y,I64 z,I64 light) {
+  CI64Set *stack=I64SetNew,*stack2=I64SetNew;
+  CI64Set *visited=I64SetNew;
+  I64 xo,yo,zo,dummy;
+  I64 time=0;
+  I64SetAdd(stack,x);
+  I64SetAdd(stack,y);
+  I64SetAdd(stack,z);
+  do {
+    while(stack->cnt>0) {
+      z=stack->body[--stack->cnt];
+      y=stack->body[--stack->cnt];
+      x=stack->body[--stack->cnt];
+      dummy.u16[0]=x;
+      dummy.u16[1]=y;
+      dummy.i16[2]=z;
+      dummy.i16[3]=0;
+      if(I64SetHas(visited,dummy))
+	goto n;
+      I64SetAdd(visited,dummy);
+      for(zo=-1;zo<=1;zo+=2) {
+        if(SetLightAtXYZ(x,y,z+zo,light)) {
+	  I64SetAdd(stack2,x);
+	  I64SetAdd(stack2,y);
+	  I64SetAdd(stack2,z+zo);
+        }
+      }
+      for(xo=-1;xo<=1;xo+=2) {
+        if(SetLightAtXYZ(x+xo,y,z,light)) {
+	  I64SetAdd(stack2,x+xo);
+	  I64SetAdd(stack2,y);
+	  I64SetAdd(stack2,z);
+        }
+      }
+      for(yo=-1;yo<=1;yo+=2) {
+        if(SetLightAtXYZ(x,y+yo,z,light)) {
+	  I64SetAdd(stack2,x);
+	  I64SetAdd(stack2,y+yo);
+	  I64SetAdd(stack2,z);
+        }
+      }
+n:;
+    }
+    SwapI64(&stack2,&stack);
+  } while(--light>0);
+  I64SetDel(visited);
+  I64SetDel(stack2);
+  I64SetDel(stack);
+}
+U0 LightingSky(I64 x,I64 y,I64 sky_light=16,I64 shadow_color=BLACK) {
+  I64 z=I8_MAX,b;
+  U8 *col;
+  U8 *lcol;
+  Bool sky=TRUE;
+  F64 level=sky_light;
+  I64 tp=x+y*w->world_width;
+  if(0<=x<w->world_width)
+    if(0<=y<w->world_height) {
+      col=&w->world_blocks[tp*256+z-I8_MIN];
+      lcol=&w->world_lighting[tp*256+z-I8_MIN];
+      while(z>=I8_MIN) {
+        b=col[z-I8_MIN];
+        if(IsSolidTile(b)) {
+          sky=FALSE;
+        }
+        if(!sky)
+	  level-=LIGHT_DECAY;
+ 	lcol[z-I8_MIN]=MaxI64(ToI64(level),0);
+	--z;
+      }
+    }
+}
+CFrogThing *WorldLightingSky(C3DWorldManager *man,...) {
+  I64 x=w->x/128.,ix;
+  I64 y=w->y/128.,iy;
+  I64 sky_light=AsF64(argv[0]),z,tp;
+ I64 level;
+  //Sky light
+  for(ix=-VIEW_DIST;ix<VIEW_DIST;ix++) {
+    for(iy=-VIEW_DIST;iy<VIEW_DIST;iy++) {
+      LightingSky(ix+x,iy+y,sky_light);
+    }
+  }
+  //Pass2 world lights
+  for(ix=-VIEW_DIST;ix<VIEW_DIST;ix++) {
+    for(iy=-VIEW_DIST;iy<VIEW_DIST;iy++) {
+      z=I8_MAX;
+      while(z>=I8_MIN) {
+	if(1<=(level=BlockLightLevel(BlockAtXYZ(x+ix,y+iy,z)))) {
+	  LightingLight(x+ix,y+iy,z,level);
+	}
+	--z;
+      }
+    }
+  }
+}
+AddMethod("C3DWorldManager","skylight:",&WorldLightingSky);
 Bool HeightImpossible(C3DWorld *w,I64 ix,I64 iy,F64 above,Bool allow_ceil,F64 tallness=.1,F64 wiggle_room=0) {
   I64 iz=Floor(above);
   I64 c,idx2,t;
@@ -1354,7 +1466,7 @@ I64 GetColorForRay(C3DWorldManager *man,CD3 *origin,CD3 *ray,F64 dist,F64 *hit_a
   I64 wall_side;
   I64 stain_x,stain_y;
   I64 color;
-  I64 relx,rely;
+  I64 relx,rely,lighting;
   CD2 long,long128,xyhit,origin_d_128;
   I64 side,ttx,tty;
   long.x=x+VIEW_DIST*cos;
@@ -1364,247 +1476,257 @@ I64 GetColorForRay(C3DWorldManager *man,CD3 *origin,CD3 *ray,F64 dist,F64 *hit_a
   tx=x;
   ty=y;
   tz=Floor(origin->z);
-  idx=ty*w->world_width+tx;
   for(cur=0;cur!=cnt&&!hit;cur++) {
-    if(0<=tx<w->world_width)
-      if(0<=ty<w->world_height) {
-	relx=tx-w->things_around_camera_origin_x;
-	rely=ty-w->things_around_camera_origin_y;
-	if(0<=relx<2*VIEW_DIST)
-	  if(0<=rely<2*VIEW_DIST) {
-	    if((do_things=w->things_around_camera[relx][rely])->cnt) {
-	      goto has_thing;
-	    }
-	}
-        goto check_tile;
-has_thing:;
-	C3DThing *thing;
-        for(thing_idx=0;thing_idx!=do_things->cnt;thing_idx++) {
-	  thing=do_things->body[thing_idx];
-	  if(!thing->no_draw) {
-	    F64 scale=.6;
-	    if(hit_texture=thing->draw_face) {
-	      h=hit_texture->height/128.*scale;
-	      if(!(Floor(thing->z)<=tz<=h+thing->z))
-		goto next_thing;
-	      F64 i1=.5,i2=.5;
-	      if(SegmentSegmentIntersect(&xyhit,origin,&long128,&thing->scrn_st,&thing->scrn_en,&i1,&i2)) {
-//Integer truncation is weird,make sure our hit is in the right tile
-		if(ToI64(xyhit.x/128)==tx&&ToI64(xyhit.y/128)==ty) {
-		  dist=i1*VIEW_DIST; //dist/128.
-		  if(dist*128>hit_dist) goto next_thing;
-		  h=dist*slope+origin->z;
-		  h2=hit_texture->height/128.*scale;
-		  if(thing->z<=h<h2+thing->z) {
-		    texture_y=ClampI64((1.-(h-thing->z)/h2)*hit_texture->height,0,hit_texture->height-1);
-		    if(thing->draw_flip) i2=1.-i2;
-		    texture_x=ClampI64(i2*hit_texture->width,0,hit_texture->width-1);
-		    color=GrPeek0(hit_texture,texture_x,texture_y);
-		    if(TRANSPARENT!=color) {
-		      dist*=128.; //Regular dist
-		      hit=TRUE;
-		      hit_dist=dist;
-                      if(hit_at) *hit_at=dist;
-		      if(hit_cords) {
-		  	hit_cords->x=xyhit.x;
-			hit_cords->y=xyhit.y;
-			hit_cords->z=h-Sign(slope)*.001;
-		      }
-		      dist2=Sqrt(Sqr((h-origin->z)*128)+Sqr(xyhit.y-origin->y)+Sqr(xyhit.x-origin->x));
-	              hit_color=Fog(color,dist2+ToBool(depth)*FOG0_DIST,fog_color);
-		    }
-		  }
-		}
+    if(I8_MIN<=tz<=I8_MAX)
+      if(0<=tx<w->world_width)
+        if(0<=ty<w->world_height) {
+	  idx=ty*w->world_width+tx;
+	  lighting=ClampI64(w->world_lighting[idx*256+tz-I8_MIN],0,15);
+	  relx=tx-w->things_around_camera_origin_x;
+	  rely=ty-w->things_around_camera_origin_y;
+	  if(0<=relx<2*VIEW_DIST)
+	    if(0<=rely<2*VIEW_DIST) {
+	      if((do_things=w->things_around_camera[relx][rely])->cnt) {
+	        goto has_thing;
 	      }
 	    }
+	  goto check_tile;
+has_thing:;
+	  C3DThing *thing;
+	  for(thing_idx=0;thing_idx!=do_things->cnt;thing_idx++) {
+	    thing=do_things->body[thing_idx];
+	    if(!thing->no_draw) {
+	      F64 scale=.6;
+	      if(hit_texture=thing->draw_face) {
+	        h=hit_texture->height/128.*scale;
+	        if(!(Floor(thing->z)<=tz<=h+thing->z))
+		  goto next_thing;
+	        F64 i1=.5,i2=.5;
+	        if(SegmentSegmentIntersect(&xyhit,origin,&long128,&thing->scrn_st,&thing->scrn_en,&i1,&i2)) {
+//Integer truncation is weird,make sure our hit is in the right tile
+		  if(ToI64(xyhit.x/128)==tx&&ToI64(xyhit.y/128)==ty) {
+		    dist=i1*VIEW_DIST; //dist/128.
+		    if(dist*128>hit_dist) goto next_thing;
+		    h=dist*slope+origin->z;
+		    h2=hit_texture->height/128.*scale;
+		    if(thing->z<=h<h2+thing->z) {
+		      texture_y=ClampI64((1.-(h-thing->z)/h2)*hit_texture->height,0,hit_texture->height-1);
+		      if(thing->draw_flip) i2=1.-i2;
+		      texture_x=ClampI64(i2*hit_texture->width,0,hit_texture->width-1);
+		      color=GrPeek0(hit_texture,texture_x,texture_y);
+		      if(TRANSPARENT!=color) {
+		        dist*=128.; //Regular dist
+		        hit=TRUE;
+		        hit_dist=dist;
+		        if(hit_at) *hit_at=dist;
+		        if(hit_cords) {
+			  hit_cords->x=xyhit.x;
+			  hit_cords->y=xyhit.y;
+			  hit_cords->z=h-Sign(slope)*.001;
+		        }
+		        dist2=Sqrt(Sqr((h-origin->z)*128)+Sqr(xyhit.y-origin->y)+Sqr(xyhit.x-origin->x));
+		        hit_color=Fog(color,dist2+ToBool(depth)*FOG_DIST*4+(15-lighting)*FOG_DIST,fog_color);
+		      }
+		    }
+		  }
+	        }
+	      }
 next_thing:;
+	    }
 	  }
-	}
 check_tile:;
 //Check for hitting a tile(WhichTexture also accounts for doors)
-        texture_y_offset=0; //Ffor Dooors
-        idx=(ty*w->world_width+tx)*256+tz-I8_MIN;
-	if(w->world_blocks[idx]) {
-          if(w->world_blocks[idx]==last_block) goto pass;
+	  texture_y_offset=0; //Ffor Dooors
+	  idx=(ty*w->world_width+tx)*256+tz-I8_MIN;
+	  if(w->world_blocks[idx]) {
+	    if(w->world_blocks[idx]==last_block) goto pass;
 tile:;
-	I64 segment=0;
-        CD2 corners[4];
-        F64 nearest=VIEW_DIST*128,farest=0,tmp,fsegment;
-        corners[0].x=tx;
-        corners[0].y=ty;
-        corners[1].x=tx+1;
-        corners[1].y=ty;
-        corners[2].x=tx+1;
-        corners[2].y=ty+1;
-        corners[3].x=tx;
-        corners[3].y=ty+1;
+	    I64 segment=0;
+	    CD2 corners[4];
+	    F64 nearest=VIEW_DIST*128,farest=0,tmp,fsegment;
+	    corners[0].x=tx;
+	    corners[0].y=ty;
+	    corners[1].x=tx+1;
+	    corners[1].y=ty;
+	    corners[2].x=tx+1;
+	    corners[2].y=ty+1;
+	    corners[3].x=tx;
+	    corners[3].y=ty+1;
 
-	origin_d_128.x=origin->x/128;
-	origin_d_128.y=origin->y/128;
+	    origin_d_128.x=origin->x/128;
+	    origin_d_128.y=origin->y/128;
 
-	side=-1;
-        for(thing_idx=0;thing_idx!=4;thing_idx++) {
-          if(SegmentSegmentIntersect(&xyhit,&corners[thing_idx],&corners[(thing_idx+1)&3],&origin_d_128,&long,&fsegment,&tmp)) {
-            nearest=Min(nearest,tmp);
-            farest=Max(farest,tmp);
-	    if(nearest==tmp) {
-	      side=thing_idx;
-	      if(side>=2)
-	        segment=(1.-fsegment)*127;
-	      else
-	        segment=fsegment*127;
+	    side=-1;
+	    for(thing_idx=0;thing_idx!=4;thing_idx++) {
+	      if(SegmentSegmentIntersect(&xyhit,&corners[thing_idx],&corners[(thing_idx+1)&3],&origin_d_128,&long,&fsegment,&tmp)) {
+	        nearest=Min(nearest,tmp);
+	        farest=Max(farest,tmp);
+	        if(nearest==tmp) {
+		  side=thing_idx;
+		  if(side>=2)
+		    segment=(1.-fsegment)*127;
+		  else
+		    segment=fsegment*127;
+	        }
+	      }
 	    }
-	  }
-        }
 
-        if(farest) { //Was set to 0 above
-          dist=nearest*VIEW_DIST*128;
-          dist2=farest*VIEW_DIST*128;
-        }
+	    if(farest) { //Was set to 0 above
+	      dist=nearest*VIEW_DIST*128;
+	      dist2=farest*VIEW_DIST*128;
+	    }
 
-	if(ToI64(origin->x/128)==tx&&ty==ToI64(origin->y/128)) {
-	  h=origin->z;
-	  h2=slope*(dist2/128.)+origin->z;
-	}
-	else {
-	  h=slope*(dist/128.)+origin->z;
-	  h2=slope*(dist2/128.)+origin->z;
-	}
-	F64 ath=0;
-	Bool hit_wall=FALSE;
-	hit_texture=WhichTexture(w,idx,h,h2,&ath,&hit_wall);
-	F64 hit_dist2;
-        if(hit_texture) {
-	  if(0<=relx<2*VIEW_DIST)
-	    if(0<=rely<2*VIEW_DIST)
-	      if(cnt=(do_things=w->stains_around_camera[relx][rely])->cnt)
-	        goto try_stains;
-	  goto try_block;
+	    if(ToI64(origin->x/128)==tx&&ty==ToI64(origin->y/128)) {
+	      h=origin->z;
+	      h2=slope*(dist2/128.)+origin->z;
+	    }
+	    else {
+	      h=slope*(dist/128.)+origin->z;
+	      h2=slope*(dist2/128.)+origin->z;
+	    }
+	    F64 ath=0;
+	    Bool hit_wall=FALSE;
+	      I64 sidex=0,sidey=0,sidez=0;
+	    hit_texture=WhichTexture(w,idx,h,h2,&ath,&hit_wall);
+	    F64 hit_dist2;
+		  if(!hit_wall) {
+		    if(slope<0) {
+		      sidez=1;
+		    } else
+		      sidez=-1;
+		  } else {
+		    switch(side) {
+		      case 0:
+		        sidey=-1;
+		        break;
+		      case 1:
+		        sidex=1;
+		        break;
+		      case 2:
+		        sidey=1;
+		        break;
+		      case 3:
+		        sidex=-1;
+		        break;
+		    }
+		  }
+	    if(hit_texture) {
+	      if(0<=relx<2*VIEW_DIST)
+	        if(0<=rely<2*VIEW_DIST)
+		  if(cnt=(do_things=w->stains_around_camera[relx][rely])->cnt)
+		    goto try_stains;
+	      goto try_block;
 try_stains:;
-          wall_stains=do_things->body;
-	  wall_stain_cnt=cnt;
-	  I64 sidex=0,sidey=0,sidez=0;
-          while(--wall_stain_cnt>=0) {
-	     wall_stain=wall_stains[wall_stain_cnt];
-	     if(wall_stain->tile_x==tx&&wall_stain->tile_y==ty&&wall_stain->tile_z==tz) {
-	       if(!hit_wall) {
-		if(slope<0) {
-		  sidez=1;
-		} else
-		  sidez=-1;
-	       } else {
-		switch(side) {
-		  case 0:
-		   sidey=-1;
-		   break;
-		  case 1:
-		   sidex=1;
-		   break;
-		  case 2:
-		   sidey=1;
-		   break;
-		  case 3:
-		   sidex=-1;
-		   break;
-		}
-	       }
-	       if(sidez&&wall_stain->sidez==sidez) {
- 	          hit_dist2=(ath-origin->z)/slope*128;
-		  ttx=hit_dist2*cos+origin->x;
-		  tty=hit_dist2*sin+origin->y;
-	          dist=hit_dist2;
-		  if(0<=GrPeek(wall_stain->dc,
-			(ttx&127),
-			(tty&127)
-			)<TRANSPARENT) {
-		    color=GrPeek(wall_stain->dc,ttx&127,tty&127);
-		    goto valid_color;
+	      wall_stains=do_things->body;
+	      wall_stain_cnt=cnt;
+	      while(--wall_stain_cnt>=0) {
+	        wall_stain=wall_stains[wall_stain_cnt];
+	        if(wall_stain->tile_x==tx&&wall_stain->tile_y==ty&&wall_stain->tile_z==tz) {
+		  if(sidez&&wall_stain->sidez==sidez) {
+		    hit_dist2=(ath-origin->z)/slope*128;
+		    ttx=hit_dist2*cos+origin->x;
+		    tty=hit_dist2*sin+origin->y;
+		    dist=hit_dist2;
+		    if(0<=GrPeek(wall_stain->dc,
+			  (ttx&127),
+			  (tty&127)
+			  )<TRANSPARENT) {
+		      color=GrPeek(wall_stain->dc,ttx&127,tty&127);
+		      goto valid_color;
+		    }
+		  } else if((sidex&&wall_stain->sidex==sidex)||(sidey&&wall_stain->sidey==sidey)) {
+		    color=GrPeek(wall_stain->dc,segment&127,ToI64(ath*128+texture_y_offset)&127); 
+		    if(0<=color<TRANSPARENT) {
+		      goto valid_color;
+		    }
 		  }
-	       } else if((sidex&&wall_stain->sidex==sidex)||(sidey&&wall_stain->sidey==sidey)) {
- 	          color=GrPeek(wall_stain->dc,segment&127,ToI64(ath*128+texture_y_offset)&127); 
-		  if(0<=color<TRANSPARENT) {
-		    goto valid_color;
-		  }
-	       }
 next_stain:;
-	     }
-          }
+	        }
+	      }
 try_block:;
-          CD3 new_origin;
-          CD3 new_ray;
-          idx=(ty*w->world_width+tx)*256+tz-I8_MIN;
-	  idx=w->world_blocks[idx];
-	    if(hit_wall)  {
-	      SegmentSegmentIntersect(&xyhit,&corners[side],&corners[(side+1)&3],&origin_d_128,&long,NULL,NULL);
- 	      color=GrPeek0(hit_texture,segment&127,ToI64(ath*128+texture_y_offset)&127);
-	      //For-recursive
-	      hit_dist2=Sqrt(Sqr(xyhit.x*128-origin->x)+Sqr(xyhit.y*128-origin->y))+2.;
-	      new_origin.x=origin->x+hit_dist2*cos;
-	      new_origin.y=origin->y+hit_dist2*sin;
-	      new_origin.z=ath;
-	    } else {
-	      hit_dist2=(ath-origin->z)/slope*128+2.;
-	      ttx=hit_dist2*cos+origin->x;
-	      tty=hit_dist2*sin+origin->y;
-	      dist=hit_dist2;
- 	      color=GrPeek0(hit_texture,ttx&127,(tty+texture_y_offset)&127);
-	      //For-recursive
-	      new_origin.x=ttx;
-	      new_origin.y=tty;
-	      new_origin.z=hit_dist2/128.*slope+origin->z;
-	    }
-          if(IsLiquidTile(idx)&&depth<RAY_TRACE_MAX_DEPTH) {
-	    //TODO displace ray based on "wavew"
-	    fog_color=color&0xff;
-	    depth++;
-	    last_block=idx;
+	      CD3 new_origin;
+	      CD3 new_ray;
+	      idx=(ty*w->world_width+tx)*256+tz-I8_MIN;
+	      idx=w->world_blocks[idx];
+	      if(hit_wall)  {
+	        SegmentSegmentIntersect(&xyhit,&corners[side],&corners[(side+1)&3],&origin_d_128,&long,NULL,NULL);
+	        color=GrPeek0(hit_texture,segment&127,127-ToI64(ath*128+texture_y_offset)&127);
+//For-recursive
+	        hit_dist2=Sqrt(Sqr(xyhit.x*128-origin->x)+Sqr(xyhit.y*128-origin->y))+2.;
+	        new_origin.x=origin->x+hit_dist2*cos;
+	        new_origin.y=origin->y+hit_dist2*sin;
+	        new_origin.z=ath;
+
+	      } else {
+	        hit_dist2=(ath-origin->z)/slope*128+2.;
+	        ttx=hit_dist2*cos+origin->x;
+	        tty=hit_dist2*sin+origin->y;
+	        dist=hit_dist2;
+	        color=GrPeek0(hit_texture,ttx&127,(tty+texture_y_offset)&127);
+//For-recursive
+	        new_origin.x=ttx;
+	        new_origin.y=tty;
+	        new_origin.z=hit_dist2/128.*slope+origin->z;
+	      }
+	      if(I8_MIN<=tz+sidez<=I8_MAX) {
+	        if(0<=ty-sidey<w->world_height)
+		  if(0<=tx+sidex<w->world_width) {
+		    idx=(ty+sidey)*w->world_width+tx+sidex;
+		    lighting=ClampI64(w->world_lighting[idx*256+tz+sidez-I8_MIN],0,15);
+		  }
+	      }
+	      if(IsLiquidTile(idx)&&depth<RAY_TRACE_MAX_DEPTH) {
+//TODO displace ray based on "wavew"
+	        fog_color=color&0xff;
+	        depth++;
+	        last_block=idx;
 //Weird issues  with exact values
-	    //Snells law
-	    F64 snell_a,snell_a2,normal;
-	    F64 t=Frog_tS/30.;
-	    F64 rand_refrac=1.1+.1*(Abs(Sin((t/4.)*200))-Abs(Cos(t*125)))+.1*(Rand-.5)*2;
-	    if(hit_wall) {
-	      normal=(1+side)*pi/2;
-	      snell_a=Arg(origin->x-xyhit.x*128,origin->y-xyhit.y*128)-normal;
-	      snell_a=ASin(Sin(snell_a)/rand_refrac);
-	      snell_a=normal-snell_a+pi;
-	      new_ray.x=Sin(snell_a);
-	      new_ray.y=ray->y*ASin(Sin((pi/2-ATan(slope)))/(rand_refrac+.2));
-	      new_ray.z=-Cos(snell_a);
-	    } else {
-              if(slope<0.)
-	        normal=pi/2;
-	      else
-	        normal=-pi/2;
-	      snell_a=ATan(slope)-normal;
-	      snell_a=ASin(Sin(snell_a)/rand_refrac);
-	      snell_a=normal-snell_a+pi;
-	      new_ray.x=ray->x;
-	      new_ray.y=-Sin(snell_a);
-	      new_ray.z=ray->z;
-	    }
-	    return GetColorForRay(man,&new_origin,&new_ray,128*VIEW_DIST,hit_at,hit_cords,depth,last_block,fog_color);
-	    goto pass;
-	  }
+	        //Snells law
+	        F64 snell_a,snell_a2,normal;
+	        F64 t=Frog_tS/30.;
+	        F64 rand_refrac=1.1+.1*(Abs(Sin((t/4.)*200))-Abs(Cos(t*125)))+.1*(Rand-.5)*2;
+	        if(hit_wall) {
+		  normal=(1+side)*pi/2;
+		  snell_a=Arg(origin->x-xyhit.x*128,origin->y-xyhit.y*128)-normal;
+		  snell_a=ASin(Sin(snell_a)/rand_refrac);
+		  snell_a=normal-snell_a+pi;
+		  new_ray.x=Sin(snell_a);
+		  new_ray.y=ray->y*ASin(Sin((pi/2-ATan(slope)))/(rand_refrac+.2));
+		  new_ray.z=-Cos(snell_a);
+	        } else {
+		  if(slope<0.)
+		    normal=pi/2;
+		  else
+		    normal=-pi/2;
+		  snell_a=ATan(slope)-normal;
+		  snell_a=ASin(Sin(snell_a)/rand_refrac);
+		  snell_a=normal-snell_a+pi;
+		  new_ray.x=ray->x;
+		  new_ray.y=-Sin(snell_a);
+		  new_ray.z=ray->z;
+	        }
+	        return GetColorForRay(man,&new_origin,&new_ray,128*VIEW_DIST,hit_at,hit_cords,depth,last_block,fog_color);
+	        goto pass;
+	      }
 valid_color:
-	  if(dist<hit_dist) {
-	    dist2=Sqrt(Sqr((slope*(dist/128.)-origin->z)*128)+Sqr(cos*dist)+Sqr(sin*dist));
-	    if(hit_cords) {
-              //Slightly before our wall(not in wall).
-	      dist=Clamp(dist-2.,0,128*VIEW_DIST);
-	      hit_cords->x=origin->x+cos*dist;
-	      hit_cords->y=origin->y+sin*dist;
-	      hit_cords->z=slope*(dist/128.)+origin->z;
+	      if(dist<hit_dist) {
+	        dist2=Sqrt(Sqr((slope*(dist/128.)-origin->z)*128)+Sqr(cos*dist)+Sqr(sin*dist));
+	        if(hit_cords) {
+//Slightly before our wall(not in wall).
+		  dist=Clamp(dist-2.,0,128*VIEW_DIST);
+		  hit_cords->x=origin->x+cos*dist;
+		  hit_cords->y=origin->y+sin*dist;
+		  hit_cords->z=slope*(dist/128.)+origin->z;
+	        }
+	        if(hit_at) *hit_at=dist;
+	        hit=TRUE;
+	        hit_dist=dist;
+	        hit_color=Fog(color,dist2+1+depth*FOG_DIST*4+(15-lighting)*FOG_DIST,fog_color);
+	      }
 	    }
-	    if(hit_at) *hit_at=dist;
-            hit=TRUE;
-	    hit_dist=dist;
-	    hit_color=Fog(color,dist2+depth*FOG1_DIST*128,fog_color);
 	  }
+	  goto pass;
         }
-	}
-	goto pass;
-      }
     break;
 pass:;
     if(tMaxX<tMaxY) {
@@ -2458,6 +2580,8 @@ CFrogThing *WorldManagerEmptyWithDim(C3DWorldManager *man,...) {
   w->world_width=AsF64(argv[0]);
   w->world_height=AsF64(argv[1]);
   Free(w->world_blocks);
+  Free(w->world_lighting);
+  w->world_lighting=CAlloc(256*(w->world_width*w->world_height),frog_mem_task);
   w->world_blocks=CAlloc(256*(w->world_width*w->world_height),frog_mem_task);
   CFrogDictionary *old_templates=man->thing_templates,*ot2=man->tile_templates;
   CallScript("initGrid",man);
@@ -2543,7 +2667,7 @@ CFrogThing *TileTemplateUpdate(CTileTemplate *tile,...) {
   return FROG_SMALL_NIL;
 }
 AddMethod("CTileTemplate","updateTextures",&TileTemplateUpdate);
-//
+// 
 //
 //
 #if __CMD_LINE__
@@ -2553,7 +2677,7 @@ CallScript("init",shell);
 UIShellRun(shell);
 #endif
 #endif
-~#endif               
+#endif               
    
 *   ]   g   3   
 )   _   l   ‚   #   '   i   '   !   ‰   k   ‹   '   _   j   [         32 Away from camera    ^      
