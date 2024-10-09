@@ -1,0 +1,33 @@
+init: msg=CFrogStr ->* |
+  bg=CUIBackground
+  label=CUILabel 
+  p=CPlayer
+|
+  bg _ CUIBackground new .
+  bg->bg_color _ #color_LTGRAY .
+  label _ CUILabel new .
+  label->color _ #color_LTRED .
+  label setLabel: msg .
+  bg->sz_x _ label->sz_x + 20 .
+  bg->sz_y _ 20 + 8 .
+  bg addChild: label . 
+  label->x _ 10 .
+  label->y _ 10 .
+
+  sub_elems _ #( bg ) .
+
+  spawn_tS _ CFrogTime now asSeconds .
+  #ui_root addChild: self .
+
+
+  sz_x _ bg->sz_x .
+  sz_y bg->sz_y .
+
+  y _ -50 .
+  x  _ 640 - (sz_x / 2 ) .
+  self animate .
+
+  p _ #world getPlayer .
+  p->notifications add: self .
+
+  ^ self

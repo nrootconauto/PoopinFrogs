@@ -1,0 +1,3 @@
+init | |
+  sub_elems _ #() .
+ ^ self

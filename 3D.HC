@@ -9,7 +9,7 @@
 #include "SSE.HC";
 #define VIEW_DIST 32
 #define FOG_DIVISIONS 0x10
-#define FOG_DIST (128*4)
+#define FOG_DIST (128*4.)
 U64 fog_table[COLORS_NUM][COLORS_NUM][FOG_DIVISIONS];
 U0 ErectFogTable0(U64 *table,I64 fog_color,F64 ratio) {
   CBGR48 palette[COLORS_NUM];
@@ -73,6 +73,18 @@ U0 FrogImgSetGraphics(CFrogImg *img,...) {
   return FROG_SMALL_NIL;
 }
 AddMethod("CFrogImg","setGraphics:",&FrogImgSetGraphics);
+CFrogNum *FrogImgWidth(CFrogImg *img,...) {
+  if(img->dc)
+    return FrogNumNew(img->dc->width);
+  return FROG_SMALL_NIL;
+}
+AddMethod("CFrogImg","width",&FrogImgWidth);
+CFrogNum *FrogImgHeight(CFrogImg *img,...) {
+  if(img->dc)
+    return FrogNumNew(img->dc->height);
+  return FROG_SMALL_NIL;
+}
+AddMethod("CFrogImg","height",&FrogImgHeight);
 #include "TextureEditor";
 CFrogImg *FrogImgNewFromEditor(CFrogImg *img,...) {
   U8 *lump;
@@ -114,8 +126,8 @@ AddMethod("CFrogImg","setGraphicsFromString:",&FrogImgFromString);
 
 
 U64 Fog(I64 color,U64 dist,U8 fcolor=BLACK) {
-  dist>>=(7+2); //GRID_SZ
-  if(dist<FOG_DIVISIONS) {
+  dist/=FOG_DIST;
+  if(dist<FOG_DIVISIONS) {
     return fog_table[dist][color][fcolor];
   }
   return fcolor;
@@ -515,6 +527,16 @@ I64 BlockAtXYZ(I64 x,I64 y,I64 z) {
   }
   return -1;
 }
+I64 LightAtXYZ(I64 x,I64 y,I64 z) {
+  I64 tile=x+y*w->world_width;
+  if(0<=tile<w->world_height*w->world_width) {
+    if(I8_MIN<=z<=I8_MAX) {
+      return w->world_lighting[tile*256+z-I8_MIN];
+    }
+  }
+  return 15;
+}
+
 Bool IsSolidTile(I64 t) {
   if(!t) return FALSE;
   return !IsLiquidTile(t);
@@ -522,7 +544,7 @@ Bool IsSolidTile(I64 t) {
 #define LIGHT_DECAY 1.
 I8 BlockLightLevel(I64 t) {
   if(t==13)
-    return 12;
+    return 15;
   return 0;
 }
 Bool SetLightAtXYZ(I64 x,I64 y,I64 z,I64 light) {
@@ -541,6 +563,59 @@ Bool SetLightAtXYZ(I64 x,I64 y,I64 z,I64 light) {
       }
   return FALSE;
 }
+F64 BlockAO(I64 which,I64 x,I64 y,I64 z,I64 sidex,I64 sidey,I64 sidez) {
+ I64 cnt=0;
+ static I64 offs1[6]={-1,0,1,0,-1,0};
+ I64 corner=0;
+ if(sidez) {
+   if(BlockAtXYZ(x+offs1[which],y+offs1[1+which],z+sidez))
+     cnt++;
+   if(BlockAtXYZ(x+offs1[which+1],y+offs1[1+which+1],z+sidez))
+     cnt++;
+   if(cnt==2) return 0;
+   return 3-corner-cnt;
+ }
+ if(sidex) {
+   if(BlockAtXYZ(x+sidex,y+offs1[which],z+offs1[1+which]))
+     cnt++;
+   if(BlockAtXYZ(x+sidex,y+offs1[which+1],z+offs1[1+which+1]))
+     cnt++;
+   if(cnt==2) return 0;
+   return 3-corner-cnt;
+ }
+ if(sidey) {
+   if(BlockAtXYZ(x+offs1[which],y+sidey,z+offs1[1+which]))
+     cnt++;
+   if(BlockAtXYZ(x+offs1[which+1],y+sidey,z+offs1[1+which+1]))
+     cnt++;
+   if(cnt==2) return 0;
+   return 3-corner-cnt;
+ }
+ return 0; 
+}
+
+F64 CornerLight(I64 which,I64 x,I64 y,I64 z,I64 sidex,I64 sidey,I64 sidez) {
+ static I64 offs1[8]={-1,0,0,-1,1,0,0,1};
+ which<<=1;
+ if(sidez) {
+   if(BlockAtXYZ(x+offs1[which],y+offs1[1+which],z+sidez))
+     return LightAtXYZ(x,y,z+sidez);
+   return LightAtXYZ(x+offs1[which],y+offs1[1+which],z+sidez);
+ }
+ if(sidey) {
+   if(BlockAtXYZ(x+offs1[which],y+sidey,z+offs1[1+which]))
+    return LightAtXYZ(x,y+sidey,z);
+   return LightAtXYZ(x+offs1[which],y+sidey,z+offs1[1+which]);
+ }
+ if(sidex) {
+   if(BlockAtXYZ(x+sidex,y+offs1[which],z+offs1[1+which]));
+    return LightAtXYZ(x+sidex,y,z);
+   return LightAtXYZ(x+sidex,y+offs1[which],z+offs1[1+which]);
+ }
+ return 0; 
+}
+
+
 U0 LightingLight(I64 x,I64 y,I64 z,I64 light) {
   CI64Set *stack=I64SetNew,*stack2=I64SetNew;
   CI64Set *visited=I64SetNew;
@@ -1624,8 +1699,8 @@ try_stains:;
 	        if(wall_stain->tile_x==tx&&wall_stain->tile_y==ty&&wall_stain->tile_z==tz) {
 		  if(sidez&&wall_stain->sidez==sidez) {
 		    hit_dist2=(ath-origin->z)/slope*128;
-		    ttx=hit_dist2*cos+origin->x;
-		    tty=hit_dist2*sin+origin->y;
+		    ttx=ClampI64(hit_dist2*cos+origin->x-tx*128,0,127);
+		    tty=ClampI64(hit_dist2*sin+origin->y-ty*128,0,127);
 		    dist=hit_dist2;
 		    if(0<=GrPeek(wall_stain->dc,
 			  (ttx&127),
@@ -1650,7 +1725,7 @@ try_block:;
 	      idx=w->world_blocks[idx];
 	      if(hit_wall)  {
 	        SegmentSegmentIntersect(&xyhit,&corners[side],&corners[(side+1)&3],&origin_d_128,&long,NULL,NULL);
-	        color=GrPeek0(hit_texture,segment&127,127-ToI64(ath*128+texture_y_offset)&127);
+	        color=GrPeek0(hit_texture,ttx=segment&127,127-(tty=ToI64(ath*128+texture_y_offset)&127));
 //For-recursive
 	        hit_dist2=Sqrt(Sqr(xyhit.x*128-origin->x)+Sqr(xyhit.y*128-origin->y))+2.;
 	        new_origin.x=origin->x+hit_dist2*cos;
@@ -1659,8 +1734,8 @@ try_block:;
 
 	      } else {
 	        hit_dist2=(ath-origin->z)/slope*128+2.;
-	        ttx=hit_dist2*cos+origin->x;
-	        tty=hit_dist2*sin+origin->y;
+	        ttx=ClampI64(hit_dist2*cos+origin->x-tx*128,0,127);
+	        tty=ClampI64(hit_dist2*sin+origin->y-ty*128,0,127);
 	        dist=hit_dist2;
 	        color=GrPeek0(hit_texture,ttx&127,(tty+texture_y_offset)&127);
 //For-recursive
@@ -1721,7 +1796,26 @@ valid_color:
 	        if(hit_at) *hit_at=dist;
 	        hit=TRUE;
 	        hit_dist=dist;
-	        hit_color=Fog(color,dist2+1+depth*FOG_DIST*4+(15-lighting)*FOG_DIST,fog_color);
+		F64 ao_nodes[4];
+		F64 adj_lights[4];
+		F64 ao;
+		for(idx=0;idx!=4;idx++)
+		  ao_nodes[idx]=BlockAO(idx,tx,ty,tz,sidex,sidey,sidez);
+		for(idx=0;idx!=4;idx++)
+		  adj_lights[idx]=CornerLight(idx,tx,ty,tz,sidex,sidey,sidez);
+		F64 u0=ttx/127.;
+		F64 u1=1-ttx/127.;
+		F64 v0=tty/127.;
+		F64 v1=1-tty/127.;
+		//Bilnear
+		ao=.5;
+		ao+=ao_nodes[3]*v1*u1;
+		ao+=ao_nodes[2]*u0*v1;
+		ao+=ao_nodes[0]*u1*v0;
+		ao+=ao_nodes[1]*u0*v0;
+		lighting-=3.-ao;
+		lighting=(Lerp(u0,adj_lights[0],adj_lights[2])+Lerp(v0,adj_lights[1],adj_lights[3])+lighting)/3.;
+	        hit_color=Fog(color,dist2+1+depth*FOG_DIST*4+MaxI64((15-lighting)*FOG_DIST,0),fog_color);
 	      }
 	    }
 	  }

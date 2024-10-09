@@ -1,0 +1,2 @@
+new:msg=CFrogStr | |
+ ^ self basicNew init: msg .

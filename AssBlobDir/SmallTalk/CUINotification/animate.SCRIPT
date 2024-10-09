@@ -1,0 +1,28 @@
+animate ->*
+|
+  p=CPlayer
+  t=CFrogNum
+  base_y=CFrogNum
+|
+  p _ #world getPlayer .
+  base_y _ p -> notifications indexOf: self.
+  base_y _ base_y * 40 + 30 .
+  t _ CFrogTime now asSeconds - spawn_tS .
+
+  (t * 6 rem: 2) > 1 ifTrue: [
+    label->color _ #color_LTRED .
+  ] ifFalse: [
+    label->color _ #color_LTBLUE .
+  ] .
+
+  t < .3 ifTrue: [
+    'Smalltlak has no precedence with binops ' .
+    y _ base_y - 30 * ( t /  .3) min: base_y - 30 . 
+  ].
+  t > 3 ifTrue: [
+    'No binop precedence' .
+    y _ -50 - base_y * ( t  - 3 /  .3) max: -50 . 
+  ].
+  t > 3.3 ifTrue: [
+    p->notifications remove: self .
+  ] .

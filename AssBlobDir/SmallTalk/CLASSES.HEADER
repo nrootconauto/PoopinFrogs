@@ -162,6 +162,11 @@ class CUILabel:CUIElem {
   I64 color;
   CFrogStr *label;
 };
+class CUIIcon:CUIElem {
+  U8 *draw_it dft "UIIconDraw";
+  CFrogImg *img;
+};
+
 class CUIButton:CUIElem {
   U8 *draw_it dft "UIButtonDraw";
   U8 *constructor dft "UIButtonInit";  
@@ -292,7 +297,7 @@ class C3DWorldManager:CFrogThing {
   I64 is_client;
   I64 is_server;
   CTask *sound_task no_serialize 1;
-  I64 is_paused;
+  I64 is_paused;
 //Private
   F64 game_load_tS;  //The CFrogTime now asSeconds that the game world is at when loaded
   CFrogThing *player;
@@ -519,6 +524,8 @@ class CPlayer:C3DThing {
   CFrogArray *quest_seen_responses recur_serialize 1;
 //How many bloody footprints will be made
   F64 bloody_foot_count;
+//CUINotification
+  CFrogArray *notifications;
 }; 
 class CPoopMan:C3DThing {
   CFrogRandom *random_generator;
@@ -645,4 +652,9 @@ class CUITree:CUIElem {
   CUITree *parent;
 };
 class CUIList:CUIElem {
+};
+//Will disappear after awhile
+class CUINotification:CUIElem {
+  F64 spawn_tS;
+  CUILabel *label;
 };

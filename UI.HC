@@ -219,6 +219,9 @@ ms_cb:
 fail:;
   return NULL;
 }
+U0 UIIconDraw(CDC *dc,I64 xoff,I64 yoff,CUIIcon *ico) {
+  AnimDCBlot(dc,xoff,yoff,ico->img->dc);
+}
 //
 // Chat Log section
 //

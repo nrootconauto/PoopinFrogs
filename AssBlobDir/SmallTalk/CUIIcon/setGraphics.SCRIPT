@@ -1,0 +1,6 @@
+setGraphics: lump=CFrogStr ->*
+|
+|
+  img _ CFrogImg get: lump .
+  sz_x _ img width .
+  sz_y _ img height .
