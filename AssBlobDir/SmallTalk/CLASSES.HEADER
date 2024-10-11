@@ -115,6 +115,7 @@ class CUIElem:CFrogThing {
  //Negative means from side of parent/window
   I64 x,y;
   I64 sz_x,sz_y;
+  F64 z; //Per -element
 //x/y is where to draw the stuff
 //These cordnates are realtive to the element
   CFrogBlock *ms_ldown;
@@ -127,6 +128,7 @@ class CUIElem:CFrogThing {
   CFrogBlock *drag_end;
   CFrogBlock *ms_move;
   CFrogBlock *scroll;
+  CFrogBlock *animate;
   CFrogArray *sub_elems;
 //
   CFrogThing *user_data;
@@ -162,7 +164,7 @@ class CUILabel:CUIElem {
   I64 color;
   CFrogStr *label;
 };
-class CUIIcon:CUIElem {
+class CUIIcon:CUIElem {
   U8 *draw_it dft "UIIconDraw";
   CFrogImg *img;
 };
@@ -524,8 +526,7 @@ class CPlayer:C3DThing {
   CFrogArray *quest_seen_responses recur_serialize 1;
 //How many bloody footprints will be made
   F64 bloody_foot_count;
-//CUINotification
-  CFrogArray *notifications;
+  CFrogArray *notifications;
 }; 
 class CPoopMan:C3DThing {
   CFrogRandom *random_generator;
@@ -656,5 +657,8 @@ class CUIList:CUIElem {
 //Will disappear after awhile
 class CUINotification:CUIElem {
   F64 spawn_tS;
+  CUIBackground *bg;
   CUILabel *label;
+//Private
+  F64 anim_start_y;
 };

@@ -1,0 +1,23 @@
+setIcon: lump=CFrogStr ->*
+|
+  icon=CUIIcon
+|
+  icon _ CUIIcon new .
+  icon setGraphics: lump .
+  bg addChild: icon .
+
+  icon->sz_x _ 64 .
+  icon->sz_y _ 64 .
+
+  sz_x _ 20 + label->sz_x + icon->sz_x .
+  sz_y _ 20 + icon->sz_y .
+  icon->x _ 10 .
+  icon->y _ 10 .
+
+  label->x _ 10 + icon->sz_x .
+  label->y _ sz_y / 2 - 4 .
+
+  bg->sz_x _ sz_x . 
+  bg->sz_y _ sz_y .
+
+  x _ 320 -(sz_x/2) 

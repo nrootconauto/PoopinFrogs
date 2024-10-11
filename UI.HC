@@ -22,6 +22,8 @@ CTask *ui_task=Fs;
 #define MSG_MS_SCROLL 13
 U0 RenderUI(CDC *dc,CUIElem *e,I64 left_x=0,I64 left_y=0,I64 right_x=GR_WIDTH,I64 right_y=GR_HEIGHT) {
   if(!ThingHasClass(e,"CUIElem")) return;
+  if(ThingHasClass(e->animate,"CFrogBlock"))
+    FrogBlockValue(e->animate);
   CUIElem *draw,**body=e->sub_elems->items->body;
   I64 x,y;
   U8 *draw_it;
@@ -220,7 +222,11 @@ fail:;
   return NULL;
 }
 U0 UIIconDraw(CDC *dc,I64 xoff,I64 yoff,CUIIcon *ico) {
-  AnimDCBlot(dc,xoff,yoff,ico->img->dc);
+  CDC *img=ico->img->dc;
+  if(ico->sz_x==img->width&&ico->sz_y==img->height)
+    AnimDCBlot(dc,xoff,yoff,img);
+  else 
+    AnimDCBlotScaled(dc,xoff,yoff,ico->sz_x,ico->sz_y,img);
 }
 //
 // Chat Log section
@@ -550,25 +556,29 @@ U0 UIGridDraw(CDC *dc,I64 x,I64 y,CUIGrid *self) {
 }
 FrogSymbol("ui_root");
 U0 DrawUIRoot(CTask *t,CDC *dc) {
-  CFrogSymbol *s=FrogSymbol("ui_root");
+  I64 pass;
+  CFrogSymbol *s;
   CUIElem *e;
   I64 oldx,oldy;
   I64 oldcx,oldcy;
-  if(ThingHasClass(s->value,"CUIElem")) {
-    RenderUI(dc,s->value,0,0,t->pix_width,t->pix_height);
-  }
-  if(e=FramePtr(UI_GRID_DRAG_FPTR,t)) {
-    oldx=e->x;
-    oldy=e->y;
-    oldcx=e->computed_x;
-    oldcy=e->computed_y;
-    e->x=0;
-    e->y=0;
-    RenderUI(dc,e,ms.pos.x-t->pix_left,ms.pos.y-t->pix_top,t->pix_width,t->pix_height);
-    e->computed_x=oldcx;
-    e->computed_y=oldcy;
-    e->x=oldx;
-    e->y=oldy;
+  for(pass=0;pass!=2;pass++) {
+    if(!pass) s=FrogSymbol("ui_root2");
+    else if(pass) s=FrogSymbol("ui_root");
+    if(ThingHasClass(s->value,"CUIElem"))
+      RenderUI(dc,s->value,0,0,t->pix_width,t->pix_height);
+    if(e=FramePtr(UI_GRID_DRAG_FPTR,t)) {
+      oldx=e->x;
+      oldy=e->y;
+      oldcx=e->computed_x;
+      oldcy=e->computed_y;
+      e->x=0;
+      e->y=0;
+      RenderUI(dc,e,ms.pos.x-t->pix_left,ms.pos.y-t->pix_top,t->pix_width,t->pix_height);
+      e->computed_x=oldcx;
+      e->computed_y=oldcy;
+      e->x=oldx;
+      e->y=oldy;
+    }
   }
 }
 

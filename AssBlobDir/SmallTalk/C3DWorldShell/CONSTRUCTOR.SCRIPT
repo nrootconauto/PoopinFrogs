@@ -24,10 +24,18 @@ init ->* |
   ask_exit=CFrogBlock
   ask_exit_active=CFrogNum
   last_lighting_tS=CFrogNum
+  notification=CUINotification
 |
   draw_it_name _ 'Draw3DWorld' .
 
   on_init _ [
+    (#ui_root2 hasClass: CUIElem ) ifFalse: [
+      #ui_root2 _ CUIElem new .
+      #ui_root2->sz_x _ 640 .
+      #ui_root2->sz_y _ 480 .
+    ] .
+
+
     #world unpause
     #ms_grabbed _ 1 .
     up _ 0 . 
@@ -98,7 +106,12 @@ init ->* |
         handled _ 1 .
       ] .
     ] .
-  ] .
+
+    notification _ CUINotification new:'Press "T" for things menu' .
+    notification setIcon: 'Icons/Button' .
+    notification _ CUINotification new:'Press "B" for Blocks Menu' .
+    notification setIcon: 'Icons/Button' .
+  ] . 
 
   next_refresh _ CFrogTime now asSeconds .
   on_event _ [:v=CUIEvent |

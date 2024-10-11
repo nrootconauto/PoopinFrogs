@@ -102,6 +102,7 @@ I64 BlobLumpSort(CLumpHeader *a,CLumpHeader *b) {
 }
 //dlen can be -1 for delete
 U0 BlobFileAddLump(U8 *filename=NULL,U8 *name,U8 *data,I64 dlen,U64 type='DATA') {
+  if(*name=='/') name++;
   if(!filename) filename=dft_blob_path;
   I64 ofsz,want_sz,idx,idx2;
   CLumpHeader *lump_hdr;
@@ -175,10 +176,14 @@ U0 BlobFileAddLump(U8 *filename=NULL,U8 *name,U8 *data,I64 dlen,U64 type='DATA')
   }
 #ifdef DEVELOPMENT_MODE
   U8 *dump_path=MStrPrint(DEVELOPMENT_DIR"/%s.%c",name,type);
+  U8 *tail=StrLastOcc(dump_path,"/");
+  *tail=0;
+  DirMk(dump_path);
+  *tail='/';
   FileWrite(dump_path,data,dlen);
   Free(dump_path);
 //Regenerate
-//  UndumpBlobFile(filename,DEVELOPMENT_DIR);
+//  DumpBlobFile(filename,DEVELOPMENT_DIR);
 #endif
   Free(filename);
 }

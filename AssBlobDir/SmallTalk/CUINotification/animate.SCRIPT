@@ -1,12 +1,23 @@
 animate ->*
 |
-  p=CPlayer
   t=CFrogNum
+  i=CFrogNum
   base_y=CFrogNum
+  n=CUINotification
+  nots=CFrogArray
 |
-  p _ #world getPlayer .
-  base_y _ p -> notifications indexOf: self.
-  base_y _ base_y * 40 + 30 .
+  x _ 640 - sz_x .
+  base_y _ 250 .
+  nots _ #ui_root2->sub_elems select: [:n*|
+    n hasClass: CUINotification
+  ] .
+  i _ nots indexOf: self .
+
+  0 to: i do: [:idx=CFrogNum|
+    n _ nots at: idx .
+    base_y _   base_y + 10 + n->sz_y .
+  ] .
+
   t _ CFrogTime now asSeconds - spawn_tS .
 
   (t * 6 rem: 2) > 1 ifTrue: [
@@ -15,14 +26,21 @@ animate ->*
     label->color _ #color_LTBLUE .
   ] .
 
-  t < .3 ifTrue: [
-    'Smalltlak has no precedence with binops ' .
-    y _ base_y - 30 * ( t /  .3) min: base_y - 30 . 
+  t < 1 ifTrue: [
+    y _ anim_start_y - (480 * t) max: base_y . 
   ].
-  t > 3 ifTrue: [
-    'No binop precedence' .
-    y _ -50 - base_y * ( t  - 3 /  .3) max: -50 . 
-  ].
-  t > 3.3 ifTrue: [
-    p->notifications remove: self .
+
+  y show .
+
+  i = 0 ifTrue: [
+    t > 2 ifTrue: [
+      #ui_root2 removeChild: self .
+      nots remove: self .
+      base_y _ 250 .
+      nots do:[:n=CUINotification|
+        base_y _   base_y + 10 + n->sz_y .
+        n->anim_start_y _ base_y .
+        n->spawn_tS _ CFrogTime now asSeconds .
+      ] .
+    ] .
   ] .

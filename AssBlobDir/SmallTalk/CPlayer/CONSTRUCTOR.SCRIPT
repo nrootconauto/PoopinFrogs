@@ -1,5 +1,4 @@
 init ->CPlayer | |
-
   #world addThing: self .
   #world getPlayer = self ifTrue: [
     no_draw _ 1 .
@@ -27,5 +26,7 @@ init ->CPlayer | |
   0 to: 16 do: [:idx=CFrogNum|
     CWorldEditBlock new: idx .
   ].
+
+  notifications _ #().
 
   ^ self
