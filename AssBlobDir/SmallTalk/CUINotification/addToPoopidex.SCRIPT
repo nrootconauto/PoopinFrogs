@@ -5,7 +5,6 @@ addToPoopidexCategory: category=CFrogStr
 |
   p _ CPoopidexEntry newWithTitle: text
       withImg: icon_name 
-      withText: ''
+      withText: d
       withCategory: category .
-  p ->text _ d .
   ^ p

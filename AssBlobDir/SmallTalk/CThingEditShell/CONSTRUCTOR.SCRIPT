@@ -16,6 +16,7 @@ init ->* |
   tlabels=CFrogArray
   tbuttons=CFrogArray
   tree=CUITree
+  n=CUINotification
 |
   'Draw world in background' .
   draw_it_name _ 'Draw3DWorld' .
@@ -93,6 +94,10 @@ init ->* |
 
 
   on_init _ [
+    n _ CUINotification new: 'Click a Thing to Edit or Place it' .
+    n setIcon: 'Icons/Button' . 
+    n addToPoopidexCategory: 'Controls' withDescription: 'Edit its visible sides or add to inventory'.
+
     templates _ #() .
 
     #ms_grabbed _ 0 .
@@ -129,6 +134,12 @@ init ->* |
     button -> bg_color _ #color_LTGREEN .
     button->label _ 'Create A new Thing' .
     button onLeftUp: [:e*|
+      n _ CUINotification new: 'Use a slash to make a sub-state of the thing' .
+      n setIcon: 'Icons/File' . 
+      n addToPoopidexCategory: 'Controls' withDescription: 'Uses slashes to make substates of things. THis is useful for originization and for doing things like "CEnemy/Dead" or "CEnemy/Attack"'.
+
+
+
       #ui_root _ CUIBackground new .
       ui_roots add: #ui_root .
       #ui_root->color _ #color_DKGRAY .

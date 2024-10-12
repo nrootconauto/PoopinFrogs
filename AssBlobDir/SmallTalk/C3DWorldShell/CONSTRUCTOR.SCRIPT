@@ -37,7 +37,7 @@ init ->* |
     ] .
 
 
-    #world unpause
+    #world unpause .
     #ms_grabbed _ 1 .
     poopidex_active _  0 .
     up _ 0 . 

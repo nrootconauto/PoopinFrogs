@@ -500,6 +500,7 @@ class CPorky:C3DThing {
 class CPooka:C3DThing {
 };
 class CPlayer:C3DThing {
+  CFrogArray *seen_notifications; //Dont repeat notifications 
   CFrogThing *poopidex; //The players "computer"
   CFrogArray *items;
   CFrogArray *shell_casings;
@@ -651,7 +652,7 @@ class C3DWorldClient:CFrogThing {
 //
 class CPoopidexEntry:CFrogThing {
   CFrogStr *title;
-  CFrogStr *text;
+  CFrogStr *text;
   CFrogImg *img;
 };
 class CPoopidex:CFrogThing {
