@@ -96,7 +96,9 @@ init ->* |
   on_init _ [
     n _ CUINotification new: 'Click a Thing to Edit or Place it' .
     n setIcon: 'Icons/Button' . 
-    n addToPoopidexCategory: 'Controls' withDescription: 'Edit its visible sides or add to inventory'.
+    n addToPoopidexCategory: 'Controls/ThingEdit' withDescription: 'Edit its visible sides or add to inventory'.
+    n _ CUINotification new: 'Click the Big Green Button to make a new thing/thing-state' .
+    n setIcon: 'Icons/Button' . 
 
     templates _ #() .
 
@@ -136,7 +138,7 @@ init ->* |
     button onLeftUp: [:e*|
       n _ CUINotification new: 'Use a slash to make a sub-state of the thing' .
       n setIcon: 'Icons/File' . 
-      n addToPoopidexCategory: 'Controls' withDescription: 'Uses slashes to make substates of things. THis is useful for originization and for doing things like "CEnemy/Dead" or "CEnemy/Attack"'.
+      n addToPoopidexCategory: 'Controls/ThingEdit' withDescription: 'Uses slashes to make substates of things. THis is useful for originization and for doing things like "CEnemy/Dead" or "CEnemy/Attack"'.
 
 
 
@@ -198,6 +200,7 @@ init ->* |
       tbuttons add: button .
     ] .
     tree _ CUITree new .
+    tree->y _ y .
     tree  setBranchLabels: tlabels withElements: tbuttons .
     scroll_bars addChild: tree .
     #ui_root addChild: scroll_bars .

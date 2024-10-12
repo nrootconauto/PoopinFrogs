@@ -18,7 +18,7 @@ init ->* |
   on_init _ [
     n _ CUINotification new: 'Click Block to For Menu' .
     n setIcon: 'Icons/Button' . 
-    n addToPoopidexCategory: 'Controls' withDescription: 'Edit a block or add it to the inventory '.
+    n addToPoopidexCategory: 'Controls/BlockEdit' withDescription: 'Edit a block or add it to the inventory '.
     #ms_grabbed _ 0 .
     #ui_root _ CUIElem new .
     ui_roots _ #(#ui_root) .'I make a stack of UIs that are POPed' .

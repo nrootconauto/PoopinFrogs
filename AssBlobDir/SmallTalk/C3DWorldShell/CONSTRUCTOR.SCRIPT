@@ -111,10 +111,10 @@ init ->* |
 
     notification _ CUINotification new:'Press "T" for things menu' .
     notification setIcon: 'Icons/Button'.
-    notification addToPoopidexCategory: 'Controls' withDescription: 'Edit Things properies or add them to inventory'.
+    notification addToPoopidexCategory: 'Controls/Main' withDescription: 'Edit Things properies or add them to inventory'.
     notification _ CUINotification new:'Press "B" for Blocks Menu' .
     notification setIcon: 'Icons/Button' .
-    notification addToPoopidexCategory: 'Controls' withDescription: 'Edit/Add blocks to inventroy '.
+    notification addToPoopidexCategory: 'Controls/Main' withDescription: 'Edit/Add blocks to inventroy '.
   ] . 
 
   next_refresh _ CFrogTime now asSeconds .

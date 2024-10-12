@@ -11,6 +11,10 @@ updateScreen ->*
   labels=CFrogArray
   elems=CFrogArray
   icon=CUIcon
+  tmp=CFrogStr
+  dict=CFrogDictionary
+  e=CPoopidexEntry
+  subcatergory=CFrogStr
 |
   bg _ CUIBackground new .
   bg->sz_x _ 500 .
@@ -23,7 +27,25 @@ updateScreen ->*
   bg addChild: scroll .
   screen _ bg .
 
-  keys _ categories keys .
+  keys _ #() .
+  dict _ CFrogDictionary new .
+  categories keys do:[:k=CFrogStr|
+    (k indexOf: '/') = -1 ifTrue: [
+      tmp _ k .
+      subcatergory _ ''.
+    ] ifFalse: [
+      tmp _k copyFrom: 0 to: (k indexOf: '/').
+      subcatergory _(k copyFrom: (k indexOf: '/') + 1 to: k size) ,'/'.
+    ] .
+    (keys has: tmp) ifFalse: [keys add: tmp].
+    (categories at: k) do:[:e2=CPoopidexEntry|
+      ((dict at: tmp) hasClass:CFrogArray) not ifTrue: [
+        dict at: tmp put: #(#((subcatergory , e2->title)  e2)) .
+      ] ifFalse: [
+        (dict at: tmp) add: #(( subcatergory , e2->title ) e2) .
+      ]
+    ]
+  ] .
 
   label _ CUILabel new .
   label setLabel: 'PoopIdex 64'.
@@ -46,8 +68,9 @@ updateScreen ->*
       y _ 20 .
       labels _ #() .
       elems _ #() .
-      (categories at:btn->label) do:[:e=CPoopidexEntry|
-        labels add: e->title .
+      (dict at:btn->label) do:[:pair=CFrogArray|
+        e _ pair last .
+        labels add: pair first .
         bg _ CUIBackground new .
         elems add: bg .
         bg ->sz_x _ 400 .
@@ -89,7 +112,7 @@ updateScreen ->*
     bg addChild: button .
     button->x _ x .
     button->y _ y .
-    x _ button -> sz_x + x .
+    x _ button -> sz_x + x + 8 .
     x >= bg->sz_x  ifTrue: [
       y _ y + 10 .
       x _ 4 .

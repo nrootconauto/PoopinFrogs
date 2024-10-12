@@ -5,6 +5,7 @@ init: msg=CFrogStr ->* |
   (p->seen_notifications has: msg) ifTrue: [
     ^ 0 .
   ].
+  p->seen_notifications add: msg copy .
   text _ msg .
   bg _ CUIBackground new .
   bg->bg_color _ #color_LTGRAY .

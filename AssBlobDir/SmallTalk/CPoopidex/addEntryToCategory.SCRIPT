@@ -8,5 +8,3 @@ addEntry:p=CPoopidexEntry toCategory: c=CFrogStr
   ] .
 
   (categories at: c) add: p .
-  n _ CUINotification new: 'Poopidex64 Updated' .
-  n setIcon: 'Icons/Poopidex' . 

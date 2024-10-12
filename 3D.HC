@@ -63,8 +63,8 @@ U0 FrogImgSetGraphics(CFrogImg *img,...) {
   img->dc=AnimDCNew(1,1,frog_mem_task);
   if(lunk) {
     if(data=BlobFileGetLump(,lunk)) {
-      AnimDCDel(img->dc);
-      img->dc=AnimDCLoad(data,,frog_mem_task);
+      AnimDCDel(img->dc);
+      img->dc=AnimDCLoad(data,,frog_mem_task);
       img->name=FrogStrNew(lunk);
       Free(data);
     }
