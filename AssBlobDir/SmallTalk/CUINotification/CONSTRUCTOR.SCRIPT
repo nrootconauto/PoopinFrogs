@@ -1,6 +1,7 @@
 init: msg=CFrogStr ->* |
   p=CPlayer
 |
+  text _ msg .
   bg _ CUIBackground new .
   bg->bg_color _ #color_LTGRAY .
   label _ CUILabel new .

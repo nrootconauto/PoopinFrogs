@@ -1,0 +1,38 @@
+init ->*
+|
+  handled=CFrogNum
+  player=CPlayer
+  poopidex=CPoopidex
+|
+  'Draw world in backgroubnd' .
+  draw_it_name _ 'Draw3DWorld' .
+
+  on_init _ [
+    #ms_grabbed _ 0 .
+    #ui_root _ CUIElem new .
+    #ui_root -> x _ 0 .
+    #ui_root -> y _ 0 .
+    #ui_root -> sz_x _ 640 .
+    #ui_root -> sz_y _ 480 .
+
+    player _ #world  getPlayer .
+    poopidex _ player->poopidex .
+    poopidex updateScreen .
+    #ui_root addChild: poopidex->screen .
+  ] .
+
+  on_event _ [:v=CUIEvent |
+    handled _ 0 .
+    v->type = 'KeyDown' ifTrue: [
+      v->m1 = 27 ifTrue: [
+        'ESC '.
+        exited _ 1 .
+        handled _ 1 . 
+      ] .
+    ] .
+    handled ifFalse: [
+      #ui_root sendEventToUI: v .
+    ].
+  ] .
+  ^ self
+

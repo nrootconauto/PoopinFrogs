@@ -1785,7 +1785,7 @@ try_block:;
 	      }
 valid_color:
 	      if(dist<hit_dist) {
-	        dist2=Sqrt(Sqr((slope*(dist/128.)-origin->z)*128)+Sqr(cos*dist)+Sqr(sin*dist));
+	        dist2=Sqrt(Sqr(slope*(dist/128.)*128)+Sqr(cos*dist)+Sqr(sin*dist));
 	        if(hit_cords) {
 //Slightly before our wall(not in wall).
 		  dist=Clamp(dist-2.,0,128*VIEW_DIST);

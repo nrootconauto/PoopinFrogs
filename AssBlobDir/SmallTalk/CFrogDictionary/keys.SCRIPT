@@ -1,0 +1,8 @@
+keys ->CFrogArray |
+ r=CFrogArray
+|
+  r _ #(). 
+  self doKeys:[:k=CFrogStr|
+    r add: k copy 
+  ] .
+  ^ r

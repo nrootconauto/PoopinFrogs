@@ -1,0 +1,8 @@
+newWithTitle: title0=CFrogStr
+  withImg: img0=CFrogStr
+  withText: text0=CFrogStr
+  withCategory: cat=CFrogStr
+->*
+||
+ ^ self basicNew initWithTitle: title0 withImg: img0 withText: text0 
+     withCategory: cat .

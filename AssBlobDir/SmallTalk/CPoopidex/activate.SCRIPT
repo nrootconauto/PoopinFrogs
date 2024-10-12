@@ -1,0 +1,6 @@
+activate->*
+|
+  shell=CPoopidexShell
+|
+  shell _ CPoopidexShell new .
+  shell run .

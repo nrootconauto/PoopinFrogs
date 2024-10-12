@@ -1,0 +1,34 @@
+wrap:l=CFrogNum ->CFrogStr
+|
+  r=CFrogStr
+  tmp=CFrogStr
+  splits=CFrogArray
+  l2=CFrogNum
+|
+  splits _ #() .
+  tmp _ ''.
+  0 to: self size do: [:i=CFrogNum|
+    ((self at: i) = (' ' at: 0)) not ifTrue: [
+      tmp add: (self at:i) .
+    ] ifFalse: [
+      splits add: tmp .
+      tmp _ ''.
+    ].
+  ].
+  splits add: tmp .
+  r _ ''.
+  l2 _ 0 .
+  0 to:splits size do:[:i=CFrogNum|
+    tmp _ splits at: i .
+tmp show .
+    (l2 + tmp size) > l ifTrue: [
+       r _ r , '
+'.
+       l2 _ 0 .
+    ] ifFalse: [
+       l2 _ l2 + tmp size + 1  .
+    ] .
+    r _ r , tmp , ' '.
+  ].
+r show .
+  ^ r 

@@ -1,0 +1,8 @@
+init ->*
+|
+  bg=CUIBackground
+  scroll=CUIScrollBars
+|
+  categories _ CFrogDictionary new .
+  self updateScreen .
+  ^ self

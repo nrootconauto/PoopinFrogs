@@ -2,6 +2,7 @@ setIcon: lump=CFrogStr ->*
 |
   icon=CUIIcon
 |
+  icon_name _ lump .
   icon _ CUIIcon new .
   icon setGraphics: lump .
   bg addChild: icon .

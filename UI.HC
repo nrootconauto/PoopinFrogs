@@ -23,7 +23,7 @@ CTask *ui_task=Fs;
 U0 RenderUI(CDC *dc,CUIElem *e,I64 left_x=0,I64 left_y=0,I64 right_x=GR_WIDTH,I64 right_y=GR_HEIGHT) {
   if(!ThingHasClass(e,"CUIElem")) return;
   if(ThingHasClass(e->animate,"CFrogBlock"))
-    FrogBlockValue(e->animate);
+    FrogBlockValue(e->animate,e);
   CUIElem *draw,**body=e->sub_elems->items->body;
   I64 x,y;
   U8 *draw_it;
@@ -68,6 +68,8 @@ U0 UIUnFocus() {
 }
 //Do not Free
 I64 *UpdateUI(CUIElem *update,I64 msg_type,I64 m1,I64 m2,I64 right_x=GR_WIDTH,I64 right_y=GR_HEIGHT,Bool root=TRUE) {
+  if(!ThingHasClass(update,"CUIElem"))
+    return NULL;
   CUIElem *chain,**body=update->sub_elems->items->body,*drag;
   I64 x,y,got,cnt=update->sub_elems->items->cnt,idx;
   U8 *cb;
@@ -120,7 +122,7 @@ pass:
         return chain;
       }
     }
-  cb=NULL;
+   cb=NULL;
   switch(msg_type) {
     case MSG_MS_SCROLL:
       if(update&&update->scroll)
@@ -562,8 +564,9 @@ U0 DrawUIRoot(CTask *t,CDC *dc) {
   I64 oldx,oldy;
   I64 oldcx,oldcy;
   for(pass=0;pass!=2;pass++) {
-    if(!pass) s=FrogSymbol("ui_root2");
-    else if(pass) s=FrogSymbol("ui_root");
+//Draw ui_root2 on top	
+    if(pass) s=FrogSymbol("ui_root2");
+    else if(!pass) s=FrogSymbol("ui_root");
     if(ThingHasClass(s->value,"CUIElem"))
       RenderUI(dc,s->value,0,0,t->pix_width,t->pix_height);
     if(e=FramePtr(UI_GRID_DRAG_FPTR,t)) {

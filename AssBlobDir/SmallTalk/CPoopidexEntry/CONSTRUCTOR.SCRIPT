@@ -1,0 +1,15 @@
+initWithTitle: title0=CFrogStr
+  withImg: img0=CFrogStr
+  withText: text0=CFrogStr
+  withCategory: cat=CFrogStr
+  |
+    p=CPlayer
+    poop=CPoopidex
+  |
+  p _ #world getPlayer .
+  img _ CFrogImg get: img0 .
+  title _ title0 .
+  text _ text0 .
+  poop _ p -> poopidex .
+  poop addEntry: self toCategory: cat .
+  ^ self

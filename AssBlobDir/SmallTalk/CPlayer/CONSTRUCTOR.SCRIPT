@@ -1,4 +1,5 @@
 init ->CPlayer | |
+  poopidex _CPoopidex new .
   #world addThing: self .
   #world getPlayer = self ifTrue: [
     no_draw _ 1 .

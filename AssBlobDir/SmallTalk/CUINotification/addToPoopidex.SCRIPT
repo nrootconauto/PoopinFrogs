@@ -1,0 +1,11 @@
+addToPoopidexCategory: category=CFrogStr 
+  withDescription: d=CFrogStr
+->* |
+  p=CPoopidexEntry
+|
+  p _ CPoopidexEntry newWithTitle: text
+      withImg: icon_name 
+      withText: ''
+      withCategory: category .
+  p ->text _ d .
+  ^ p

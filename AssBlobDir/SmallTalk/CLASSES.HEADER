@@ -146,6 +146,8 @@ class CUIShell:CFrogThing {
   CFrogBlock *on_event; //See CUIEvent,send eveents to #ui_root via sendEventToUI:
   Bool exited dft FALSE; //TRUE on exit
 };
+class CPoopidexShell:CUIShell {
+};
 class CUIChatLog:CUIElem {
   U8 *constructor dft "UIChatLogInit";
   U8 *draw_it dft "UIChatLogDraw";
@@ -498,6 +500,7 @@ class CPorky:C3DThing {
 class CPooka:C3DThing {
 };
 class CPlayer:C3DThing {
+  CFrogThing *poopidex; //The players "computer"
   CFrogArray *items;
   CFrogArray *shell_casings;
   CUIMeter *health_meter no_serialize 1;
@@ -526,7 +529,7 @@ class CPlayer:C3DThing {
   CFrogArray *quest_seen_responses recur_serialize 1;
 //How many bloody footprints will be made
   F64 bloody_foot_count;
-  CFrogArray *notifications;
+  CFrogArray *notifications;
 }; 
 class CPoopMan:C3DThing {
   CFrogRandom *random_generator;
@@ -643,7 +646,19 @@ class C3DWorldClient:CFrogThing {
   CFrogThread *update_thread;
 };
 
-
+//
+// The in-game computer
+//
+class CPoopidexEntry:CFrogThing {
+  CFrogStr *title;
+  CFrogStr *text;
+  CFrogImg *img;
+};
+class CPoopidex:CFrogThing {
+  CFrogDictionary *categories; //CFrogArray(CPoopidexEntry)
+  CUIElem *screen;
+  I64 active;
+};
 //
 // Composite UI elements
 //
@@ -659,6 +674,8 @@ class CUINotification:CUIElem {
   F64 spawn_tS;
   CUIBackground *bg;
   CUILabel *label;
+  CFrogStr *icon_name;
+  CFrogStr *text;
 //Private
   F64 anim_start_y;
 };

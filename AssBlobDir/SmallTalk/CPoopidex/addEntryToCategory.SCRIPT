@@ -1,0 +1,12 @@
+addEntry:p=CPoopidexEntry toCategory: c=CFrogStr
+  ->*
+|
+  n=CUINotification
+|
+  ((categories at: c ) hasClass: CFrogArray) ifFalse: [
+    categories at: c put: #() .
+  ] .
+
+  (categories at: c) add: p .
+  n _ CUINotification new: 'Poopidex64 Updated' .
+  n setIcon: 'Icons/Poopidex' . 

@@ -25,6 +25,7 @@ init ->* |
   ask_exit_active=CFrogNum
   last_lighting_tS=CFrogNum
   notification=CUINotification
+  poopidex_active=CFrogNum
 |
   draw_it_name _ 'Draw3DWorld' .
 
@@ -38,6 +39,7 @@ init ->* |
 
     #world unpause
     #ms_grabbed _ 1 .
+    poopidex_active _  0 .
     up _ 0 . 
     down _ 0 . 
     left _ 0 . 
@@ -108,9 +110,11 @@ init ->* |
     ] .
 
     notification _ CUINotification new:'Press "T" for things menu' .
-    notification setIcon: 'Icons/Button' .
+    notification setIcon: 'Icons/Button'.
+    notification addToPoopidexCategory: 'Controls' withDescription: 'Edit Things properies or add them to inventory'.
     notification _ CUINotification new:'Press "B" for Blocks Menu' .
     notification setIcon: 'Icons/Button' .
+    notification addToPoopidexCategory: 'Controls' withDescription: 'Edit/Add blocks to inventroy '.
   ] . 
 
   next_refresh _ CFrogTime now asSeconds .
@@ -138,6 +142,10 @@ init ->* |
        ] .
      ] .
      v->type = 'KeyUp' ifTrue: [
+       ('', v->m1 asCharactor) uppercase = 'P' ifTrue: [
+         player->poopidex activate .
+         handled _ 1 .
+       ] .
        ('' ,v->m1 asCharactor) uppercase = 'W' ifTrue: [
          handled _ 1 .
          up _ 0 .

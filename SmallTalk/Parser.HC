@@ -234,18 +234,31 @@ again:
   }
   return NULL;
 }
-U0 TryAssignType(CAST *a) {
+U0 TryAssignType(CLexer *l,CAST *a) {
   CAST *who,*cur;
   U8 *rc;
+  CHashClass *cls;
   switch(a->type) {
     case AST_UNOP:
     case AST_BINOP:
     case AST_KEYWORD:
       who=a->args.next;
       if(who->var_class_name[0]&&who->var_class_name[0]!='*') {
-	if(rc=MethodReturnClass(a->var_class_name,a->name)) {
+        if(rc=MethodReturnClass(a->var_class_name,a->name)) {
 	  StrCpy(a->var_class_name,rc);
-	}
+        }
+        if(cls=HashFind(who->var_class_name,Fs->hash_table,HTT_CLASS)) {
+	  while(cls) {
+	    cls-=cls->ptr_stars_cnt;
+	    if(cls->str&&!StrCmp(cls->str,"CFrogThing")) {
+	      if(!HasMethod(who->var_class_name,a->name)) {
+	        LexWarn(l,"Coudlnt find '%s' for class '%s'.",a->name,who->var_class_name);
+		break;
+	      }
+	    }
+	    cls=cls->base_class;
+	  }
+        }
       }
       break;
   }
@@ -270,7 +283,7 @@ again:
     QueInit(ret);
     QueIns(left,&ret->args);
     StrCpy(ret->name,backup.str);
-    TryAssignType(ret);
+    TryAssignType(l,ret);
     left=ret;
     goto again;
   }
@@ -302,7 +315,7 @@ again:
     if(!right)
       LexExcept(l,"Binop needs 2 fucking operands asshole.");
     QueIns(right,ret->args.last);
-    TryAssignType(ret);
+    TryAssignType(l,ret);
     left=ret;
     goto again;
   }
@@ -342,7 +355,7 @@ again:
   if(!StrLen(buf))
     return left;
   StrCpy(ret->name,buf);
-  TryAssignType(ret);
+  TryAssignType(l,ret);
   return ret;
 }
 CAST *ParseCascade(CLexer *l) {

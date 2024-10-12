@@ -1,0 +1,101 @@
+updateScreen ->*
+|
+  bg=CUIBackground
+  scroll=CUIScrollBars
+  label=CUILabel
+  button=CUIButton
+  keys=CFrogArray
+  x=CFrogNum
+  y=CFrogNum
+  tree=CUITree
+  labels=CFrogArray
+  elems=CFrogArray
+  icon=CUIcon
+|
+  bg _ CUIBackground new .
+  bg->sz_x _ 500 .
+  bg->sz_y _ 400 .
+  bg->x _ (640 - bg->sz_x) / 2 .
+  bg->y _ (480 - bg->sz_y) / 2 .
+  bg->bg_color _ #color_LTGREEN .
+  scroll _ CUIScrollBars new .
+  scroll->bg_color _ #color_LTGREEN .
+  bg addChild: scroll .
+  screen _ bg .
+
+  keys _ categories keys .
+
+  label _ CUILabel new .
+  label setLabel: 'PoopIdex 64'.
+  bg addChild: label .
+  label->x _ (bg->sz_x/2) - (label->sz_x /2) .
+  label->y _ 4 .
+  label->color _ #color_RED .
+
+  y _ 12 .
+  x _ 4 .
+  keys do:[:k=CFrogStr|
+    button _ CUIButton new.
+    button->label _ k copy .
+    button->fg_color _ #color_LTRED .
+    button->bg_color _ #color_YELLOW .
+    button->sz_x _ k size * 8 + 8 .
+    button->sz_y _ 10 .
+    button->ms_ldown _ [:btn=CUIButton|
+      scroll->sub_elems _ #(). 
+      y _ 20 .
+      labels _ #() .
+      elems _ #() .
+      (categories at:btn->label) do:[:e=CPoopidexEntry|
+        labels add: e->title .
+        bg _ CUIBackground new .
+        elems add: bg .
+        bg ->sz_x _ 400 .
+        bg->sz_y _ 70 .
+        bg->bg_color _ #color_GREEN .
+        (e->img hasClass: CFrogImg) ifTrue: [
+          icon _ CUIIcon new .
+          icon->img _ e->img .
+          icon->sz_x _ 64 .
+          icon->sz_y _ 64 .
+          icon->x _ 3 .
+          icon->y _ 3 .
+          bg addChild: icon .
+        ].
+        label _CUILabel new .
+        label->color _ #color_LTCYAN .
+        label->animate _ [:lab=CUILabel |
+          ((CFrogTime now asSeconds * 6 rem: 2) < 1) ifTrue: [
+             lab->color _ #color_LTCYAN
+          ] ifFalse: [
+             lab->color _ #color_LTRED
+          ].
+        ] .
+        label->y _ 3 .
+        label->x _ 70 .
+        label setLabel: e->title .
+        bg addChild: label .
+        label _CUILabel new .
+        label->y _ 6 + 8 .
+        label->x _ 70 .
+        label->color _ #color_LTRED .
+        label->label _ e->text wrap: ( bg->sz_x - label->x ) / 8 .
+        bg addChild: label .
+      ] .
+      tree _ CUITree new.
+      tree setBranchLabels: labels withElements: elems .
+      scroll addChild: tree .
+    ] .
+    bg addChild: button .
+    button->x _ x .
+    button->y _ y .
+    x _ button -> sz_x + x .
+    x >= bg->sz_x  ifTrue: [
+      y _ y + 10 .
+      x _ 4 .
+    ].
+  ] .
+  scroll->x _ 10 .
+  scroll->y _ y + 10 . 
+  scroll->sz_x _ bg->sz_x - 20 .
+  scroll->sz_y _ bg->sz_y - scroll->y .
