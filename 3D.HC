@@ -1495,7 +1495,7 @@ Bool SegmentSegmentIntersect(CD2 *hit_at,CD2 *a,CD2 *b,CD2 *a2,CD2 *b2,F64 *t,F6
 #endif
 //https://github.com/cgyurgyik/fast-voxel-traversal-algorithm/blob/master/overview/FastVoxelTraversalOverview.md
 #define RAY_TRACE_MAX_DEPTH 3
-I64 GetColorForRay(C3DWorldManager *man,CD3 *origin,CD3 *ray,F64 dist,F64 *hit_at,CD3 *hit_cords,I64 depth=0,I64 last_block=0,I64 fog_color=BLACK) { 
+I64 GetColorForRay(C3DWorldManager *man,CD3 *origin,CD3 *ray,F64 dist,F64 *hit_at,CD3 *hit_cords,I64 depth=0,I64 last_block=0,I64 fog_color=BLACK,Bool record_tile=FALSE) { 
   if(Abs(ray->x-Ceil(ray->x))<.001)
     ray->x-=.001;
   if(Abs(ray->y-Ceil(ray->y))<.001)
@@ -1723,17 +1723,25 @@ try_block:;
 	      CD3 new_ray;
 	      idx=(ty*w->world_width+tx)*256+tz-I8_MIN;
 	      idx=w->world_blocks[idx];
+	      if(record_tile) {
+		man->cur_tile_x=tx;
+		man->cur_tile_y=ty;
+		man->cur_tile_z=tz;
+		man->cur_tile_side_x=sidex;
+		man->cur_tile_side_y=sidey;
+		man->cur_tile_side_z=sidez;
+	      }
 	      if(hit_wall)  {
 	        SegmentSegmentIntersect(&xyhit,&corners[side],&corners[(side+1)&3],&origin_d_128,&long,NULL,NULL);
 	        color=GrPeek0(hit_texture,ttx=segment&127,127-(tty=ToI64(ath*128+texture_y_offset)&127));
 //For-recursive
-	        hit_dist2=Sqrt(Sqr(xyhit.x*128-origin->x)+Sqr(xyhit.y*128-origin->y))+2.;
+	        hit_dist2=Sqrt(Sqr(xyhit.x*128-origin->x)+Sqr(xyhit.y*128-origin->y));
 	        new_origin.x=origin->x+hit_dist2*cos;
 	        new_origin.y=origin->y+hit_dist2*sin;
 	        new_origin.z=ath;
 
 	      } else {
-	        hit_dist2=(ath-origin->z)/slope*128+2.;
+	        hit_dist2=(ath-origin->z)/slope*128;
 	        ttx=ClampI64(hit_dist2*cos+origin->x-tx*128,0,127);
 	        tty=ClampI64(hit_dist2*sin+origin->y-ty*128,0,127);
 	        dist=hit_dist2;
@@ -1937,6 +1945,7 @@ U0 MPCastCol(C3DWorldManager *wm) {
   I64 segment;
   I64 idist,row;
   Bool hit_wall;
+  Bool record_tile=FALSE;
   I64 fogc;
   CD3 ray;
   F64 angle_offset_table[GR_WIDTH];
@@ -1955,7 +1964,7 @@ U0 MPCastCol(C3DWorldManager *wm) {
   cap=ToF64(Gs->num+1)/ToF64(mp_cnt)*GR_WIDTH;
   for(x=idx;x<cap;x+=w->step_width) {
 // divide by cos2_lookup_table to get 32 blocks from the camera
-$SP,"<1>",BI=1$;
+    $SP,"<1>",BI=1$;
 
 
 
@@ -1981,25 +1990,25 @@ $SP,"<1>",BI=1$;
 //Nroot has no idea what he was doing here.Literaly typing random stuff
       GenerateRay(w,&ray,x,y,GR_WIDTH,GR_HEIGHT,ca,sa,ca2,sa2);   
       if(in_water) {
-	 rand_refrac=1.1+.1*(Abs(Sin((t/4.)*200))-Abs(Cos(t*125)))+.1*(Rand-.5)*2;
-	 snell_a2=(y/ToF64(GR_HEIGHT)-.5)*w->fov;
-         snell_a=(x/ToF64(GR_WIDTH)-.5)*w->fov;
-         snell_a=ASin(Sin(snell_a)/rand_refrac)/2.;
-         snell_a2=ASin(Sin(snell_a2)/(rand_refrac+.2))/2.;
-         D3Equ(&ray,
-	   ray.x*Cos(snell_a)+ray.z*Sin(snell_a),
-	   ray.y,
-	   -ray.x*Sin(snell_a)+ray.z*Cos(snell_a),
-	 );
-	D3Equ(&ray,
-	  ray.x,
-	  ray.y*Cos(snell_a2)-ray.z*Sin(snell_a2),
-	  ray.y*Sin(snell_a2)+ray.z*Cos(snell_a2)
-	);
+        rand_refrac=1.1+.1*(Abs(Sin((t/4.)*200))-Abs(Cos(t*125)))+.1*(Rand-.5)*2;
+        snell_a2=(y/ToF64(GR_HEIGHT)-.5)*w->fov;
+        snell_a=(x/ToF64(GR_WIDTH)-.5)*w->fov;
+        snell_a=ASin(Sin(snell_a)/rand_refrac)/2.;
+        snell_a2=ASin(Sin(snell_a2)/(rand_refrac+.2))/2.;
+        D3Equ(&ray,
+	      ray.x*Cos(snell_a)+ray.z*Sin(snell_a),
+	      ray.y,
+	      -ray.x*Sin(snell_a)+ray.z*Cos(snell_a),
+	      );
+        D3Equ(&ray,
+	      ray.x,
+	      ray.y*Cos(snell_a2)-ray.z*Sin(snell_a2),
+	      ray.y*Sin(snell_a2)+ray.z*Cos(snell_a2)
+        );
 //TODO what kind of liquid are we in TOODO
         fogc=LTBLUE;
       } else
-	fogc=BLACK;
+        fogc=BLACK;
       p=&w->to_point[x/4][y/4];
 //If we dont hit a wall,just fill with "far out in the distacnve"
       p->x=w->x+ray.x*I16_MAX;
@@ -2010,68 +2019,72 @@ $SP,"<1>",BI=1$;
       origin.y=w->y;
       origin.z=w->cam_height;
 //depth==1 to simulate going through a (liquid) block
+      record_tile=FALSE;
+      if(x/w->step_width==(GR_WIDTH/2/w->step_width))
+        if(y/w->step_width==(GR_HEIGHT/2/w->step_width))
+	  record_tile=TRUE;
       if(in_water) {
-        color=GetColorForRay(wm,&origin,&ray,32*GRID_SZ,&dist,p,1*in_water,BlockAtXYZ(w->x/128.,w->y/128.,Floor(w->cam_height)),fogc);
+        color=GetColorForRay(wm,&origin,&ray,32*GRID_SZ,&dist,p,1*in_water,BlockAtXYZ(w->x/128.,w->y/128.,Floor(w->cam_height)),fogc,record_tile);
       } else
-        color=GetColorForRay(wm,&origin,&ray,32*GRID_SZ,&dist,p);
+        color=GetColorForRay(wm,&origin,&ray,32*GRID_SZ,&dist,p,,,,record_tile);
       idist=dist;
       idist|=idist<<32;
       if(color!=-1&&w->step_width==2) {
         for(col=0;col!=2;col++) {
-	    if(col&1)
-	      ptr(U16*)[0]=color;
-	    else
-	      ptr(U16*)[0]=color>>8; //Dither
-            depth_ptr[0](I64)=idist;
-	    ptr(U8*)+=to_dc->width_internal;
-	    depth_ptr+=to_dc->width_internal;
-	}
-	goto fin;
+	  if(col&1)
+	    ptr(U16*)[0]=color;
+	  else
+	    ptr(U16*)[0]=color>>8; //Dither
+	  depth_ptr[0](I64)=idist;
+	  ptr(U8*)+=to_dc->width_internal;
+	  depth_ptr+=to_dc->width_internal;
+        }
+        goto fin;
       }
       if(color!=-1&&w->step_width==4) {
         for(col=0;col!=4;col++) {
-	    if(col&1)
-	      ptr(U32*)[0]=color;
-	    else
-	      ptr(U32*)[0]=color>>8; //Dither
-            depth_ptr[0](I64)=idist;
-            depth_ptr[2](I64)=idist;
-	    ptr(U8*)+=to_dc->width_internal;
-	    depth_ptr+=to_dc->width_internal;
-	}
-	goto fin;
+	  if(col&1)
+	    ptr(U32*)[0]=color;
+	  else
+	    ptr(U32*)[0]=color>>8; //Dither
+	  depth_ptr[0](I64)=idist;
+	  depth_ptr[2](I64)=idist;
+	  ptr(U8*)+=to_dc->width_internal;
+	  depth_ptr+=to_dc->width_internal;
+        }
+        goto fin;
       }
       if(color!=-1&&w->step_width==6) {
         for(col=0;col!=6;col++) {
-	    if(col&1) {
-	      ptr(U32*)[0]=color;
-	      ptr(U16*)[2]=color;
-	    } else {
-	      ptr(U32*)[0]=color>>8; //Dither
-	      ptr(U16*)[2]=color>>8; //Dither
-            }
-            depth_ptr[0](I64)=idist;
-            depth_ptr[2](I64)=idist;
-            depth_ptr[4](I64)=idist;
-	    ptr(U8*)+=to_dc->width_internal;
-	    depth_ptr+=to_dc->width_internal;
-	}
-	goto fin;
+	  if(col&1) {
+	    ptr(U32*)[0]=color;
+	    ptr(U16*)[2]=color;
+	  } else {
+	    ptr(U32*)[0]=color>>8; //Dither
+	    ptr(U16*)[2]=color>>8; //Dither
+	  }
+	  depth_ptr[0](I64)=idist;
+	  depth_ptr[2](I64)=idist;
+	  depth_ptr[4](I64)=idist;
+	  ptr(U8*)+=to_dc->width_internal;
+	  depth_ptr+=to_dc->width_internal;
+        }
+        goto fin;
       }
       if(color!=-1&&w->step_width==8) {
-	  for(col=0;col!=8;col++) {
-	    if(col&1)
-	      ptr(U64*)[0]=color;
-	    else
-	      ptr(U64*)[0]=color>>8|color<<(64-8); //Rotate for Dither
-            depth_ptr[0](I64)=idist;
-            depth_ptr[2](I64)=idist;
-            depth_ptr[4](I64)=idist;
-            depth_ptr[6](I64)=idist;
-	    ptr(U8*)+=to_dc->width_internal;
-	    depth_ptr+=to_dc->width_internal;
-	  }
-	  goto fin;
+        for(col=0;col!=8;col++) {
+	  if(col&1)
+	    ptr(U64*)[0]=color;
+	  else
+	    ptr(U64*)[0]=color>>8|color<<(64-8); //Rotate for Dither
+	  depth_ptr[0](I64)=idist;
+	  depth_ptr[2](I64)=idist;
+	  depth_ptr[4](I64)=idist;
+	  depth_ptr[6](I64)=idist;
+	  ptr(U8*)+=to_dc->width_internal;
+	  depth_ptr+=to_dc->width_internal;
+        }
+        goto fin;
       }
       ptr(U8*)+=to_dc->width_internal*w->step_width;
       depth_ptr(I32*)+=to_dc->width_internal*w->step_width;
@@ -2083,6 +2096,9 @@ fin:;
 U0 C3DWorldCastRays(C3DWorld *w) {
   I64 c;
   C3DWorldManager *man=FrogSymbol("world")->value;
+  man->cur_tile_x=-1;
+  man->cur_tile_y=-1;
+  man->cur_tile_z=-1;
   lock mp_done=0;
   for(c=1;c<mp_cnt;++c) {
     JobQue(&MPCastCol,man,c);
@@ -2523,6 +2539,22 @@ CFrogThing *ScreenCoordToZ(C3DWorldManager *self,...) {
   return FrogNumNew(p->z);
 }
 AddMethod("C3DWorldManager","screenCoordToZ",&ScreenCoordToZ);
+C3DPoint *TileAtScreen(C3DWorldManager *man,...) {
+  C3DPoint *r=ConstructThing("C3DPoint");
+  r->x=man->cur_tile_x;
+  r->y=man->cur_tile_y;
+  r->z=man->cur_tile_z;
+  return r;
+}
+AddMethod("C3DWorldManager","screenTile",&TileAtScreen);
+C3DPoint *TileSideAtScreen(C3DWorldManager *man,...) {
+  C3DPoint *r=ConstructThing("C3DPoint");
+  r->x=man->cur_tile_side_x;
+  r->y=man->cur_tile_side_y;
+  r->z=man->cur_tile_side_z;
+  return r;
+}
+AddMethod("C3DWorldManager","screenTileSide",&TileSideAtScreen);
 //
 // World Edit section
 //

@@ -291,10 +291,16 @@ class CDayNightStar:CFrogThing {
 class CDayNight:CFrogThing {
   F64 start_tS;
   F64 day_length;
-  I64 sky_color;
+  I64 sky_color;
   CFrogArray *stars; //CDayNightStar
 };
 class C3DWorldManager:CFrogThing {
+  I64 cur_tile_x;
+  I64 cur_tile_y;
+  I64 cur_tile_z;
+  I64 cur_tile_side_x;
+  I64 cur_tile_side_y;
+  I64 cur_tile_side_z;
   CDayNight *day_night;
   CFrogArray *free_ids no_serialize 1;
   U8 *world_handle;
@@ -660,7 +666,9 @@ class C3DWorldClient:CFrogThing {
   F64 last_response_tS;
   CFrogThread *update_thread;
 };
-
+class C3DPoint:CFrogThing {
+  F64 x,y,z;
+};
 //
 // The in-game computer
 //

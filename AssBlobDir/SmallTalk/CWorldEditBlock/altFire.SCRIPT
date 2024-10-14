@@ -8,40 +8,21 @@ altFire ->* |
  a=CFrogNum
  player=CPlayer
  rem=CFrogNum
+  tile=C3DPoint
  |
   w _ #world .
   cur_ts _ CFrogTime now asSeconds .
   timeout < cur_ts ifTrue: [
     timeout _ cur_ts + .1 .
-    wz _ w screenCoordToZ .
-    wx _ w screenCoordToX .
-    wy _ w screenCoordToY .
-'move 1 unit forwards to set hit(?) block' .
-    player _ w getPlayer .
-    dist _ ((wx - player->x) squared + (wy - player->y) squared)sqrt + 3 .
-    dist > (128*7) ifTrue: [
-      ^ 0 
-    ] .
-    (wz - player->z) abs > 7 ifTrue: [
-      ^ 0 
-    ] .
 
-    a _ wx - player->x arg: wy - player->y .
-    wx _ player->x + (a cos * dist ) . 
-    wy _ player->y + (a sin * dist ) .
-'If we are really close to top/bottom,use top/bottom brick'.
-    rem _ wz rem: 1 .
-    rem < 0 ifTrue: [
-      rem _ rem + 1 .
-    ] . 
-    rem >= (1 - (1 / 32. )) ifTrue: [
-      wz _ wz + 1 .
-    ] .
-    rem <=  (1 / 32. ) ifTrue: [
-      wz _ wz - 1 .
-    ] .
-    w setTile: 0 atX: wx / 128 atY: wy / 128 atZ: wz .
+
+    tile _ w screenTile .
+    wx _ tile->x.
+    wy _ tile->y.
+    wz _ tile->z.
+
+    w setTile: 0 atX: wx  atY: wy  atZ: wz .
     w->is_client ifTrue: [
-      #client sendPlaceBlock: 0 atX: wx/128 atY: wy / 128 atZ: wz 
+      #client sendPlaceBlock: 0 atX: wx atY: wy  atZ: wz 
     ] .
   ] .

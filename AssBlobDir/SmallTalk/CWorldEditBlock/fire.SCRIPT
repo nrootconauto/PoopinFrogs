@@ -7,31 +7,23 @@ fire ->* |
  dist=CFrogNum
  a=CFrogNum
  player=CPlayer
+ tile=C3DPoint
+ side=C3DPoint
  |
   w _ #world .
   cur_ts _ CFrogTime now asSeconds .
   timeout < cur_ts ifTrue: [
     timeout _ cur_ts + .1 .
-    wz _ w screenCoordToZ .
-    wx _ w screenCoordToX .
-    wy _ w screenCoordToY .
-'move 1 unit backwards to set closer block' .
-    player _ w getPlayer .
-    dist _ ((wx - player->x) squared + (wy - player->y) squared) sqrt - 1 .
 
-    dist > (7 * 128) ifTrue: [
-      ^ 0 .
-    ]
-    (wz - player->z) abs > 7 ifTrue: [
-      ^ 0
-    ] .
+    tile _ w screenTile .
+    side _ w screenTileSide. 
+    wx _ tile->x + side->x .
+    wy _ tile->y + side->y .
+    wz _ tile->z + side->z .
 
-    a _ wx - player->x arg: wy - player->y .
-    wx _ player->x + (a cos * dist ) . 
-    wy _ player->y + (a sin * dist ) .
-    w setTile: tile_idx atX: wx / 128 atY: wy / 128 atZ: wz .
+    w setTile: tile_idx atX: wx atY: wy atZ: wz.
 
     w->is_client ifTrue: [
-      #client sendPlaceBlock: tile_idx atX: wx/128 atY: wy / 128 atZ: wz 
+      #client sendPlaceBlock: tile_idx atX: wx atY: wy atZ: wz 
     ] .
   ] .

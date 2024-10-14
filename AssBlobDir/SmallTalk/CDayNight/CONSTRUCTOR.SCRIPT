@@ -9,13 +9,13 @@ init->*
   sun _ CDayNightStar new.
   sun->radius _ 200 .
   sun->color _ #color_YELLOW .
-  sun->rot1 _ 0 .
+  sun->rot1 _ 3.14 .
   sun->rot2 _ 0 .
 'Moon is at other side of  sky '.
   moon _ CDayNightStar new .
   moon->radius _ 150 .
   moon->color _ #color_LTGRAY .
-  moon->rot1 _ 3.14 .
+  moon->rot1 _ 0 .
   moon->rot2_ 0 .
 
   stars _ #( sun moon) .
