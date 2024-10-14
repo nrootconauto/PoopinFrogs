@@ -281,7 +281,21 @@ class C3DThing:CFrogThing {
   CD2 scrn_st,scrn_en; //Private
   CD3 draw_normal; //Private
 };
+class CDayNightStar:CFrogThing {
+  I64 color;
+  I64 radius;
+  F64 rot1,rot2;
+  //Private
+  I64 screen_x,screen_y;
+};
+class CDayNight:CFrogThing {
+  F64 start_tS;
+  F64 day_length;
+  I64 sky_color;
+  CFrogArray *stars; //CDayNightStar
+};
 class C3DWorldManager:CFrogThing {
+  CDayNight *day_night;
   CFrogArray *free_ids no_serialize 1;
   U8 *world_handle;
   CFrogArray *things recur_serialize 1;
@@ -500,7 +514,7 @@ class CPorky:C3DThing {
 class CPooka:C3DThing {
 };
 class CPlayer:C3DThing {
-  CFrogArray *seen_notifications; //Dont repeat notifications 
+  CFrogArray *seen_notifications; //Dont repeat notifications 
   CFrogThing *poopidex; //The players "computer"
   CFrogArray *items;
   CFrogArray *shell_casings;

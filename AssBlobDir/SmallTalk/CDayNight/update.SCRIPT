@@ -1,0 +1,45 @@
+update->*
+|
+  t=CFrogNum
+  rot=CFrogNum
+  rot2=CFrogNum
+  p=CPlayer
+  x=CFrogNum
+  y=CFrogNum
+  z=CFrogNum
+  x2=CFrogNum
+  y2=CFrogNum
+  z2=CFrogNum
+  tmp=CFrogNum
+  tmp2=CFrogNum
+  tmp3=CFrogNum
+  tmp4=CFrogNum
+  dist=CFrogNym
+  fov=CFrogNum 
+  fov2=CFrogNum
+  mag=CFrogNum
+  w=C3DWorldManager 
+|
+  fov _ 3.14 / 2 . '???' .
+  fov2 _ fov / 2 .
+  w _ #world .
+  p _ w getPlayer .
+  t _ CFrogTime now asSeconds - start_tS .
+  rot2 _2 * 3.14 * (t / day_length) .
+  stars do:[:s=CDayNightStar|
+    tmp _ s->rot1 + .1 .
+    tmp2 _ (s->rot2 - rot2 ).
+
+    x _ tmp sin .
+    mag _ tmp cos .
+    z _ tmp2 sin * mag .
+    y _ tmp2 cos * mag .
+
+    x _ x * 100 .
+    y _ y * 100 .
+    z _ z * 100 .
+
+    s->screen_x _ #world pointToScreenXAtX: x * 128 + p->x atY: y * 128 + p->y atZ: z + p->z +.6 .
+    s->screen_y _ #world pointToScreenYAtX: x * 128 + p->x atY: y * 128 + p->y atZ: z + p->z +.6 .
+
+  ] . 

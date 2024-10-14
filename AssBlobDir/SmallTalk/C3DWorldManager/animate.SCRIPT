@@ -9,3 +9,4 @@ animate ->*
   ] .
   self updateParticles .
   self updateLines .
+  day_night update.

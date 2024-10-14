@@ -63,7 +63,7 @@ U0 FrogImgSetGraphics(CFrogImg *img,...) {
   img->dc=AnimDCNew(1,1,frog_mem_task);
   if(lunk) {
     if(data=BlobFileGetLump(,lunk)) {
-      AnimDCDel(img->dc);
+      AnimDCDel(img->dc);
       img->dc=AnimDCLoad(data,,frog_mem_task);
       img->name=FrogStrNew(lunk);
       Free(data);
@@ -682,7 +682,7 @@ U0 LightingSky(I64 x,I64 y,I64 sky_light=16,I64 shadow_color=BLACK) {
           sky=FALSE;
         }
         if(!sky)
-	  level-=LIGHT_DECAY;
+	  level=0;
  	lcol[z-I8_MIN]=MaxI64(ToI64(level),0);
 	--z;
       }
@@ -694,14 +694,14 @@ CFrogThing *WorldLightingSky(C3DWorldManager *man,...) {
   I64 sky_light=AsF64(argv[0]),z,tp;
  I64 level;
   //Sky light
-  for(ix=-VIEW_DIST;ix<VIEW_DIST;ix++) {
-    for(iy=-VIEW_DIST;iy<VIEW_DIST;iy++) {
+  for(ix=-VIEW_DIST*2;ix<VIEW_DIST*2;ix++) {
+    for(iy=-VIEW_DIST*2;iy<VIEW_DIST*2;iy++) {
       LightingSky(ix+x,iy+y,sky_light);
     }
   }
   //Pass2 world lights
-  for(ix=-VIEW_DIST;ix<VIEW_DIST;ix++) {
-    for(iy=-VIEW_DIST;iy<VIEW_DIST;iy++) {
+  for(ix=-VIEW_DIST*2;ix<VIEW_DIST*2;ix++) {
+    for(iy=-VIEW_DIST*2;iy<VIEW_DIST*2;iy++) {
       z=I8_MAX;
       while(z>=I8_MIN) {
 	if(1<=(level=BlockLightLevel(BlockAtXYZ(x+ix,y+iy,z)))) {
@@ -2173,17 +2173,78 @@ U0 Mat4x4MulXYZ_F64(I64 *r,F64 *_x,F64 *_y,F64 *_z)
   z1=(r[2*4+0]*xx+r[2*4+1]*yy+r[2*4+2]*zz+r[2*4+3])/GR_SCALE;
   *_x=x1;*_y=y1;*_z=z1;
 }
-
-U0 PointToScrn(C3DWorld *w,F64 x,F64 y,F64 z,CD3 *res) {
-  F64 dist=Sqrt(Sqr(x-w->x)+Sqr(y-w->y));
-  F64 dir=Arg(x-w->x,y-w->y);
-  F64 xrot=Arg(dist/128,z-w->cam_height)+w->angle2;
-  z=GR_HEIGHT/2-xrot/w->fov*GR_HEIGHT;
-  res->x=GR_WIDTH/2+Wrap(dir-w->angle)/((w->fov/GR_WIDTH));
-  res->y=z;
-  res->z=dist; //???
+//Crammer's rule
+U0 Solve22(F64 a1,F64 a2,F64 a3,F64 a4,F64 a5,F64 a6,F64 *ra,F64 *rb) {
+  F64 det=a1*a4-a2*a3;
+  F64 dx=a5*a4-a2*a6;
+  F64 dy=a1*a6-a5*a3;
+  *ra=dx/det;
+  *rb=dy/det;
 }
+U0 PointToScrn(C3DWorld *w,F64 x,F64 y,F64 z,CD3 *p) {
+  z-=w->cam_height;
+  y=(y-w->y)/128;
+  x=(x-w->x)/128;
+  F64 o=Sqrt(z*z+x*x+y*y);
+  CD3 view_plane;
+  CD3 pt1;
+  pt1.z=z;
+  pt1.x=x*Cos(-w->angle)-y*Sin(-w->angle);
+  pt1.y=x*Sin(-w->angle)+y*Cos(-w->angle);
+  x=pt1.x;
+  y=pt1.y;
+  pt1.x=x*Cos(w->angle2)-z*Sin(w->angle2);
+  pt1.z=x*Sin(w->angle2)+z*Cos(w->angle2);
+  x=pt1.x;
+  z=pt1.z;
 
+  p->x=x;
+  p->y=y;
+  p->z=z;
+ 
+//Begind camera
+  if(p->x<=0.) {
+    p->x=-1000.;
+    p->y=-1000.;
+  } else {
+    D3MulEqu(p,1./p->x);
+    D3Equ(p,
+	  (p->y/2+.5)*GR_WIDTH,
+	  (p->z/-2+.5)*GR_HEIGHT,
+	  o*128
+	  );
+  }
+}
+U0 WMPointToScreenX(C3DWorldManager *man,...) {
+  CD3 p;
+  PointToScrn(w,
+	AsF64(argv[0]),
+	AsF64(argv[1]),
+	AsF64(argv[2]),
+	&p);
+  return FrogNumNew(p.x);
+}
+U0 WMPointToScreenY(C3DWorldManager *man,...) {
+  CD3 p;
+  PointToScrn(w,
+	AsF64(argv[0]),
+	AsF64(argv[1]),
+	AsF64(argv[2]),
+	&p);
+  return FrogNumNew(p.y);
+}
+U0 WMPointToScreenZ(C3DWorldManager *man,...) {
+  CD3 p;
+  PointToScrn(w,
+	AsF64(argv[0]),
+	AsF64(argv[1]),
+	AsF64(argv[2]),
+	&p);
+  return FrogNumNew(p.z);
+}
+AddMethod("C3DWorldManager","pointToScreenXAtX:atY:atZ:",&WMPointToScreenX);
+AddMethod("C3DWorldManager","pointToScreenYAtX:atY:atZ:",&WMPointToScreenY);
+AddMethod("C3DWorldManager","pointToScreenZAtX:atY:atZ:",&WMPointToScreenZ);
 U0 DrawParticle(C3DWorld *w,C3DParticle *p) {
   I32 dist=Sqrt(Sqr(w->x-p->x)+Sqr(w->y-p->y));
   I64 x0,y0;
@@ -2192,7 +2253,7 @@ U0 DrawParticle(C3DWorld *w,C3DParticle *p) {
   w->to_dc->thick=(DIST_SCALE/ToF64(1+dist))/GRID_SZ*p->size;
   PointToScrn(w,p->x,p->y,p->z,&res);
   if(w->to_dc->thick>0)
-    GrPlot3(w->to_dc,res.x,res.y,dist);
+    GrPlot3(w->to_dc,res.x,res.y,dist+1);
 }
 Bool IsLeftSide(CD2 *a,CD2 *b,CD2 *c) {
   return (b->x-a->x)*(c->y-a->y)-(b->y-a->y)*(c->x-a->x)>=0.;
@@ -2587,6 +2648,7 @@ U0 Draw3DWorld(CTask *,CDC *dc) {
   w->_2d_things=man->things->items;
   PrepareThingsForDraw(man);
   CDoor **doors;
+  CDayNightStar **stars,*star;
   CPlayer *player=CallScript("getPlayer",man);
   if(player==FROG_SMALL_NIL) {
     return;
@@ -2605,7 +2667,14 @@ U0 Draw3DWorld(CTask *,CDC *dc) {
   w->y=player->y;
   w->cam_height=player->z+.6;
   w->to_dc=dc;
-  DCFill(dc,LTCYAN);
+  DCFill(dc,man->day_night->sky_color);
+  stars=man->day_night->stars->items->body;
+  c=man->day_night->stars->items->cnt;
+  while(--c>=0) {
+    star=stars[c];
+    dc->color=star->color;
+    GrFillCircle(dc,star->screen_x,star->screen_y,,star->radius/2);
+  }
   DCDepthBufRst(dc);
   odepth_buf=dc->depth_buf;
   InitTables(w->angle,w->fov);

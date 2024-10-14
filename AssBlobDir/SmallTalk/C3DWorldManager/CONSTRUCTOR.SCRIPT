@@ -1,5 +1,6 @@
 init | gx=CFrogNum gy=CFrogNum col=CFrogArray |
   #world _ self .
+  day_night _ CDayNight new .
   wall_stains _ #() .
   floor_stains _ #() .
   things _ #() .
