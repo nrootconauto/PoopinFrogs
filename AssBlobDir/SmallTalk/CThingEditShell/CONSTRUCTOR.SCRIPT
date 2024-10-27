@@ -40,7 +40,7 @@ init ->* |
     button -> fg_color _ #color_RED .
     button->label _ 'Add to inventory' .
     button onLeftUp: [
-      (CWorldEditThing new: template -> name ) show  .
+      CWorldEditThing new: template -> name.
     ] .
     #ui_root addChild: button .
 
@@ -55,7 +55,8 @@ init ->* |
     button -> fg_color _ #color_RED .
     button->label _ 'Set Front Graphics' .
     button onLeftUp: [
-      template -> front _ CFrogImg newFromEditor .
+      template setFront: CFrogImg newFromEditor .
+      template sendProperties .
     ] .
     #ui_root addChild: button .
 
@@ -70,7 +71,8 @@ init ->* |
     button -> fg_color _ #color_RED .
     button->label _ 'Set Side Graphics' .
     button onLeftUp: [
-      template -> side _ CFrogImg newFromEditor .
+      template setSide: CFrogImg newFromEditor .
+      template sendProperties .
     ] .
     #ui_root addChild: button .
 
@@ -85,7 +87,8 @@ init ->* |
     button -> fg_color _ #color_RED .
     button->label _ 'Set Back Graphics' .
     button onLeftUp: [
-      template -> back _ CFrogImg newFromEditor .
+      template setBack: CFrogImg newFromEditor .
+      template sendProperties .
     ] .
     #ui_root addChild: button .
 
@@ -125,7 +128,6 @@ init ->* |
 
     y _ 40 .
 
-
     'Make a new thing button' .
     button _ CUIButton new . 
     button -> sz_x _ 200 . 
@@ -139,8 +141,6 @@ init ->* |
       n _ CUINotification new: 'Use a slash to make a sub-state of the thing' .
       n setIcon: 'Icons/File' . 
       n addToPoopidexCategory: 'Controls/ThingEdit' withDescription: 'Uses slashes to make substates of things. THis is useful for originization and for doing things like "CEnemy/Dead" or "CEnemy/Attack"'.
-
-
 
       #ui_root _ CUIBackground new .
       ui_roots add: #ui_root .
@@ -162,9 +162,9 @@ init ->* |
       text_bar->sz_y _ 12 .
 
       text_bar->on_enter _ [:b=CFrogStr |
-        b show .
         template _ C3DThingTemplate new .
-        template -> name _ b 
+        template setName: b .
+        template sendProperties .
         #world->thing_templates at: b put:  template .
 
 'POP the ui_root stack '. 
@@ -172,6 +172,8 @@ init ->* |
         #ui_root _ ui_roots at: ui_roots size - 1 .
 
         edit_template value: template .
+
+
       ] .
     ] .
     scroll_bars addChild: button  .

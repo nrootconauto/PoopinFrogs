@@ -15,7 +15,7 @@ class CFrogThing:CQue {
   I32 lock_cnt,universe_class_idx;
   U8 class_name[32];
 };
-class CNetStream:CFrogThing {
+class CNetStream:CFrogThing {
   I64 sock;
   U8 *destroy dft "NetStreamDel";
   Bool closed;
@@ -95,7 +95,7 @@ class CFrogDictionary:CFrogThing {
   CHashTable *t;
   CFrogArray *all; //for garbage collector
 };
-
+
 //
 // See /UI.HC
 //

@@ -1657,6 +1657,9 @@ U0 FrogGarbageCollectUnlock() {
   FramePtrDel("ThreadGCLock");
   --gc_lock_cnt;
 }
+
+
+
 //Run this on core 0,it will wait for cores to be done
 U0 FrogGarbageCollect(CFrogThing *root=FROG_SMALL_NIL,Bool debug=FALSE) {
   if(gc_lock_cnt)
@@ -1692,6 +1695,13 @@ U0 FrogGarbageCollect(CFrogThing *root=FROG_SMALL_NIL,Bool debug=FALSE) {
   }
   FrogEnableScripts;
 }
+U0 STCleanup() {
+  FrogNullifySymbols;
+  FrogGarbageCollect;
+  Exit;
+}
+frog_mem_task->task_end_cb=&STCleanup;
+
 U32 AsChar(CFrogThing *t) {
 //CFrogSmallChr
   U64 sc=t;

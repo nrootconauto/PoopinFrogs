@@ -35,7 +35,6 @@ again:
     if(!StrCmp(cls,"CFrogDictionary")) {
       ret=ConstructThing("CFrogDictionary");
       str=SkipWhitespace(str);
-      Beep;
       while(*str!='}') {
         tmp=LoadThing0(&str,member);
         CallScript("at:put:",ret,FrogStrNew(member),tmp);

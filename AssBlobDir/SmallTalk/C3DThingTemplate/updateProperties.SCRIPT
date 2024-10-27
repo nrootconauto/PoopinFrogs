@@ -1,0 +1,28 @@
+sendProperties ->*
+|
+  w=C3DWorldManager
+  c=C3DWorldClient
+  msg=CFrogArray
+|
+
+  msg _ #(
+    (name)
+    (front->name)
+    (side->name)
+    (back->name)
+    (front asString)
+    (side asString)
+    (back asString)
+  ).
+
+
+  w _ #world .
+  w->is_client ifTrue: [
+    c _ #client .
+    c sendMessage: msg  withType: 'TmpU' .
+  ] .
+  w->is_server ifTrue: [
+    w->clients do: [:c=C3DWorldClient|
+      c sendMessage: msg withType: 'TmpU'.
+    ] .
+  ] .

@@ -2021,8 +2021,10 @@ U0 MPCastCol(C3DWorldManager *wm) {
 //depth==1 to simulate going through a (liquid) block
       record_tile=FALSE;
       if(x/w->step_width==(GR_WIDTH/2/w->step_width))
-        if(y/w->step_width==(GR_HEIGHT/2/w->step_width))
+        if(y/w->step_width==(GR_HEIGHT/2/w->step_width)) {
 	  record_tile=TRUE;
+	}
+
       if(in_water) {
         color=GetColorForRay(wm,&origin,&ray,32*GRID_SZ,&dist,p,1*in_water,BlockAtXYZ(w->x/128.,w->y/128.,Floor(w->cam_height)),fogc,record_tile);
       } else
@@ -2678,7 +2680,7 @@ U0 Draw3DWorld(CTask *,CDC *dc) {
   w->_wall_stains=man->wall_stains->items;
   w->_floor_stains=man->floor_stains->items;
   w->_2d_things=man->things->items;
-  PrepareThingsForDraw(man);
+  PrepareThingsForDraw(man);
   CDoor **doors;
   CDayNightStar **stars,*star;
   CPlayer *player=CallScript("getPlayer",man);
