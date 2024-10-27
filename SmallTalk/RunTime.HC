@@ -1018,6 +1018,61 @@ CFrogNum *FrogStrEqual(CFrogStr *self,...) {
   if(!StrCmp(self->items->body,other->items->body)) return FrogNumNew(1);
   return FrogNumNew(0);
 }
+
+U8 *AsString(CFrogThing *t) {
+  I64 idx;
+  U8 *ret=NULL;
+  CFrogThing *as_str;
+  CU8Set *items;
+  CU8Set *items_str;
+  if(ThingHasClass(t,"CFrogBin")) {
+    return MAllocIdent(t(CFrogBin*)->data);
+  } else if(ThingHasClass(t,"CFrogStr")) {
+      idx=0;
+      items_str=t(CFrogStr*)->items;
+      ret=CAlloc(items_str->cnt+1);
+      MemCpy(ret,items_str->body,items_str->cnt);
+  } else {
+    as_str=CallScript("printString",t);
+    if(ThingHasClass(as_str,"CFrogStr")) {
+      ret=AsString(as_str);
+    } else
+      ret=StrNew("");
+  }
+  return ret;
+}
+
+
+CFrogNum *FrogStrCat(CFrogStr *self,...) {
+  CFrogStr *other=argv[0];
+  U8 *tmp=NULL,*tmp2;
+  if(self&0xffff==FROG_SMALL_CHR)
+    self=FrogStrNew(tmp=MStrPrint("%s%c",self->items->body,other>>16));
+  else {
+    tmp2=AsString(other);
+    self=FrogStrNew(tmp=MStrPrint("%s%s",self->items->body,tmp2));
+    Free(tmp2);
+  }
+  Free(tmp);
+  return self;
+}
+
+CFrogNum *FrogStrCmp(CFrogStr *self,...) {
+  CFrogStr *other=argv[0];
+  if(!ThingHasClass(other,"CFrogStr")) return FrogNumNew(0);
+  return FrogNumNew(StrCmp(self->items->body,other->items->body));
+}
+CFrogNum *FrogStrIndexOf(CFrogStr *self,...) {
+  CFrogStr *other=argv[0];
+  U8 *main_body=self->items->body,*o=AsString(other);
+  U8 *sm=StrMatch(o,main_body);
+  Free(o);
+  if(!sm) return FrogNumNew(-1);
+  return FrogNumNew(sm-main_body);
+}
+
+
+
 CFrogNum *FrogStrNotEqual(CFrogStr *self,...) {
   CFrogStr *other=argv[0];
   if(!ThingHasClass(other,"CFrogStr")) return FrogNumNew(1);
@@ -1139,6 +1194,9 @@ CFrogStr *FrogStrCopyFrom(CFrogStr *a,...) {
   ConstructBuiltin("FrogStrCopy(self)","CFrogStr","CFrogStr","copy");
   ConstructBuiltin("FrogStrNotEqual(self,other)","CFrogStr","CFrogNum","~=","CFrogStr","other");
   ConstructBuiltin("FrogStrEqual(self,other)","CFrogStr","CFrogNum","=","CFrogStr","other");
+  ConstructBuiltin("FrogStrCat(self,other)","CFrogStr","CFrogStr",",","CFrogThing","other");
+  ConstructBuiltin("FrogStrCmp(self,other)","CFrogStr","CFrogNum","compare:","CFrogStr","other");
+  ConstructBuiltin("FrogStrIndexOf(self,other)","CFrogStr","CFrogNum","indexOf:","CFrogThing","other");
 }
 #exe {
 //Arithmetic
@@ -1679,28 +1737,6 @@ CFrogStr *FrogClassName(CFrogClass *cls,...) {
 //This is a class method
 AddClassMethod("CFrogThing","name",&FrogClassName);
 
-U8 *AsString(CFrogThing *t) {
-  I64 idx;
-  U8 *ret=NULL;
-  CFrogThing *as_str;
-  CU8Set *items;
-  CU8Set *items_str;
-  if(ThingHasClass(t,"CFrogBin")) {
-    return MAllocIdent(t(CFrogBin*)->data);
-  } else if(ThingHasClass(t,"CFrogStr")) {
-      idx=0;
-      items_str=t(CFrogStr*)->items;
-      ret=CAlloc(items_str->cnt+1);
-      MemCpy(ret,items_str->body,items_str->cnt);
-  } else {
-    as_str=CallScript("printString",t);
-    if(ThingHasClass(as_str,"CFrogStr")) {
-      ret=AsString(as_str);
-    } else
-      ret=StrNew("");
-  }
-  return ret;
-}
 
 #include "../BlobFile.HC";
 CFrogThing *FrogBlobFileOpen(CFrogBlobFile *f,...) {
