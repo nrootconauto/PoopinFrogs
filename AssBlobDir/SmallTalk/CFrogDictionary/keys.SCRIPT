@@ -3,6 +3,6 @@ keys ->CFrogArray |
 |
   r _ #(). 
   self doKeys:[:k=CFrogStr|
-    r add: k copy 
+    r add: k
   ] .
   ^ r

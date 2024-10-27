@@ -1,4 +1,2 @@
 init ->CFrogDictionary | |
-  buckets _ #( #() #() #() #() ) .
-  size _ 0 .
   ^ self 

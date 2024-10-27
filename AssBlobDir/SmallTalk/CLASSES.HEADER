@@ -15,7 +15,6 @@ class CFrogThing:CQue {
   I32 lock_cnt,universe_class_idx;
   U8 class_name[32];
 };
-
 class CNetStream:CFrogThing {
   I64 sock;
   U8 *destroy dft "NetStreamDel";
@@ -54,11 +53,6 @@ class CFrogArray:CFrogThing {
   U8 *destroy dft "FrogArrayDel";
 };
 
-
-class CFrogDictionary:CFrogThing {
-  CFrogThing *buckets;
-  I64 size;
-};
 class CFrogStr:CFrogThing {
   CU8Set *items;
   U8 *constructor dft "FrogStrInit";
@@ -76,7 +70,6 @@ class CFrogDivideError:CFrogError {
 class CFrogTime:CFrogThing {
   CFrogNum *ts;
 };
-
 class CFrogRandom:CFrogThing {
 //https://en.wikipedia.org/wiki/Linear_congruential_generator
   F64 mul,inc,mod,seed;
@@ -96,7 +89,13 @@ class CFrogImg:CFrogThing {
   U8 *destroy dft "FrogImgDel";
   U8 *constructor dft "FrogImgBlank";
 };
-
+class CFrogDictionary:CFrogThing {
+  U8 *destroy dft "FrogDictDel";
+  U8 *constructor dft "FrogDictInit";
+  CHashTable *t;
+  CFrogArray *all; //for garbage collector
+};
+
 //
 // See /UI.HC
 //

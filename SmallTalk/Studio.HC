@@ -1,3 +1,5 @@
+#ifndef ST_STUDIO_HH 
+#define ST_STUDIO_HH 'ass'
 //Compiler goes to parent directory as it is the "main" file 
 #include "Compiler.HC";
 #exe {Cd(__DIR__);};
@@ -730,7 +732,7 @@ U0 LoadMethodsFromBlob(U8 *blob_file=NULL,Bool dry_only=FALSE) {
   if(!blob_file) blob_file=dft_blob_path;
   blob_file=ExtDft(blob_file,"BLOB");
   if(!FileFind(blob_file)) {
-    PopUpOk("Cant Find Blob file!!!");
+    PopUpOk("Can't Find Blob file!!!");
     Free(blob_file);
     return;
   }
@@ -803,4 +805,6 @@ LoadMethodsFromBlob;
 #else
 LoadMethodsFromBlob;
 #endif
+Silent(0);
+#include "STDictionary.HC";
 #endif

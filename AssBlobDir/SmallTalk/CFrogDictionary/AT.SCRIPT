@@ -1,7 +1,0 @@
-at: key=CFrogStr ->* | hash=CFrogNum bucket=CFrogNum |
-  hash _ key hash .
-  bucket _ hash rem: buckets size .
-  (buckets at: bucket ) do: [:pair=CFrogArray |
-     (pair at: 0) = key ifTrue: [ ^ pair at: 1]
-  ] .
-  ^ 0 
