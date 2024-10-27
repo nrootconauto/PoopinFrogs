@@ -49,4 +49,4 @@ CFrogThing *FrogDictDoKeys(CFrogDictionary *d,...) {
   }
   return FROG_SMALL_NIL;
 }
-AddMethod("CFrogDictionary","doKeys:",&FrogDictDoKeys);
+ AddMethod("CFrogDictionary","doKeys:",&FrogDictDoKeys);

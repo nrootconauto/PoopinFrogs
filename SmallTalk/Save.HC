@@ -32,7 +32,16 @@ again:
   if(*str=='-') {
     str=StrScan(str,"-%d.%s.%s:{",&ptr,&member_ptr,&cls_ptr);
     if(_member) StrCpy(_member,member);
-    if(!StrCmp(cls,"CFrogNum")) {
+    if(!StrCmp(cls,"CFrogDictionary")) {
+      ret=ConstructThing("CFrogDictionary");
+      str=SkipWhitespace(str);
+      Beep;
+      while(*str!='}') {
+        tmp=LoadThing0(&str,member);
+        CallScript("at:put:",ret,FrogStrNew(member),tmp);
+        str=SkipWhitespace(str);
+      }    
+    } else if(!StrCmp(cls,"CFrogNum")) {
       num=Str2F64(str,&str);
       ret=FrogNumNew(num);
     } else if(!StrCmp(cls,"CFrogChr")) { 
@@ -112,6 +121,8 @@ U0 SaveDefacto0(CDoc *doc,U8 *str,CFrogThing *have,I64 depth=1,CI64Set *save_lis
   U8 *ptr,buf[STR_LEN];
   CHashClass *cls;
   CMemberLst *mlst;
+  CHashTable *dtab;
+  CHashGeneric *dtab_e;
   CFrogThing *as,**array_body,dummy;
   CallScript("beforeSave",have);
   if(ThingHasClass(have,"CFrogNum")) {
@@ -121,6 +132,16 @@ nil:
     DocPrint(doc,"-0.%s.CFrogUndefined:{}\n",str);
   } else if(ThingHasClass(have,"CFrogChr")) {
     DocPrint(doc,"-0.%s.CFrogChr:{%d}\n",str,have(CFrogChr*)->ch);
+  } else if(ThingHasClass(have,"CFrogDictionary")) {
+    dtab=have(CFrogDictionary*)->t;
+    cnt=dtab->mask+1;
+    DocPrint(doc,"-%d.%s.CFrogDictionary:{\n",have,str);
+    for(idx=0;idx!=cnt;idx++) {
+      for(dtab_e=dtab->body[idx];dtab_e;dtab_e=dtab_e->next) {
+        SaveDefacto0(doc,dtab_e->str,dtab_e->user_data1,depth+1,save_list);
+      }
+    }
+    DocPrint(doc,"}\n");
   } else if(ThingHasClass(have,"CFrogClass")) {
     DocPrint(doc,"-%d.%s.CFrogClass:{%s}\n",have,str,UniverseNumberToName(have>>16));
   } else if(ThingHasClass(have,"CFrogBlock")) {
