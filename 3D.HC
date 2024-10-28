@@ -1318,37 +1318,226 @@ draw:
     use_dc+=frame%AnimDCCnt(use_dc);
   return use_dc;
 }
-Bool PreparePlot(C3DThing *t,I64 x,I64 y,I64 z) {
-  CI64Set *use;
-  I64 ox=0,oy=0;
-  x-=w->things_around_camera_origin_x*128;
-  y-=w->things_around_camera_origin_y*128;
-//Add offsets to avoid integer truncation issues with divdie
-  for(ox=-1;ox<=1;ox++)
-    for(oy=-1;oy<=1;oy++)
-     if(0<=x/128+ox<2*VIEW_DIST)
-       if(0<=y/128+oy<2*VIEW_DIST) {
-         use=w->things_around_camera[x/128+ox][y/128+oy];
-         if(!I64SetHas(use,t))
-          I64SetAdd(use,t);
-       }
-  return TRUE;
+Bool PointToScrn(C3DWorld *w,F64 x,F64 y,F64 z,CD3 *p) {
+  z-=w->cam_height;
+  y=(y-w->y)/128;
+  x=(x-w->x)/128;
+  F64 o=Sqrt(z*z+x*x+y*y);
+  CD3 view_plane;
+  CD3 pt1;
+  pt1.z=z;
+  pt1.x=x*Cos(-w->angle)-y*Sin(-w->angle);
+  pt1.y=x*Sin(-w->angle)+y*Cos(-w->angle);
+  x=pt1.x;
+  y=pt1.y;
+  pt1.x=x*Cos(w->angle2)-z*Sin(w->angle2);
+  pt1.z=x*Sin(w->angle2)+z*Cos(w->angle2);
+  x=pt1.x;
+  z=pt1.z;
+
+  p->x=x;
+  p->y=y;
+  p->z=z;
+ 
+//Begind camera
+  if(p->x<=.01) {
+    p->x=.01;
+    D3MulEqu(p,1./p->x);
+    D3Equ(p,
+	  (p->y/2+.5)*GR_WIDTH,
+	  (p->z/-2+.5)*GR_HEIGHT,
+	  o*128
+	  );
+    return FALSE;
+  } else {
+    D3MulEqu(p,1./p->x);
+    D3Equ(p,
+	  (p->y/2+.5)*GR_WIDTH,
+	  (p->z/-2+.5)*GR_HEIGHT,
+	  o*128
+	  );
+    return TRUE;
+  }
 }
+U0 Mat4x4MulXYZ_F64(I64 *r,F64 *_x,F64 *_y,F64 *_z)
+{
+  F64 x1,y1,z1,xx=*_x,yy=*_y,zz=*_z;
+  x1=(r[0*4+0]*xx+r[0*4+1]*yy+r[0*4+2]*zz+r[0*4+3])/GR_SCALE;
+  y1=(r[1*4+0]*xx+r[1*4+1]*yy+r[1*4+2]*zz+r[1*4+3])/GR_SCALE;
+  z1=(r[2*4+0]*xx+r[2*4+1]*yy+r[2*4+2]*zz+r[2*4+3])/GR_SCALE;
+  *_x=x1;*_y=y1;*_z=z1;
+}
+
+
+U0 PointsToMat(CD3 *corners,F64 *mat) {
+//https://math.stackexchange.com/questions/186286/get-transformation-matrix-from-points
+  F64 x1=corners[0].x;
+  F64 x2=corners[1].x;
+  F64 x3=corners[2].x;
+  F64 x4=corners[3].x;
+
+  F64 y1=corners[0].y;
+  F64 y2=corners[1].y;
+  F64 y3=corners[2].y;
+  F64 y4=corners[3].y;
+
+  F64 i=1;
+
+
+  F64 j = (y1 - y2 + y3 - y4) / (y2 - y3);
+  F64 k = (x1 - x2 + x3 - x4) / (x4 - x3);
+  F64 m = (y4 - y3) / (y2 - y3);
+  F64 n = (x2 - x3) / (x4 - x3);
+
+  F64 h,g;
+  if((1-m*n)==0.||y2==y3||x4==x3)
+    h=0,g=0;
+  else {
+    h = i * (j - k * m) / (1 - m * n);
+    g = i * (k - j * n) / (1 - m * n);
+  }
+  F64 c = x1 * i;
+  F64 f = y1 * i;
+  F64 a = x4 * (g + i) - x1 * i;
+  F64 b = x2 * (h + i) - x1 * i;
+  F64 d = y4 * (g + i) - y1 * i;
+  F64 e = y2 * (h + i) - y1 * i;
+
+  mat[0]=a;
+  mat[1]=b;
+  mat[2]=c;
+  mat[3]=d;
+  mat[4]=e;
+  mat[5]=f;
+  mat[6]=g;
+  mat[7]=h;
+  mat[8]=i;
+
+}
+U0 Mat3x3Inv(F64 *matrix) {
+  F64 a=matrix[0];
+  F64 b=matrix[1];
+  F64 c=matrix[2];
+  F64 d=matrix[3];
+  F64 e=matrix[4];
+  F64 f=matrix[5];
+  F64 g=matrix[6];
+  F64 h=matrix[7];
+  F64 i=matrix[8];
+//https://stackoverflow.com/questions/63981471/how-do-i-solve-inverse-of-3x3-matrices-without-using-a-library
+  F64 xx=e*i-h*f;
+  F64 yy=f*g-d*i;
+  F64 zz=d*h-g*e;
+  F64 det=a*xx+b*yy+c*zz;
+  matrix[0]=xx/det;
+  matrix[1]=(c*h-b*i)/det;
+  matrix[2]=(b*f-c*e)/det;
+  matrix[3]=yy/det;
+  matrix[4]=(a*i-c*g)/det;
+  matrix[5]=(d*c-a*f)/det;
+  matrix[6]=zz/det;
+  matrix[7]=(g*b-a*h)/det;
+  matrix[8]=(a*e-d*b)/det;
+}
+F64 AngleBetween(F64 a,F64 b) {
+//https://stackoverflow.com/questions/1878907/how-can-i-find-the-smallest-difference-between-two-angles-around-a-point
+  a%=2.*pi;
+  b%=2.*pi;
+  if(a<0) a+=2.*pi;
+  if(b<0) b+=2.*pi;
+  return Min(2*pi-Abs(b-a),Abs(a-b));
+}
+F64 NormalizeAngle(F64 a) {
+  a%=2*pi;
+  if(a<0) a+=2*pi;
+  return a;
+}
+Bool IsLeftSide(CD2 *a,CD2 *b,CD2 *c) {
+  return (b->x-a->x)*(c->y-a->y)-(b->y-a->y)*(c->x-a->x)>=0.;
+}
+
+
+Bool ClipLineToCamera(C3DWorld *w,CD3 *a,CD3 *b) {
+  CD2 cam,left,right;
+  CD2 dst;
+  CD3 oa,ob;
+  F64 a_angle=Arg(a->x-w->x,a->y-w->y);
+  F64 b_angle=Arg(b->x-w->x,b->y-w->y);
+  F64 dist=Sqrt(Sqr(b->x-a->x)+Sqr(b->y-a->y));
+  Bool in_view=FALSE;
+  oa.x=a->x;
+  oa.y=a->y;
+  oa.z=a->z;
+  ob.x=b->x;
+  ob.y=b->y;
+  ob.z=b->z;
+  cam.x=w->x;
+  cam.y=w->y;
+  left.x=cam.x+I16_MAX*Cos(pi/2.5+w->angle);
+  left.y=cam.y+I16_MAX*Sin(pi/2.5+w->angle);
+  right.x=cam.x+I16_MAX*Cos(-pi/2.5+w->angle);
+  right.y=cam.y+I16_MAX*Sin(-pi/2.5+w->angle);
+  if(PlaneIntersect(&dst,a,b,&cam,&left)) {
+     if(IsLeftSide(&cam,&left,a)) {
+       a->z=Lerp(Sqrt(Sqr(dst.x-oa.x)+Sqr(dst.y-oa.y))/dist,oa.z,ob.z);
+       a->x=dst.x;
+       a->y=dst.y;
+     }
+     if(IsLeftSide(&cam,&left,b)){
+       b->x=dst.x;
+       b->y=dst.y;
+       b->z=Lerp(Sqrt(Sqr(dst.x-oa.x)+Sqr(dst.y-oa.y))/dist,oa.z,ob.z);
+     }
+    in_view=TRUE;
+  }
+  if(PlaneIntersect(&dst,a,b,&cam,&right)) {
+     if(!IsLeftSide(&cam,&right,a)) {
+       a->x=dst.x;
+       a->y=dst.y;
+       a->z=Lerp(Sqrt(Sqr(dst.x-oa.x)+Sqr(dst.y-oa.y))/dist,oa.z,ob.z);
+     }
+     if(!IsLeftSide(&cam,&right,b)){
+       b->x=dst.x;
+       b->y=dst.y;
+       b->z=Lerp(Sqrt(Sqr(dst.x-oa.x)+Sqr(dst.y-oa.y))/dist,oa.z,ob.z);
+     }
+    in_view=TRUE;
+  }
+  if(in_view) return TRUE;
+  if(Cos(a_angle-w->angle)<0&&Cos(b_angle-w->angle)<0)
+    return FALSE;
+  return TRUE;
+//  return in_view||!IsLeftSide(&cam,&left,a)||!IsLeftSide(&cam,&left,b)
+//	||IsLeftSide(&cam,&right,a)||IsLeftSide(&cam,&right,b);
+}
+
+
 //Also prepares CWallStain's
 U0 PrepareThingsForDraw(C3DWorldManager *wm,F64 thing_scale=.6) {
   CFrogArray *arr=wm->things;WorldManagerThingsInRadius(wm,FrogNumNew(w->x),FrogNumNew(w->y),FrogNumNew(VIEW_DIST*128));
   C3DThing **things=arr->items->body,*thing;
   CWallStain **stains,*stain;
-  I64 cnt=arr->items->cnt,ix,iy,ox,oy;
+  I64 cnt=arr->items->cnt,ix,iy,ox,oy,idx;
+  Bool visible;
   F64 normal;
-  CDC *hit_texture;
+  CDC *hit_texture,*to_dc=w->to_dc;
+  CD3 scrn_st,scrn_en;
+  CD3 scrn_corners[4];
+  I64 mnx,mxx,mny,mxy;
+  CD3 clip_st,clip_en;
+  U16 *dst_ptr;
+  U64 *dst_db_ptr;
+  F64 xx,yy,matrix[9],zz,matrix2[9];
   F64 width;
+  F64 st,en;
+  F64 stz,enz;
+  U32 dist;
   for(ox=0;ox!=2*VIEW_DIST;ox++)
     for(oy=0;oy!=2*VIEW_DIST;oy++) {
       if(!w->things_around_camera[ox][oy])
-	w->things_around_camera[ox][oy]=I64SetNew;
+        w->things_around_camera[ox][oy]=I64SetNew;
       else
-	w->things_around_camera[ox][oy]->cnt=0;
+        w->things_around_camera[ox][oy]->cnt=0;
     }
   w->things_around_camera_origin_x=Floor(w->x/128.)-VIEW_DIST;
   w->things_around_camera_origin_y=Floor(w->y/128.)-VIEW_DIST;
@@ -1361,20 +1550,93 @@ U0 PrepareThingsForDraw(C3DWorldManager *wm,F64 thing_scale=.6) {
       goto skip;
     thing->draw_face=hit_texture;
     normal=Arg(w->x-thing->x,w->y-thing->y)-pi/2;
-    thing->scrn_st.x=thing->x-hit_texture->width/2.*Cos(normal)*thing_scale;
-    thing->scrn_st.y=thing->y-hit_texture->width/2.*Sin(normal)*thing_scale;
-    thing->scrn_en.x=thing->scrn_st.x+hit_texture->width*Cos(normal)*thing_scale;
-    thing->scrn_en.y=thing->scrn_st.y+hit_texture->width*Sin(normal)*thing_scale;
-    Line(thing,
-	thing->scrn_st.x,
-	thing->scrn_st.y,
-	0,
-	thing->scrn_en.x,
-	thing->scrn_en.y,
-	0,
-	&PreparePlot,
-	64
-	);
+    scrn_st.x=thing->x-hit_texture->width/2.*Cos(normal)*thing_scale;
+    scrn_st.y=thing->y-hit_texture->width/2.*Sin(normal)*thing_scale;
+    scrn_en.x=scrn_st.x+hit_texture->width*Cos(normal)*thing_scale;
+    scrn_en.y=scrn_st.y+hit_texture->width*Sin(normal)*thing_scale;
+    scrn_st.z=0;
+    scrn_en.z=0;
+
+    D3Copy(&clip_st,&scrn_st);
+    D3Copy(&clip_en,&scrn_en);
+    if(!ClipLineToCamera(w,&clip_st,&clip_en)) {
+      goto skip;
+    }
+
+    visible=FALSE;
+    visible|=PointToScrn(w,clip_st.x,clip_st.y,thing->z,&scrn_corners[0]);
+    visible|=PointToScrn(w,clip_st.x,clip_st.y,thing->z+hit_texture->height/128.*thing_scale,&scrn_corners[1]);
+    visible|=PointToScrn(w,clip_en.x,clip_en.y,thing->z+hit_texture->height/128.*thing_scale,&scrn_corners[2]);
+    visible|=PointToScrn(w,clip_en.x,clip_en.y,thing->z,&scrn_corners[3]);
+    if(visible) {
+      st=0;
+      en=1.;
+
+//If we clipped the line,compute the new start and end
+      st=Sqrt(Sqr(scrn_st.y-clip_st.y)+Sqr(scrn_st.x-clip_st.x))/(hit_texture->width*thing_scale);
+      en=Sqrt(Sqr(scrn_st.y-clip_en.y)+Sqr(scrn_st.x-clip_en.x))/(hit_texture->width*thing_scale);
+
+      stz=Sqrt(Sqr(w->x-clip_st.x)+Sqr(w->y-clip_st.y));
+      enz=Sqrt(Sqr(w->x-clip_en.x)+Sqr(w->y-clip_en.y));
+
+      PointsToMat(scrn_corners,matrix);      
+      MemCpy(matrix2,matrix,8*9);
+      Mat3x3Inv(matrix);
+      mnx=GR_WIDTH;
+      mxx=0;
+      mny=GR_HEIGHT;
+      mxy=0;
+      for(idx=0;idx!=4;idx++) {
+        mnx=MinI64(mnx,scrn_corners[idx].x);
+        mxx=MaxI64(mxx,scrn_corners[idx].x);
+        mny=MinI64(mny,scrn_corners[idx].y);
+        mxy=MaxI64(mxy,scrn_corners[idx].y);
+      }
+      mnx=ClampI64(mnx,0,GR_WIDTH)&~1;
+      mxx=ClampI64(mxx,0,GR_WIDTH)&~1;
+      mny=ClampI64(mny,0,GR_HEIGHT)&~1;
+      mxy=ClampI64(mxy,0,GR_HEIGHT)&~1;
+      for(ix=mnx;ix<mxx;ix+=2) {
+        dst_ptr=&to_dc->body[ix+mny*to_dc->width_internal];
+        dst_db_ptr=&to_dc->depth_buf[ix+mny*to_dc->width_internal];
+        for(iy=mny;iy<mxy;iy+=2) {
+	  xx=matrix[0]*ix+matrix[1]*iy+matrix[2];
+	  yy=matrix[3+0]*ix+matrix[3+1]*iy+matrix[3+2];
+	  zz=matrix[6+0]*ix+matrix[6+1]*iy+matrix[6+2];
+	  xx/=zz;
+	  yy/=zz;
+	  if(0.<=xx<1.)
+	    if(0.<=yy<1.) {
+//Account for "clipped" start/end
+	      if(thing->draw_flip) {
+		xx=Lerp(xx,1.-st,1.-en);
+		dist=Lerp(xx,enz,stz);
+	      } else {
+		xx=Lerp(xx,st,en);
+		dist=Lerp(xx,stz,enz);
+              }
+	      to_dc->color=GrPeek(hit_texture,xx*(hit_texture->width-1),(hit_texture->height-1)*yy);
+	      if(TRANSPARENT>to_dc->color>=0) {
+		*dst_ptr=gr.to_8_colors[to_dc->color];
+		*dst_db_ptr=dist|dist<<32;
+
+	        dst_ptr(U8*)+=to_dc->width_internal;
+	        dst_db_ptr(I32*)+=to_dc->width_internal;
+
+		*dst_ptr=gr.to_8_colors[to_dc->color];
+		*dst_db_ptr=dist|dist<<32;
+
+	        dst_ptr(U8*)+=to_dc->width_internal;
+	        dst_db_ptr(I32*)+=to_dc->width_internal;
+		goto pass;
+	      }
+	    }
+	  dst_ptr(U8*)+=2*to_dc->width_internal;
+	  dst_db_ptr(I32*)+=2*to_dc->width_internal;
+pass:;
+        }
+      }
+    }
 skip:;
   }
 
@@ -1382,9 +1644,9 @@ skip:;
   for(ox=0;ox!=2*VIEW_DIST;ox++)
     for(oy=0;oy!=2*VIEW_DIST;oy++) {
       if(!w->stains_around_camera[ox][oy])
-	w->stains_around_camera[ox][oy]=I64SetNew;
+        w->stains_around_camera[ox][oy]=I64SetNew;
       else
-	w->stains_around_camera[ox][oy]->cnt=0;
+        w->stains_around_camera[ox][oy]->cnt=0;
     }
 
   stains=wm->wall_stains->items->body;
@@ -1559,57 +1821,6 @@ I64 GetColorForRay(C3DWorldManager *man,CD3 *origin,CD3 *ray,F64 dist,F64 *hit_a
 	  lighting=ClampI64(w->world_lighting[idx*256+tz-I8_MIN],0,15);
 	  relx=tx-w->things_around_camera_origin_x;
 	  rely=ty-w->things_around_camera_origin_y;
-	  if(0<=relx<2*VIEW_DIST)
-	    if(0<=rely<2*VIEW_DIST) {
-	      if((do_things=w->things_around_camera[relx][rely])->cnt) {
-	        goto has_thing;
-	      }
-	    }
-	  goto check_tile;
-has_thing:;
-	  C3DThing *thing;
-	  for(thing_idx=0;thing_idx!=do_things->cnt;thing_idx++) {
-	    thing=do_things->body[thing_idx];
-	    if(!thing->no_draw) {
-	      F64 scale=.6;
-	      if(hit_texture=thing->draw_face) {
-	        h=hit_texture->height/128.*scale;
-	        if(!(Floor(thing->z)<=tz<=h+thing->z))
-		  goto next_thing;
-	        F64 i1=.5,i2=.5;
-	        if(SegmentSegmentIntersect(&xyhit,origin,&long128,&thing->scrn_st,&thing->scrn_en,&i1,&i2)) {
-//Integer truncation is weird,make sure our hit is in the right tile
-		  if(ToI64(xyhit.x/128)==tx&&ToI64(xyhit.y/128)==ty) {
-		    dist=i1*VIEW_DIST; //dist/128.
-		    if(dist*128>hit_dist) goto next_thing;
-		    h=dist*slope+origin->z;
-		    h2=hit_texture->height/128.*scale;
-		    if(thing->z<=h<h2+thing->z) {
-		      texture_y=ClampI64((1.-(h-thing->z)/h2)*hit_texture->height,0,hit_texture->height-1);
-		      if(thing->draw_flip) i2=1.-i2;
-		      texture_x=ClampI64(i2*hit_texture->width,0,hit_texture->width-1);
-		      color=GrPeek0(hit_texture,texture_x,texture_y);
-		      if(TRANSPARENT!=color) {
-		        dist*=128.; //Regular dist
-		        hit=TRUE;
-		        hit_dist=dist;
-		        if(hit_at) *hit_at=dist;
-		        if(hit_cords) {
-			  hit_cords->x=xyhit.x;
-			  hit_cords->y=xyhit.y;
-			  hit_cords->z=h-Sign(slope)*.001;
-		        }
-		        dist2=Sqrt(Sqr((h-origin->z)*128)+Sqr(xyhit.y-origin->y)+Sqr(xyhit.x-origin->x));
-		        hit_color=Fog(color,dist2+ToBool(depth)*FOG_DIST*4+(15-lighting)*FOG_DIST,fog_color);
-		      }
-		    }
-		  }
-	        }
-	      }
-next_thing:;
-	    }
-	  }
-check_tile:;
 //Check for hitting a tile(WhichTexture also accounts for doors)
 	  texture_y_offset=0; //Ffor Dooors
 	  idx=(ty*w->world_width+tx)*256+tz-I8_MIN;
@@ -2031,6 +2242,11 @@ U0 MPCastCol(C3DWorldManager *wm) {
         color=GetColorForRay(wm,&origin,&ray,32*GRID_SZ,&dist,p,,,,record_tile);
       idist=dist;
       idist|=idist<<32;
+      if(depth_ptr[0]<dist) {
+        ptr(U8*)+=to_dc->width_internal*w->step_width;
+        depth_ptr(I32*)+=to_dc->width_internal*w->step_width;
+        goto fin;
+      }
       if(color!=-1&&w->step_width==2) {
         for(col=0;col!=2;col++) {
 	  if(col&1)
@@ -2111,19 +2327,6 @@ U0 C3DWorldCastRays(C3DWorld *w) {
      __Sleep(2);
   }
 }
-F64 AngleBetween(F64 a,F64 b) {
-//https://stackoverflow.com/questions/1878907/how-can-i-find-the-smallest-difference-between-two-angles-around-a-point
-  a%=2.*pi;
-  b%=2.*pi;
-  if(a<0) a+=2.*pi;
-  if(b<0) b+=2.*pi;
-  return Min(2*pi-Abs(b-a),Abs(a-b));
-}
-F64 NormalizeAngle(F64 a) {
-  a%=2*pi;
-  if(a<0) a+=2*pi;
-  return a;
-}
 Bool CanSee2DThing(C3DWorld *w,C3DThing *t) {
   Bool ret=TRUE;
   F64 dist=Sqrt(Sqr(t->x-w->x)+Sqr(t->y-w->y)),near,far,interp;
@@ -2183,14 +2386,6 @@ Bool CanSee2DThing(C3DWorld *w,C3DThing *t) {
 }
 #define THING_DRAW_CUTOFF GRID_SZ/2
 
-U0 Mat4x4MulXYZ_F64(I64 *r,F64 *_x,F64 *_y,F64 *_z)
-{
-  F64 x1,y1,z1,xx=*_x,yy=*_y,zz=*_z;
-  x1=(r[0*4+0]*xx+r[0*4+1]*yy+r[0*4+2]*zz+r[0*4+3])/GR_SCALE;
-  y1=(r[1*4+0]*xx+r[1*4+1]*yy+r[1*4+2]*zz+r[1*4+3])/GR_SCALE;
-  z1=(r[2*4+0]*xx+r[2*4+1]*yy+r[2*4+2]*zz+r[2*4+3])/GR_SCALE;
-  *_x=x1;*_y=y1;*_z=z1;
-}
 //Crammer's rule
 U0 Solve22(F64 a1,F64 a2,F64 a3,F64 a4,F64 a5,F64 a6,F64 *ra,F64 *rb) {
   F64 det=a1*a4-a2*a3;
@@ -2199,40 +2394,7 @@ U0 Solve22(F64 a1,F64 a2,F64 a3,F64 a4,F64 a5,F64 a6,F64 *ra,F64 *rb) {
   *ra=dx/det;
   *rb=dy/det;
 }
-U0 PointToScrn(C3DWorld *w,F64 x,F64 y,F64 z,CD3 *p) {
-  z-=w->cam_height;
-  y=(y-w->y)/128;
-  x=(x-w->x)/128;
-  F64 o=Sqrt(z*z+x*x+y*y);
-  CD3 view_plane;
-  CD3 pt1;
-  pt1.z=z;
-  pt1.x=x*Cos(-w->angle)-y*Sin(-w->angle);
-  pt1.y=x*Sin(-w->angle)+y*Cos(-w->angle);
-  x=pt1.x;
-  y=pt1.y;
-  pt1.x=x*Cos(w->angle2)-z*Sin(w->angle2);
-  pt1.z=x*Sin(w->angle2)+z*Cos(w->angle2);
-  x=pt1.x;
-  z=pt1.z;
 
-  p->x=x;
-  p->y=y;
-  p->z=z;
- 
-//Begind camera
-  if(p->x<=0.) {
-    p->x=-1000.;
-    p->y=-1000.;
-  } else {
-    D3MulEqu(p,1./p->x);
-    D3Equ(p,
-	  (p->y/2+.5)*GR_WIDTH,
-	  (p->z/-2+.5)*GR_HEIGHT,
-	  o*128
-	  );
-  }
-}
 U0 WMPointToScreenX(C3DWorldManager *man,...) {
   CD3 p;
   PointToScrn(w,
@@ -2272,63 +2434,6 @@ U0 DrawParticle(C3DWorld *w,C3DParticle *p) {
   PointToScrn(w,p->x,p->y,p->z,&res);
   if(w->to_dc->thick>0)
     GrPlot3(w->to_dc,res.x,res.y,dist+1);
-}
-Bool IsLeftSide(CD2 *a,CD2 *b,CD2 *c) {
-  return (b->x-a->x)*(c->y-a->y)-(b->y-a->y)*(c->x-a->x)>=0.;
-}
-
-Bool ClipLineToCamera(C3DWorld *w,CD3 *a,CD3 *b) {
-  CD2 cam,left,right;
-  CD2 dst;
-  CD3 oa,ob;
-  F64 a_angle=Arg(a->x-w->x,a->y-w->y);
-  F64 b_angle=Arg(b->x-w->x,b->y-w->y);
-  F64 aa=Sin(AngleBetween(a_angle,w->angle));
-  F64 ba=Sin(AngleBetween(b_angle,w->angle));
-  F64 dist=Sqrt(Sqr(b->x-a->x)+Sqr(b->y-a->y));
-  Bool in_view=FALSE;
-  oa.x=a->x;
-  oa.y=a->y;
-  oa.z=a->z;
-  ob.x=b->x;
-  ob.y=b->y;
-  ob.z=b->z;
-  cam.x=w->x;
-  cam.y=w->y;
-  left.x=cam.x+I16_MAX*Cos(w->fov/2+w->angle);
-  left.y=cam.y+I16_MAX*Sin(w->fov/2+w->angle);
-  right.x=cam.x+I16_MAX*Cos(-w->fov/2+w->angle);
-  right.y=cam.y+I16_MAX*Sin(-w->fov/2+w->angle);
-  if(PlaneIntersect(&dst,a,b,&cam,&left)) {
-     if(aa>0.) {
-       a->z=Lerp(Sqrt(Sqr(dst.x-oa.x)+Sqr(dst.y-oa.y))/dist,oa.z,ob.z);
-       a->x=dst.x;
-       a->y=dst.y;
-     } else if(ba>0.){
-       b->x=dst.x;
-       b->y=dst.y;
-       b->z=Lerp(Sqrt(Sqr(dst.x-oa.x)+Sqr(dst.y-oa.y))/dist,oa.z,ob.z);
-     }
-    in_view=TRUE;
-  }
-  if(PlaneIntersect(&dst,a,b,&cam,&right)) {
-     if(aa<0.) {
-       a->x=dst.x;
-       a->y=dst.y;
-       a->z=Lerp(Sqrt(Sqr(dst.x-oa.x)+Sqr(dst.y-oa.y))/dist,oa.z,ob.z);
-     } else if(ba<0.){
-       b->x=dst.x;
-       b->y=dst.y;
-       b->z=Lerp(Sqrt(Sqr(dst.x-oa.x)+Sqr(dst.y-oa.y))/dist,oa.z,ob.z);
-     }
-    in_view=TRUE;
-  }
-  if(in_view) return TRUE;
-  if(Cos(a_angle-w->angle)<0&&Cos(b_angle-w->angle)<0)
-    return FALSE;
-  return TRUE;
-//  return in_view||!IsLeftSide(&cam,&left,a)||!IsLeftSide(&cam,&left,b)
-//	||IsLeftSide(&cam,&right,a)||IsLeftSide(&cam,&right,b);
 }
 
 U0 Line3D(C3DWorld *w,CDC *dc,CD3 *st,CD3 *en) {
@@ -2680,7 +2785,7 @@ U0 Draw3DWorld(CTask *,CDC *dc) {
   w->_wall_stains=man->wall_stains->items;
   w->_floor_stains=man->floor_stains->items;
   w->_2d_things=man->things->items;
-  PrepareThingsForDraw(man);
+  w->to_dc=dc;
   CDoor **doors;
   CDayNightStar **stars,*star;
   CPlayer *player=CallScript("getPlayer",man);
@@ -2700,7 +2805,6 @@ U0 Draw3DWorld(CTask *,CDC *dc) {
   w->x=player->x;
   w->y=player->y;
   w->cam_height=player->z+.6;
-  w->to_dc=dc;
   DCFill(dc,man->day_night->sky_color);
   stars=man->day_night->stars->items->body;
   c=man->day_night->stars->items->cnt;
@@ -2710,6 +2814,7 @@ U0 Draw3DWorld(CTask *,CDC *dc) {
     GrFillCircle(dc,star->screen_x,star->screen_y,,star->radius/2);
   }
   DCDepthBufRst(dc);
+  PrepareThingsForDraw(man);
   odepth_buf=dc->depth_buf;
   InitTables(w->angle,w->fov);
   C3DWorldCastRays(w);   
