@@ -1,12 +1,17 @@
 animate ->*
 |
+  t=CFrogArray
+  p=CPlayer
 |
   is_paused ifTrue: [
     ^0 
   ] .
-  things do: [:t*|
-   t animate .
+ 
+  p _ self getPlayer .
+ 
+  (self getThingsInRadiusFromX: p->x fromY: p->y withRadius: 32 * 128) do: [:t*|
+    t animate .
   ] .
   self updateParticles .
   self updateLines .
-  day_night update.
+  day_night update .

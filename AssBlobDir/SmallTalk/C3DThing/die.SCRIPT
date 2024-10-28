@@ -9,6 +9,7 @@ die ->*
     'Check if all enemies with the tag poo poo are dead' .
     'If so,be sure to activate all doors with the right tag' .
     all _ 1 .
+    no_update _ 1 .
     w->things do:[:t=C3DThing|
       (t hasClass: C3DThing) ifTrue: [
         t->activate_tag = activate_tag ifTrue: [

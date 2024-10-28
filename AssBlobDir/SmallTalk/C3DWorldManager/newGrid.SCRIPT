@@ -10,19 +10,27 @@ self width show .
   gx _ (self width + 16 ) / 16 .
   gy _ (self height + 16 ) / 16 .
 
-  gx show .
-  gy show .
 
   grid _ #() .
 
   0 to: gx do: [:a=CFrogNum|
-'a 'show.
-     a show .
     col _ # () .
     0 to: gy do: [:b=CFrogNum|
-'b 'show.
-     b show .
       col add: #() 
     ].
     grid add: col .
+  ] .
+
+
+  'Stains grid is 4x4'.
+  stains_grid _ #() .
+
+  gx _ (self width + 4 ) / 4 .
+  gy _ (self height + 4 ) / 4 .
+  0 to: gx do: [:a=CFrogNum|
+    col _ # () .
+    0 to: gy do: [:b=CFrogNum|
+      col add: #() 
+    ].
+    stains_grid add: col .
   ] .

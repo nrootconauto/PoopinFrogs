@@ -15,7 +15,7 @@ class CFrogThing:CQue {
   I32 lock_cnt,universe_class_idx;
   U8 class_name[32];
 };
-class CNetStream:CFrogThing {
+class CNetStream:CFrogThing {
   I64 sock;
   U8 *destroy dft "NetStreamDel";
   Bool closed;
@@ -274,7 +274,8 @@ class C3DThing:CFrogThing {
   Bool floating;
   Bool hit_thing; //Set by physics when we hit a thing
   Bool draw_flip;
-  Bool pad[8-4];
+  Bool no_update;
+  Bool pad[8-3];
 //Private,See GetColorForRay/PrepareThingsForDraw
   CDC *draw_face no_serialize 1 ; //Private
   CD2 scrn_st,scrn_en; //Private
@@ -313,6 +314,7 @@ class C3DWorldManager:CFrogThing {
   I64 screen_x,screen_y;
 //A grid of things having the things(16*16 size)
   CFrogArray *grid;
+  CFrogArray *stains_grid; //4*4 size has CWallStain's
   CFrogArray *doors;
   CFrogArray *clients; //CAsyncStream
   CFrogArray *lines; //C3DLine

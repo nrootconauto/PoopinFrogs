@@ -829,7 +829,7 @@ CFrogNum *C3DThingPathFindWalkTowardsThing(C3DThing *self,...) {
   CPFPoint pt;
   C3DThing *thing=argv[0];
   if(!ThingHasClass(thing,"C3DThing")) return FROG_SMALL_NIL;
-  CI64Set *path=PathFinder(self->x/128,self->y/128,Floor(self->z),thing->x/128,thing->y/128,Floor(thing->z),&BlockAtXYZ,AsF64(argv[1]));
+   CI64Set *path=PathFinder(self->x/128,self->y/128,Floor(self->z),thing->x/128,thing->y/128,Floor(thing->z),&BlockAtXYZ,AsF64(argv[1]));
   if(path->cnt<2) {
     I64SetDel(path);
     return FrogNumNew(Arg(thing->x-self->x,thing->y-self->y));
@@ -1525,7 +1525,7 @@ U0 PrepareThingsForDraw(C3DWorldManager *wm,F64 thing_scale=.6) {
   CD3 scrn_corners[4];
   I64 mnx,mxx,mny,mxy;
   CD3 clip_st,clip_en;
-  U16 *dst_ptr;
+  U32 *dst_ptr;
   U64 *dst_db_ptr;
   F64 xx,yy,matrix[9],zz,matrix2[9];
   F64 width;
@@ -1564,10 +1564,10 @@ U0 PrepareThingsForDraw(C3DWorldManager *wm,F64 thing_scale=.6) {
     }
 
     visible=FALSE;
-    visible|=PointToScrn(w,clip_st.x,clip_st.y,thing->z,&scrn_corners[0]);
-    visible|=PointToScrn(w,clip_st.x,clip_st.y,thing->z+hit_texture->height/128.*thing_scale,&scrn_corners[1]);
-    visible|=PointToScrn(w,clip_en.x,clip_en.y,thing->z+hit_texture->height/128.*thing_scale,&scrn_corners[2]);
-    visible|=PointToScrn(w,clip_en.x,clip_en.y,thing->z,&scrn_corners[3]);
+    visible|=PointToScrn(w,clip_st.x,clip_st.y,thing->z+hit_texture->height/128.*thing_scale,&scrn_corners[0]);
+    visible|=PointToScrn(w,clip_st.x,clip_st.y,thing->z,&scrn_corners[1]);
+    visible|=PointToScrn(w,clip_en.x,clip_en.y,thing->z,&scrn_corners[2]);
+    visible|=PointToScrn(w,clip_en.x,clip_en.y,thing->z+hit_texture->height/128.*thing_scale,&scrn_corners[3]);
     if(visible) {
       st=0;
       en=1.;
@@ -1592,14 +1592,14 @@ U0 PrepareThingsForDraw(C3DWorldManager *wm,F64 thing_scale=.6) {
         mny=MinI64(mny,scrn_corners[idx].y);
         mxy=MaxI64(mxy,scrn_corners[idx].y);
       }
-      mnx=ClampI64(mnx,0,GR_WIDTH)&~1;
-      mxx=ClampI64(mxx,0,GR_WIDTH)&~1;
-      mny=ClampI64(mny,0,GR_HEIGHT)&~1;
-      mxy=ClampI64(mxy,0,GR_HEIGHT)&~1;
-      for(ix=mnx;ix<mxx;ix+=2) {
+      mnx=ClampI64(mnx,0,GR_WIDTH)&~3;
+      mxx=ClampI64(mxx,0,GR_WIDTH)&~3;
+      mny=ClampI64(mny,0,GR_HEIGHT)&~3;
+      mxy=ClampI64(mxy,0,GR_HEIGHT)&~3;
+      for(ix=mnx;ix<mxx;ix+=4) {
         dst_ptr=&to_dc->body[ix+mny*to_dc->width_internal];
         dst_db_ptr=&to_dc->depth_buf[ix+mny*to_dc->width_internal];
-        for(iy=mny;iy<mxy;iy+=2) {
+        for(iy=mny;iy<mxy;iy+=4) {
 	  xx=matrix[0]*ix+matrix[1]*iy+matrix[2];
 	  yy=matrix[3+0]*ix+matrix[3+1]*iy+matrix[3+2];
 	  zz=matrix[6+0]*ix+matrix[6+1]*iy+matrix[6+2];
@@ -1617,22 +1617,21 @@ U0 PrepareThingsForDraw(C3DWorldManager *wm,F64 thing_scale=.6) {
               }
 	      to_dc->color=GrPeek(hit_texture,xx*(hit_texture->width-1),(hit_texture->height-1)*yy);
 	      if(TRANSPARENT>to_dc->color>=0) {
-		*dst_ptr=gr.to_8_colors[to_dc->color];
-		*dst_db_ptr=dist|dist<<32;
+		for(idx=0;idx!=4;idx++) {
+		  if(dst_db_ptr->i32[0]>dist) {
+		    *dst_ptr=gr.to_8_colors[to_dc->color];
+		    *dst_db_ptr=dist|dist<<32;
+		    dst_db_ptr[1]=dist|dist<<32;
+		  }
+	          dst_ptr(U8*)+=to_dc->width_internal;
+	          dst_db_ptr(I32*)+=to_dc->width_internal;
+		}
 
-	        dst_ptr(U8*)+=to_dc->width_internal;
-	        dst_db_ptr(I32*)+=to_dc->width_internal;
-
-		*dst_ptr=gr.to_8_colors[to_dc->color];
-		*dst_db_ptr=dist|dist<<32;
-
-	        dst_ptr(U8*)+=to_dc->width_internal;
-	        dst_db_ptr(I32*)+=to_dc->width_internal;
 		goto pass;
 	      }
 	    }
-	  dst_ptr(U8*)+=2*to_dc->width_internal;
-	  dst_db_ptr(I32*)+=2*to_dc->width_internal;
+	  dst_ptr(U8*)+=4*to_dc->width_internal;
+	  dst_db_ptr(I32*)+=4*to_dc->width_internal;
 pass:;
         }
       }

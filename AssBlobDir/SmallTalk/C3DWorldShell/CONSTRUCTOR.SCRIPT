@@ -30,6 +30,7 @@ init ->* |
   draw_it_name _ 'Draw3DWorld' .
 
   on_init _ [
+    player _ #world getPlayer .
     (#ui_root2 hasClass: CUIElem ) ifFalse: [
       #ui_root2 _ CUIElem new .
       #ui_root2->sz_x _ 640 .
@@ -252,15 +253,15 @@ init ->* |
      ] .
   ] .
   on_refresh _ [
+     player _ #world getPlayer .
      last_lighting_tS < CFrogTime now asSeconds ifTrue: [
        last_lighting_tS _ CFrogTime now asSeconds  + 1 .
        #world lighting .
      ] .
      #world ->is_paused ifFalse: [
-       player _ #world getPlayer .
        now _ CFrogTime now asSeconds .
        now >= next_refresh ifTrue: [
-         next_refresh _ now + (1 / 10 ).
+         next_refresh _ now + (1 / 5 ).
          #world update
        ] .
        player->momx2 _ 0 .
@@ -293,7 +294,7 @@ init ->* |
            player move: 128 / 4 atAngle: player->angle  + (3.14 / 2 ) .
          ] .
        ].
-       #world animate . 
+       #world animate. 
        #world handlePowerups .
        #ms_grabbed ifTrue: [
          ldown ifTrue: [

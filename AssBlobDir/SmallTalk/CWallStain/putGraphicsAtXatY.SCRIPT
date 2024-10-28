@@ -8,6 +8,7 @@ putGraphics: lump=CFrogStr atX: x=CFrogNum atY: y=CFrogNum
   getstainXYZ=CFrogBlock
   add=CFrogNum
   added=CFrogNum
+  stains=CFrogArray
 |
   getstainXYZ _ [
     :xx=CFrogNum
@@ -15,7 +16,9 @@ putGraphics: lump=CFrogStr atX: x=CFrogNum atY: y=CFrogNum
     :zz=CFrogNum |
     ws _ 0 .
     add _ 0 .
-    ws _ (w->wall_stains select:[:w=CWallStain |
+
+    stains _ (w->stains_grid at: xx / 4 ) at: yy / 4 .
+    ws _ (stains select:[:w=CWallStain |
       ((((w->tile_x = xx floor and: w->tile_y = yy floor)
         and: w->tile_z = zz floor) and: w->sidex = sidex)
         and: w->sidey = sidey)
@@ -30,7 +33,6 @@ putGraphics: lump=CFrogStr atX: x=CFrogNum atY: y=CFrogNum
     (ws addGraphics: lump atX: (xx - tile_x) * -128 + x atY: ( yy - tile_y + zz - tile_z ) * -128 + y) show .
     (ws addGraphics: lump atX: (xx - tile_x) * -128 + x atY: ( yy - tile_y + zz - tile_z ) * -128 + y) ifTrue: [
       add ifTrue: [
-       'added' show .
         w addWallStain: ws
       ] .
       added _ 1
@@ -48,10 +50,6 @@ putGraphics: lump=CFrogStr atX: x=CFrogNum atY: y=CFrogNum
     ws->sidez _ sidez .
   ] . 
   more _ self addGraphics: lump atX: x atY: y . 
-  'Infect adjacent tiles' show.
-   sidex show.
-   sidey show .
-   sidez show .
    w _ #world .
   -1 to: 2 do:[:oz=CFrogNum|
     sidey ifTrue: [

@@ -34,11 +34,6 @@ placeAtX: x=CFrogNum
   fz _ z floor .
   cz _ z ceil .
 
-'poop' show .
-  x show .
-  y show .
-  z show .
-
   z < (fz + .1) ifTrue: [
     tile _ #world getTileAtX: tile_x atY: tile_y atZ: tile_z - 1 .
     tile ifTrue: [

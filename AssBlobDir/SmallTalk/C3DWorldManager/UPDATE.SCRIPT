@@ -34,7 +34,9 @@ update ->* |
     t->server_old_x _ t->x .
     t->server_old_y _ t->y .
     t->server_old_z _ t->z .
-    t update .
+    t->no_update ifFalse: [
+      t update
+    ] .
   ].
 
   'UI and stuf' .
