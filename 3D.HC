@@ -56,7 +56,7 @@ U0 FrogImgBlank(CFrogImg *img) {
   img->dc=DCNew(1,1,frog_mem_task);
   img->name=FrogStrNew("");
 }
-U0 FrogImgSetGraphics(CFrogImg *img,...) {
+U0 FrogImgSetGraphics(CFrogImg *img,I64 *argv,I64 argc) {
   U8 *lunk=AsString(argv[0]),*data,*symbol_name;
   if(img->dc)
     AnimDCDel(img->dc);
@@ -73,20 +73,20 @@ U0 FrogImgSetGraphics(CFrogImg *img,...) {
   return FROG_SMALL_NIL;
 }
 AddMethod("CFrogImg","setGraphics:",&FrogImgSetGraphics);
-CFrogNum *FrogImgWidth(CFrogImg *img,...) {
+CFrogNum *FrogImgWidth(CFrogImg *img,I64 *argv,I64 argc) {
   if(img->dc)
     return FrogNumNew(img->dc->width);
   return FROG_SMALL_NIL;
 }
 AddMethod("CFrogImg","width",&FrogImgWidth);
-CFrogNum *FrogImgHeight(CFrogImg *img,...) {
+CFrogNum *FrogImgHeight(CFrogImg *img,I64 *argv,I64 argc) {
   if(img->dc)
     return FrogNumNew(img->dc->height);
   return FROG_SMALL_NIL;
 }
 AddMethod("CFrogImg","height",&FrogImgHeight);
 #include "TextureEditor";
-CFrogImg *FrogImgNewFromEditor(CFrogImg *img,...) {
+CFrogImg *FrogImgNewFromEditor(CFrogImg *img,I64 *argv,I64 argc) {
   U8 *lump;
   lump=TextureEdit(dft_blob_path);
   CFrogImg *ret=FROG_SMALL_NIL;
@@ -103,7 +103,7 @@ U0 FrogImgDel(CFrogImg *img) {
   Free(img);
 }
 
-CFrogStr *FrogImgToString(CFrogImg *img,...) {
+CFrogStr *FrogImgToString(CFrogImg *img,I64 *argv,I64 argc) {
   CFrogStr *s=ConstructThing("CFrogStr");
   I64 len;
   U8 *a=AnimDCSave(img->dc,&len);
@@ -112,7 +112,7 @@ CFrogStr *FrogImgToString(CFrogImg *img,...) {
   return s;
 }
 AddMethod("CFrogImg","asString",&FrogImgToString);
-CFrogStr *FrogImgFromString(CFrogImg *img,...) {
+CFrogStr *FrogImgFromString(CFrogImg *img,I64 *argv,I64 argc) {
   CFrogStr *s=argv[0];
   CDC *d=NULL;
   if(s) {
@@ -287,7 +287,7 @@ U0 C3DWorldSetFov(C3DWorld *w,F64 fov=pi/2) {
 #define BLOB_THINGS_ROOT "Level/Things"
 #define BLOB_TILES_ROOT "Level/Tiles"
 
-CFrogThing *ThingTemplateSave(C3DThingTemplate *t,...) {
+CFrogThing *ThingTemplateSave(C3DThingTemplate *t,I64 *argv,I64 argc) {
   CFileThingTemplate f_template;
   U8 *name,*name2=NULL;
   if(ThingHasClass(t,"C3DThingTemplate")) {
@@ -320,7 +320,7 @@ CFrogThing *ThingTemplateSave(C3DThingTemplate *t,...) {
 AddMethod("C3DThingTemplate","save",&ThingTemplateSave);
 
 
-CFrogThing *TileTemplateSave(CTileTemplate *t,...) {
+CFrogThing *TileTemplateSave(CTileTemplate *t,I64 *argv,I64 argc) {
   CFileTexture f_template;
   U8 *name;
   if(ThingHasClass(t,"CTileTemplate")) {
@@ -688,7 +688,7 @@ U0 LightingSky(I64 x,I64 y,I64 sky_light=16,I64 shadow_color=BLACK) {
       }
     }
 }
-CFrogThing *WorldLightingSky(C3DWorldManager *man,...) {
+CFrogThing *WorldLightingSky(C3DWorldManager *man,I64 *argv,I64 argc) {
   I64 x=w->x/128.,ix;
   I64 y=w->y/128.,iy;
   I64 sky_light=AsF64(argv[0]),z,tp;
@@ -812,7 +812,7 @@ final:
   goto fin;
 
 }
-C3DThing *BumpsIntoThing(C3DThing *self,...) {
+C3DThing *BumpsIntoThing(C3DThing *self,I64 *argv,I64 argc) {
   C3DThing *who=argv[0];
   F64 radius=THING_RADIUS*THING_RADIUS;
   F64 x,y;
@@ -825,7 +825,7 @@ C3DThing *BumpsIntoThing(C3DThing *self,...) {
   return FrogNumNew(0);
 } 
 AddMethod("C3DThing","hitsThing:",&BumpsIntoThing);
-CFrogNum *C3DThingPathFindWalkTowardsThing(C3DThing *self,...) {
+CFrogNum *C3DThingPathFindWalkTowardsThing(C3DThing *self,I64 *argv,I64 argc) {
   CPFPoint pt;
   C3DThing *thing=argv[0];
   if(!ThingHasClass(thing,"C3DThing")) return FROG_SMALL_NIL;
@@ -1037,7 +1037,7 @@ Bool IsOnWaterTile(C3DThing *t) {
 Bool IsOnLavaTile(C3DThing *t) {
   return 10==BlockAtXYZ(t->x/GRID_SZ,t->y/GRID_SZ,Floor(t->z)-1);
 }
-CFrogNum *WorldManagerRemoveFromGrid(C3DWorldManager *wm,...) {
+CFrogNum *WorldManagerRemoveFromGrid(C3DWorldManager *wm,I64 *argv,I64 argc) {
   C3DThing *t=argv[0];
   if(!ThingHasClass(t,"C3DThing")) return FROG_SMALL_NIL;
   CFrogArray *arr=wm->grid;
@@ -1063,7 +1063,7 @@ CFrogNum *WorldManagerRemoveFromGrid(C3DWorldManager *wm,...) {
   return FROG_SMALL_NIL;
 }
 AddMethod("C3DWorldManager","removeFromGrid:",&WorldManagerRemoveFromGrid);
-CFrogNum *WorldManagerUpdateThingPos(C3DWorldManager *wm,...) {
+CFrogNum *WorldManagerUpdateThingPos(C3DWorldManager *wm,I64 *argv,I64 argc) {
   C3DThing *t=argv[0];
   if(!ThingHasClass(t,"C3DThing")) return FROG_SMALL_NIL;
   CFrogArray *arr=wm->grid;
@@ -1079,7 +1079,7 @@ CFrogNum *WorldManagerUpdateThingPos(C3DWorldManager *wm,...) {
   return FROG_SMALL_NIL;
 }
 AddMethod("C3DWorldManager","updateThingPos:",&WorldManagerUpdateThingPos);
-CFrogArray *WorldManagerThingsInRadius(C3DWorldManager *wm,...) {
+CFrogArray *WorldManagerThingsInRadius(C3DWorldManager *wm,I64 *argv,I64 argc) {
   CFrogArray *arr=wm->grid,*ret=FrogArrayNew;
   C3DThing *t,**body;
   F64 x=AsF64(argv[0]),y=AsF64(argv[1]);
@@ -1128,7 +1128,7 @@ U0 PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm,F64 last_tS) {
   CI64Set *set;
   if(ThingHasClass(t,"CRocket"))
     rocket=t;
-  WorldManagerRemoveFromGrid(wm,t);
+  WorldManagerRemoveFromGrid(wm,&t,1);
   if(C3DWorldMoveZWithCollision(w,t->momz*weight+t->momz2*weight,t->x,t->y,&t->z)) {
     if(!rocket)  //Explode later(computer hitting floor after we move x/y)
       t->momz=0;
@@ -1217,7 +1217,7 @@ explode:
     if(HeightImpossible(w,t->x/GRID_SZ,t->y/GRID_SZ,t->z,TRUE,1.))
       goto explode;
   }
-  WorldManagerUpdateThingPos(wm,t);
+  WorldManagerUpdateThingPos(wm,&t,1);
 }
 F64 Lerp(F64 per,F64 min,F64 max) {
   if(min<max)
@@ -1514,7 +1514,9 @@ Bool ClipLineToCamera(C3DWorld *w,CD3 *a,CD3 *b) {
 
 //Also prepares CWallStain's
 U0 PrepareThingsForDraw(C3DWorldManager *wm,F64 thing_scale=.6) {
-  CFrogArray *arr=wm->things;WorldManagerThingsInRadius(wm,FrogNumNew(w->x),FrogNumNew(w->y),FrogNumNew(VIEW_DIST*128));
+  I64 args[3];
+  args[0]=FrogNumNew(w->x),args[1]=FrogNumNew(w->y),args[2]=FrogNumNew(VIEW_DIST*128);
+  CFrogArray *arr=WorldManagerThingsInRadius(wm,args,3);
   C3DThing **things=arr->items->body,*thing;
   CWallStain **stains,*stain;
   I64 cnt=arr->items->cnt,ix,iy,ox,oy,idx;
@@ -2394,7 +2396,7 @@ U0 Solve22(F64 a1,F64 a2,F64 a3,F64 a4,F64 a5,F64 a6,F64 *ra,F64 *rb) {
   *rb=dy/det;
 }
 
-U0 WMPointToScreenX(C3DWorldManager *man,...) {
+U0 WMPointToScreenX(C3DWorldManager *man,I64 *argv,I64 argc) {
   CD3 p;
   PointToScrn(w,
 	AsF64(argv[0]),
@@ -2403,7 +2405,7 @@ U0 WMPointToScreenX(C3DWorldManager *man,...) {
 	&p);
   return FrogNumNew(p.x);
 }
-U0 WMPointToScreenY(C3DWorldManager *man,...) {
+U0 WMPointToScreenY(C3DWorldManager *man,I64 *argv,I64 argc) {
   CD3 p;
   PointToScrn(w,
 	AsF64(argv[0]),
@@ -2412,7 +2414,7 @@ U0 WMPointToScreenY(C3DWorldManager *man,...) {
 	&p);
   return FrogNumNew(p.y);
 }
-U0 WMPointToScreenZ(C3DWorldManager *man,...) {
+U0 WMPointToScreenZ(C3DWorldManager *man,I64 *argv,I64 argc) {
   CD3 p;
   PointToScrn(w,
 	AsF64(argv[0]),
@@ -2476,7 +2478,7 @@ U0 FloorStainDel(CFloorStain *s) {
   Free(s);
 }
 
-CFrogThing *WallStainSetGr(CWallStain *self,...) {
+CFrogThing *WallStainSetGr(CWallStain *self,I64 *argv,I64 argc) {
   CFrogStr *str=argv[0];
   U8 *name=AsString(str),*raw=BlobFileGetLump("ASS",name);
   I64 x=AsF64(argv[1]),y=AsF64(argv[2]);
@@ -2496,7 +2498,7 @@ CFrogThing *WallStainSetGr(CWallStain *self,...) {
   return ret;
 }
 AddMethod("CWallStain","addGraphics:atX:atY:",&WallStainSetGr);
-CFrogThing *WorldManagerNewParticle(C3DWorldManager *man,...) {
+CFrogThing *WorldManagerNewParticle(C3DWorldManager *man,I64 *argv,I64 argc) {
   F64 x=AsF64(argv[0]);
   F64 y=AsF64(argv[1]);
   F64 z=AsF64(argv[2])+.001; //For not hiting floor at spawn 
@@ -2508,7 +2510,7 @@ CFrogThing *WorldManagerNewParticle(C3DWorldManager *man,...) {
 }
 
 AddMethod("C3DWorldManager","basicNewParticleAtX:atY:atZ:withSpread:withColor:",&WorldManagerNewParticle);
-CFrogThing *WorldManagerNewParticle2(C3DWorldManager *man,...) {
+CFrogThing *WorldManagerNewParticle2(C3DWorldManager *man,I64 *argv,I64 argc) {
   F64 x=AsF64(argv[0]);
   F64 y=AsF64(argv[1]);
   F64 z=AsF64(argv[2])+.001; //For not hiting floor at spawn 
@@ -2522,7 +2524,7 @@ CFrogThing *WorldManagerNewParticle2(C3DWorldManager *man,...) {
 }
 
 AddMethod("C3DWorldManager","basicNewParticleAtX:atY:atZ:withSpread:withColor:withSplatLump:",&WorldManagerNewParticle2);
-CFrogThing *WorldManagerNewSweepSound(C3DWorldManager *man,...) {
+CFrogThing *WorldManagerNewSweepSound(C3DWorldManager *man,I64 *argv,I64 argc) {
   if(man->sound_task) Kill(man->sound_task,FALSE);
   man->sound_task=Sweep(
 	AsF64(argv[0]),
@@ -2531,7 +2533,7 @@ CFrogThing *WorldManagerNewSweepSound(C3DWorldManager *man,...) {
   return FROG_SMALL_NIL;
 }
 AddMethod("C3DWorldManager","sweepSoundForTime:withMin:withMax:",&WorldManagerNewSweepSound);
-CFrogThing *WorldManagerNewNoiseSound(C3DWorldManager *man,...) {
+CFrogThing *WorldManagerNewNoiseSound(C3DWorldManager *man,I64 *argv,I64 argc) {
   if(man->sound_task) Kill(man->sound_task,FALSE);
   man->sound_task=Noise(
 	AsF64(argv[0]),
@@ -2540,7 +2542,7 @@ CFrogThing *WorldManagerNewNoiseSound(C3DWorldManager *man,...) {
   return FROG_SMALL_NIL;
 }
 AddMethod("C3DWorldManager","noiseSoundForTime:withMin:withMax:",&WorldManagerNewNoiseSound);
-CFrogThing *WorldManagerGetQuestChatBot(C3DWorldManager *man,...) {
+CFrogThing *WorldManagerGetQuestChatBot(C3DWorldManager *man,I64 *argv,I64 argc) {
   U8 *name=AsString(argv[0]);
   CEliza *e=FROG_SMALL_NIL;
   if(name)
@@ -2549,7 +2551,7 @@ CFrogThing *WorldManagerGetQuestChatBot(C3DWorldManager *man,...) {
   return e;
 }
 AddMethod("C3DWorldManager","getQuestChatBot:",&WorldManagerGetQuestChatBot);
-CFrogNum *WorldManagerIsLiquid(C3DWorldManager *man,...) {
+CFrogNum *WorldManagerIsLiquid(C3DWorldManager *man,I64 *argv,I64 argc) {
   I64 x=AsF64(argv[0]);
   I64 y=AsF64(argv[1]);
   I64 z=Floor(AsF64(argv[2]));
@@ -2562,7 +2564,7 @@ CFrogNum *WorldManagerIsLiquid(C3DWorldManager *man,...) {
 AddMethod("C3DWorldManager","tileIsLiquidAtX:atY:atZ:",&WorldManagerIsLiquid);
 
 //Returns 1. if COLLISION,else 0
-CFrogThing *C3DThingMoveAtAngle(C3DThing *self,...) {
+CFrogThing *C3DThingMoveAtAngle(C3DThing *self,I64 *argv,I64 argc) {
   CFrogThing *dist=argv[0];
   CFrogThing *angle=argv[1];
   Bool hit_wall=FALSE;
@@ -2583,16 +2585,16 @@ CFrogThing *C3DThingMoveAtAngle(C3DThing *self,...) {
 }
 AddMethod("C3DThing","move:atAngle:",&C3DThingMoveAtAngle);
 
-CFrogThing *WorldManagerWidth(C3DWorldManager *self,...) {
+CFrogThing *WorldManagerWidth(C3DWorldManager *self,I64 *argv,I64 argc) {
   return FrogNumNew(w->world_width);
 }
-CFrogThing *WorldManagerHeight(C3DWorldManager *self,...) {
+CFrogThing *WorldManagerHeight(C3DWorldManager *self,I64 *argv,I64 argc) {
   return FrogNumNew(w->world_height);
 }
 
 AddMethod("C3DWorldManager","width",&WorldManagerWidth);
 AddMethod("C3DWorldManager","height",&WorldManagerHeight);
-CFrogThing *WorldManagerSetTileAtXAtY(C3DWorldManager *self,...) {
+CFrogThing *WorldManagerSetTileAtXAtY(C3DWorldManager *self,I64 *argv,I64 argc) {
   I8 tile=AsF64(argv[0]);
   I64 x=AsF64(argv[1]);
   I64 y=AsF64(argv[2]);
@@ -2607,7 +2609,7 @@ CFrogThing *WorldManagerSetTileAtXAtY(C3DWorldManager *self,...) {
 AddMethod("C3DWorldManager","setTile:atX:atY:atZ:",&WorldManagerSetTileAtXAtY);
 
 
-CFrogThing *ThingCanSeeThing(C3DThing *self,...) {
+CFrogThing *ThingCanSeeThing(C3DThing *self,I64 *argv,I64 argc) {
   F64 old_x=w->x,old_y=w->y,old_z=w->cam_height;
   CFrogThing *ret;
   C3DThing *other=argv[0];
@@ -2625,27 +2627,27 @@ CFrogThing *ThingCanSeeThing(C3DThing *self,...) {
 AddMethod("C3DThing","canSeeThing:",&ThingCanSeeThing);
 
 
-CFrogThing *ScreenCoordToDist(C3DWorldManager *self,...) {
+CFrogThing *ScreenCoordToDist(C3DWorldManager *self,I64 *argv,I64 argc) {
   CD3 *p=&w->to_point[GR_WIDTH/2/4][GR_HEIGHT/2/4];
   return FrogNumNew(Sqrt(Sqr(p->x-w->x)+Sqr(p->y-w->y)));
 }
 AddMethod("C3DWorldManager","screenCoordToDist",&ScreenCoordToDist);
-CFrogThing *ScreenCoordToX(C3DWorldManager *self,...) {
+CFrogThing *ScreenCoordToX(C3DWorldManager *self,I64 *argv,I64 argc) {
   CD3 *p=&w->to_point[GR_WIDTH/2/4][GR_HEIGHT/2/4];
   return FrogNumNew(p->x);
 }
 AddMethod("C3DWorldManager","screenCoordToX",&ScreenCoordToX);
-CFrogThing *ScreenCoordToY(C3DWorldManager *self,...) {
+CFrogThing *ScreenCoordToY(C3DWorldManager *self,I64 *argv,I64 argc) {
   CD3 *p=&w->to_point[GR_WIDTH/2/4][GR_HEIGHT/2/4];
   return FrogNumNew(p->y);
 }
 AddMethod("C3DWorldManager","screenCoordToY",&ScreenCoordToY);
-CFrogThing *ScreenCoordToZ(C3DWorldManager *self,...) {
+CFrogThing *ScreenCoordToZ(C3DWorldManager *self,I64 *argv,I64 argc) {
   CD3 *p=&w->to_point[GR_WIDTH/2/4][GR_HEIGHT/2/4];
   return FrogNumNew(p->z);
 }
 AddMethod("C3DWorldManager","screenCoordToZ",&ScreenCoordToZ);
-C3DPoint *TileAtScreen(C3DWorldManager *man,...) {
+C3DPoint *TileAtScreen(C3DWorldManager *man,I64 *argv,I64 argc) {
   C3DPoint *r=ConstructThing("C3DPoint");
   r->x=man->cur_tile_x;
   r->y=man->cur_tile_y;
@@ -2653,7 +2655,7 @@ C3DPoint *TileAtScreen(C3DWorldManager *man,...) {
   return r;
 }
 AddMethod("C3DWorldManager","screenTile",&TileAtScreen);
-C3DPoint *TileSideAtScreen(C3DWorldManager *man,...) {
+C3DPoint *TileSideAtScreen(C3DWorldManager *man,I64 *argv,I64 argc) {
   C3DPoint *r=ConstructThing("C3DPoint");
   r->x=man->cur_tile_side_x;
   r->y=man->cur_tile_side_y;
@@ -2665,19 +2667,19 @@ AddMethod("C3DWorldManager","screenTileSide",&TileSideAtScreen);
 // World Edit section
 //
 
-CFrogNum *WorldManagerGetShiftKey(C3DWorldManager *,...) {
+CFrogNum *WorldManagerGetShiftKey(C3DWorldManager *,I64 *argv,I64 argc) {
   return FrogNumNew(Bt(kbd.down_bitmap,SC_SHIFT));
 }
 AddMethod("C3DWorldManager","getShiftKey",&WorldManagerGetShiftKey);
 
-CFrogNum *WorldManagerGetTileAtXAtYAtZ(C3DWorldManager *,...) {
+CFrogNum *WorldManagerGetTileAtXAtYAtZ(C3DWorldManager *,I64 *argv,I64 argc) {
   I64 x=Floor(AsF64(argv[0]));
   I64 y=Floor(AsF64(argv[1]));
   I64 z=Floor(AsF64(argv[2]));
   return FrogNumNew(BlockAtXYZ(x,y,z));
 }
 AddMethod("C3DWorldManager","getTileAtX:atY:atZ:",&WorldManagerGetTileAtXAtYAtZ);
-CFrogNum *WorldManagerSetTileAtXAtYAtZ(C3DWorldManager *,...) {
+CFrogNum *WorldManagerSetTileAtXAtYAtZ(C3DWorldManager *,I64 *argv,I64 argc) {
   I64 x=Floor(AsF64(argv[1]));
   I64 y=Floor(AsF64(argv[2]));
   I64 z=Floor(AsF64(argv[3]));
@@ -2699,7 +2701,7 @@ AddMethod("C3DWorldManager","setTile:atX:atY:atZ:",&WorldManagerSetTileAtXAtYAtZ
 #include "UI.HC"
 InitWorld;
 I64 mp_thing_done=0;
-CFrogThing *UpdateParticles(C3DWorldManager *man,...) {
+CFrogThing *UpdateParticles(C3DWorldManager *man,I64 *argv,I64 argc) {
   if(man->is_paused) return;
   I64 tx,ty;
   F64 fx,cx,fy,cy,dx,dy;
@@ -2766,7 +2768,7 @@ stain:
 	      );
 	      p->splat_lump_name[0]=0;
 	    }
-	  }
+	  }
         }
     if(Frog_tS>1+p->born_at) {
       QueRem(p);
@@ -2877,7 +2879,7 @@ fin:
   w->to_dc=NULL;
 }
 
-CFrogThing *WorldManagerEmptyWithDim(C3DWorldManager *man,...) {
+CFrogThing *WorldManagerEmptyWithDim(C3DWorldManager *man,I64 *argv,I64 argc) {
   w->world_width=AsF64(argv[0]);
   w->world_height=AsF64(argv[1]);
   Free(w->world_blocks);
@@ -2894,11 +2896,11 @@ CFrogThing *WorldManagerEmptyWithDim(C3DWorldManager *man,...) {
   return man;
 }
 AddMethod("C3DWorldManager","emptyWorldWithWidth:withHeight:",&WorldManagerEmptyWithDim);
-CFrogThing *WorldPhysics(C3DWorldManager *wm,...) {
+CFrogThing *WorldPhysics(C3DWorldManager *wm,I64 *argv,I64 argc) {
   C3DThing **body=MAllocIdent(wm->things->items->body),*thing,*player;
   player=CallScript("getPlayer",wm);
   I64 c=wm->things->items->cnt,idx;
-  F64 t,now=AsF64(FrogTimeNow(FROG_SMALL_NIL)->ts);
+  F64 t,now=AsF64(FrogTimeNow(FROG_SMALL_NIL,NULL,0)->ts);
 //Heres the deal.
 //If we are a client,we will let the server do the physics on everyting except the player
   if(wm->is_client) {
@@ -2942,7 +2944,7 @@ AddMethod("C3DWorldManager","physics",&WorldPhysics);
 
 
 
-CFrogThing *TileTemplateUpdate(CTileTemplate *tile,...) {
+CFrogThing *TileTemplateUpdate(CTileTemplate *tile,I64 *argv,I64 argc) {
   I64 idx=tile->tile_idx;
   CDC *dc;
   if(dc=w->wall_textures[idx])
@@ -2975,7 +2977,7 @@ AddMethod("CTileTemplate","updateTextures",&TileTemplateUpdate);
 CallScript("newLandscapeWithWidth:withHeight:",FrogSymbol("world")->value,FrogNumNew(64),FrogNumNew(64));
 C3DWorldShell *shell=ConstructThing("C3DWorldShell");
 CallScript("init",shell);
-UIShellRun(shell);
+UIShellRun(shell,NULL,0);
 #endif
 #endif
 #endif               

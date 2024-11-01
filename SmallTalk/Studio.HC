@@ -163,7 +163,7 @@ Bool SynView(CDoc *doc) {
     doc->flags|=DOCF_PLAIN_TEXT;
     t=DocSave(doc);    
     STSyntaxHighlight(hl,t);
-    ul=DocLock(hl);
+    ul=DocLock(hl);
     hl->x=doc->x;
     hl->y=doc->y;
     DocRecalc(hl,RECALCt_FIND_CURSOR);

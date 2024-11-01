@@ -282,12 +282,8 @@ U8 *VarHasMethod(CLocals *l,U8 *var,U8 *method) {
 }
 U0 GenerateMethodCall(CDoc *doc,U8 *into=NULL,U8 *class_name,U8 *method_name,I64 stk_index,I64 argc,Bool check=TRUE) {
   I64 idx,off;
-  DocPrint(doc,"%s=CallScriptUniverse(#exe {ExeUniverse(\"%Q\");},",into,method_name);
-  for(idx=0;idx!=argc;idx++)
-    if(!idx)
-      DocPrint(doc,"%s",StackFrame2Var(stk_index+idx));
-    else
-      DocPrint(doc,",%s",StackFrame2Var(stk_index+idx));
+  DocPrint(doc,"%s=CallScriptUniverse0(#exe {ExeUniverse(\"%Q\");},%s,",into,method_name,StackFrame2Var(stk_index));
+  DocPrint(doc,"&%s,%d",StackFrame2Var(stk_index+1),argc);
   DocPrint(doc,");\n");
 }
 CLocals *GenerateLocalsFromMethod(CMethod *method,U8 *for_class,CDoc *ins_into=NULL) {
@@ -674,13 +670,13 @@ U8 *CompileThunk(CAST *block,CLocals *parent=NULL,CDoc *ins_into=NULL) {
   locals->next=parent;
   CAST *var,*head;
   FramePtrAdd("ST@@stk_depth",0);
-  DocPrint(doc,"CFrogThing *Thunk@@%d(CFrogBlock *block,...) {\n",thunk_idx);
+  DocPrint(doc,"CFrogThing *Thunk@@%d(CFrogBlock *block,I64 *argv,I64 argc) {\n",thunk_idx);
   DocPrint(doc,"CFrogThing *self=block->self;\n");
   DocPrint(doc,"CLocalsGeneric0 *parent_frame=block->frame;\n");
 //$BK,1$IMPORTANT,set THINGF_GC_ROOT to avoid disappearing data$BK,0$ STFrameDel unsets it.
   
   replace=DocPrint(doc,"  CFrogThing *stk[$$LK,\"replace_me\"$$],*retval=FROG_SMALL_NIL,**tmp;\n");
-  DocPrint(doc,"CFrogThing *(*fun_ptr)(CFrogThing *,...);\n");
+  DocPrint(doc,"CFrogThing *(*fun_ptr)(CFrogThing *,I64 *argv,I64 argc);\n");
   DocPrint(doc,"  Bool false=FALSE;\n");
   frame=DocPrint(doc,"  $$LK,\"replaxe_me\"$$");
   DocPrint(doc,"  if(!return_flag) return_flag=&false;\n");
@@ -740,7 +736,7 @@ static I64 pass=0,fail=0;
   } else 
     ExePutS(ret);
   Free(ret);
-  DocDel(doc);
+  DocDel(doc);
   FramePtrDel("ST@@stk_depth");
   LocalsDel(locals);
   return MStrPrint("Thunk@@%d",thunk_idx);
@@ -752,7 +748,7 @@ U0 DftCall(CDoc *doc,CLocals *l,CAST *ast,I64 stack_depth,U8 *op,I64 cnt=2) {
   if(self->type==AST_VAR) {
 //TODO
     if(cls_name=VarHasMethod(l,self->name,op)) {
-      GenerateMethodCall(doc,"retval",cls_name,op,stack_depth,QueCnt(&ast->args),TRUE);
+      GenerateMethodCall(doc,"retval",cls_name,op,stack_depth,QueCnt(&ast->args)-1,TRUE);
       DocPrint(doc,"  %s=retval;\n",StackFrame2Var(stack_depth));
       return;
     }
@@ -760,7 +756,7 @@ U0 DftCall(CDoc *doc,CLocals *l,CAST *ast,I64 stack_depth,U8 *op,I64 cnt=2) {
     cls_name=ClassHasMethod("CFrogNum",op);
 try_class:
     if(cls_name) {
-      GenerateMethodCall(doc,"retval",cls_name,op,stack_depth,QueCnt(&ast->args),TRUE);
+      GenerateMethodCall(doc,"retval",cls_name,op,stack_depth,QueCnt(&ast->args)-1,TRUE);
       DocPrint(doc,"  %s=retval;\n",StackFrame2Var(stack_depth));
       return;
     }
@@ -779,13 +775,9 @@ try_class:
   }
 //TODO static return-type of method
   I64 idx;
-  DocPrint(doc,"  retval=CallScriptUniverse(#exe {ExeUniverse(\"%Q\");},\n",op);
+  DocPrint(doc,"  retval=CallScriptUniverse0(#exe {ExeUniverse(\"%Q\");},\n",op,StackFrame2Var(stack_depth));
 args:
-  DocPrint(doc,"%s\n",StackFrame2Var(stack_depth));
-  for(idx=0;idx<cnt;idx++) {
-    DocPrint(doc,",");
-    DocPrint(doc,"%s",StackFrame2Var(stack_depth+1+idx));
- }
+  DocPrint(doc,"%s,&%s,%d",StackFrame2Var(stack_depth),StackFrame2Var(stack_depth+1),cnt);
   DocPrint(doc,");/* %s */\n",op);
   DocPrint(doc,"  %s=retval;\n",StackFrame2Var(stack_depth));
   if(rc=MethodReturnClass(cls_name,op)) {
@@ -892,26 +884,6 @@ Bool IsAllF64(CAST *ast) {
   }
   return TRUE;
 }
-U0 NumPrimDft(CDoc *doc,CLocals *l,CAST *ast,I64 stack_depth) {
-  CAST *head=&ast->args,*cur;
-  I64 idx=0;
-  U8 *cls_name;
-  ast->is_f64=TRUE;
-  DocPrint(doc,"AsF64(");
-///  if(cls_name=ClassHasMethod("CFrogNum",ast->name))
-//    GenerateMethodCall(doc,"retval",cls_name,ast->name,stack_depth,QueCnt(&ast->args),FALSE);
-//  else
-    DocPrint(doc,"CallScriptUniverse(#exe {ExeUniverse(\"%Q\");},\n",ast->name);
-  for(cur=head->next;cur!=head;cur=cur->next) {
-    DocPrint(doc,"FrogNumNew(");
-    CompileAST(doc,cur,l,stack_depth,,TRUE);
-    DocPrint(doc,")");
-    if(cur->next!=head)
-      DocPrint(doc,",");
- }
-  StrCpy(ast->var_class_name,"CFrogNum");
-  DocPrint(doc,"))");
-}
 U0 NumPrim2(CDoc *doc,CLocals *l,CAST *ast,I64 stack_depth,U8 *op,U8*alt_name=NULL) {
   if(!alt_name) alt_name=op;
   CAST *a=ast->args.next,*b=ast->args.last;
@@ -948,6 +920,24 @@ U0 NumPrim1(CDoc *doc,CLocals *l,CAST *ast,I64 stack_depth,U8 *op,U8 *alt_name=N
   DocPrint(doc,"))");
   StrCpy(ast->var_class_name,"CFrogNum");
 }
+U0 NumPrimDft(CDoc *doc,CLocals *l,CAST *ast,I64 stack_depth) {
+  CAST *head=&ast->args,*cur;
+  I64 idx=0;
+  U8 *cls_name;
+  ast->is_f64=TRUE;
+  DocPrint(doc,"AsF64(");
+    DocPrint(doc,"CallScriptUniverse(#exe {ExeUniverse(\"%Q\");},\n",ast->name);
+  for(cur=head->next;cur!=head;cur=cur->next) {
+    DocPrint(doc,"FrogNumNew(");
+    CompileAST(doc,cur,l,stack_depth,,TRUE);
+    DocPrint(doc,")");
+    if(cur->next!=head)
+      DocPrint(doc,",");
+ }
+  StrCpy(ast->var_class_name,"CFrogNum");
+  DocPrint(doc,"))");
+}
+
 U0 ReplaceVarsWithStackTmps(CLocals *l,CAST *ast) {
   CAST *head,*cur;
   I64 stk;
@@ -1041,23 +1031,6 @@ U0 UnrollBlock(CDoc *doc,CLocals *l,I64 stack_depth,CAST *bl) {
   DocPrint(doc,"if(return_flag[0]) goto ret;\n");
 fin:;
 }
-/* CompileArrayIntern1(CDoc *doc,CAST *ast,CLocals *locals,I64 stack_depth) {
-  I64 idx=ast_case_num++;
-  if(!StrCmp("collect:",ast->name)) {
-    DocPrint("%s=FrogArrayNew;",StackFrame2Var(stack_depth));
-  } else if(!S)
-    DocPrint("%s=%d;",StackFrame2Var(stack_depth)),FrogNumNew(0);
-  DocPrint(doc,"I64 idx%d=0;\n",idx);
-  DocPrint(doc,"if(!ThingHasClass2(%s,#exe{ExeUniverse(\"CFrogArray\")})) goto L%d_end;",StackVar2Frame(idx),idx);
-  DocPrint(doc,"L%d_ent:\n",idx);
-  DocPrint(doc,"if(idx%d>=%s(CFrogArray*)->items->cnt) goto L%d_end;",idx,idx)
-  if(!StrCmp("collect:",ast->name)) {
-    UnrollBlock(doc,locals,stack_depth+1,ast->args.last);
-  } else {
-    DocPrint(doc,"if(CallScriptUniverse(#exe {ExeUniverse(\"=\")},%s,)) goto ;",StackFrameToVar(stack_depth));
-  }
-  DocPrint(doc,"goto L%d_ent;L%d_end:;\n",idx,idx);
-}*/
 F64 MemberF64(U8 *self,U8 *expect_type,I64 offset,I64 raw_type) {
   if(!ThingHasClass2(self,expect_type)) return 0.;
   self+=offset;
@@ -1412,7 +1385,7 @@ force_f64:;
 	  NumPrim2B(doc,locals,ast,stack_depth,"Arg","arg:");
 	  goto prim_skip;
         }
-        NumPrimDft(doc,locals,ast,stack_depth);
+	NumPrimDft(doc,locals,ast,stack_depth);
         goto prim_skip;
       }
       DftCall(doc,locals,ast,stack_depth,ast->op_name,cnt);
@@ -1746,7 +1719,7 @@ U0 CompileToHolyC(U8 *src,U8 *class_name,U8 *src_path=NULL,Bool class_method=FAL
   FramePtrSet("Escapes",escapes);
 //MUST SET THIS
   fun_name=MStrPrint("%s@%d",class_name,fun_num++);
-  DocPrint(doc,"CFrogThing *%s(CFrogThing *self,...) {\n",fun_name);
+  DocPrint(doc,"CFrogThing *%s(CFrogThing *self,I64 *argv,I64 aargc) {\n",fun_name);
   replace=DocPrint(doc,"  CFrogThing *stk[$$LK,\"replace\"$$],*retval=FROG_SMALL_NIL,**tmp;\n");
   DocPrint(doc,"  Bool false=FALSE;\n");
   frame=DocPrint(doc,"  $$LK,\"dasds\"$$");
@@ -1754,7 +1727,7 @@ U0 CompileToHolyC(U8 *src,U8 *class_name,U8 *src_path=NULL,Bool class_method=FAL
   DocPrint(doc,"parent_frame->thing_flags|=THINGF_GC_ROOT;\n");
   DocPrint(doc,"  parent_frame->_raw_mask=%d;\n",locals->raw_mask);
   DocPrint(doc,"  I64 unwind=0,next_case=%d;\n",ast_case_num);
-  DocPrint(doc,"CFrogThing *(*fun_ptr)(CFrogThing *,...);\n");
+  DocPrint(doc,"CFrogThing *(*fun_ptr)(CFrogThing *,I64 *argv,I64 aargc);\n");
   head=&m->args;
   idx=0;
 //DocPrint(doc,"DbgPrint(\"%s.%Q\n\");",class_name,m->name);
@@ -1855,7 +1828,7 @@ U0 STRepl(U8 *dft="",Bool interactive=TRUE) {
       replace=DocPrint(doc,"  CFrogThing *stk[$$LK,\"replace\"$$],*retval=FROG_SMALL_NIL;\n");
       DocPrint(doc,"  static Bool st_return=FALSE;\n");
       DocPrint(doc,"  Bool *return_flag=STNewReplFrame(&st_return)->return_flag;\n");
-      DocPrint(doc,"CFrogThing *(*fun_ptr)(CFrogThing *,...);\n");
+      DocPrint(doc,"CFrogThing *(*fun_ptr)(CFrogThing *,I64 *argv,I64 aargc);\n");
       DocPrint(doc,"  CLocalsGeneric0 *parent_frame=Fs->user_data;\n");
       DocPrint(doc,"  I64 unwind=0,next_case=%d;\n",ast_case_num);
       MemSet(&dummy,0,sizeof CAST);

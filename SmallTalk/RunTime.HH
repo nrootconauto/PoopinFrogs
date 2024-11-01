@@ -35,7 +35,7 @@ class CFrogChr:CFrogThing {
 class CFrogBlock:CFrogThing {
   CFrogThing *self;
   CFrogThing *frame;
-  U8 (*fun_ptr)(CFrogThing *self,U8 *,...);//CSTFrame
+  U8 (*fun_ptr)(CFrogThing *self,I64 *argv,I64 argc);//CSTFrame
 };
 #ifndef CI64Set 
 extern class CI64Set;

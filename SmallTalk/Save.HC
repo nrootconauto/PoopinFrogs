@@ -197,7 +197,7 @@ nil:
     }
   } 
 }
-CFrogStr *SaveThing(CFrogThing *t,...) {
+CFrogStr *SaveThing(CFrogThing *t,I64 *argv,I64 argc) {
   CDoc *doc=DocNew();
   doc->flags|=DOCF_NO_CURSOR;
   U8 *as_txt;
@@ -210,7 +210,7 @@ CFrogStr *SaveThing(CFrogThing *t,...) {
   DocDel(doc);
   return t;
 }
-CFrogStr *SaveThingToSaveFile(CFrogThing *t,...) {
+CFrogStr *SaveThingToSaveFile(CFrogThing *t,I64 *argv,I64 argc) {
   U8 *name=AsString(argv[0]);
   if(!name) return FROG_SMALL_NIL;
   U8 *in_dir=MStrPrint("/FrogSaves/%s.DD",name);
@@ -226,7 +226,7 @@ CFrogStr *SaveThingToSaveFile(CFrogThing *t,...) {
   Free(name);
   return FROG_SMALL_NIL;
 }
-CFrogThing *RestoreThingFromSaveFile(CFrogStr *t,...) {
+CFrogThing *RestoreThingFromSaveFile(CFrogStr *t,I64 *argv,I64 argc) {
   U8 *name=AsString(t);
   if(!name) return FROG_SMALL_NIL;
   CFrogThing *ret=FROG_SMALL_NIL;
@@ -241,7 +241,7 @@ CFrogThing *RestoreThingFromSaveFile(CFrogStr *t,...) {
   Free(data);
   return ret;
 }
-CFrogThing *RestoreThing(CFrogStr *t,...) {
+CFrogThing *RestoreThing(CFrogStr *t,I64 *argv,I64 argc) {
   U8 *data=AsString(t);
   if(!data) return FROG_SMALL_NIL;
   CFrogThing *ret=FROG_SMALL_NIL;

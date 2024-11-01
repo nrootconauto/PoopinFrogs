@@ -7,7 +7,7 @@ U0 FrogDictInit(CFrogDictionary *d) {
   d->t=HashTableNew(0x20,frog_mem_task);
   d->all=FrogArrayNew;
 }
-CFrogThing *FrogDictAt(CFrogDictionary *d,...) {
+CFrogThing *FrogDictAt(CFrogDictionary *d,I64 *argv,I64 argc) {
   U8 *got=AsString(argv[0]);
   CHashGeneric *gen=NULL;
   if(got) {
@@ -18,7 +18,7 @@ CFrogThing *FrogDictAt(CFrogDictionary *d,...) {
   return gen->user_data1;
 }
 AddMethod("CFrogDictionary","at:",&FrogDictAt);
-CFrogThing *FrogDictAtPut(CFrogDictionary *d,...) {
+CFrogThing *FrogDictAtPut(CFrogDictionary *d,I64 *argv,I64 argc) {
   U8 *got=AsString(argv[0]);
   CHashGeneric *gen=NULL;
   if(got) {
@@ -37,7 +37,7 @@ CFrogThing *FrogDictAtPut(CFrogDictionary *d,...) {
   return gen->user_data1;
 }
 AddMethod("CFrogDictionary","at:put:",&FrogDictAtPut);
-CFrogThing *FrogDictDoKeys(CFrogDictionary *d,...) {
+CFrogThing *FrogDictDoKeys(CFrogDictionary *d,I64 *argv,I64 argc) {
   I64 idx,mask=d->t->mask;
   CHashGeneric *gen;
   for(idx=0;idx<=mask;idx++) {

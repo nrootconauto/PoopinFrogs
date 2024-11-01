@@ -279,7 +279,7 @@ U0 UIChatLogDraw(CDC *dc,I64 xoff,I64 yoff,CUIChatLog *log) {
   }
 fin:;
 }
-CFrogThing *STUIFocusElem(CUIElem *self,...) {
+CFrogThing *STUIFocusElem(CUIElem *self,I64 *argv,I64 argc) {
   UIFocusElem(self);
   return FROG_SMALL_NIL;
 }
@@ -597,7 +597,7 @@ U0 LoadColorSyms() {
 }
 LoadColorSyms;
 
-CFrogThing *STUIUpdateWithEvent(CUIElem *e,...) {
+CFrogThing *STUIUpdateWithEvent(CUIElem *e,I64 *argv,I64 argc) {
   CUIEvent *ev=argv[0];
   UpdateUI(e,ev->raw_type,ev->m1,ev->m2);
 }
@@ -606,7 +606,7 @@ U0 UIShellDrawIt(CTask *t,CDC *dc) {
   GrBlot(dc,0,0,FramePtr("screen_dc",t));
   DrawUIRoot(t,dc);
 }
-CFrogThing *UIShellRun(CUIShell *shell,...) {
+CFrogThing *UIShellRun(CUIShell *shell,I64 *argv,I64 argc) {
   CDC *dc=DCNew(GR_WIDTH,GR_HEIGHT);
   DCDepthBufAlloc(dc);
   SettingsPush;

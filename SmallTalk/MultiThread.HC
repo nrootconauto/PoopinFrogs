@@ -21,7 +21,7 @@ U0 STThreadRT(CFrogThread *thread) {
   thread->task=NULL;
   Exit;
 }
-CFrogThread *ThreadNew(CFrogThing *ul,...) {
+CFrogThread *ThreadNew(CFrogThing *ul,I64 *argv,I64 argc) {
   if(!ThingHasClass(argv[0],"CFrogBlock")) return FROG_SMALL_NIL;
   CFrogThread *t=ConstructThing("CFrogThread");
   t->block=argv[0];
@@ -29,21 +29,21 @@ CFrogThread *ThreadNew(CFrogThing *ul,...) {
   return t;
 }
 AddClassMethod("CFrogThread","spawn:",&ThreadNew);
-CFrogThread *ThreadKill(CFrogThread *t,...) {
+CFrogThread *ThreadKill(CFrogThread *t,I64 *argv,I64 argc) {
   if(t->task) {
     Kill(t->task,FALSE);
   }
   return FROG_SMALL_NIL;
 }
 AddMethod("CFrogThread","kill",&ThreadKill);
-CFrogThread *ThreadYield(CFrogThread *t,...) {
+CFrogThread *ThreadYield(CFrogThread *t,I64 *argv,I64 argc) {
   FrogGarbageCollectUnlock;
   Sleep(3);
   FrogGarbageCollectLock;
   return FROG_SMALL_NIL;
 }
 AddClassMethod("CFrogThread","yield",&ThreadYield);
-CFrogThread *ThreadSleep(CFrogThread *t,...) {
+CFrogThread *ThreadSleep(CFrogThread *t,I64 *argv,I64 argc) {
   FrogGarbageCollectUnlock;
   Sleep(1000*AsF64(argv[0]));
   FrogGarbageCollectLock;
