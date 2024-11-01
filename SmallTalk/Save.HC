@@ -241,7 +241,7 @@ CFrogThing *RestoreThingFromSaveFile(CFrogStr *t,I64 *argv,I64 argc) {
   Free(data);
   return ret;
 }
-CFrogThing *RestoreThing(CFrogStr *t,I64 *argv,I64 argc) {
+CFrogThing *RestoreThing(CFrogStr *t,I64 *argv,I64 argc) {
   U8 *data=AsString(t);
   if(!data) return FROG_SMALL_NIL;
   CFrogThing *ret=FROG_SMALL_NIL;

@@ -49,7 +49,7 @@ putGraphics: lump=CFrogStr atX: x=CFrogNum atY: y=CFrogNum
     ws->sidey _ sidey .
     ws->sidez _ sidez .
   ] . 
-  more _ self addGraphics: lump atX: x atY: y . 
+  more _ self addGraphics: (CFrogImg get: lump) atX: x atY: y . 
    w _ #world .
   -1 to: 2 do:[:oz=CFrogNum|
     sidey ifTrue: [

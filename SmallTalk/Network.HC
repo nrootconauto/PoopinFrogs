@@ -166,7 +166,7 @@ CNetStream *NetStreamSendI32(CNetStream *ns,I64 *argv,I64 argc) {
   return FROG_SMALL_NIL;
 }
 AddMethod("CNetStream","sendI32:",&NetStreamSendI32);
-CNetStream *NetStreamSendU8(CNetStream *ns,I64 *argv,I64 argc) {
+CNetStream *NetStreamSendU8(CNetStream *ns,I64 *argv,I64 argc) {
   U8 buf[4048];
   CFrogThing *t;
   U32 num=AsF64(argv[0]);

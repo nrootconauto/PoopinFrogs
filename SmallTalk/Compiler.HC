@@ -736,7 +736,7 @@ static I64 pass=0,fail=0;
   } else 
     ExePutS(ret);
   Free(ret);
-  DocDel(doc);
+  DocDel(doc);
   FramePtrDel("ST@@stk_depth");
   LocalsDel(locals);
   return MStrPrint("Thunk@@%d",thunk_idx);

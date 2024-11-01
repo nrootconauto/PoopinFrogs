@@ -628,7 +628,7 @@ CFrogThing *ConstructThing(U8 *name,...) {
       return ret;
     }
   } else
-    ret=_ConstructThing(name,argc,argv);
+    ret=_ConstructThing(name,argc,argv);
   if(!ret) ret=FROG_SMALL_NIL;
   return ret;
 }

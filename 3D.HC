@@ -2479,22 +2479,18 @@ U0 FloorStainDel(CFloorStain *s) {
 }
 
 CFrogThing *WallStainSetGr(CWallStain *self,I64 *argv,I64 argc) {
-  CFrogStr *str=argv[0];
-  U8 *name=AsString(str),*raw=BlobFileGetLump("ASS",name);
   I64 x=AsF64(argv[1]),y=AsF64(argv[2]);
+  CFrogImg *img=argv[0];
   CDC *loaded;
   CFrogNum *ret=FrogNumNew(0);
-  if(raw) {
+  if(ThingHasClass(img,"CFrogImg")) {
     if(!self->dc) {
-      self->dc=AnimDCNew(128,128,frog_mem_task);
+      self->dc=DCNew(128,128,frog_mem_task);
       DCFill(self->dc);
     }
-    loaded=AnimDCLoad(raw);
+    loaded=img->dc;
     ret=FrogNumNew(GrBlot(self->dc,x-loaded->width/2,y-loaded->height/2,loaded)); 
-    AnimDCDel(loaded);
-    Free(raw);
   }
-  Free(name);
   return ret;
 }
 AddMethod("CWallStain","addGraphics:atX:atY:",&WallStainSetGr);
@@ -2768,7 +2764,7 @@ stain:
 	      );
 	      p->splat_lump_name[0]=0;
 	    }
-	  }
+	  }
         }
     if(Frog_tS>1+p->born_at) {
       QueRem(p);
