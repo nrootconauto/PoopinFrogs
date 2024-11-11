@@ -274,7 +274,7 @@ class C3DThing:CFrogThing {
   Bool floating;
   Bool hit_thing; //Set by physics when we hit a thing
   Bool draw_flip;
-  Bool no_update;
+  Bool no_update;
   Bool pad[8-3];
 //Private,See GetColorForRay/PrepareThingsForDraw
   CDC *draw_face no_serialize 1 ; //Private
@@ -563,6 +563,20 @@ class CPoopMan:C3DThing {
   I64 threw;
   C3DThing *target;
 };
+
+class CEggplantMan:C3DThing {
+  CFrogRandom *random_generator;
+  CFrogStr *state;
+  C3DLine *left_arm;
+  C3DLine *right_arm;
+  //TODO hands
+  F64 state_start_tS;
+  I64 steps_to_walk; //Before attack
+  I64 just_jumped;
+  C3DThing *target;
+};
+
+
 class CAlien:C3DThing {
   CFrogRandom *random_generator;
   CFrogStr *state;

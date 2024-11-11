@@ -1,3 +1,4 @@
+#define mp_cnt 1
 #include "AnimDC.HC"
 #include "BlobFile.HC"
 #include "SmallTalk/Load.HC"
@@ -521,7 +522,7 @@ I64 PassesThoughBlock(C3DWorld *w,F64 slope,I64 x,I64 y,F64 *dist,F64 cos,F64 si
 I64 BlockAtXYZ(I64 x,I64 y,I64 z) {
   I64 tile=x+y*w->world_width;
   if(0<=tile<w->world_height*w->world_width) {
-    if(I8_MIN<=z<=I8_MAX) {
+    if(I8_MIN<=z<I8_MAX) {
       return w->world_blocks[tile*256+z-I8_MIN];
     }
   }
@@ -530,7 +531,7 @@ I64 BlockAtXYZ(I64 x,I64 y,I64 z) {
 I64 LightAtXYZ(I64 x,I64 y,I64 z) {
   I64 tile=x+y*w->world_width;
   if(0<=tile<w->world_height*w->world_width) {
-    if(I8_MIN<=z<=I8_MAX) {
+    if(I8_MIN<=z<I8_MAX) {
       return w->world_lighting[tile*256+z-I8_MIN];
     }
   }
@@ -554,7 +555,7 @@ Bool SetLightAtXYZ(I64 x,I64 y,I64 z,I64 light) {
     return FALSE;
   if(0<=x<w->world_width)
     if(0<=y<w->world_height)
-      if(I8_MIN<=z<=I8_MAX) {
+      if(I8_MIN<=z<I8_MAX) {
 	l=w->world_lighting[tp*256+z-I8_MIN];
 	if(l<light) {
 	  w->world_lighting[tp*256+z-I8_MIN]=light;
@@ -1815,7 +1816,7 @@ I64 GetColorForRay(C3DWorldManager *man,CD3 *origin,CD3 *ray,F64 dist,F64 *hit_a
   ty=y;
   tz=Floor(origin->z);
   for(cur=0;cur!=cnt&&!hit;cur++) {
-    if(I8_MIN<=tz<=I8_MAX)
+    if(I8_MIN<=tz<I8_MAX)
       if(0<=tx<w->world_width)
         if(0<=ty<w->world_height) {
 	  idx=ty*w->world_width+tx;
@@ -1963,7 +1964,7 @@ try_block:;
 	        new_origin.y=tty;
 	        new_origin.z=hit_dist2/128.*slope+origin->z;
 	      }
-	      if(I8_MIN<=tz+sidez<=I8_MAX) {
+	      if(I8_MIN<=tz+sidez<I8_MAX) {
 	        if(0<=ty-sidey<w->world_height)
 		  if(0<=tx+sidex<w->world_width) {
 		    idx=(ty+sidey)*w->world_width+tx+sidex;
@@ -2597,7 +2598,7 @@ CFrogThing *WorldManagerSetTileAtXAtY(C3DWorldManager *self,I64 *argv,I64 argc) 
   I64 z=AsF64(argv[3]);
   if(0<=x<w->world_width)
     if(0<=y<w->world_height) {
-      if(I8_MIN<=z<=I8_MAX)
+      if(I8_MIN<=z<I8_MAX)
         return w->world_blocks[(x+y*w->world_width)*256+z-I8_MIN]=tile;
     }
   return FROG_SMALL_NIL;
@@ -2681,7 +2682,7 @@ CFrogNum *WorldManagerSetTileAtXAtYAtZ(C3DWorldManager *,I64 *argv,I64 argc) {
   I64 z=Floor(AsF64(argv[3]));
   if(0<=x<w->world_width)
     if(0<=y<w->world_height)
-      if(I8_MIN<=z<=I8_MAX) {
+      if(I8_MIN<=z<I8_MAX) {
 	w->world_blocks[(x+y*w->world_width)*256+z-I8_MIN]=AsF64(argv[0]);
       }
   return FROG_SMALL_NIL;

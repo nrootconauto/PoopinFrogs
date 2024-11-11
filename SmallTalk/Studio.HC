@@ -795,8 +795,8 @@ U0 LoadMethodsFromBlob(U8 *blob_file=NULL,Bool dry_only=FALSE) {
   Free(blob_file);
 }
 #if __CMD_LINE__
-STStudio;;
 LoadMethodsFromBlob;
+STStudio;;
 //STRepl;
 //CDoc *d=DocNew("/WWW/SmallTalkHelp.DD");
 //STHelpIdx(d);

@@ -1760,7 +1760,7 @@ F64 Frog_tS() {
     return frog_pause_tS;
   return tS+frog_time_offset;
 }
-CFrogNum *FrogTimePause() {
+CFrogNum *FrogTimePause(CFrogThing *ul,I64 *argv,I64 argc) {
   if(!frog_time_paused) {
     frog_pause_tS=Frog_tS;
     frog_time_paused=TRUE;
@@ -1768,7 +1768,7 @@ CFrogNum *FrogTimePause() {
   return FROG_SMALL_NIL;
 }
 AddClassMethod("CFrogTime","pause",&FrogTimePause);
-CFrogNum *FrogTimeUnpause() {
+CFrogNum *FrogTimeUnpause(CFrogThing *ul,I64 *argv,I64 argc) {
   if(frog_time_paused) {
     frog_time_offset=frog_pause_tS-tS;
     frog_time_paused=FALSE;

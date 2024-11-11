@@ -1,5 +1,10 @@
-setSide: str=CFrogStr 
+setSide: i*
 ->*
 |
 |
-  side _ CFrogImg get: str 
+  (i hasClass: CFrogStr) ifTrue: [
+   i _ CFrogImg get: i 
+  ] .
+
+  side _ i .
+  self save

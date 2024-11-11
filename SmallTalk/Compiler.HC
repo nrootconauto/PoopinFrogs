@@ -839,6 +839,10 @@ U0 AssignTypeToNode(CLocals *l,CAST *ast) {
   if(*ast->var_class_name) return;
   CAST *a;
   switch(ast->type) {
+   case AST_SELF:
+     if(cn=FramePtr("MethodClass"))
+       StrCpy(ast->var_class_name,cn);
+     break;
    case AST_BLOCK:
      StrCpy(ast->var_class_name,"CFrogBlock");
      break;

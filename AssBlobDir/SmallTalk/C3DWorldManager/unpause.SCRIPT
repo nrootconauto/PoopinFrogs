@@ -1,5 +1,6 @@
 unpause ->* || 
   is_client ifFalse: [
+'UNPAUSE' show.
     CFrogTime unpause.
     is_paused _ 0 .
   ]

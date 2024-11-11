@@ -1,0 +1,32 @@
+grabbedThing ->C3DThing
+|
+  d=CFrogNum  
+  d2=CFrogNum
+  a=CFrogNum
+  xx=CFrogNUm
+  yy=CFrogNum
+  zz=CFrogNum
+  things=CFrogArray
+  best_thing=CFrogThing
+  best_dist=CFrogNum
+|
+  (left_arm hasClass: C3DLine) ifFalse: [
+    ^ 0 .
+  ] .
+  d _ ((left_arm->x - x ) squared +  (left_arm->y - y) squared ) sqrt .
+  things _ #world getThingsInRadiusFromX: x fromY: y withRadius: d + 128 .
+  things _ things select:[:t=C3DThing|
+    ((left_arm hitsThing: t withRadius: 190 ) and: t ~= self) and: t->health > 0
+  ] .
+
+  best_thing _ 0 .
+  best_dist _ d * 2 + 256 .
+  things do: [:t=C3DThing|
+    d _ ((t->x - x ) squared +  (t->y - y) squared + (t->z - z * 128)squared ) sqrt .
+    best_dist > d ifTrue: [
+      best_thing _ t .
+      best_dist _ d .
+    ] .
+  ] .
+
+  ^ best_thing .

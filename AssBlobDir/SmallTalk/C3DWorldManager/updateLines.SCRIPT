@@ -13,6 +13,10 @@ updateLines ->* |
   'Send lines to level' .
   tmp _ #() .
   things do: [:t* |
+    (t hasClass: CEggplantMan) ifTrue: [
+      tmp add: t->left_arm .
+      tmp add: t->right_arm .
+    ] .
     ((t hasClass: CFrogNPC) or: (t hasClass: CPorky))ifTrue: [
      tmp add: t->tongue .
      line _ t->tongue .

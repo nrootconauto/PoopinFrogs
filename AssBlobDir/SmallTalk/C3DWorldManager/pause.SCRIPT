@@ -2,6 +2,11 @@ pause->*
 |
 |
  is_client ifFalse: [
+'PAUSE' show .
    CFrogTime pause .
+'poo0'show.
    is_paused _ 1 .
+'poo1'show.
+   is_paused show .
+'poo2'show.
  ] .

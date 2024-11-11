@@ -1,0 +1,39 @@
+hitsThing:t=C3DThing
+withRadius: within=CFrogNum
+  ->CFrogNum
+|
+  ab=CFrogArray
+  ac=CFrogArray
+  tt=CFrogNum
+  dot=CFrogBlock
+  d=CFrogNum
+  new=CFrogArray 
+|
+  dot _ [:a* :b*|
+    (a first * b first) +
+    (a last * b last) +
+    ((a at:1) * (b at: 1 ))
+  ] .
+  'https://gdbooks.gitbooks.io/3dcollisions/content/Chapter1/closest_point_on_ray.html' .
+  ab _ #( (x -x0) (y - y0) (z - z0 *128)) .
+  d _ (dot value: ab value: ab) sqrt .
+  ab _ ab collect: [:n=CFrogNum| n /d] .
+
+  ac _ #( (t->x -x0) (t->y - y0)  (t->z - z0 * 128) ) .
+
+  tt _(dot value: ac value: ab)/(dot value: ab value: ab ).
+
+  (tt > (d + within) ) ifTrue: [
+     ^ 0
+  ] .
+  (tt <= 0 ) ifTrue: [
+     ^ 0
+  ] .
+  
+  new _ #(
+    (t->x - (tt * ab first + x ))
+    (t->y - (tt * (ab at: 1) + y ))
+    (t->z - (tt * ab last + z ))
+  ) .
+
+  ^ (dot value: new value: new ) < (within * within) . 

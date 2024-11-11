@@ -1,0 +1,57 @@
+update->* |
+  w=C3DWorldManager
+  p=CPlayer
+  tS=CFrogNum 
+  speed=CFrogNum
+|
+  speed _ 16 .
+
+
+  tS _ CFrogTime now asSeconds.
+  momx2 _ 0 .
+  momy2 _ 0 .
+  w _ #world .
+
+
+  health <= 0 ifTrue: [
+    state _ 'Dead' .
+    animation_no_repeat _ 1 .   
+    animation_start_tS _ tS .
+    template _ w getThingTemplate: 'CEggplantMan/Dead' .
+    self die .
+  ] .
+
+  (state = 'Normal' or: state = 'Idle' ) ifTrue: [
+    template _ w getThingTemplate: 'CEggplantMan/Normal' .
+    animation_no_repeat _ 0 .   
+    ((target hasClass: C3DThing) or: target->health < 0 ) ifFalse: [
+      target _ self lookForTarget .
+    ]
+  ] .
+  (target hasClass: C3DThing) ifFalse: [
+    ^ 0
+  ] .
+
+
+  state = 'Normal' ifTrue: [
+    template _ w getThingTemplate: 'CEggplantMan/Normal' .
+    animation_no_repeat _ 0 .
+    state _ 'Chase' .
+    steps_to_walk _ random_generator next * 8 + 4 .
+  ].
+
+  state = 'Chase' ifTrue: [
+    self wander: speed withJumpVelocity: .55 withTarget: target .
+    steps_to_walk  _ steps_to_walk - 1 .
+    steps_to_walk > 0 ifFalse: [
+    (self canSeeThing: target)  ifTrue: [
+        state _ 'Grab' .
+        template _ w getThingTemplate: 'CEggplantMan/Attack' .
+        animation_start_tS _ tS .
+        animation_no_repeat _ 1 .   
+        state_start_tS _ tS .
+      ] ifFalse: [
+        state _ 'Normal' .
+      ]
+    ].
+  ] .

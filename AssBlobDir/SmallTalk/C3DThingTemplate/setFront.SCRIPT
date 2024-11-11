@@ -1,5 +1,9 @@
-setFront: str=CFrogStr
+setFront: i*
 ->*
 |
 |
-  front _ CFrogImg get: str 
+  (i hasClass: CFrogStr) ifTrue: [
+   i _ CFrogImg get: i 
+  ] .
+  front _ i.
+  self save .

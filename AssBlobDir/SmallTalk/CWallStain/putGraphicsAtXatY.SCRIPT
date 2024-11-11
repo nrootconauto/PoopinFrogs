@@ -30,8 +30,8 @@ putGraphics: lump=CFrogStr atX: x=CFrogNum atY: y=CFrogNum
       inher_props value .
       add _ 1 .
     ] .
-    (ws addGraphics: lump atX: (xx - tile_x) * -128 + x atY: ( yy - tile_y + zz - tile_z ) * -128 + y) show .
-    (ws addGraphics: lump atX: (xx - tile_x) * -128 + x atY: ( yy - tile_y + zz - tile_z ) * -128 + y) ifTrue: [
+    (ws addGraphics: (CFrogImg get: lump) atX: (xx - tile_x) * -128 + x atY: ( yy - tile_y + zz - tile_z ) * -128 + y) show .
+    (ws addGraphics: (CFrogImg get: lump) atX: (xx - tile_x) * -128 + x atY: ( yy - tile_y + zz - tile_z ) * -128 + y) ifTrue: [
       add ifTrue: [
         w addWallStain: ws
       ] .

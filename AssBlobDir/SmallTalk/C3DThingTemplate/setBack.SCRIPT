@@ -1,5 +1,9 @@
-setBack: str=CFrogStr 
+setBack: i*
 ->*
 |
 |
-  back _ CFrogImg get: str 
+  (i hasClass: CFrogStr) ifTrue: [
+   i _ CFrogImg get: i 
+  ] .
+  back _ i  .
+  self save 
