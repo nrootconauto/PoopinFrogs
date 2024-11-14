@@ -271,7 +271,7 @@ class C3DThing:CFrogThing {
   CFrogStr *chat_bot_name;
   I64 activate_tag;
   Bool no_fall_off_edge;
-  Bool floating;
+  Bool floating;
   Bool hit_thing; //Set by physics when we hit a thing
   Bool draw_flip;
   Bool no_update;
@@ -567,6 +567,8 @@ class CPoopMan:C3DThing {
 class CEggplantMan:C3DThing {
   CFrogRandom *random_generator;
   CFrogStr *state;
+  C3DThing *left_hand;
+  C3DThing *right_hand;
   C3DLine *left_arm;
   C3DLine *right_arm;
   //TODO hands

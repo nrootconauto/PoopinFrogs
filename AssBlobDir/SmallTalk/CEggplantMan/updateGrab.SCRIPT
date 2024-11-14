@@ -15,6 +15,10 @@ updateGrab->CFrogNum
   hit_thing=CFrogBlock
   thing=C3DThing
 |
+  #world removeThing: left_hand .
+  #world removeThing: right_hand .
+
+
   hit_thing _ [:target=C3DThing|
    'We successfully? grabbed the target' .
     state _ 'Grab3' .
@@ -55,6 +59,23 @@ updateGrab->CFrogNum
     right_arm->x _ tx + (32*normal cos ) .
     right_arm->y _ ty + (32*normal sin ) .
     right_arm->z _ tz .
+
+    right_hand _ C3DThing new.
+    right_hand->template _ #world getThingTemplate: 'CEggplantMan/Hand' .
+    right_hand->x _ right_arm->x .
+    right_hand->y _ right_arm->y .
+    right_hand->z _ right_arm->z .
+    right_hand->floating _ 1 .
+    right_hand->angle _ angle .
+
+    left_hand _ C3DThing new.
+    left_hand->template _ #world getThingTemplate: 'CEggplantMan/Hand' .
+    left_hand->x _ left_arm->x .
+    left_hand->y _ left_arm->y .
+    left_hand->z _ left_arm->z .
+    left_hand->floating _ 1 .
+    left_hand->angle _ angle .
+
   ].
 
   w _ #world .
@@ -121,6 +142,8 @@ updateGrab->CFrogNum
     d <= 0.11 ifTrue: [
       left_arm _ 0 .
       right_arm _ 0 .
+      left_hand _ 0 .
+      right_hand _ 0 .
       state _ 'Normal' .
       ^ 0 .
     ] .
@@ -130,7 +153,10 @@ updateGrab->CFrogNum
   ] .
 
 
+
   left_arm _ 0 .
   right_arm _ 0 .
+  left_hand _ 0 .
+  right_hand _ 0 .
 
   ^ 0 .
