@@ -1,3 +1,4 @@
+#define mp_cnt 1
 #include "AnimDC.HC"
 #include "BlobFile.HC"
 #include "SmallTalk/Load.HC"
@@ -718,6 +719,10 @@ Bool HeightImpossible(C3DWorld *w,I64 ix,I64 iy,F64 above,Bool allow_ceil,F64 ta
   I64 c,idx2,t;
   F64 h;
   if(!(-128<iz<128)) return FALSE;
+  if(0>ix) return TRUE;
+  if(w->world_width<=ix) return TRUE;
+  if(0>iy) return TRUE;
+  if(w->world_height<=iy) return TRUE;
   if(IsSolidTile(BlockAtXYZ(ix,iy,iz))) {
      return TRUE;
   }
@@ -1007,6 +1012,15 @@ Bool C3DWorldMoveWithCollision(C3DWorld *w,F64 angle,F64 dist,F64 *x,F64 *y,Bool
     }
   }
 fin:
+  if(!(0<=w->x/128.<w->world_width)||
+	!(0<=w->y/128.<w->world_height)
+	) {
+    if(x)
+      *x=Clamp(w->x/128.,0.,w->world_width)*128;
+    if(y)
+      *y=Clamp(w->y/128.,0.,w->world_height)*128;
+    hit_wall=TRUE;
+  }
   w->x=old_x,w->y=old_y;
   return hit_wall;
 }
@@ -1759,12 +1773,6 @@ Bool SegmentSegmentIntersect(CD2 *hit_at,CD2 *a,CD2 *b,CD2 *a2,CD2 *b2,F64 *t,F6
 //https://github.com/cgyurgyik/fast-voxel-traversal-algorithm/blob/master/overview/FastVoxelTraversalOverview.md
 #define RAY_TRACE_MAX_DEPTH 3
 I64 GetColorForRay(C3DWorldManager *man,CD3 *origin,CD3 *ray,F64 dist,F64 *hit_at,CD3 *hit_cords,I64 depth=0,I64 last_block=0,I64 fog_color=BLACK,Bool record_tile=FALSE) { 
-  if(Abs(ray->x-Ceil(ray->x))<.001)
-    ray->x-=.001;
-  if(Abs(ray->y-Ceil(ray->y))<.001)
-    ray->y-=.001;
-  if(Abs(ray->z-Ceil(ray->z))<.001)
-    ray->z-=.001;
   CFrogArray *grid=man->grid;
   C3DWorld *w=man->world_handle;
   CI64Set *do_things;
@@ -1780,6 +1788,9 @@ I64 GetColorForRay(C3DWorldManager *man,CD3 *origin,CD3 *ray,F64 dist,F64 *hit_a
   I64 stepx=Sign(ray->z);
   I64 stepy=Sign(-ray->x);
   I64 stepz=Sign(-ray->y);
+  if(-.001<=Ceil(x)-x<=.001) x-=.001;
+  if(-.001<=Ceil(y)-y<=.001) y-=.001;
+  if(-.001<=Ceil(origin->z)-origin->z<=.001) origin->z-=.001;
   F64 current_x_index=Ceil(x);
   F64 current_y_index=Ceil(y);
   F64 current_z_index=Ceil(origin->z);
@@ -1964,7 +1975,7 @@ try_block:;
 	        new_origin.z=hit_dist2/128.*slope+origin->z;
 	      }
 	      if(I8_MIN<=tz+sidez<I8_MAX) {
-	        if(0<=ty-sidey<w->world_height)
+	        if(0<=ty+sidey<w->world_height)
 		  if(0<=tx+sidex<w->world_width) {
 		    idx=(ty+sidey)*w->world_width+tx+sidex;
 		    lighting=ClampI64(w->world_lighting[idx*256+tz+sidez-I8_MIN],0,15);
