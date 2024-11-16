@@ -42,13 +42,13 @@ updateLines ->* |
       line _ ps->links first .
       line->x0 _ line->x - line->momx .
       line->y0 _ line->y - line->momy .
-      line->z0 _ line->z - line->momz .
+      line->z0 _ line->z - line->momz + .4  .
       1 to: ps->links size do: [:n=CFrogNum|
         line _ ps ->links at: n .
         line2 _ ps ->links at: n - 1 .
         line->x0 _ line2->x .
         line->y0 _ line2->y .
-        line->z0 _ line2->z + .4 .
+        line->z0 _ line2->z.
       ].
       tmp addAll: ps->links .
     ].

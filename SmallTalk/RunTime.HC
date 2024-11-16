@@ -806,7 +806,6 @@ CFrogNum *FrogThingIsKindOf(CFrogThing *obj,CFrogClass *cls) {
   if(cls&0xffFF==FROG_SMALL_CLASS) {
     cname=UniverseNumberToName(cls>>16);
     ret=FrogNumNew(ThingHasClass(obj,cname));
-    Free(cname);
   }
  return ret;
 }
@@ -1688,7 +1687,6 @@ CFrogStr *FrogClassName(CFrogClass *cls,I64 *argv,I64 argc) {
   U8 *n=UniverseNumberToName(cls>>16),*ret=FROG_SMALL_NIL;
   if(n) {
     ret=FrogStrNew(n);
-    Free(n);
   }
   return ret;
 }

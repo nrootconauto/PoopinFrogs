@@ -253,7 +253,6 @@ class C3DWorld {
    CD3 to_point[GR_WIDTH/4][GR_HEIGHT/4];
    I64 things_around_camera_origin_x;
    I64 things_around_camera_origin_y;
-   CI64Set *things_around_camera[VIEW_DIST*2][VIEW_DIST*2];
    CI64Set *stains_around_camera[VIEW_DIST*2][VIEW_DIST*2];
 };
 C3DWorld *w;
@@ -1549,13 +1548,6 @@ U0 PrepareThingsForDraw(C3DWorldManager *wm,F64 thing_scale=.6) {
   F64 st,en;
   F64 stz,enz;
   U32 dist;
-  for(ox=0;ox!=2*VIEW_DIST;ox++)
-    for(oy=0;oy!=2*VIEW_DIST;oy++) {
-      if(!w->things_around_camera[ox][oy])
-        w->things_around_camera[ox][oy]=I64SetNew;
-      else
-        w->things_around_camera[ox][oy]->cnt=0;
-    }
   w->things_around_camera_origin_x=Floor(w->x/128.)-VIEW_DIST;
   w->things_around_camera_origin_y=Floor(w->y/128.)-VIEW_DIST;
   while(--cnt>=0) {

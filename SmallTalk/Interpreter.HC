@@ -101,11 +101,17 @@ CFrogThing*BytecodeMethod(CFrogBlock *me,CI64Set *bc,I64 *data,I64 len) {
 
 
 
-CFrogThing *FrogBlockNewBC(I64 bc_cnt,I64 *bc,CInterpFrame *frame,CFrogThing *self) {
+CFrogThing *FrogBlockNewBC(CI64Set *bc,CInterpFrame *frame,CFrogThing *self) {
+  I64 i=0;
   CFrogBlock *me=FrogBlockNew(&BytecodeBlock,frame,self);
-  me->bytecode=I64SetNew;
-  while(--bc_cnt>=0)
-    I64SetAdd(me->bytecode,*(bc++));
+  me->bytecode=bc;
+//Dumb hack compute arity
+  while(i<bc->cnt) {
+    if(bc->body[i]!=BC_NVAR)
+      break;
+    me->arity++;
+    i+=2;
+  }
   return me;
 }
 CFrogThing *RunByteCode(CFrogThing *self,CI64Set *bytecode_stack,CI64Set *stack,CInterpFrame *fr) {
@@ -200,6 +206,9 @@ dft:
         stack->cnt=sp;
         I64SetAdd(stack,tt);
         break;
+      case BC_DROP:
+	I64SetPop(stack);
+	break;
       case BC_NVAR:
         I64SetAdd(fr->items,arg1<<16|FROG_SMALL_NUM);
         I64SetAdd(fr->items,tt=I64SetPop(stack));
@@ -252,9 +261,7 @@ dft:
         break;
       case BC_BLOCK:
         if(arg1) {
-	  tt=FrogBlockNewBC(arg1.i32[0],&bytecode_stack->body[ip],fr,self);
-	  tt(CFrogBlock*)->arity=arg1.i32[1];
-	  ip+=arg1.i32[0];
+	  tt=FrogBlockNewBC(arg1,fr,self);
         } else
 	  tt=FROG_SMALL_NIL;
         I64SetAdd(stack,tt);
@@ -338,17 +345,19 @@ U0 CompileAST(CI64Set *to,CAST *ast,Bool cascade=FALSE) {
       arg=ast->body.next;
       while(arg!=&ast->body) {
         CompileAST(tmp,arg);
+	if(arg->next!=&ast->body) {
+	  if(arg->type!=AST_ASSIGN) {
+	    I64SetAdd(tmp,BC_DROP);
+	    I64SetAdd(tmp,0);
+	  }
+	}
         arg=arg->next;
       }
 
       bc=BC_BLOCK;
-      arg1.i32[1]=QueCnt(&ast->args);
-      arg1.i32[0]=tmp->cnt;
+      arg1=tmp;
       I64SetAdd(to,bc);
       I64SetAdd(to,arg1);
-      for(u=0;u!=arg1.i32[0];u++)
-	I64SetAdd(to,tmp->body[u]);
-      I64SetDel(tmp);
       break;
     case AST_UNOP:
     case AST_BINOP:

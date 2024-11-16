@@ -51,7 +51,7 @@ I64 NameToUniverseNumber(U8 *name) {
 
 U8 *UniverseNumberToName(I64 num) {
   U8 *have=I64SetGetAt(universe_names,num);
-  if(have) return StrNew(have);
+  if(have) return have;
   return NULL;
 }
 
