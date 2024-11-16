@@ -658,20 +658,13 @@ CFrogThing *UIShellRun(CUIShell *shell,I64 *argv,I64 argc) {
             MsSet(GR_WIDTH/2,GR_HEIGHT/2);
 	  }
 	  break;
-	case MSG_MS_L_DOWN:
-	case MSG_MS_L_D_DOWN:
-	case MSG_MS_R_D_DOWN:
-	case MSG_MS_R_DOWN:
-	case MSG_MS_L_D_UP:
-	case MSG_MS_L_UP:
-	case MSG_MS_R_D_UP:
-	case MSG_MS_R_UP:
+        default:
  	  goto skip;
       }
       if(ThingHasClass(shell->on_event,"CFrogBlock"))
 	FrogBlockValue(shell->on_event,ev);
+skip:;
     }
-skip:
     if(old_ldown!=ms.lb) {
       old_ldown=ms.lb;
       ev=ConstructThing("CUIEvent");
@@ -713,15 +706,15 @@ skip:
       if(ThingHasClass(shell->on_event,"CFrogBlock"))
 	FrogBlockValue(shell->on_event,ev);
     }
+    if(tick++&15==0)
+      FrogGarbageCollect(FROG_SMALL_NIL);
+    if(ThingHasClass(shell->on_refresh,"CFrogBlock"))
+      FrogBlockValue(shell->on_refresh);
     if(fun) {
       draw_it=fun->exe_addr;
       (*draw_it)(Fs,dc);
     }
-    if(tick++&15==0)
-      FrogGarbageCollect(FROG_SMALL_NIL);
     Refresh;
-    if(ThingHasClass(shell->on_refresh,"CFrogBlock"))
-      FrogBlockValue(shell->on_refresh);
   }
   AIWNIOS_SetCaptureMouse(0);
   FramePtrDel("screen_dc");
@@ -736,7 +729,7 @@ skip:
 }
 AddMethod("CUIShell","run",&UIShellRun);
 #if__CMD_LINE__
-U0 STRunStmt(U8 *s) {STRepl(s,FALSE);}
+U0 STRunStmt(U8 *s) {STRepl(s,FALSE);}
 STRunStmt("#ui_root _ CUIScrollBars new .\n");
 STRunStmt("#ui_root setWidth: 400 ; setHeight: 100 .\n");
 STRunStmt("#ui_label _ CUILabel new .\n");

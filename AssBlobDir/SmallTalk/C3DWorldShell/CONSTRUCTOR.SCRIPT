@@ -160,7 +160,7 @@ init ->* |
          handled _ 1 .
          left  _ 0 .
        ].
-       ('', v->m1 asCharactor) uppercase = 'D' ifTrue: [
+       ('', v->m1 asCharactor) = 'd' ifTrue: [
          right _ 0 .
          handled _ 0 .
        ].
@@ -208,7 +208,7 @@ init ->* |
          handled _ 1 .
          left  _ 1 .
        ].
-       ('', v->m1 asCharactor) uppercase = 'D' ifTrue: [
+       ('', v->m1 asCharactor) = 'd' ifTrue: [
          right _ 1 .
          handled _ 1 .
        ].
@@ -230,7 +230,7 @@ init ->* |
        ].
        
        'Door Editor'.
-       ('', v->m1 asCharactor) uppercase = 'D' ifTrue: [
+       ('', v->m1 asCharactor) = 'D' ifTrue: [
          hand_active _ 0 .
          CDoorShell new run .
          hand_active _ 1 .

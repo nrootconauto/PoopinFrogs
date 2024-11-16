@@ -43,9 +43,10 @@ class CFrogChr:CFrogThing {
 extern class CInterpFrame;
 class CFrogBlock:CFrogThing {
   CFrogThing *self;
-  CInterpFrame *frame;
+  CInterpFrame *frame;
   I64 (*fun_ptr)(I64 *,I64*,I64);
   CI64Set *bytecode;
+  I64 arity;
 };
 class CFrogArray:CFrogThing {
   CI64Set *items;

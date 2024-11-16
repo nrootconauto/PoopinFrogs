@@ -26,7 +26,7 @@ U0 ErectFogTable0(U64 *table,I64 fog_color,F64 ratio) {
     for(dither=0;dither!=0xff;dither++) {
       r2=(palette[dither&0xf].r+palette[dither>>4].r)/2.;
       g2=(palette[dither&0xf].g+palette[dither>>4].g)/2.;
-      b2=(palette[dither&0xf].b+palette[dither>>4].b)/2.;
+      b2=(palette[dither&0xf].b+palette	[dither>>4].b)/2.;
       dist=Sqrt(Sqr(r-r2)+Sqr(g-g2)+Sqr(b-b2));
       if(dist<best_dist) {
 	best_color=dither;
@@ -2619,7 +2619,8 @@ CFrogThing *ThingCanSeeThing(C3DThing *self,I64 *argv,I64 argc) {
   F64 old_x=w->x,old_y=w->y,old_z=w->cam_height;
   CFrogThing *ret;
   C3DThing *other=argv[0];
-  if(other==FROG_SMALL_NIL) return FROG_SMALL_NIL;
+  if(!ThingHasClass(other,"C3DThing"))
+     return FROG_SMALL_NIL;
   w->x=self->x;
   w->y=self->y;
 //TODO replace "+1"  with thing height

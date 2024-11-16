@@ -21,6 +21,8 @@ thingsInDist: dist=CFrogNum atAngle: angle=CFrogNum fromThing: thing=C3DThing
     tmp _ (grid at: bx ) at: by .
     tmp do: [:t=C3DThing |
       (t hasClass: C3DThing ) ifTrue: [
+'IndexOF' show .
+ret size show .
         (ret indexOf: t) = -1 ifTrue: [
            ret add: t
         ] 

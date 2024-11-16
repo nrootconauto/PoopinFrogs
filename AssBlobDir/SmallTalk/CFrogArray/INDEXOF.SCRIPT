@@ -1,10 +1,14 @@
 indexOf: v* ->CFrogNum | idx=CFrogNum sz=CFrogNum |
   idx _ 0 .
   sz _ self size .
+'io ' show .
+ sz show .
   [
     idx _ idx + 1 .
     idx - 1 < sz
   ] whileTrue: [
+(self at: idx - 1 ) show .
+  v show .
     (self at: idx - 1 ) = v ifTrue: [^ idx - 1 ] .
   ].
   ^ -1 

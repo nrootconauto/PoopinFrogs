@@ -99,7 +99,11 @@ setBranchLabels: l=CFrogArray withElements: e=CFrogArray
    button->user_data _ p .
    button->label _ '+] ',  p first copy .
    button onLeftUp: [ :button=CUIButton |
+     button show .
+     'lup' show .
+    button->label show .
      p _ button ->user_data. 
+     p show .
      (p at: 2 ) = 0 ifTrue: [
        button->label _ '-] ',  p first copy .
        button->bg_color _ #color_LTPURPLE .

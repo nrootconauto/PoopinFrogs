@@ -628,7 +628,7 @@ again:;
     DocDel(edit);
     break;
     case STS_METHOD_HELP:
-    edit=DocNew("/SmallTalkHelp.DD");
+    edit=DocNew("/SmallTalkHelp.DD");
     tmp=PopUpGetStr("Enter Method Name Fragment:\n");
     if(StrLen(tmp)) {
       en=MStrPrint("*%s*",tmp);

@@ -196,14 +196,6 @@ class CLocalsGeneric:CFrogFrame {
   CFrogThing *body[0];
 };
 
-U0 STFrameDel() {
-  CLocalsGeneric *s=Fs->user_data;
-  if(!s) return;
-  CHashGeneric *gen;
-  s->thing_flags&=~THINGF_GC_ROOT;
-  Fs->user_data=s->next;
-}
-
 Bool IsSmalltalkMember2(CHashClass *cls) {
   if(cls->type&HTT_FUN)
     return FALSE;
@@ -463,7 +455,7 @@ CFrogThing *GetClassMemberVal(CFrogThing *t,U8 *member) {
      }
     return FrogNumNew(v);
   } 
-  return FROG_SMALL_NIL;
+  return FROG_SMALL_NIL;
 }
 
 U0 SetClassMemberValF64(CFrogThing *t,U8 *member,F64 val) {
@@ -665,6 +657,7 @@ CFrogThing *CallScript(U8 *name,CFrogThing *self,...) {
   I64 (*fptr)(CFrogThing *,I64*,I64);
   I64 id;
   CFrogThing *ret=NULL;
+  Fs->user_data=0;
   if(self&FROG_SMALL_CLASS==FROG_SMALL_CLASS) {
     fptr=UniverseGetClassMethodForClassByIdx(NameToUniverseNumber(name),self>>16);   
     if(fptr&&fptr!=&Useless)  { //Dumb hack
@@ -694,6 +687,7 @@ CFrogThing *CallScriptUniverse0(I64 who,CFrogThing *self,I64 *argv,I64 argc) {
   I64 (*fptr)(CFrogThing *,I64*,I64);
   I64 id;
   CFrogThing *ret=NULL;
+  Fs->user_data=0;
   if(self&0xFFff==FROG_SMALL_CLASS) {
     id=self>>16;
     fptr=UniverseGetClassMethodForClassByIdx(who,id);
@@ -1366,16 +1360,15 @@ CFrogThing *FrogWhileTrue(CFrogBlock *self,I64 *argv,I64 argc) {
   }
   while(TRUE) {
      cond=FrogBlockValue(self);
-     if(ThingHasClass(cond,"CFrogNum",FROG_SMALL_NUM)) {
-       if(AsF64(cond)) {
-         goto on_true;
-       }
-     } else {
+     if(self->frame->return_flag) 
        break;
-     }
+     if(AsF64(cond))
+       goto on_true;
      break;
 on_true:
      ret=FrogBlockValue(pass);
+     if(pass->frame->return_flag) 
+       break;
   }
   return ret;
 }
@@ -1494,6 +1487,12 @@ U0 FrogGarbageCollectThing(CFrogThing *root,Bool debug=FALSE) {
     }
     if(g->type=='Block')
       FrogGarbageCollectThing(g->parent,debug);
+  } else if(ThingHasClass(root,"CInterpFrame")) {
+    body=root(CFrogArray*)->items->body;
+    idx=root(CFrogArray*)->items->cnt;
+    while(--idx>=0)
+      FrogGarbageCollectThing(body[idx],debug);
+    FrogGarbageCollectThing(root(CInterpFrame*)->next_frame,debug);
   } else if(ThingHasClass(root,"CFrogArray")) {
     body=root(CFrogArray*)->items->body;
     idx=root(CFrogArray*)->items->cnt;

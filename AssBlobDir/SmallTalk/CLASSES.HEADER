@@ -46,6 +46,7 @@ class CFrogBlock:CFrogThing {
   CFrogThing *frame;
   U8 (*fun_ptr)(CFrogThing *self,U8 *);//CSTFrame
   CI64Set *byte_code;
+  I64 arity;
 };
 class CFrogArray:CFrogThing {
   CI64Set *items;
@@ -665,7 +666,7 @@ class CBlockEditShell:CUIShell {
 };
 class CThingEditShell:CUIShell {
 };
-class CDoorShell:CUIShell {
+class CDoorShell:CUIShell {
 };
 
 class CLandscapeGenerator:CFrogThing {

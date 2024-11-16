@@ -70,24 +70,31 @@ CFrogThing*BytecodeBlock(CFrogBlock *me,I64 *data,I64 len) {
   CI64Set *stack=I64SetNew;
   CInterpFrame *frame=ConstructThing("CInterpFrame");
   frame->next_frame=me->frame;
+  frame->thing_flags|=THINGF_GC_ROOT;
   I64 i;
-  for(i=0;i!=len;i++) {
-    I64SetAdd(stack,data[i]);
+  for(i=0;i!=me->arity;i++) {
+    if(i<len)
+      I64SetAdd(stack,data[i]);
+    else
+      I64SetAdd(stack,FROG_SMALL_NIL);
   }
   i=RunByteCode(me->self,me->bytecode,stack,frame);
   I64SetDel(stack);
+  frame->thing_flags&=~THINGF_GC_ROOT;
   return i;
 }
 
 CFrogThing*BytecodeMethod(CFrogBlock *me,CI64Set *bc,I64 *data,I64 len) {
   CI64Set *stack=I64SetNew;
   CInterpFrame *frame=ConstructThing("CInterpFrame");
+  frame->thing_flags|=THINGF_GC_ROOT;
   I64 i;
   for(i=0;i!=len;i++) {
     I64SetAdd(stack,data[i]);
   }
   RunByteCode(me,bc,stack,frame);
   I64SetDel(stack);
+  frame->thing_flags&=~THINGF_GC_ROOT;
   return frame->returned;
 }
 
@@ -107,102 +114,117 @@ CFrogThing *RunByteCode(CFrogThing *self,CI64Set *bytecode_stack,CI64Set *stack,
   CFrogSymbol *sym;
   U8 *str_name;
   CFrogThing *tt,*tt2;
-  while(!fr->return_flag&&ip<bytecode_stack->cnt) {
+  CInterpFrame *fr2;
+  while(ip<bytecode_stack->cnt) {
+    if(Fs->user_data) {
+      if(Fs->user_data!=fr) {
+        return FROG_SMALL_NIL;
+      }
+      Fs->user_data=NULL;
+      return fr->returned;
+    }
     bc=code[ip++];
     arg1=code[ip++];
     switch(bc) {
       case BC_CASCADE_UNIVERSE:
       case BC_RUN_UNIVERSE:
-	arity=arg1.i32[1];
+        arity=arg1.i32[1];
         sp=stack->cnt;
-	if(sp<arity+1) {
+        if(sp<arity+1) {
+	  DbgPrint("sp,%d,%d\n",sp,arity+1);
 	  throw('Fuck');
 	  sp=0;
-          tt=FROG_SMALL_NIL;
+	  tt=FROG_SMALL_NIL;
         } else {
 	  sp-=arity+1;
 	  tt=CallScriptUniverse0(arg1.i32[0],stack->body[sp],&stack->body[sp+1],arity);
 	  if(bc==BC_CASCADE_UNIVERSE) {
 	    tt=stack->body[sp];
 	  }
-	}
-	stack->cnt=sp;
-	I64SetAdd(stack,tt);
+        }
+        stack->cnt=sp;
+        I64SetAdd(stack,tt);
         break;
       case BC_NVAR:
-	I64SetAdd(fr->items,arg1<<16|FROG_SMALL_NUM);
-	I64SetAdd(fr->items,tt=I64SetPop(stack));
-	break;
+        I64SetAdd(fr->items,arg1<<16|FROG_SMALL_NUM);
+        I64SetAdd(fr->items,tt=I64SetPop(stack));
+        break;
       case BC_NVAR_NIL:
-	I64SetAdd(fr->items,arg1<<16|FROG_SMALL_NUM);
-	I64SetAdd(fr->items,FrogNumNew(0.));
-	break;
+        I64SetAdd(fr->items,arg1<<16|FROG_SMALL_NUM);
+        I64SetAdd(fr->items,FrogNumNew(0.));
+        break;
       case BC_VALUE:
-	I64SetAdd(stack,arg1);
+        I64SetAdd(stack,arg1);
         break;
       case BC_SYMBOL:
-	I64SetAdd(stack,FrogSymbol0(arg1)->value);
+        I64SetAdd(stack,FrogSymbol0(arg1)->value);
         break;
       case BC_STRING:
-	I64SetAdd(stack,FrogStrNew(arg1));
+        I64SetAdd(stack,FrogStrNew(arg1));
         break;
       case BC_ASSIGN_SYMBOL:
-	FrogSymbol0(arg1)->value=I64SetPop(stack);
-	break;
+        FrogSymbol0(arg1)->value=I64SetPop(stack);
+        break;
       case BC_ASSIGN_VAR:
-	InterpFrameSet(self,fr,arg1,I64SetPop(stack));
-	break;
+        InterpFrameSet(self,fr,arg1,I64SetPop(stack));
+        break;
       case BC_MEMBER:
-	tt=I64SetPop(stack);
-	tt=GetClassMemberVal(tt,UniverseNumberToName(arg1));
-	I64SetAdd(stack,tt);
-	break;
+        tt=I64SetPop(stack);
+        tt=GetClassMemberVal(tt,UniverseNumberToName(arg1));
+        I64SetAdd(stack,tt);
+        break;
       case BC_ASSIGN_MEMBER:
-	tt2=I64SetPop(stack);
-	tt=I64SetPop(stack);
-	SetClassMemberVal(tt2,UniverseNumberToName(arg1),tt);
-	break;
+        tt2=I64SetPop(stack);
+        tt=I64SetPop(stack);
+        SetClassMemberVal(tt2,UniverseNumberToName(arg1),tt);
+        break;
       case BC_SELF:
-	I64SetAdd(stack,self);
-	break;
+        I64SetAdd(stack,self);
+        break;
       case BC_VAR:
-	I64SetAdd(stack,InterpFrameGet(self,fr,arg1));
-	break;
+        I64SetAdd(stack,InterpFrameGet(self,fr,arg1));
+        break;
       case BC_ARRAY:
         tt=ConstructThing("CFrogArray");
-	arity=arg1;
-	if(arity<=stack->cnt) {
+        arity=arg1;
+        if(arity<=stack->cnt) {
 	  stack->cnt-=arity;
 	  for(arg1=0;arg1!=arity;arg1++) {
 	    I64SetAdd(tt(CFrogArray*)->items,stack->body[stack->cnt+arg1]);
 	  }
         }
-	I64SetAdd(stack,tt);
+        I64SetAdd(stack,tt);
         break;
       case BC_BLOCK:
-	if(arg1) {
-	  tt=FrogBlockNewBC(arg1,&bytecode_stack->body[ip],fr,self);
-	  ip+=arg1;
-	} else
+        if(arg1) {
+	  tt=FrogBlockNewBC(arg1.i32[0],&bytecode_stack->body[ip],fr,self);
+	  tt(CFrogBlock*)->arity=arg1.i32[1];
+	  ip+=arg1.i32[0];
+        } else
 	  tt=FROG_SMALL_NIL;
-	I64SetAdd(stack,tt);
+        I64SetAdd(stack,tt);
         break;
       case BC_RETURN:
-	tt=I64SetPop(stack);
-	while(fr) {
-	  if(fr==FROG_SMALL_NIL)
+        tt=I64SetPop(stack);
+        fr2=fr;
+        while(fr2) {
+	  if(fr2==FROG_SMALL_NIL)
 	    break;
-	  fr->returned=tt;
-	  fr->return_flag=TRUE;
-	  fr=fr->next_frame;
-	}
-	goto final;
+	  fr2->returned=tt;
+	  Fs->user_data=fr2;
+	  fr2=fr2->next_frame;
+        }
+        if(Fs->user_data==fr)
+	  Fs->user_data=NULL;
+        return tt;
       default:
-	"%d\n",bc;
-	throw('As');
+        DbgPrint("%d\n",bc);
+        throw('As');
     }
   }
 final:
+  if(Fs->user_data==fr)
+    Fs->user_data=NULL;
   if(stack->cnt)
     return I64SetPop(stack);
   return FROG_SMALL_NIL;
@@ -265,10 +287,11 @@ U0 CompileAST(CI64Set *to,CAST *ast,Bool cascade=FALSE) {
       }
 
       bc=BC_BLOCK;
-      arg1=tmp->cnt;
+      arg1.i32[1]=QueCnt(&ast->args);
+      arg1.i32[0]=tmp->cnt;
       I64SetAdd(to,bc);
       I64SetAdd(to,arg1);
-      for(u=0;u!=arg1;u++)
+      for(u=0;u!=arg1.i32[0];u++)
 	I64SetAdd(to,tmp->body[u]);
       I64SetDel(tmp);
       break;
@@ -285,7 +308,7 @@ U0 CompileAST(CI64Set *to,CAST *ast,Bool cascade=FALSE) {
         CompileAST(to,arg);
         arg=arg->next;
       }
-      I64SetAdd(to,bc);
+      I64SetAdd(to,bc);
       I64SetAdd(to,arg1);
       break;
     case AST_SYMBOL:

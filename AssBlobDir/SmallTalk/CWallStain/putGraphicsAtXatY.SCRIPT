@@ -18,6 +18,7 @@ putGraphics: lump=CFrogStr atX: x=CFrogNum atY: y=CFrogNum
     add _ 0 .
 
     stains _ (w->stains_grid at: xx / 4 ) at: yy / 4 .
+    stains size show .
     ws _ (stains select:[:w=CWallStain |
       ((((w->tile_x = xx floor and: w->tile_y = yy floor)
         and: w->tile_z = zz floor) and: w->sidex = sidex)
@@ -30,7 +31,6 @@ putGraphics: lump=CFrogStr atX: x=CFrogNum atY: y=CFrogNum
       inher_props value .
       add _ 1 .
     ] .
-    (ws addGraphics: (CFrogImg get: lump) atX: (xx - tile_x) * -128 + x atY: ( yy - tile_y + zz - tile_z ) * -128 + y) show .
     (ws addGraphics: (CFrogImg get: lump) atX: (xx - tile_x) * -128 + x atY: ( yy - tile_y + zz - tile_z ) * -128 + y) ifTrue: [
       add ifTrue: [
         w addWallStain: ws
