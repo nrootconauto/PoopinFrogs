@@ -707,9 +707,10 @@ skip:;
 	FrogBlockValue(shell->on_event,ev);
     }
     if(tick++&15==0)
-      FrogGarbageCollect(FROG_SMALL_NIL);
-    if(ThingHasClass(shell->on_refresh,"CFrogBlock"))
-      FrogBlockValue(shell->on_refresh);
+       FrogGarbageCollect(FROG_SMALL_NIL);
+    if(ThingHasClass(shell->on_refresh,"CFrogBlock")) {
+       FrogBlockValue(shell->on_refresh);
+    }
     if(fun) {
       draw_it=fun->exe_addr;
       (*draw_it)(Fs,dc);

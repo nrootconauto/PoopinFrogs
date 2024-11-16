@@ -22,7 +22,7 @@ updateLines ->* |
      line _ t->tongue .
      line->x0 _ t->x .
      line->y0 _ t->y .
-     line->z0 _ t->z .
+     line->z0 _ t->z + .5 .
     ].
     (t hasClass: CAssBird) ifTrue: [
       lnb _ t->lightning_bol .
@@ -48,7 +48,7 @@ updateLines ->* |
         line2 _ ps ->links at: n - 1 .
         line->x0 _ line2->x .
         line->y0 _ line2->y .
-        line->z0 _ line2->z .
+        line->z0 _ line2->z + .4 .
       ].
       tmp addAll: ps->links .
     ].

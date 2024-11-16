@@ -18,6 +18,7 @@
 #define BC_NVAR_NIL 15 //arg1 is universe name
 #define BC_CLASS 16
 #define BC_MEMBER 17
+#define BC_DROP18
 CFrogThing *InterpFrameGet(CFrogThing *self,CInterpFrame *f,I64 un) {
   I64 key=un<<16|FROG_SMALL_NUM;
 enter:;
@@ -137,7 +138,61 @@ CFrogThing *RunByteCode(CFrogThing *self,CI64Set *bytecode_stack,CI64Set *stack,
 	  tt=FROG_SMALL_NIL;
         } else {
 	  sp-=arity+1;
-	  tt=CallScriptUniverse0(arg1.i32[0],stack->body[sp],&stack->body[sp+1],arity);
+	  if(stack->body[sp].u16[0]==FROG_SMALL_NUM)
+	    switch(arg1.i32[0]) {
+	        break;case #exe{ExeUniverse("+");}:
+	        tt=FrogNumNew(AsF64(stack->body[sp])+AsF64(stack->body[sp+1]));
+	        break;case #exe{ExeUniverse("-");}:
+	        tt=FrogNumNew(AsF64(stack->body[sp])-AsF64(stack->body[sp+1]));
+	        break;case #exe{ExeUniverse("*");}:
+	        tt=FrogNumNew(AsF64(stack->body[sp])*AsF64(stack->body[sp+1]));
+	        break;case #exe{ExeUniverse("/");}:
+	        tt=FrogNumNew(AsF64(stack->body[sp])/AsF64(stack->body[sp+1]));
+	        break;case #exe{ExeUniverse("and:");}:
+	        tt=FrogNumNew(AsF64(stack->body[sp])&&AsF64(stack->body[sp+1]));
+	        break;case #exe{ExeUniverse("or:");}:
+	        tt=FrogNumNew(AsF64(stack->body[sp])||AsF64(stack->body[sp+1]));
+	        break;case #exe{ExeUniverse(">=");}:
+	        tt=FrogNumNew(AsF64(stack->body[sp])>=AsF64(stack->body[sp+1]));
+	        break;case #exe{ExeUniverse("<=");}:
+	        tt=FrogNumNew(AsF64(stack->body[sp])<=AsF64(stack->body[sp+1]));
+	        break;case #exe{ExeUniverse(">");}:
+	        tt=FrogNumNew(AsF64(stack->body[sp])>AsF64(stack->body[sp+1]));
+	        break;case #exe{ExeUniverse("<");}:
+	        tt=FrogNumNew(AsF64(stack->body[sp])<AsF64(stack->body[sp+1]));
+	        break;case #exe{ExeUniverse("=");}:
+	        tt=FrogNumNew(AsF64(stack->body[sp])==AsF64(stack->body[sp+1]));
+	        break;case #exe{ExeUniverse("~=");}:
+	        tt=FrogNumNew(AsF64(stack->body[sp])!=AsF64(stack->body[sp+1]));
+	        break;case #exe{ExeUniverse("rem:");}:
+	        tt=FrogNumNew(AsF64(stack->body[sp])%AsF64(stack->body[sp+1]));
+	        break;case #exe{ExeUniverse("raisedTo:");}:
+	        tt=FrogNumNew(AsF64(stack->body[sp])`AsF64(stack->body[sp+1]));
+	        break;case #exe{ExeUniverse("floor");}:
+	        tt=FrogNumNew(Floor(AsF64(stack->body[sp])));
+	        break;case #exe{ExeUniverse("ceil");}:
+	        tt=FrogNumNew(Ceil(AsF64(stack->body[sp])));
+	        break;case #exe{ExeUniverse("log");}:
+	        tt=FrogNumNew(Log10(AsF64(stack->body[sp])));
+	        break;case #exe{ExeUniverse("sqrt");}:
+	        tt=FrogNumNew(Sqrt(AsF64(stack->body[sp])));
+	        break;case #exe{ExeUniverse("sin");}:
+	        tt=FrogNumNew(Sin(AsF64(stack->body[sp])));
+	        break;case #exe{ExeUniverse("cos");}:
+	        tt=FrogNumNew(Cos(AsF64(stack->body[sp])));
+	        break;case #exe{ExeUniverse("tan");}:
+	        tt=FrogNumNew(Tan(AsF64(stack->body[sp])));
+	        break;case #exe{ExeUniverse("arcsin");}:
+	        tt=FrogNumNew(ASin(AsF64(stack->body[sp])));
+	        break;case #exe{ExeUniverse("arctan");}:
+	        tt=FrogNumNew(ATan(AsF64(stack->body[sp])));
+	        break;case #exe{ExeUniverse("arccos");}:
+	        tt=FrogNumNew(ACos(AsF64(stack->body[sp])));
+	        break;default:
+dft:
+	        tt=CallScriptUniverse0(arg1.i32[0],stack->body[sp],&stack->body[sp+1],arity);
+	    } else
+	      goto dft;
 	  if(bc==BC_CASCADE_UNIVERSE) {
 	    tt=stack->body[sp];
 	  }
@@ -170,13 +225,13 @@ CFrogThing *RunByteCode(CFrogThing *self,CI64Set *bytecode_stack,CI64Set *stack,
         break;
       case BC_MEMBER:
         tt=I64SetPop(stack);
-        tt=GetClassMemberVal(tt,UniverseNumberToName(arg1));
+        tt=GetClassMemberVal0(tt,arg1);
         I64SetAdd(stack,tt);
         break;
       case BC_ASSIGN_MEMBER:
         tt2=I64SetPop(stack);
         tt=I64SetPop(stack);
-        SetClassMemberVal(tt2,UniverseNumberToName(arg1),tt);
+        SetClassMemberVal0(tt2,arg1,tt);
         break;
       case BC_SELF:
         I64SetAdd(stack,self);

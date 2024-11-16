@@ -273,8 +273,8 @@ init ->* |
 'REFREESH 'show .
        now _ CFrogTime now asSeconds .
        now >= next_refresh ifTrue: [
-         next_refresh _ now + (1 / 5 ).
-         #world update
+         next_refresh _ now + (1 / 3 ).
+         #world update .
        ] .
        player->momx2 _ 0 .
        player->momy2 _ 0 .

@@ -11,6 +11,7 @@ CI64Set *universe_init_pairs=I64SetNew; //I64
 CI64Set *universe_methods=I64SetNew; //CI64Set(set of method indexes)
 CI64Set *universe_class_methods=I64SetNew; //CI64Set(set of method indexes)
 CI64Set *universe_symbols=I64SetNew; //CFrogSymbol
+CI64Set *universe_members=I64SetNew; //I64.u32[0]==offset,u32[1]==raw_type(-1 for frog thing)
 I64 universe_cnt=1;
 CI64Set *universe_class_matrix=I64SetNew;
 U0 I64SetSetMinSize(CI64Set *s,I64 sz) {
@@ -31,6 +32,9 @@ U8 *I64SetGetAt(CI64Set *s,I64 idx) {
   if(s->cnt<=idx) return NULL;
   return s->body[idx];
 }
+
+
+
 I64 NameToUniverseNumber(U8 *name) {
   I64 r;
   U8 buf[STR_LEN];
@@ -56,6 +60,7 @@ I64 UniverseAddClass(U8 *name) {
   if(!universe_values->body[idx]) {
     I64SetInsAt(universe_methods,idx,I64SetNew);
     I64SetInsAt(universe_class_methods,idx,I64SetNew);
+    I64SetInsAt(universe_members,idx,I64SetNew);
     universe_values->body[idx]=StrNew(name,universe_task);
   }
   return idx;

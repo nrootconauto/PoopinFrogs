@@ -358,106 +358,147 @@ U0 SetClassMemberValI64(CFrogThing *t,U8 *member,I64 val) {
   return;
 }
 
-U0 SetClassMemberVal(CFrogThing *t,U8 *member,I64 val) {
+U0 Write0(U8 *t,I64 member,I64 v2){
+  I64 off=member.u32[0];
+  I64 rt=member.i32[1];
+  switch(rt) {
+    case -1:
+      (t(U8*)+off)(I64**)[0]=v2;
+      break;
+    case RT_U8:
+      *(t(U8*)+off)=AsF64(v2);
+      break;
+    case RT_U16:
+      (t(U8*)+off)(U16*)[0]=AsF64(v2);
+      break;
+    case RT_U32:
+      (t(U8*)+off)(U32*)[0]=AsF64(v2);
+      break;
+    case RT_U64:
+      (t(U8*)+off)(U64*)[0]=AsF64(v2);
+      break;
+    case RT_I8:
+      *(t(I8*)+off)=AsF64(v2);
+      break;
+    case RT_I16:
+      (t(U8*)+off)(I16*)[0]=AsF64(v2);
+      break;
+    case RT_I32:
+      (t(U8*)+off)(I32*)[0]=AsF64(v2);
+      break;
+    case RT_I64:
+      (t(U8*)+off)(I64*)[0]=AsF64(v2);
+      break;
+    case RT_F64:
+      (t(U8*)+off)(F64*)[0]=AsF64(v2);
+      break;
+  }
+}
+CFrogThing *Read0(U8 *t,I64 member) {
+  I64 off=member.u32[0];
+  I64 rt=member.i32[1];
+  switch(rt) {
+    case -1:
+      return (t(U8*)+off)(I64**)[0];
+    case RT_U8:
+      return FrogNumNew((t(U8*)+off)[0]);
+    case RT_U16:
+      return FrogNumNew((t(U8*)+off)(U16*)[0]);
+    case RT_U32:
+      return FrogNumNew((t(U8*)+off)(U32*)[0]);
+    case RT_U64:
+      return FrogNumNew((t(U8*)+off)(U64*)[0]);
+    case RT_I8:
+      return FrogNumNew((t(U8*)+off)(I8*)[0]);
+    case RT_I16:
+      return FrogNumNew((t(U8*)+off)(I16*)[0]);
+    case RT_I32:
+      return FrogNumNew((t(U8*)+off)(I32*)[0]);
+    case RT_I64:
+      return FrogNumNew((t(U8*)+off)(I64*)[0]);
+    case RT_F64:
+      return FrogNumNew((t(U8*)+off)(F64*)[0]);
+  }
+}
+U0 SetClassMemberVal0(CFrogThing *t,I64 member_c,I64 val) {
   if(t&1) return; //Special "small type"
+  CI64Set *new;
+  I64 mkey;
+  if(new=I64SetGetAt(universe_members,t->universe_class_idx)) {
+    if(mkey=I64SetGetAt(new,member_c)) {
+      Write0(t,mkey,val);
+      return;
+    }
+  }
+  U8 *member=UniverseNumberToName(member_c);
   CHashClass *cls=HashFind(FrogThingClassName(t),frog_mem_task->hash_table,HTT_CLASS);
   CMemberLst *mlst;
   CMemberLstMeta *meta;
   CFrogThing dummy;
   F64 v2;
   MemSet(&dummy,0,sizeof CFrogThing);
-  if(!cls) return NULL;
+  if(!cls) return;
   if(mlst=MemberFind(member,cls)) {
+    mkey.i32[0]=mlst->offset;
     if(mlst->member_class->ptr_stars_cnt==1) {
-      StrCpy(dummy.class_name,mlst->member_class[-1].str);
-      if(ThingHasClass(&dummy,"CFrogThing")) { 
-        (t(U8*)+mlst->offset)(I64*)[0]=FrogIncRefCnt(val);
-        return ;
-      }
+      mkey.i32[1]=-1;
+    } else
+      mkey.i32[1]=OptClassFwd(mlst->member_class)->raw_type;
+  
+again:;
+    if(new=I64SetGetAt(universe_members,t->universe_class_idx))
+      I64SetInsAt(new,UniverseAddClass(member),mkey);
+    else {
+      I64SetInsAt(universe_members,t->universe_class_idx,I64SetNew);
+      goto again;
     }
-    v2=AsF64(val);
-    switch(OptClassFwd(mlst->member_class)->raw_type) {
-      case RT_U8:
-        *(t(U8*)+mlst->offset)=v2;
-        break;
-      case RT_U16:
-        (t(U8*)+mlst->offset)(U16*)[0]=v2;
-        break;
-      case RT_U32:
-        (t(U8*)+mlst->offset)(U32*)[0]=v2;
-        break;
-      case RT_U64:
-        (t(U8*)+mlst->offset)(U64*)[0]=v2;
-        break;
-      case RT_I8:
-        *(t(I8*)+mlst->offset)=v2;
-        break;
-      case RT_I16:
-        (t(U8*)+mlst->offset)(I16*)[0]=v2;
-        break;
-      case RT_I32:
-        (t(U8*)+mlst->offset)(I32*)[0]=v2;
-        break;
-      case RT_I64:
-        (t(U8*)+mlst->offset)(I64*)[0]=v2;
-        break;
-      case RT_F64:
-        (t(U8*)+mlst->offset)(F64*)[0]=v2;
-        break;
-    }
+    
+    Write0(t,mkey,val);
   }
-  return;
 }
 
-CFrogThing *GetClassMemberVal(CFrogThing *t,U8 *member) {
+
+CFrogThing *GetClassMemberVal0(CFrogThing *t,I64 member_c) {
   if(t&1) return FROG_SMALL_NIL; //Special "small type"
+  CI64Set *new;
+  I64 mkey;
+  if(new=I64SetGetAt(universe_members,t->universe_class_idx)) {
+    if(mkey=I64SetGetAt(new,member_c)) {
+      return Read0(t,mkey);
+    }
+  }
+  U8 *member=UniverseNumberToName(member_c);
   CHashClass *cls=HashFind(FrogThingClassName(t),frog_mem_task->hash_table,HTT_CLASS);
   CMemberLst *mlst;
   CMemberLstMeta *meta;
   CFrogThing dummy;
-  F64 v;
+  F64 v2;
   MemSet(&dummy,0,sizeof CFrogThing);
+  if(!cls) return;
   if(mlst=MemberFind(member,cls)) {
-     if(mlst->member_class->ptr_stars_cnt==1) {
-       StrCpy(dummy.class_name,mlst->member_class[-1].str);
-       if(ThingHasClass(&dummy,"CFrogThing")) { 
-         return FrogIncRefCnt((t(U8*)+mlst->offset)(I64*)[0]);
-       }
-     }
-     switch(OptClassFwd(mlst->member_class)->raw_type) {
-       case RT_U8:
-         v=*(t(U8*)+mlst->offset);
-	 break;
-       case RT_U16:
-         v=(t(U8*)+mlst->offset)(U16*)[0];
-	 break;
-       case RT_U32:
-         v=(t(U8*)+mlst->offset)(U32*)[0];
-	 break;
-       case RT_U64:
-         v=(t(U8*)+mlst->offset)(U64*)[0];
-	 break;
-       case RT_I8:
-         v=*(t(I8*)+mlst->offset);
-	 break;
-       case RT_I16:
-         v=(t(U8*)+mlst->offset)(I16*)[0];
-	 break;
-       case RT_I32:
-         v=(t(U8*)+mlst->offset)(I32*)[0];
-	 break;
-       case RT_I64:
-         v=(t(U8*)+mlst->offset)(I64*)[0];
-	 break;
-       case RT_F64:
-         v=(t(U8*)+mlst->offset)(F64*)[0];
-	 break;
-     }
-    return FrogNumNew(v);
-  } 
+    mkey.i32[0]=mlst->offset;
+    if(mlst->member_class->ptr_stars_cnt==1) {
+      mkey.i32[1]=-1;
+    } else
+      mkey.i32[1]=OptClassFwd(mlst->member_class)->raw_type;
+  
+again:;
+    if(new=I64SetGetAt(universe_members,t->universe_class_idx))
+      I64SetInsAt(new,UniverseAddClass(member),mkey);
+    else {
+      I64SetInsAt(universe_members,t->universe_class_idx,I64SetNew);
+      goto again;
+    }
+    return Read0(t,mkey);
+  }
   return FROG_SMALL_NIL;
 }
-
+CFrogThing *SetClassMemberVal(CFrogThing *t,U8 *member,CFrogThing *v) {
+  return SetClassMemberVal0(t,UniverseAddClass(member),v);
+}
+CFrogThing *GetClassMemberVal(CFrogThing *t,U8 *member) {
+  return GetClassMemberVal0(t,UniverseAddClass(member));
+}
 U0 SetClassMemberValF64(CFrogThing *t,U8 *member,F64 val) {
   if(t&1) return 0; //Special "small type"
   CHashClass *cls=HashFind(t->class_name,frog_mem_task->hash_table,HTT_CLASS);

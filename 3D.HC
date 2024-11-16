@@ -1,3 +1,4 @@
+#define mp_cnt 2
 #include "AnimDC.HC"
 #include "BlobFile.HC"
 #include "SmallTalk/Load.HC"
@@ -1054,18 +1055,18 @@ CFrogNum *WorldManagerRemoveFromGrid(C3DWorldManager *wm,I64 *argv,I64 argc) {
   C3DThing *t=argv[0];
   if(!ThingHasClass(t,"C3DThing")) return FROG_SMALL_NIL;
   CFrogArray *arr=wm->grid;
-  I64 atx=t->x/GRID_SZ/16.;
-  I64 aty=t->y/GRID_SZ/16.;
+  I64 atx=t->x/GRID_SZ/4.;
+  I64 aty=t->y/GRID_SZ/4.;
   if(atx<0||aty<0) return FROG_SMALL_NIL;
-  if(atx>=w->world_width/16+1) return FROG_SMALL_NIL;
-  if(aty>=w->world_height/16+1) return FROG_SMALL_NIL;
+  if(atx>=w->world_width/4+1) return FROG_SMALL_NIL;
+  if(aty>=w->world_height/4+1) return FROG_SMALL_NIL;
   arr=arr->items->body[atx];
   arr=arr->items->body[aty];
   if(I64SetHas(arr->items,t)) {
     I64SetRem(arr->items,t);
   } else {
-    for(atx=0;atx<w->world_width/16+1;atx++) {
-      for(aty=0;aty<w->world_height/16+1;aty++) {
+    for(atx=0;atx<w->world_width/4+1;atx++) {
+      for(aty=0;aty<w->world_height/4+1;aty++) {
         arr=wm->grid;
         arr=arr->items->body[atx];
         arr=arr->items->body[aty];
@@ -1080,11 +1081,11 @@ CFrogNum *WorldManagerUpdateThingPos(C3DWorldManager *wm,I64 *argv,I64 argc) {
   C3DThing *t=argv[0];
   if(!ThingHasClass(t,"C3DThing")) return FROG_SMALL_NIL;
   CFrogArray *arr=wm->grid;
-  I64 atx=t->x/GRID_SZ/16.;
-  I64 aty=t->y/GRID_SZ/16.;
+  I64 atx=t->x/GRID_SZ/4.;
+  I64 aty=t->y/GRID_SZ/4.;
   if(atx<0||aty<0) return FROG_SMALL_NIL;
-  if(atx>=w->world_width/16+1) return FROG_SMALL_NIL;
-  if(aty>=w->world_height/16+1) return FROG_SMALL_NIL;
+  if(atx>=w->world_width/4+1) return FROG_SMALL_NIL;
+  if(aty>=w->world_height/4+1) return FROG_SMALL_NIL;
   arr=arr->items->body[atx];
   arr=arr->items->body[aty];
   if(!I64SetHas(arr->items,t))
@@ -1096,17 +1097,18 @@ CFrogArray *WorldManagerThingsInRadius(C3DWorldManager *wm,I64 *argv,I64 argc) {
   CFrogArray *arr=wm->grid,*ret=FrogArrayNew;
   C3DThing *t,**body;
   F64 x=AsF64(argv[0]),y=AsF64(argv[1]);
-  I64 b_atx=x/GRID_SZ/16.,atx;
-  I64 b_aty=y/GRID_SZ/16.,aty;
+  I64 b_atx=x/GRID_SZ/4.,atx;
+  I64 b_aty=y/GRID_SZ/4.,aty;
   I64 ox,oy,cnt;
   F64 r=AsF64(argv[2]);
-  for(ox=-1;ox!=2;ox++)
-    for(oy=-1;oy!=2;oy++) {
+  I64 ir=Ceil(r/128./4.+.001);
+  for(ox=-ir;ox<=ir;ox++)
+    for(oy=-ir;oy<=ir;oy++) {
       atx=ox+b_atx;
       aty=oy+b_aty;
       if(atx<0||aty<0) goto next;
-      if(atx>=w->world_width/16+1) goto next;
-      if(aty>=w->world_height/16+1) goto next;
+      if(atx>=w->world_width/4+1) goto next;
+      if(aty>=w->world_height/4+1) goto next;
       arr=wm->grid;
       arr=arr->items->body[atx];
       arr=arr->items->body[aty];

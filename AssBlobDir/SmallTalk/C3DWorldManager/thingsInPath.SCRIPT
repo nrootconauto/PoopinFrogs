@@ -30,14 +30,14 @@ ret size show .
     ].
   ].
   step _ 0 .
-  [ step < (dist + ( 128 * 16 * 1.4 ))] whileTrue: [
+  [ step < (dist + ( 128 * 4 * 1.4 ))] whileTrue: [
     gx _ x + (step * cos) .
     gy _ y + (step * sin) .
     -1 to: 2 do: [:xo=CFrogNum |
       -1 to: 2 do: [:yo=CFrogNum |
-      add_thing value: x / 128 / 16 + xo value: y / 128 / 16 + yo .
+      add_thing value: x / 128 / 4 + xo value: y / 128 / 4 + yo .
       ] .
     ] .
-    step _ step +  ( 128 * 16 ) .
+    step _ step +  ( 128 * 4 ) .
   ] .
   ^ ret 

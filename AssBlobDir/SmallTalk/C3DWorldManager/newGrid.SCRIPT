@@ -7,8 +7,8 @@ initGrid ->*
 'INITGRID ' show.
 self width show .
   'the world_handle field is set in 3D.HC'. 
-  gx _ (self width + 16 ) / 16 .
-  gy _ (self height + 16 ) / 16 .
+  gx _ (self width + 4 ) / 4 .
+  gy _ (self height + 4 ) / 4 .
 
 
   grid _ #() .

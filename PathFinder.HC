@@ -14,7 +14,7 @@ U0 AddPoint(CPFPoint p,CPFPoint from,F64 score) {
   HashGenericAdd(buf,HTT_FRAME_PTR,from,0,score);
 }
 //Returns CI64Set of CPFPoint
-CI64Set *PathFinder(I64 x,I64 y,I64 z,I64 to_x,I64 to_y,I64 to_z,I64(*get_tile)(I64,I64,I64),I64 jump=1.1,I64 max=8) {
+CI64Set *PathFinder(I64 x,I64 y,I64 z,I64 to_x,I64 to_y,I64 to_z,I64(*get_tile)(I64,I64,I64),I64 jump=1.1,I64 max=3) {
   U8 buf[STR_LEN];
   CHashTable *t=HashTableNew(0x10),*old=Fs->hash_table;
   CI64Set *visited=I64SetNew,*frontier=I64SetNew;
