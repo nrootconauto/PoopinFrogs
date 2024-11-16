@@ -463,7 +463,7 @@ CFrogThing *GetClassMemberVal(CFrogThing *t,U8 *member) {
      }
     return FrogNumNew(v);
   } 
-  return FROG_SMALL_NIL;
+  return FROG_SMALL_NIL;
 }
 
 U0 SetClassMemberValF64(CFrogThing *t,U8 *member,F64 val) {
@@ -786,27 +786,6 @@ CFrogClass *FrogThingIsNil(CFrogThing *obj) {
   return FrogNumNew(ThingHasClass(obj,"CFrogUndefined",FROG_SMALL_NIL));
 }
 
-U0 FramePtrAdd2(CHashTable *tab,U8 *nm,I64 value) {
-  CHashGeneric *gen=CAlloc(sizeof(CHashGeneric),frog_mem_task);
-  gen->str=StrNew(nm,frog_mem_task);
-  gen->type=HTT_FRAME_PTR;
-  gen->user_data0=value;
-  HashAdd(gen,tab);
-}
-
-CLocalsGeneric *STNewReplFrame(I64 *return_flag) {
-  static CLocalsGeneric frs;
-  CLocalsGeneric *fr=&frs,*fr2;
-  CAST *name,*head;
-  fr->thing_flags|=THINGF_FRAME_TYPE;
-  fr2=Fs->user_data;
-  fr->type='Repl';
-  fr->next=Fs->user_data;
-  Fs->user_data=fr;
-  fr->return_flag=return_flag;
-  return fr;
-}
-
 CFrogThing *FrogBlockNew(U8 *fptr,CLocalsGeneric *frame,CFrogThing *self) {
   CFrogBlock *ret=UniverseConstructThing(#exe{StreamPrint("%d",UniverseAddClass("CFrogBlock"));});
   I64 idx;
@@ -1068,6 +1047,13 @@ CFrogStr *FrogStrCopy(CFrogStr *self,...) {
   return s;
 }
 
+CFrogNum *FrogStrAsInteger(CFrogStr *self,...) {
+  U8 *s=AsString(self);
+  CFrogNum *n=FrogNumNew(Str2I64(s));
+  Free(s);
+  return n;
+}
+
 
 CFrogStr *FrogStrCopy(CFrogStr *self,...) {
   CFrogStr *s=UniverseConstructThing(#exe{StreamPrint("%d",UniverseAddClass("CFrogStr"));});;
@@ -1163,6 +1149,7 @@ CFrogStr *FrogStrCopyFrom(CFrogStr *a,...) {
 }
 #exe {
 //String
+  ConstructBuiltin("FrogStrAsInteger(self)","CFrogStr","CFrogNum","asInteger");
   ConstructBuiltin("FrogStrCopyFrom(self,f,t)","CFrogStr","CFrogStr","copyFrom:to:","CFrogNum","f","CFrogNum","t");
   ConstructBuiltin("FrogArrayRemove(self,thing)","CFrogStr",NULL,"remove:","CFrogThing","thing");
   ConstructBuiltin("FROG_SMALL_NIL;U8SetAdd(self->items,AsChar(thing));","CFrogStr",NULL,"add:","CFrogChr","thing");
@@ -1221,49 +1208,9 @@ CFrogStr *FrogStrCopyFrom(CFrogStr *a,...) {
   ConstructBuiltin("FrogChrNew(AsF64(self))","CFrogNum","CFrogChr","asCharactor");
   ConstructBuiltin("FrogNumNew(AsChar(self))","CFrogChr","CFrogNum","asciiValue");
 };;
-Bool ValidateFrame(CLocalsGeneric *g) {
-  CLocalsGeneric *cur=Fs->user_data;
-  while(cur) {
-    if(g==cur) return TRUE;
-    cur=cur->next;
-  }
-  return FALSE;  
-}
 CFrogThing *_FrogBlockValue(CFrogBlock *self,I64 *argv,I64 argc) {
-  CFrogThing *ret;
-  I64 return_flag;
-  CLocalsGeneric *old_frame=Fs->user_data,*cur=self->frame,*cur2,dummy;
-  if(ChkOnStk(cur)) {
-//Make sure cur is a valid frame,otherwise use a dummy;
-    cur2=old_frame;
-    while(cur2) {
-      if(cur2==cur)
-	goto fin;
-      cur2=cur2->next;
-    }
-    DbgPrint("invalid block:%P",self->fun_ptr);
-    MemSet(&dummy,0,sizeof CLocalsGeneric);
-    dummy.type='Block';
-    dummy.return_flag=&dummy.ret_flag;
-    dummy.return_flag[0]=0;
-    cur=&dummy;
-    self->frame=cur;
-  }
-fin:
-  Fs->user_data=cur;
-  ret=self->fun_ptr(self,argv,argc);
-  if(*cur->return_flag) {
-//Propigate the return upwards
-    cur2=old_frame;
-    while(cur->parent!=cur2) {
-      if(!cur2) break; //???
-      if(cur2->return_flag)
-        *cur2->return_flag=TRUE;
-      cur2=cur2->next;
-    }
-  }
+  I64 ret=self->fun_ptr(self,argv,argc);
 exit:
-  Fs->user_data=old_frame;
   return ret;
 }
 CFrogThing *FrogBlockValue(CFrogBlock *s,...) {
@@ -1397,17 +1344,13 @@ AddMethod("CFrogThing","show",&FrogThingShow);
 CFrogThing *FrogNumTimesRepeat(CFrogNum *self,I64 *argv,I64 argc) {
   CFrogBlock *block=argv[0],*ret=FROG_SMALL_NIL;
   I64 cnt;
-  Bool *return_flag=block->frame(CLocalsGeneric *)->return_flag;
   if(!ThingHasClass(self,"CFrogNum")||!ThingHasClass(block,"CFrogBlock")) {
     return FROG_SMALL_NIL;
   }
   cnt=AsF64(self);
   while(--cnt>=0) {
     ret=FrogBlockValue(block);
-    if(ThingIsError(ret))
-      break;
-    ret=FROG_SMALL_NIL;
-    if(*return_flag)
+    if(block->frame->return_flag)
       break;
   }
   return ret;
@@ -1421,17 +1364,8 @@ CFrogThing *FrogWhileTrue(CFrogBlock *self,I64 *argv,I64 argc) {
   if(!ThingHasClass(self,"CFrogBlock")||!ThingHasClass(pass,"CFrogBlock")) {
     return FROG_SMALL_NIL;
   }
-  Bool *return_flag=self->frame(CLocalsGeneric *)->return_flag;
   while(TRUE) {
      cond=FrogBlockValue(self);
-     if(ThingIsError(cond)) {
-       ret=cond;
-       break;
-     }
-     if(*return_flag) {
-	ret=cond;
-        break;
-     }
      if(ThingHasClass(cond,"CFrogNum",FROG_SMALL_NUM)) {
        if(AsF64(cond)) {
          goto on_true;
@@ -1442,11 +1376,6 @@ CFrogThing *FrogWhileTrue(CFrogBlock *self,I64 *argv,I64 argc) {
      break;
 on_true:
      ret=FrogBlockValue(pass);
-     if(ThingIsError(ret))
-        break;
-     if(*return_flag)
-        break;
-     ret=FROG_SMALL_NIL;
   }
   return ret;
 }
@@ -1459,7 +1388,7 @@ CFrogThing *FrogWhileFalse(CFrogBlock *self,I64 *argv,I64 argc) {
   if(!ThingHasClass(self,"CFrogBlock")||!ThingHasClass(pass,"CFrogBlock")) {
     return FROG_SMALL_NIL;
   }
-  Bool *return_flag=self->frame(CLocalsGeneric *)->return_flag;
+  Bool *return_flag=&self->frame->return_flag;
   while(TRUE) {
     cond=FrogBlockValue(self);
     if(ThingIsError(cond)) {

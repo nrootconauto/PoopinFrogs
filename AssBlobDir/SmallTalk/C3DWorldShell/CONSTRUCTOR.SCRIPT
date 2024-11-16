@@ -229,6 +229,13 @@ init ->* |
          handled _ 1 .
        ].
        
+       'Door Editor'.
+       ('', v->m1 asCharactor) uppercase = 'D' ifTrue: [
+         hand_active _ 0 .
+         CDoorShell new run .
+         hand_active _ 1 .
+         handled _ 1 .
+       ].
      ] .
      v->type = 'MsMove' ifTrue: [
        hand_animate_xoff _ v->m1 - (640 / 2 ) + hand_animate_xoff .
@@ -259,8 +266,11 @@ init ->* |
        last_lighting_tS _ CFrogTime now asSeconds  + 1 .
        #world lighting .
      ] .
+'PAUSE' show .
+     #world show .
      #world -> is_paused show .
      #world ->is_paused ifFalse: [
+'REFREESH 'show .
        now _ CFrogTime now asSeconds .
        now >= next_refresh ifTrue: [
          next_refresh _ now + (1 / 5 ).

@@ -11,26 +11,34 @@ makeUI ->*
   w _ 640 .
   h _ 480 - 16 .
   #ui_root _ CUIElem new .
-  #ui_root setX: 0 ; setWidth: w ; setHeight: h .
+  #ui_root setX: 0 .
+  #ui_root setWidth: w  .
+  #ui_root  setHeight: h .
   #ui_root setY: 0 .
   label _ 'Inventory' .
   open_inventory_button _ CUIButton new .
   open_inventory_button setWidth: (label size * 8) + 8 .
   open_inventory_button setBackgroundColor: #color_YELLOW .
-  open_inventory_button setHeight: 10 ; setLabel: label .
-  open_inventory_button setY: 10 ; setX : ( w / 2 ).
+  open_inventory_button setHeight: 10 
+  open_inventory_button setLabel: label .
+  open_inventory_button setY: 10  .
+  open_inventory_button setX : ( w / 2 ).
 
   load_game_button _ CUIButton new .
   label _ 'Load Game' .
   load_game_button setBackgroundColor: #color_YELLOW .
-  load_game_button setHeight: 10 ; setLabel: label .
-  load_game_button setY: 10 ; setX : ( w / 3 ).
+  load_game_button setHeight: 10 .
+  load_game_button setLabel: label .
+  load_game_button setY: 10 . 
+  load_game_button setX : ( w / 3 ).
 
   save_game_button _ CUIButton new .
   label _ 'Save Game' .
   save_game_button setBackgroundColor: #color_YELLOW .
-  save_game_button setHeight: 10 ; setLabel: label .
-  save_game_button setY: 10 ; setX : ( w * (2 /3) ).
+  save_game_button setHeight: 10  .
+  save_game_button setLabel: label .
+  save_game_button setY: 10  .
+  save_game_button setX : ( w * (2 /3) ).
 
 
   main_inventory _ CUIGrid new .

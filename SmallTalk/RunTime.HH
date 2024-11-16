@@ -1,3 +1,11 @@
+#ifndef CI64Set 
+extern class CI64Set;
+#endif
+#ifndef CU8Set 
+extern class CU8Set;
+#endif
+
+
 class CFrogThing:CQue {
 #define THINGF_TO_DELETE 1
 #define THINGF_FRAME_TYPE 2
@@ -32,17 +40,13 @@ class CFrogClass:CFrogThing {
 class CFrogChr:CFrogThing {
   U64 ch;
 };
+extern class CInterpFrame;
 class CFrogBlock:CFrogThing {
   CFrogThing *self;
-  CFrogThing *frame;
-  U8 (*fun_ptr)(CFrogThing *self,I64 *argv,I64 argc);//CSTFrame
+  CInterpFrame *frame;
+  I64 (*fun_ptr)(I64 *,I64*,I64);
+  CI64Set *bytecode;
 };
-#ifndef CI64Set 
-extern class CI64Set;
-#endif
-#ifndef CU8Set 
-extern class CU8Set;
-#endif
 class CFrogArray:CFrogThing {
   CI64Set *items;
   U8 *constructor dft "FrogArrayInit";
@@ -70,4 +74,9 @@ class CFrogBin:CFrogThing {
 
 class CFrogTime:CFrogThing {
   CFrogNum *ts;
+};
+class CInterpFrame:CFrogArray { 
+  CInterpFrame *next_frame;
+  CFrogThing *returned;
+  Bool return_flag;
 };

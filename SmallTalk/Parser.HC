@@ -55,7 +55,7 @@ extern CAST *ParseCascade(CLexer *l);
 extern Bool IsSmalltalkMember(CHashClass *cls);
 U0 AddToScope(U8 *name,U8 *typename) {
   FramePtrAdd(name,typename);
-}
+}
 U0 RemFromScope(U8 *name) {
   FramePtrDel(name);
 }
@@ -235,6 +235,7 @@ again:
   return NULL;
 }
 U0 TryAssignType(CLexer *l,CAST *a) {
+  return;
   CAST *who,*cur;
   U8 *rc;
   CHashClass *cls;

@@ -590,7 +590,7 @@ U0 LoadColorSyms() {
   U8 *tmp;
   while(c<16) {
     tmp=MStrPrint("#color_%s _ %d .",DefineSub(c,"ST_COLORS"),c);
-    STRunStmt(tmp);
+    STRepl(tmp,FALSE);
     Free(tmp);
     c++;
   }
@@ -736,6 +736,7 @@ skip:
 }
 AddMethod("CUIShell","run",&UIShellRun);
 #if__CMD_LINE__
+U0 STRunStmt(U8 *s) {STRepl(s,FALSE);}
 STRunStmt("#ui_root _ CUIScrollBars new .\n");
 STRunStmt("#ui_root setWidth: 400 ; setHeight: 100 .\n");
 STRunStmt("#ui_label _ CUILabel new .\n");

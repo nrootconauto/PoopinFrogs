@@ -11,6 +11,7 @@ sort: pred=CFrogBlock ->*
   stack _ #() .
   part _ [:lo=CFrogNum :hi=CFrogNum |
     pivot _ self at:hi .
+    pivot show .
     i _ lo .
     lo to: hi  do: [:j=CFrogNum |
       A _ self at: i .
@@ -28,6 +29,8 @@ sort: pred=CFrogBlock ->*
   ].
 
   qsort0 _ [:lo=CFrogNum :hi=CFrogNum|
+lo show .
+hi show .
     (lo < hi and: lo >= 0) ifTrue: [
       stack add: (part value: lo value: hi ).
       qsort0  value: lo value: stack last   - 1 .
@@ -36,5 +39,7 @@ sort: pred=CFrogBlock ->*
     ] .
   ] .
 
+'size' show .
+   self size show .
   qsort0 value: 0 value: self size - 1 . 
   ^ self 

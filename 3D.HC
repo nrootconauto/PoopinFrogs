@@ -1,4 +1,3 @@
-#define mp_cnt 1
 #include "AnimDC.HC"
 #include "BlobFile.HC"
 #include "SmallTalk/Load.HC"
@@ -2837,7 +2836,7 @@ U0 Draw3DWorld(CTask *,CDC *dc) {
   doors=man->doors->items->body;
   c=man->doors->items->cnt;
 //Rely on wall commands to choose what part of door to draw
-  cnt=man->lines->items->cnt;
+  I64 cnt=man->lines->items->cnt;
   body=MAllocIdent(man->lines->items->body);
   for(idx=0;idx!=cnt;idx++) {
     line=body[idx];

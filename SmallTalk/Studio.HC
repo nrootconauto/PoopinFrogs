@@ -1,7 +1,7 @@
 #ifndef ST_STUDIO_HH 
 #define ST_STUDIO_HH 'ass'
 //Compiler goes to parent directory as it is the "main" file 
-#include "Compiler.HC";
+#include "Interpreter.HC";
 #exe {Cd(__DIR__);};
 #include "../BlobFile.HC";
 #exe {Cd(__DIR__);};
@@ -628,7 +628,7 @@ again:;
     DocDel(edit);
     break;
     case STS_METHOD_HELP:
-    edit=DocNew("/SmallTalkHelp.DD");
+    edit=DocNew("/SmallTalkHelp.DD");
     tmp=PopUpGetStr("Enter Method Name Fragment:\n");
     if(StrLen(tmp)) {
       en=MStrPrint("*%s*",tmp);
@@ -778,7 +778,7 @@ U0 LoadMethodsFromBlob(U8 *blob_file=NULL,Bool dry_only=FALSE) {
       } else if(!dry&&!StrNCmp(hdr->name,ST_SCRIPT_ROOT,StrLen(ST_SCRIPT_ROOT))) {
 	try {
 	  tmp=BlobFileGetLump(blob_file,hdr->name);
-	  STRunStmt(tmp);
+	  STRepl(tmp,FALSE );
 	  Free(tmp);
 	} catch {
 	  "In %s:",hdr->name;
