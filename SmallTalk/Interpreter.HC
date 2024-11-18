@@ -122,6 +122,8 @@ CFrogThing *RunByteCode(CFrogThing *self,CI64Set *bytecode_stack,CI64Set *stack,
   U8 *str_name;
   CFrogThing *tt,*tt2;
   CInterpFrame *fr2;
+  I64 fast_ready=0;
+  F64 fast_stk[32];
   while(ip<bytecode_stack->cnt) {
     if(Fs->user_data) {
       if(Fs->user_data!=fr) {
@@ -132,6 +134,7 @@ CFrogThing *RunByteCode(CFrogThing *self,CI64Set *bytecode_stack,CI64Set *stack,
     }
     bc=code[ip++];
     arg1=code[ip++];
+    tt=FROG_SMALL_NIL;
     switch(bc) {
       case BC_CASCADE_UNIVERSE:
       case BC_RUN_UNIVERSE:
@@ -142,73 +145,79 @@ CFrogThing *RunByteCode(CFrogThing *self,CI64Set *bytecode_stack,CI64Set *stack,
 	  throw('Fuck');
 	  sp=0;
 	  tt=FROG_SMALL_NIL;
+        } else if(fast_ready>=arity+1) {
+	  sp-=arity+1;
+	  fast_ready-=arity+1;
+	  switch(arg1.i32[0]) {
+	      break;case #exe{ExeUniverse("+");}:
+	      fast_stk[fast_ready]=fast_stk[fast_ready]+fast_stk[fast_ready+1];
+	      break;case #exe{ExeUniverse("-");}:
+	      fast_stk[fast_ready]=fast_stk[fast_ready]-fast_stk[fast_ready+1];
+	      break;case #exe{ExeUniverse("*");}:
+	      fast_stk[fast_ready]=fast_stk[fast_ready]*fast_stk[fast_ready+1];
+	      break;case #exe{ExeUniverse("/");}:
+	      fast_stk[fast_ready]=fast_stk[fast_ready]/fast_stk[fast_ready+1];
+	      break;case #exe{ExeUniverse("and:");}:
+	      fast_stk[fast_ready]=fast_stk[fast_ready]&&fast_stk[fast_ready+1];
+	      break;case #exe{ExeUniverse("or:");}:
+	      fast_stk[fast_ready]=fast_stk[fast_ready]||fast_stk[fast_ready+1];
+	      break;case #exe{ExeUniverse(">=");}:
+	      fast_stk[fast_ready]=fast_stk[fast_ready]>=fast_stk[fast_ready+1];
+	      break;case #exe{ExeUniverse("<=");}:
+	      fast_stk[fast_ready]=fast_stk[fast_ready]<=fast_stk[fast_ready+1];
+	      break;case #exe{ExeUniverse(">");}:
+	      fast_stk[fast_ready]=fast_stk[fast_ready]>fast_stk[fast_ready+1];
+	      break;case #exe{ExeUniverse("<");}:
+	      fast_stk[fast_ready]=fast_stk[fast_ready]<fast_stk[fast_ready+1];
+	      break;case #exe{ExeUniverse("negated");}:
+	      fast_stk[fast_ready]=-fast_stk[fast_ready];
+	      break;case #exe{ExeUniverse("=");}:
+	      fast_stk[fast_ready]=fast_stk[fast_ready]==fast_stk[fast_ready+1];
+	      break;case #exe{ExeUniverse("~=");}:
+	      fast_stk[fast_ready]=fast_stk[fast_ready]!=fast_stk[fast_ready+1];
+	      break;case #exe{ExeUniverse("rem:");}:
+	      fast_stk[fast_ready]=fast_stk[fast_ready]%fast_stk[fast_ready+1];
+	      break;case #exe{ExeUniverse("raisedTo:");}:
+	      fast_stk[fast_ready]=fast_stk[fast_ready]`fast_stk[fast_ready+1];
+	      break;case #exe{ExeUniverse("floor");}:
+	      fast_stk[fast_ready]=Floor(fast_stk[fast_ready]);
+	      break;case #exe{ExeUniverse("ceil");}:
+	      fast_stk[fast_ready]=Ceil(fast_stk[fast_ready]);
+	      break;case #exe{ExeUniverse("log");}:
+	      fast_stk[fast_ready]=Log10(fast_stk[fast_ready]);
+	      break;case #exe{ExeUniverse("sqrt");}:
+	      fast_stk[fast_ready]=Sqrt(fast_stk[fast_ready]);
+	      break;case #exe{ExeUniverse("sin");}:
+	      fast_stk[fast_ready]=Sin(fast_stk[fast_ready]);
+	      break;case #exe{ExeUniverse("cos");}:
+	      fast_stk[fast_ready]=Cos(fast_stk[fast_ready]);
+	      break;case #exe{ExeUniverse("tan");}:
+	      fast_stk[fast_ready]=Tan(fast_stk[fast_ready]);
+	      break;case #exe{ExeUniverse("arcsin");}:
+	      fast_stk[fast_ready]=ASin(fast_stk[fast_ready]);
+	      break;case #exe{ExeUniverse("arctan");}:
+	      fast_stk[fast_ready]=ATan(fast_stk[fast_ready]);
+	      break;case #exe{ExeUniverse("arccos");}:
+	      fast_stk[fast_ready]=ACos(fast_stk[fast_ready]);
+	      break;default:
+	      goto dft;
+	  }
+	  tt=FrogNumNew(fast_stk[fast_ready]);
         } else {
 	  sp-=arity+1;
-	  if(stack->body[sp].u16[0]==FROG_SMALL_NUM)
-	    switch(arg1.i32[0]) {
-	        break;case #exe{ExeUniverse("+");}:
-	        tt=FrogNumNew(AsF64(stack->body[sp])+AsF64(stack->body[sp+1]));
-	        break;case #exe{ExeUniverse("-");}:
-	        tt=FrogNumNew(AsF64(stack->body[sp])-AsF64(stack->body[sp+1]));
-	        break;case #exe{ExeUniverse("*");}:
-	        tt=FrogNumNew(AsF64(stack->body[sp])*AsF64(stack->body[sp+1]));
-	        break;case #exe{ExeUniverse("/");}:
-	        tt=FrogNumNew(AsF64(stack->body[sp])/AsF64(stack->body[sp+1]));
-	        break;case #exe{ExeUniverse("and:");}:
-	        tt=FrogNumNew(AsF64(stack->body[sp])&&AsF64(stack->body[sp+1]));
-	        break;case #exe{ExeUniverse("or:");}:
-	        tt=FrogNumNew(AsF64(stack->body[sp])||AsF64(stack->body[sp+1]));
-	        break;case #exe{ExeUniverse(">=");}:
-	        tt=FrogNumNew(AsF64(stack->body[sp])>=AsF64(stack->body[sp+1]));
-	        break;case #exe{ExeUniverse("<=");}:
-	        tt=FrogNumNew(AsF64(stack->body[sp])<=AsF64(stack->body[sp+1]));
-	        break;case #exe{ExeUniverse(">");}:
-	        tt=FrogNumNew(AsF64(stack->body[sp])>AsF64(stack->body[sp+1]));
-	        break;case #exe{ExeUniverse("<");}:
-	        tt=FrogNumNew(AsF64(stack->body[sp])<AsF64(stack->body[sp+1]));
-	        break;case #exe{ExeUniverse("=");}:
-	        tt=FrogNumNew(AsF64(stack->body[sp])==AsF64(stack->body[sp+1]));
-	        break;case #exe{ExeUniverse("~=");}:
-	        tt=FrogNumNew(AsF64(stack->body[sp])!=AsF64(stack->body[sp+1]));
-	        break;case #exe{ExeUniverse("rem:");}:
-	        tt=FrogNumNew(AsF64(stack->body[sp])%AsF64(stack->body[sp+1]));
-	        break;case #exe{ExeUniverse("raisedTo:");}:
-	        tt=FrogNumNew(AsF64(stack->body[sp])`AsF64(stack->body[sp+1]));
-	        break;case #exe{ExeUniverse("floor");}:
-	        tt=FrogNumNew(Floor(AsF64(stack->body[sp])));
-	        break;case #exe{ExeUniverse("ceil");}:
-	        tt=FrogNumNew(Ceil(AsF64(stack->body[sp])));
-	        break;case #exe{ExeUniverse("log");}:
-	        tt=FrogNumNew(Log10(AsF64(stack->body[sp])));
-	        break;case #exe{ExeUniverse("sqrt");}:
-	        tt=FrogNumNew(Sqrt(AsF64(stack->body[sp])));
-	        break;case #exe{ExeUniverse("sin");}:
-	        tt=FrogNumNew(Sin(AsF64(stack->body[sp])));
-	        break;case #exe{ExeUniverse("cos");}:
-	        tt=FrogNumNew(Cos(AsF64(stack->body[sp])));
-	        break;case #exe{ExeUniverse("tan");}:
-	        tt=FrogNumNew(Tan(AsF64(stack->body[sp])));
-	        break;case #exe{ExeUniverse("arcsin");}:
-	        tt=FrogNumNew(ASin(AsF64(stack->body[sp])));
-	        break;case #exe{ExeUniverse("arctan");}:
-	        tt=FrogNumNew(ATan(AsF64(stack->body[sp])));
-	        break;case #exe{ExeUniverse("arccos");}:
-	        tt=FrogNumNew(ACos(AsF64(stack->body[sp])));
-	        break;default:
 dft:
-	        tt=CallScriptUniverse0(arg1.i32[0],stack->body[sp],&stack->body[sp+1],arity);
-	    } else
-	      goto dft;
+	  tt=CallScriptUniverse0(arg1.i32[0],stack->body[sp],&stack->body[sp+1],arity);
 	  if(bc==BC_CASCADE_UNIVERSE) {
 	    tt=stack->body[sp];
 	  }
+	  fast_ready=0;
         }
         stack->cnt=sp;
         I64SetAdd(stack,tt);
         break;
       case BC_DROP:
-	I64SetPop(stack);
-	break;
+        I64SetPop(stack);
+        break;
       case BC_NVAR:
         I64SetAdd(fr->items,arg1<<16|FROG_SMALL_NUM);
         I64SetAdd(fr->items,tt=I64SetPop(stack));
@@ -218,13 +227,13 @@ dft:
         I64SetAdd(fr->items,FrogNumNew(0.));
         break;
       case BC_VALUE:
-        I64SetAdd(stack,arg1);
+        I64SetAdd(stack,tt=arg1);
         break;
       case BC_SYMBOL:
-        I64SetAdd(stack,FrogSymbol0(arg1)->value);
+        I64SetAdd(stack,tt=FrogSymbol0(arg1)->value);
         break;
       case BC_STRING:
-        I64SetAdd(stack,FrogStrNew(arg1));
+        I64SetAdd(stack,tt=FrogStrNew(arg1));
         break;
       case BC_ASSIGN_SYMBOL:
         FrogSymbol0(arg1)->value=I64SetPop(stack);
@@ -241,12 +250,13 @@ dft:
         tt2=I64SetPop(stack);
         tt=I64SetPop(stack);
         SetClassMemberVal0(tt2,arg1,tt);
+        tt=FROG_SMALL_NIL;
         break;
       case BC_SELF:
-        I64SetAdd(stack,self);
+        I64SetAdd(stack,tt=self);
         break;
       case BC_VAR:
-        I64SetAdd(stack,InterpFrameGet(self,fr,arg1));
+        I64SetAdd(stack,tt=InterpFrameGet(self,fr,arg1));
         break;
       case BC_ARRAY:
         tt=ConstructThing("CFrogArray");
@@ -282,6 +292,11 @@ dft:
       default:
         DbgPrint("%d\n",bc);
         throw('As');
+    }
+    if(tt&0xffFF==FROG_SMALL_NUM) {
+      fast_stk[fast_ready++]=AsF64(tt);
+    } else {
+      fast_ready=0;
     }
   }
 final:
@@ -522,7 +537,6 @@ fin:
     FramePtrDel("MethodClass");
   }
 }
-
 
 F64 t=tS;
 STRepl(
