@@ -1,4 +1,4 @@
-#define mp_cnt 2
+#define mp_cnt 1
 #include "AnimDC.HC"
 #include "BlobFile.HC"
 #include "SmallTalk/Load.HC"
@@ -14,7 +14,7 @@
 U64 fog_table[COLORS_NUM][COLORS_NUM][FOG_DIVISIONS];
 U0 ErectFogTable0(U64 *table,I64 fog_color,F64 ratio) {
   CBGR48 palette[COLORS_NUM];
-  I64 idx,which;
+  $BK,0$I64 idx,which;
   F64 r,g,b,dist,best_dist;
   F64 r2,g2,b2;
   U16 best_color,dither;
@@ -30,8 +30,8 @@ U0 ErectFogTable0(U64 *table,I64 fog_color,F64 ratio) {
       b2=(palette[dither&0xf].b+palette	[dither>>4].b)/2.;
       dist=Sqrt(Sqr(r-r2)+Sqr(g-g2)+Sqr(b-b2));
       if(dist<best_dist) {
-	best_color=dither;
-	best_dist=dist;
+        best_color=dither;
+        best_dist=dist;
       }
     }
     table[idx].u8[0]=best_color&0xf;
@@ -200,12 +200,12 @@ U0 InitTables(F64 base,F64 fov) {
   F64 angle=base-fov/2,angle2=-fov/2;
   I64 idx;
   for(idx=0;idx!=GR_WIDTH;idx++) {
-   cos2_lookup_table[idx]=Cos(angle2);
-   cos_lookup_table[idx]=Cos(angle);
-   sin_lookup_table[idx]=Sin(angle);
-   tan_lookup_table[idx]=Tan(angle);
-   angle2+=fov/GR_WIDTH;
-   angle+=fov/GR_WIDTH;
+    cos2_lookup_table[idx]=Cos(angle2);
+    cos_lookup_table[idx]=Cos(angle);
+    sin_lookup_table[idx]=Sin(angle);
+    tan_lookup_table[idx]=Tan(angle);
+    angle2+=fov/GR_WIDTH;
+    angle+=fov/GR_WIDTH;
   }
 }
 
@@ -228,32 +228,32 @@ I64 class CWallCommand {
 #define DIST_SCALE (GR_HEIGHT*GRID_SZ)
 #define EMPTY_SPACE 0
 class C3DWorld {
-   F64 fov,x,y,h,angle;
-   F64 angle2;
-   I64 step_width,step_width_y;
-   I64 world_width;
-   I64 world_height;
-   I8 *world_blocks; //x*y*256+z
-   I8 *world_lighting; //x*y*256+z
-   CDC *wall_textures[0x10000/2],*to_dc;
-   CDC *floor_textures[0x10000/2];
-   CDC *floor_textures1616[0x10000/2];
-   CDC *ceil_textures[0x10000/2];
-   C3DThingTemplate *thing_templates[0x10000];
-   I64 mp_done,dc_lock;
-   CQue _2d_thing_templates; 
-   CI64Set *_2d_things;
-   CI64Set *_wall_stains;
-   CI64Set *_floor_stains;
-   CTask *mem_task;
-   F64 cam_height;
+  F64 fov,x,y,h,angle;
+  F64 angle2;
+  I64 step_width,step_width_y;
+  I64 world_width;
+  I64 world_height;
+  I8 *world_blocks; //x*y*256+z
+  I8 *world_lighting; //x*y*256+z
+  CDC *wall_textures[0x10000/2],*to_dc;
+  CDC *floor_textures[0x10000/2];
+  CDC *floor_textures1616[0x10000/2];
+  CDC *ceil_textures[0x10000/2];
+  C3DThingTemplate *thing_templates[0x10000];
+  I64 mp_done,dc_lock;
+  CQue _2d_thing_templates; 
+  CI64Set *_2d_things;
+  CI64Set *_wall_stains;
+  CI64Set *_floor_stains;
+  CTask *mem_task;
+  F64 cam_height;
 //Private
-   CQue particles;
-   I64 particle_cnt;
-   CD3 to_point[GR_WIDTH/4][GR_HEIGHT/4];
-   I64 things_around_camera_origin_x;
-   I64 things_around_camera_origin_y;
-   CI64Set *stains_around_camera[VIEW_DIST*2][VIEW_DIST*2];
+  CQue particles;
+  I64 particle_cnt;
+  CD3 to_point[GR_WIDTH/4][GR_HEIGHT/4];
+  I64 things_around_camera_origin_x;
+  I64 things_around_camera_origin_y;
+  CI64Set *stains_around_camera[VIEW_DIST*2][VIEW_DIST*2];
 };
 C3DWorld *w;
 #define MAX_PARTICLES 128
@@ -298,7 +298,7 @@ CFrogThing *ThingTemplateSave(C3DThingTemplate *t,I64 *argv,I64 argc) {
       Free(name);
     }
     if(ThingHasClass(t->front,"CFrogImg"))
-       if(name=AsString(t->front->name)){
+      if(name=AsString(t->front->name)){
         StrCpy(f_template.blob_front_name,name);
         Free(name);
       }
@@ -405,7 +405,7 @@ C3DWorld *InitWorld(U8 *blob_file="ASS",F64 fov=pi/2) {
       tile=AbsI64(ftxtr->idx);
       if(0<=tile<U8_MAX) {
         tile_template=ConstructThing("CTileTemplate");
-	tile_template->tile_idx=tile;
+        tile_template->tile_idx=tile;
         CallScript("setWall:",tile_template,FrogStrNew(ftxtr->wall_blob_name));
         CallScript("setFloor:",tile_template,FrogStrNew(ftxtr->blob_name));
         CallScript("setCeil:",tile_template,FrogStrNew(ftxtr->ceil_blob_name));
@@ -428,96 +428,6 @@ C3DWorld *InitWorld(U8 *blob_file="ASS",F64 fov=pi/2) {
 }
 
 
-I64 SegmentModulo(F64 f,I64 i) {
-  I64 off=f+i*GRID_SZ;
-  if(off>0) return off%GRID_SZ;
-  if(off<0) return (GRID_SZ-off)%GRID_SZ;
-  return 0;
-}
-I64 PassesThoughBlock(C3DWorld *w,F64 slope,I64 x,I64 y,F64 *dist,F64 cos,F64 sin,Bool far_side=FALSE) {
-  I64 found=FALSE,found_side;
-  F64 smallest=1e100,biggest=-1.;
-  F64 cx1=x*GRID_SZ,cy1=y*GRID_SZ;
-  F64 cx2=cx1+GRID_SZ,cy2=cy1+GRID_SZ;
-  F64 tmp;
-  cx1=(cx1-w->x)/GRID_SZ;
-  cx2=(cx2-w->x)/GRID_SZ;
-  cy1=(cy1-w->y)/GRID_SZ;
-  cy2=(cy2-w->y)/GRID_SZ;
-  if(cos==0.) {
-    x=x*GRID_SZ;
-    y=y*GRID_SZ;
-    if(sin>0.) {
-      if(dist) *dist=y*GRID_SZ-w->y;
-      return x<=w->x<=x+GRID_SZ&&w->y<=y;
-    }
-    if(dist) *dist=w->y-(y+1)*GRID_SZ;
-    return x<=w->x<=x+GRID_SZ&&w->y>=y+GRID_SZ;
-  }
-  if(sin==0.) {
-    x=x*GRID_SZ;
-    y=y*GRID_SZ;
-    if(cos>0.) {
-      if(dist) *dist=x*GRID_SZ-w->x;
-      return y<=w->y<=y+GRID_SZ&&w->x<=x;
-    }
-    if(dist) *dist=w->x-(x+1)*GRID_SZ;
-    return y<=w->y<=y+GRID_SZ&&w->x>=x+GRID_SZ;
-  }
-  if(cos>0.^^far_side) {
-//Left side
-    tmp=cx1*slope;
-    if(cy1<=tmp<=cy2) {
-      if(dist) {
-        tmp=Sqr(cx1*GRID_SZ)+Sqr(tmp*GRID_SZ);
-        smallest=Min(smallest,tmp);
-        biggest=Max(biggest,tmp);
-      }
-      found=TRUE;
-    }
-  } else {
-//Right side
-    tmp=cx2*slope;
-    if(cy1<=tmp<=cy2) {
-      found=TRUE;
-      if(dist) {
-        tmp=Sqr(cx2*GRID_SZ)+Sqr(tmp*GRID_SZ);
-        smallest=Min(smallest,tmp);
-        biggest=Max(biggest,tmp);
-      }
-    }
-  }
-  if(sin>0.^^far_side) {
-//top side
-    tmp=cy1/slope;
-    if(cx1<=tmp<=cx2) {
-      if(dist) {
-        tmp=Sqr(cy1*GRID_SZ)+Sqr(tmp*GRID_SZ);
-        smallest=Min(smallest,tmp);
-        biggest=Max(biggest,tmp);
-      }
-      found=TRUE;
-    }
-  } else {
-//bottom side
-    tmp=cy2/slope;
-    if(cx1<=tmp<=cx2) {
-      if(dist) {
-        tmp=Sqr(cy2*GRID_SZ)+Sqr(tmp*GRID_SZ);
-        smallest=Min(smallest,tmp);
-        biggest=Max(biggest,tmp);
-      }
-      found=TRUE;
-    }
-  }
-  if(dist) {
-    if(!far_side)
-      *dist=Sqrt(smallest);
-    else
-      *dist=Sqrt(biggest);
-  }
-  return found;
-}
 I64 BlockAtXYZ(I64 x,I64 y,I64 z) {
   I64 tile=x+y*w->world_width;
   if(0<=tile<w->world_height*w->world_width) {
@@ -555,64 +465,64 @@ Bool SetLightAtXYZ(I64 x,I64 y,I64 z,I64 light) {
   if(0<=x<w->world_width)
     if(0<=y<w->world_height)
       if(I8_MIN<=z<I8_MAX) {
-	l=w->world_lighting[tp*256+z-I8_MIN];
-	if(l<light) {
+        l=w->world_lighting[tp*256+z-I8_MIN];
+        if(l<light) {
 	  w->world_lighting[tp*256+z-I8_MIN]=light;
 	  return TRUE;
-	}
+        }
       }
   return FALSE;
 }
 F64 BlockAO(I64 which,I64 x,I64 y,I64 z,I64 sidex,I64 sidey,I64 sidez) {
- I64 cnt=0;
- static I64 offs1[6]={-1,0,1,0,-1,0};
- I64 corner=0;
- if(sidez) {
-   if(BlockAtXYZ(x+offs1[which],y+offs1[1+which],z+sidez))
-     cnt++;
-   if(BlockAtXYZ(x+offs1[which+1],y+offs1[1+which+1],z+sidez))
-     cnt++;
-   if(cnt==2) return 0;
-   return 3-corner-cnt;
- }
- if(sidex) {
-   if(BlockAtXYZ(x+sidex,y+offs1[which],z+offs1[1+which]))
-     cnt++;
-   if(BlockAtXYZ(x+sidex,y+offs1[which+1],z+offs1[1+which+1]))
-     cnt++;
-   if(cnt==2) return 0;
-   return 3-corner-cnt;
- }
- if(sidey) {
-   if(BlockAtXYZ(x+offs1[which],y+sidey,z+offs1[1+which]))
-     cnt++;
-   if(BlockAtXYZ(x+offs1[which+1],y+sidey,z+offs1[1+which+1]))
-     cnt++;
-   if(cnt==2) return 0;
-   return 3-corner-cnt;
- }
- return 0; 
+  I64 cnt=0;
+  static I64 offs1[6]={-1,0,1,0,-1,0};
+  I64 corner=0;
+  if(sidez) {
+    if(BlockAtXYZ(x+offs1[which],y+offs1[1+which],z+sidez))
+      cnt++;
+    if(BlockAtXYZ(x+offs1[which+1],y+offs1[1+which+1],z+sidez))
+      cnt++;
+    if(cnt==2) return 0;
+    return 3-corner-cnt;
+  }
+  if(sidex) {
+    if(BlockAtXYZ(x+sidex,y+offs1[which],z+offs1[1+which]))
+      cnt++;
+    if(BlockAtXYZ(x+sidex,y+offs1[which+1],z+offs1[1+which+1]))
+      cnt++;
+    if(cnt==2) return 0;
+    return 3-corner-cnt;
+  }
+  if(sidey) {
+    if(BlockAtXYZ(x+offs1[which],y+sidey,z+offs1[1+which]))
+      cnt++;
+    if(BlockAtXYZ(x+offs1[which+1],y+sidey,z+offs1[1+which+1]))
+      cnt++;
+    if(cnt==2) return 0;
+    return 3-corner-cnt;
+  }
+  return 0; 
 }
 
 F64 CornerLight(I64 which,I64 x,I64 y,I64 z,I64 sidex,I64 sidey,I64 sidez) {
- static I64 offs1[8]={-1,0,0,-1,1,0,0,1};
- which<<=1;
- if(sidez) {
-   if(BlockAtXYZ(x+offs1[which],y+offs1[1+which],z+sidez))
-     return LightAtXYZ(x,y,z+sidez);
-   return LightAtXYZ(x+offs1[which],y+offs1[1+which],z+sidez);
- }
- if(sidey) {
-   if(BlockAtXYZ(x+offs1[which],y+sidey,z+offs1[1+which]))
-    return LightAtXYZ(x,y+sidey,z);
-   return LightAtXYZ(x+offs1[which],y+sidey,z+offs1[1+which]);
- }
- if(sidex) {
-   if(BlockAtXYZ(x+sidex,y+offs1[which],z+offs1[1+which]));
+  static I64 offs1[8]={-1,0,0,-1,1,0,0,1};
+  which<<=1;
+  if(sidez) {
+    if(BlockAtXYZ(x+offs1[which],y+offs1[1+which],z+sidez))
+      return LightAtXYZ(x,y,z+sidez);
+    return LightAtXYZ(x+offs1[which],y+offs1[1+which],z+sidez);
+  }
+  if(sidey) {
+    if(BlockAtXYZ(x+offs1[which],y+sidey,z+offs1[1+which]))
+      return LightAtXYZ(x,y+sidey,z);
+    return LightAtXYZ(x+offs1[which],y+sidey,z+offs1[1+which]);
+  }
+  if(sidex) {
+    if(BlockAtXYZ(x+sidex,y+offs1[which],z+offs1[1+which]));
     return LightAtXYZ(x+sidex,y,z);
-   return LightAtXYZ(x+sidex,y+offs1[which],z+offs1[1+which]);
- }
- return 0; 
+    return LightAtXYZ(x+sidex,y+offs1[which],z+offs1[1+which]);
+  }
+  return 0; 
 }
 
 
@@ -634,7 +544,7 @@ U0 LightingLight(I64 x,I64 y,I64 z,I64 light) {
       dummy.i16[2]=z;
       dummy.i16[3]=0;
       if(I64SetHas(visited,dummy))
-	goto n;
+        goto n;
       I64SetAdd(visited,dummy);
       for(zo=-1;zo<=1;zo+=2) {
         if(SetLightAtXYZ(x,y,z+zo,light)) {
@@ -679,12 +589,12 @@ U0 LightingSky(I64 x,I64 y,I64 sky_light=16,I64 shadow_color=BLACK) {
       while(z>=I8_MIN) {
         b=col[z-I8_MIN];
         if(IsSolidTile(b)) {
-          sky=FALSE;
+	  sky=FALSE;
         }
         if(!sky)
 	  level=0;
- 	lcol[z-I8_MIN]=MaxI64(ToI64(level),0);
-	--z;
+        lcol[z-I8_MIN]=MaxI64(ToI64(level),0);
+        --z;
       }
     }
 }
@@ -692,22 +602,22 @@ CFrogThing *WorldLightingSky(C3DWorldManager *man,I64 *argv,I64 argc) {
   I64 x=w->x/128.,ix;
   I64 y=w->y/128.,iy;
   I64 sky_light=AsF64(argv[0]),z,tp;
- I64 level;
-  //Sky light
+  I64 level;
+//Sky light
   for(ix=-VIEW_DIST*2;ix<VIEW_DIST*2;ix++) {
     for(iy=-VIEW_DIST*2;iy<VIEW_DIST*2;iy++) {
       LightingSky(ix+x,iy+y,sky_light);
     }
   }
-  //Pass2 world lights
+//Pass2 world lights
   for(ix=-VIEW_DIST*2;ix<VIEW_DIST*2;ix++) {
     for(iy=-VIEW_DIST*2;iy<VIEW_DIST*2;iy++) {
       z=I8_MAX;
       while(z>=I8_MIN) {
-	if(1<=(level=BlockLightLevel(BlockAtXYZ(x+ix,y+iy,z)))) {
+        if(1<=(level=BlockLightLevel(BlockAtXYZ(x+ix,y+iy,z)))) {
 	  LightingLight(x+ix,y+iy,z,level);
-	}
-	--z;
+        }
+        --z;
       }
     }
   }
@@ -723,7 +633,7 @@ Bool HeightImpossible(C3DWorld *w,I64 ix,I64 iy,F64 above,Bool allow_ceil,F64 ta
   if(0>iy) return TRUE;
   if(w->world_height<=iy) return TRUE;
   if(IsSolidTile(BlockAtXYZ(ix,iy,iz))) {
-     return TRUE;
+    return TRUE;
   }
   for(idx2=0;idx2<tallness;idx2++) {
     idx2++;
@@ -733,89 +643,6 @@ Bool HeightImpossible(C3DWorld *w,I64 ix,I64 iy,F64 above,Bool allow_ceil,F64 ta
   return FALSE;
 }
 
-I64 FindRayWall(C3DWorld *w,F64 slope,F64 cos,F64 sin,I64 *segment=NULL,F64 *dist=NULL,I64 *side=NULL,F64 above=I8_MIN,I64 tix,I64 tiy,Bool far_side=FALSE,Bool allow_ceil=FALSE) {
-  F64 x=w->x;
-  F64 y=w->y;
-  Bool found_hit=FALSE;
-  I64 ix=x/GRID_SZ,iy=y/GRID_SZ,iy2,seg,ix2;
-  F64 smallest=1e100;
-  F64 hit_x=-1,hit_y=-12345,dist2=VIEW_DIST*GRID_SZ,check_dist=0,t1,t2,wall_x,wall_y,res_dist;
-  I64 sign_c=Sign(cos),sign_s=Sign(sin);
-  static F64 step=GRID_SZ-1;
-  if(dist) *dist=-1;
-  ix=tix;
-  iy=tiy;
-  if(!PassesThoughBlock(w,slope,ix,iy,&res_dist,cos,sin,far_side)) {
-    if(dist) *dist=res_dist;
-    goto undef;
-  }
-  smallest=res_dist;
-  check_dist=res_dist;
-  ix2=ix;
-  iy2=iy;
-  goto final;
-fin:
-  if(dist) *dist=dist2;
-  if(0<=ix<w->world_width&&0<=iy<w->world_height) {
-    return ix+iy*w->world_width;
-  }
-undef:
-  return -1;
-final:
-  ix=ix2,iy=iy2;
-  check_dist=smallest;
-  if(sin==0) {
-    if(cos<0)
-      dist2=(ix+1)*GRID_SZ-w->x; //We are checking the right side
-    else
-      dist2=ix*GRID_SZ-w->x;
-  } else {
-//We can check if we are next to the top/bottom wall if we are looking up(Sin(a)>0)
-    // or down (Sin(a)<0).Same applies to left/right(using consign)
-
-    //We will check if we are closert to the top/bottom wall
-    // or the left/right wall.
-
-
-    //side==0 if left side
-    //side==1 if right side
-    //side==2 if top side
-    //side==3 if bottom side
-
-
-    //Hits left or right side of wall
-    if(cos<0) 
-      wall_x=(ix+1)*GRID_SZ;
-    else
-      wall_x=ix*GRID_SZ;
-//Hits top of bottom side of wall
-    if(sin<0) 
-      wall_y=(iy+1)*GRID_SZ;
-    else
-      wall_y=iy*GRID_SZ;
-    if(!cos) t1=1000000;
-    else t1=(wall_x-w->x)/cos;
-    if(!sin) t2=1000000;
-    else t2=(wall_y-w->y)/sin;
-
-    if(t1<t2) {
-      x=t2*cos+w->x;
-      y=wall_y;
-      wall_x=x;
-      if(side) *side=2+(sin<0);
-      if(segment) *segment=SegmentModulo(x,ix);
-    } else{
-      x=wall_x;
-      y=t1*sin+w->y;
-      wall_y=y;
-      if(side) *side=cos<0;
-      if(segment) *segment=SegmentModulo(y,iy);
-    }
-    dist2=check_dist;
-  }
-  goto fin;
-
-}
 C3DThing *BumpsIntoThing(C3DThing *self,I64 *argv,I64 argc) {
   C3DThing *who=argv[0];
   F64 radius=THING_RADIUS*THING_RADIUS;
@@ -823,9 +650,9 @@ C3DThing *BumpsIntoThing(C3DThing *self,I64 *argv,I64 argc) {
   x=who->x-self->x;
   y=who->y-self->y;
   if(Max(self->z,who->z)
-     <=Min(self->z+THING_HEIGHT,who->z+THING_HEIGHT))
-      if(radius>=x*x+y*y)
-       return FrogNumNew(1);
+        <=Min(self->z+THING_HEIGHT,who->z+THING_HEIGHT))
+    if(radius>=x*x+y*y)
+      return FrogNumNew(1);
   return FrogNumNew(0);
 } 
 AddMethod("C3DThing","hitsThing:",&BumpsIntoThing);
@@ -833,7 +660,7 @@ CFrogNum *C3DThingPathFindWalkTowardsThing(C3DThing *self,I64 *argv,I64 argc) {
   CPFPoint pt;
   C3DThing *thing=argv[0];
   if(!ThingHasClass(thing,"C3DThing")) return FROG_SMALL_NIL;
-   CI64Set *path=PathFinder(self->x/128,self->y/128,Floor(self->z),thing->x/128,thing->y/128,Floor(thing->z),&BlockAtXYZ,AsF64(argv[1]));
+  CI64Set *path=PathFinder(self->x/128,self->y/128,Floor(self->z),thing->x/128,thing->y/128,Floor(thing->z),&BlockAtXYZ,AsF64(argv[1]));
   if(path->cnt<2) {
     I64SetDel(path);
     return FrogNumNew(Arg(thing->x-self->x,thing->y-self->y));
@@ -859,62 +686,62 @@ Bool RadiusHitsWall(C3DWorld *w,F64 angle,F64 *_x,F64 *_y,F64 height,F64 radius=
   F64 tx,ty,h;
   do {
     hit=FALSE;
-  for(i=0;i!=4;i++)  {
-    for(xoff=-1;xoff<2;xoff++)
-      for(yoff=-1;yoff<2;yoff++) {
-        if(xoff^^yoff) {
-	  switch(xoff) {
-	    case -1:
-	      tx=Floor(x);
-	      break;
-	    case 0:
-	      tx=x;
-	      break;
-	    case 1:
-	      tx=Ceil(x);
-	      break;
-	  }
-	  switch(yoff) {
-	    case -1:
-	      ty=Floor(y);
-	      break;
-	    case 0:
-	      ty=y;
-	      break;
-	    case 1:
-	      ty=Ceil(y);
-	      break;
-	  }
+    for(i=0;i!=4;i++)  {
+      for(xoff=-1;xoff<2;xoff++)
+        for(yoff=-1;yoff<2;yoff++) {
+	  if(xoff^^yoff) {
+	    switch(xoff) {
+	      case -1:
+	        tx=Floor(x);
+	        break;
+	      case 0:
+	        tx=x;
+	        break;
+	      case 1:
+	        tx=Ceil(x);
+	        break;
+	    }
+	    switch(yoff) {
+	      case -1:
+	        ty=Floor(y);
+	        break;
+	      case 0:
+	        ty=y;
+	        break;
+	      case 1:
+	        ty=Ceil(y);
+	        break;
+	    }
 //ONLY CHECK FOR WALL WE ARE WALKING TOWARDS
-          if(xoff) {
-	    if(Sign(Cos(angle))!=xoff)
-	      goto skip;
-	  }
-          if(yoff) {
-	    if(Sign(Sin(angle))!=yoff)
-	      goto skip;
-	  }
-	  if(HeightImpossible(w,x+xoff,y+yoff,height,TRUE,tallness)) {
+	    if(xoff) {
+	      if(Sign(Cos(angle))!=xoff)
+	        goto skip;
+	    }
+	    if(yoff) {
+	      if(Sign(Sin(angle))!=yoff)
+	        goto skip;
+	    }
+	    if(HeightImpossible(w,x+xoff,y+yoff,height,TRUE,tallness)) {
 //.2 for stepping over partly open doors
-check:
-	        if(Abs(x-tx)<=radius&&xoff) {
-	          if(adjust) {
-		    x=tx+radius*1.05*-xoff;
-		    hit=TRUE;
-	          }
-	          ret|=TRUE;
+	      check:
+	      if(Abs(x-tx)<=radius&&xoff) {
+	        if(adjust) {
+		  x=tx+radius*1.05*-xoff;
+		  hit=TRUE;
 	        }
-	        if(Abs(y-ty)<=radius&&yoff) {
-	          if(adjust) {
-		    y=ty+radius*1.05*-yoff;
-		    hit=TRUE;
-	          }
-	          ret|=TRUE;
+	        ret|=TRUE;
+	      }
+	      if(Abs(y-ty)<=radius&&yoff) {
+	        if(adjust) {
+		  y=ty+radius*1.05*-yoff;
+		  hit=TRUE;
 	        }
+	        ret|=TRUE;
+	      }
 	    }
 skip:;
+	  }
         }
-      }
     }
   } while(hit);
   if(adjust) {
@@ -937,16 +764,16 @@ Bool C3DWorldMoveZWithCollision(C3DWorld *w,F64 dist,F64 x,F64 y,F64 *_height,F6
 //Wut
   if(dir==0) return FALSE;
   for(cnt=0;Abs(dist)>1/256.;cnt++) {
-     if(dir<0)
-       delta=Max(dist,-1);
-     else
-       delta=Min(dist,1);
-     dist-=delta;
-     if(HeightImpossible(w,x/128,y/128,z+delta,TRUE,tallness)) {
-       hit=TRUE;
-       goto fix;
-     }
-     z+=delta;
+    if(dir<0)
+      delta=Max(dist,-1);
+    else
+      delta=Min(dist,1);
+    dist-=delta;
+    if(HeightImpossible(w,x/128,y/128,z+delta,TRUE,tallness)) {
+      hit=TRUE;
+      goto fix;
+    }
+    z+=delta;
   }
 fix:;
   while(HeightImpossible(w,x/GRID_SZ,y/GRID_SZ,z,TRUE,tallness)) {
@@ -961,7 +788,7 @@ fix:;
     }
   }
 
-//Cant move anywhere but up
+  //Cant move anywhere but up
   if(z==oz) {
     while(HeightImpossible(w,x/GRID_SZ,y/GRID_SZ,z,TRUE,tallness))
       ++z;
@@ -983,37 +810,37 @@ Bool C3DWorldMoveWithCollision(C3DWorld *w,F64 angle,F64 dist,F64 *x,F64 *y,Bool
   if(dist<0.) angle+=pi,dist=-dist;
   I64 idx,idx2;
   I64 h,ch,cr;
-    if(RadiusHitsWall(w,angle,x,y,height,THING_RADIUS,TRUE,,RADF_CEIL|RADF_FLOOR|RADF_DOOR)) {
-      hit_wall=TRUE;
-      goto fin;
-    }
-  if(adjust_smart)
-  while(dist2<dist) {
-    for(idx=0;idx!=5;idx++) {
-    dist2+=GRID_SZ/5.;
-    if(dist2>=dist) dist2=dist;
-    *x=w->x+Cos(angle)*dist2;
-    *y=w->y+Sin(angle)*dist2;
-    if(RadiusHitsWall(w,angle,x,y,height,THING_RADIUS,TRUE,,RADF_CEIL|RADF_FLOOR|RADF_DOOR)) {
-      hit_wall=TRUE;
-      goto fin;
-    }
-      if(HeightImpossible(w,*x/GRID_SZ,*y/GRID_SZ,height,TRUE,,.2)) {//.2 wiggle room for stepping over partly open doors
-//Totally reject move,something when wrong
-//     (would be placed on top of unreachable wall)
-	*x=w->x;
-	*y=w->y;
-        hit_wall=TRUE;
-        goto fin;
-      }
-    if(dist2>=dist)
-      goto fin;
-    }
+  if(RadiusHitsWall(w,angle,x,y,height,THING_RADIUS,TRUE,,RADF_CEIL|RADF_FLOOR|RADF_DOOR)) {
+    hit_wall=TRUE;
+    goto fin;
   }
+  if(adjust_smart)
+    while(dist2<dist) {
+      for(idx=0;idx!=5;idx++) {
+        dist2+=GRID_SZ/5.;
+        if(dist2>=dist) dist2=dist;
+        *x=w->x+Cos(angle)*dist2;
+        *y=w->y+Sin(angle)*dist2;
+        if(RadiusHitsWall(w,angle,x,y,height,THING_RADIUS,TRUE,,RADF_CEIL|RADF_FLOOR|RADF_DOOR)) {
+	  hit_wall=TRUE;
+	  goto fin;
+        }
+        if(HeightImpossible(w,*x/GRID_SZ,*y/GRID_SZ,height,TRUE,,.2)) {//.2 wiggle room for stepping over partly open doors
+//Totally reject move,something when wrong
+	  //     (would be placed on top of unreachable wall)
+	  *x=w->x;
+	  *y=w->y;
+	  hit_wall=TRUE;
+	  goto fin;
+        }
+        if(dist2>=dist)
+	  goto fin;
+      }
+    }
 fin:
   if(!(0<=w->x/128.<w->world_width)||
-	!(0<=w->y/128.<w->world_height)
-	) {
+        !(0<=w->y/128.<w->world_height)
+  ) {
     if(x)
       *x=Clamp(w->x/128.,0.,w->world_width)*128;
     if(y)
@@ -1035,10 +862,10 @@ again:
     ret=TRUE;
     push_back=(sr+or-dist)*.1*1.4;
     C3DWorldMoveWithCollision(w,angle+pi,push_back,
-	&self->x,
-	&self->y,
-	TRUE, //Slide along wall
-	self->z);
+	  &self->x,
+	  &self->y,
+	  TRUE, //Slide along wall
+	  self->z);
     if(++attempt<15) goto again;
   }
   return ret;
@@ -1114,10 +941,10 @@ CFrogArray *WorldManagerThingsInRadius(C3DWorldManager *wm,I64 *argv,I64 argc) {
       cnt=arr->items->cnt;
       body=arr->items->body;
       while(--cnt>=0) {
-	t=body[cnt];
-	  if(r*r>=Sqr(t->x-x)+Sqr(t->y-y)) {
-            I64SetAdd(ret->items,t);
-	  }
+        t=body[cnt];
+        if(r*r>=Sqr(t->x-x)+Sqr(t->y-y)) {
+	  I64SetAdd(ret->items,t);
+        }
       }
 next:;
     }
@@ -1159,9 +986,9 @@ U0 PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm,F64 last_tS) {
       t->momx*=29/30.*weight;
       t->momy*=29/30.*weight;
       if(Sign(t->momx)==-Sign(t->momx2))
-	t->momx+=t->momx2*weight;
+        t->momx+=t->momx2*weight;
       if(Sign(t->momy)==-Sign(t->momy2))
-	t->momy+=t->momy2*weight;
+        t->momy+=t->momy2*weight;
       if(Abs(t->momx)<2) t->momx=0;
       if(Abs(t->momy)<2) t->momy=0;
     }
@@ -1179,12 +1006,12 @@ U0 PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm,F64 last_tS) {
     dist=Sqrt(Sqr(t->momx+t->momx2)+Sqr(t->momy+t->momy2))*(1.-t->friction);
     on_ground=AsF64(CallScript("isOnGround",t));
     if(C3DWorldMoveWithCollision(w,angle,dist*weight,
-	&t->x,
-	&t->y,
-	TRUE,
-	t->z)) {
-	
-hit:
+	  &t->x,
+	  &t->y,
+	  TRUE,
+	  t->z)) {
+
+      hit:
       t->momx=0.;
       t->momy=0.;
       if(rocket) {
@@ -1193,17 +1020,17 @@ explode:
         return;
       } else if(!ThingHasClass(t,"CPickup")) {
         to_open=CallScript("doorInRadius:atX:atY:atAngle:",
-	  wm,FrogNumNew(THING_RADIUS),FrogNumNew(t->x),FrogNumNew(t->y),FrogNumNew(t->angle));
+	      wm,FrogNumNew(THING_RADIUS),FrogNumNew(t->x),FrogNumNew(t->y),FrogNumNew(t->angle));
         if(ThingHasClass(to_open,"CDoor")) {
-           CallScript("activateBy:",to_open,t);
+	  CallScript("activateBy:",to_open,t);
         }
       }
     }
     if(t->no_fall_off_edge&&on_ground) {
       if(AsF64(CallScript("isOverEdge",t))) {
-	t->x=ox;
-	t->y=oy;
-	CallScript("update",t); //New Chase Dir
+        t->x=ox;
+        t->y=oy;
+        CallScript("update",t); //New Chase Dir
       }
     }
   } else if(RadiusHitsWall(w,angle,&t->x,&t->y,t->z,THING_RADIUS,TRUE,,RADF_CEIL|RADF_FLOOR|RADF_DOOR))
@@ -1274,7 +1101,7 @@ I64 *GetTilesInPath(C3DWorld *w,F64 angle,F64 dist) {
       if(0<=ty<w->world_height) {
         idx=ty*w->world_width+tx;
         I64SetAdd(t,idx);
-	goto pass;
+        goto pass;
       }
     break;
 pass:;
@@ -1327,7 +1154,7 @@ draw:
   frame=ToI64((Frog_tS-thing->animation_start_tS)/ANIM_DELAY);
   frame=MaxI64(frame,0); //Prevent poo poo suace
   if(thing->animation_no_repeat) 
-     use_dc+=MinI64(frame,AnimDCCnt(use_dc)-1);
+    use_dc+=MinI64(frame,AnimDCCnt(use_dc)-1);
   else
     use_dc+=frame%AnimDCCnt(use_dc);
   return use_dc;
@@ -1352,8 +1179,8 @@ Bool PointToScrn(C3DWorld *w,F64 x,F64 y,F64 z,CD3 *p) {
   p->x=x;
   p->y=y;
   p->z=z;
- 
-//Begind camera
+
+  //Begind camera
   if(p->x<=.01) {
     p->x=.01;
     D3MulEqu(p,1./p->x);
@@ -1492,29 +1319,29 @@ Bool ClipLineToCamera(C3DWorld *w,CD3 *a,CD3 *b) {
   right.x=cam.x+I16_MAX*Cos(-pi/2.5+w->angle);
   right.y=cam.y+I16_MAX*Sin(-pi/2.5+w->angle);
   if(PlaneIntersect(&dst,a,b,&cam,&left)) {
-     if(IsLeftSide(&cam,&left,a)) {
-       a->z=Lerp(Sqrt(Sqr(dst.x-oa.x)+Sqr(dst.y-oa.y))/dist,oa.z,ob.z);
-       a->x=dst.x;
-       a->y=dst.y;
-     }
-     if(IsLeftSide(&cam,&left,b)){
-       b->x=dst.x;
-       b->y=dst.y;
-       b->z=Lerp(Sqrt(Sqr(dst.x-oa.x)+Sqr(dst.y-oa.y))/dist,oa.z,ob.z);
-     }
+    if(IsLeftSide(&cam,&left,a)) {
+      a->z=Lerp(Sqrt(Sqr(dst.x-oa.x)+Sqr(dst.y-oa.y))/dist,oa.z,ob.z);
+      a->x=dst.x;
+      a->y=dst.y;
+    }
+    if(IsLeftSide(&cam,&left,b)){
+      b->x=dst.x;
+      b->y=dst.y;
+      b->z=Lerp(Sqrt(Sqr(dst.x-oa.x)+Sqr(dst.y-oa.y))/dist,oa.z,ob.z);
+    }
     in_view=TRUE;
   }
   if(PlaneIntersect(&dst,a,b,&cam,&right)) {
-     if(!IsLeftSide(&cam,&right,a)) {
-       a->x=dst.x;
-       a->y=dst.y;
-       a->z=Lerp(Sqrt(Sqr(dst.x-oa.x)+Sqr(dst.y-oa.y))/dist,oa.z,ob.z);
-     }
-     if(!IsLeftSide(&cam,&right,b)){
-       b->x=dst.x;
-       b->y=dst.y;
-       b->z=Lerp(Sqrt(Sqr(dst.x-oa.x)+Sqr(dst.y-oa.y))/dist,oa.z,ob.z);
-     }
+    if(!IsLeftSide(&cam,&right,a)) {
+      a->x=dst.x;
+      a->y=dst.y;
+      a->z=Lerp(Sqrt(Sqr(dst.x-oa.x)+Sqr(dst.y-oa.y))/dist,oa.z,ob.z);
+    }
+    if(!IsLeftSide(&cam,&right,b)){
+      b->x=dst.x;
+      b->y=dst.y;
+      b->z=Lerp(Sqrt(Sqr(dst.x-oa.x)+Sqr(dst.y-oa.y))/dist,oa.z,ob.z);
+    }
     in_view=TRUE;
   }
   if(in_view) return TRUE;
@@ -1522,7 +1349,7 @@ Bool ClipLineToCamera(C3DWorld *w,CD3 *a,CD3 *b) {
     return FALSE;
   return TRUE;
 //  return in_view||!IsLeftSide(&cam,&left,a)||!IsLeftSide(&cam,&left,b)
-//	||IsLeftSide(&cam,&right,a)||IsLeftSide(&cam,&right,b);
+  //	||IsLeftSide(&cam,&right,a)||IsLeftSide(&cam,&right,b);
 }
 
 
@@ -1581,7 +1408,7 @@ U0 PrepareThingsForDraw(C3DWorldManager *wm,F64 thing_scale=.6) {
       st=0;
       en=1.;
 
-//If we clipped the line,compute the new start and end
+      //If we clipped the line,compute the new start and end
       st=Sqrt(Sqr(scrn_st.y-clip_st.y)+Sqr(scrn_st.x-clip_st.x))/(hit_texture->width*thing_scale);
       en=Sqrt(Sqr(scrn_st.y-clip_en.y)+Sqr(scrn_st.x-clip_en.x))/(hit_texture->width*thing_scale);
 
@@ -1618,25 +1445,25 @@ U0 PrepareThingsForDraw(C3DWorldManager *wm,F64 thing_scale=.6) {
 	    if(0.<=yy<1.) {
 //Account for "clipped" start/end
 	      if(thing->draw_flip) {
-		xx=Lerp(xx,1.-st,1.-en);
-		dist=Lerp(xx,enz,stz);
+	        xx=Lerp(xx,1.-st,1.-en);
+	        dist=Lerp(xx,enz,stz);
 	      } else {
-		xx=Lerp(xx,st,en);
-		dist=Lerp(xx,stz,enz);
-              }
+	        xx=Lerp(xx,st,en);
+	        dist=Lerp(xx,stz,enz);
+	      }
 	      to_dc->color=GrPeek(hit_texture,xx*(hit_texture->width-1),(hit_texture->height-1)*yy);
 	      if(TRANSPARENT>to_dc->color>=0) {
-		for(idx=0;idx!=4;idx++) {
+	        for(idx=0;idx!=4;idx++) {
 		  if(dst_db_ptr->i32[0]>dist) {
 		    *dst_ptr=gr.to_8_colors[to_dc->color];
 		    *dst_db_ptr=dist|dist<<32;
 		    dst_db_ptr[1]=dist|dist<<32;
 		  }
-	          dst_ptr(U8*)+=to_dc->width_internal;
-	          dst_db_ptr(I32*)+=to_dc->width_internal;
-		}
+		  dst_ptr(U8*)+=to_dc->width_internal;
+		  dst_db_ptr(I32*)+=to_dc->width_internal;
+	        }
 
-		goto pass;
+	        goto pass;
 	      }
 	    }
 	  dst_ptr(U8*)+=4*to_dc->width_internal;
@@ -1669,7 +1496,7 @@ skip:;
   }
 }
 I64 ToTile(I64 block) {
-  return block/256;
+return block/256;
 }
 
 //https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection
@@ -1728,7 +1555,7 @@ Bool SegmentSegmentIntersect(CD2 *hit_at,CD2 *a,CD2 *b,CD2 *a2,CD2 *b2,F64 *t,F6
   MULPD XMM2,XMM0
   MOVUPD &tmpu[RBP],XMM2
 
-//Do these after the asm blob to avoid messing up tmp registers
+  //Do these after the asm blob to avoid messing up tmp registers
   F64 bottom=tmpb.y-tmpb.x;
   F64 _t=(tmpt.y-tmpt.x)/bottom;
   F64 _u=-(tmpu.y-tmpu.x)/bottom;
@@ -1738,8 +1565,8 @@ Bool SegmentSegmentIntersect(CD2 *hit_at,CD2 *a,CD2 *b,CD2 *a2,CD2 *b2,F64 *t,F6
       if(t) *t=_t;
       if(u) *u=_u;
       if(hit_at) {
-	hit_at->x=a->x+_t*(b->x-a->x);
-	hit_at->y=a->y+_t*(b->y-a->y);
+        hit_at->x=a->x+_t*(b->x-a->x);
+        hit_at->y=a->y+_t*(b->y-a->y);
       }
       return TRUE;
     }
@@ -1755,8 +1582,8 @@ Bool SegmentSegmentIntersect(CD2 *hit_at,CD2 *a,CD2 *b,CD2 *a2,CD2 *b2,F64 *t,F6
       if(t) *t=_t;
       if(u) *u=_u;
       if(hit_at) {
-	hit_at->x=a->x+_t*(b->x-a->x);
-	hit_at->y=a->y+_t*(b->y-a->y);
+        hit_at->x=a->x+_t*(b->x-a->x);
+        hit_at->y=a->y+_t*(b->y-a->y);
       }
       return TRUE;
     }
@@ -1765,6 +1592,78 @@ Bool SegmentSegmentIntersect(CD2 *hit_at,CD2 *a,CD2 *b,CD2 *a2,CD2 *b2,F64 *t,F6
 #endif
 //https://github.com/cgyurgyik/fast-voxel-traversal-algorithm/blob/master/overview/FastVoxelTraversalOverview.md
 #define RAY_TRACE_MAX_DEPTH 3
+I64 BlockHitColor(CD3 *at,CD3 *ray,I64 x,I64 y,I64 z,I64 sidex,I64 sidey,I64 sidez,CD3 *hit_at=NULL,F64 *hit_d=NULL,CD2I64 *texture_cords=NULL) {
+  CD3 pos,dst;
+  CDC *texture=NULL;
+  I64 b=BlockAtXYZ(x,y,z),tx,ty;
+  pos.x=x;
+  pos.y=y;
+  pos.z=z;
+  if(sidex>0) {
+    pos.x=x+1;
+  }
+  else if(sidex<0) {
+    pos.x=x;
+  }
+
+  else if(sidey>0) {
+    pos.y=y+1;
+  }
+  else if(sidey<0) {
+    pos.y=y;
+  }
+  else if(sidez>0) {
+    pos.z=z+1;
+  }
+  else if(sidez<0) {
+    pos.z=z;
+  } else
+    return LTPURPLE;
+  F64 d;
+  if(sidez>0) {
+    texture=w->floor_textures[b];
+zstyle:
+    d=(pos.z-at->z)/ray->z;
+    D3Mul(&dst,d,ray);
+    D3AddEqu(&dst,at);
+    tx=dst.x*128;
+    ty=dst.y*128;
+    ty=ty&127;
+  } else if(sidez<0) {
+    texture=w->ceil_textures[b];
+    goto zstyle;
+  } else if(sidex) {
+    texture=w->wall_textures[b];
+    d=(pos.x-at->x)/ray->x;
+    D3Mul(&dst,d,ray);
+    D3AddEqu(&dst,at);
+    tx=dst.y*128;
+    ty=dst.z*128;
+    ty=127-ty&127;
+  } else if(sidey) {
+    texture=w->wall_textures[b];
+    d=(pos.y-at->y)/ray->y;
+    D3Mul(&dst,d,ray);
+    D3AddEqu(&dst,at);
+    tx=dst.x*128;
+    ty=dst.z*128;
+    ty=127-ty&127;
+  }
+  if(hit_d) 
+    *hit_d=Sqrt(Sqr(dst.z-at->z)+Sqr(dst.y-at->y)+Sqr(dst.x-at->x));
+  if(hit_at)
+    D3Equ(hit_at,dst.x*128,dst.y*128,dst.z);
+  if(texture_cords) {
+    texture_cords->x=tx&127;
+    if(sidez)
+      texture_cords->y=ty&127;
+    else
+      texture_cords->y=127-ty&127;
+  }
+  if(texture)
+    return GrPeek(texture,tx&127,ty&127);
+  return BLACK;
+}
 I64 GetColorForRay(C3DWorldManager *man,CD3 *origin,CD3 *ray,F64 dist,F64 *hit_at,CD3 *hit_cords,I64 depth=0,I64 last_block=0,I64 fog_color=BLACK,Bool record_tile=FALSE) { 
   CFrogArray *grid=man->grid;
   C3DWorld *w=man->world_handle;
@@ -1793,7 +1692,6 @@ I64 GetColorForRay(C3DWorldManager *man,CD3 *origin,CD3 *ray,F64 dist,F64 *hit_a
   F64 tMaxX=(current_x_index-x)/ray->z;
   F64 tMaxY=(current_y_index-y)/-ray->x;
   F64 tMaxZ=(current_z_index-origin->z)/-ray->y;
-  F64 dist2;
   F64 h,h2;
   F64 angle=Arg(ray->z,-ray->x);
   F64 cos=Cos(angle),sin=Sin(angle);
@@ -1804,13 +1702,22 @@ I64 GetColorForRay(C3DWorldManager *man,CD3 *origin,CD3 *ray,F64 dist,F64 *hit_a
   CDC *hit_texture;
   CDC *stain_dc;
   I64 cur,thing_idx,texture_x,texture_y;
-  I64 texture_y_offset;
   I64 wall_side;
   I64 stain_x,stain_y;
   I64 color;
-  I64 relx,rely,lighting;
+  I64 relx,rely;
+  F64 lighting;
   CD2 long,long128,xyhit,origin_d_128;
-  I64 side,ttx,tty;
+  I64 side;
+  CD2I64 texture_cords;
+  I64 sidex=0,sidey=0,sidez=0;
+  CD3 o128,rp;
+  rp.x=ray->z;
+  rp.y=-ray->x;
+  rp.z=-ray->y;
+  o128.x=origin->x/128;
+  o128.y=origin->y/128;
+  o128.z=origin->z;
   long.x=x+VIEW_DIST*cos;
   long.y=y+VIEW_DIST*sin;
   long128.x=long.x*128;
@@ -1826,242 +1733,131 @@ I64 GetColorForRay(C3DWorldManager *man,CD3 *origin,CD3 *ray,F64 dist,F64 *hit_a
 	  lighting=ClampI64(w->world_lighting[idx*256+tz-I8_MIN],0,15);
 	  relx=tx-w->things_around_camera_origin_x;
 	  rely=ty-w->things_around_camera_origin_y;
-//Check for hitting a tile(WhichTexture also accounts for doors)
-	  texture_y_offset=0; //Ffor Dooors
 	  idx=(ty*w->world_width+tx)*256+tz-I8_MIN;
 	  if(w->world_blocks[idx]) {
 	    if(w->world_blocks[idx]==last_block) goto pass;
 tile:;
-	    I64 segment=0;
-	    CD2 corners[4];
-	    F64 nearest=VIEW_DIST*128,farest=0,tmp,fsegment;
-	    corners[0].x=tx;
-	    corners[0].y=ty;
-	    corners[1].x=tx+1;
-	    corners[1].y=ty;
-	    corners[2].x=tx+1;
-	    corners[2].y=ty+1;
-	    corners[3].x=tx;
-	    corners[3].y=ty+1;
-
-	    origin_d_128.x=origin->x/128;
-	    origin_d_128.y=origin->y/128;
-
-	    side=-1;
-	    for(thing_idx=0;thing_idx!=4;thing_idx++) {
-	      if(SegmentSegmentIntersect(&xyhit,&corners[thing_idx],&corners[(thing_idx+1)&3],&origin_d_128,&long,&fsegment,&tmp)) {
-	        nearest=Min(nearest,tmp);
-	        farest=Max(farest,tmp);
-	        if(nearest==tmp) {
-		  side=thing_idx;
-		  if(side>=2)
-		    segment=(1.-fsegment)*127;
-		  else
-		    segment=fsegment*127;
-	        }
-	      }
+	    CD3 new_origin;
+	    CD3 new_ray;
+	    idx=(ty*w->world_width+tx)*256+tz-I8_MIN;
+	    idx=w->world_blocks[idx];
+	    if(record_tile) {
+	      man->cur_tile_x=tx;
+	      man->cur_tile_y=ty;
+	      man->cur_tile_z=tz;
+	      man->cur_tile_side_x=sidex;
+	      man->cur_tile_side_y=sidey;
+	      man->cur_tile_side_z=sidez;
 	    }
-
-	    if(farest) { //Was set to 0 above
-	      dist=nearest*VIEW_DIST*128;
-	      dist2=farest*VIEW_DIST*128;
-	    }
-
-	    if(ToI64(origin->x/128)==tx&&ty==ToI64(origin->y/128)) {
-	      h=origin->z;
-	      h2=slope*(dist2/128.)+origin->z;
-	    }
-	    else {
-	      h=slope*(dist/128.)+origin->z;
-	      h2=slope*(dist2/128.)+origin->z;
-	    }
-	    F64 ath=0;
-	    Bool hit_wall=FALSE;
-	      I64 sidex=0,sidey=0,sidez=0;
-	    hit_texture=WhichTexture(w,idx,h,h2,&ath,&hit_wall);
-	    F64 hit_dist2;
-		  if(!hit_wall) {
-		    if(slope<0) {
-		      sidez=1;
-		    } else
-		      sidez=-1;
-		  } else {
-		    switch(side) {
-		      case 0:
-		        sidey=-1;
-		        break;
-		      case 1:
-		        sidex=1;
-		        break;
-		      case 2:
-		        sidey=1;
-		        break;
-		      case 3:
-		        sidex=-1;
-		        break;
-		    }
-		  }
-	    if(hit_texture) {
-	      if(0<=relx<2*VIEW_DIST)
-	        if(0<=rely<2*VIEW_DIST)
-		  if(cnt=(do_things=w->stains_around_camera[relx][rely])->cnt)
-		    goto try_stains;
-	      goto try_block;
+	    color=BlockHitColor(&o128,&rp,tx,ty,tz,sidex,sidey,sidez,&new_origin,&hit_dist,&texture_cords);
+	    if(0<=relx<2*VIEW_DIST)
+	      if(0<=rely<2*VIEW_DIST)
+	        if(cnt=(do_things=w->stains_around_camera[relx][rely])->cnt)
+		  goto try_stains;
+	    goto try_block;
 try_stains:;
-	      wall_stains=do_things->body;
-	      wall_stain_cnt=cnt;
-	      while(--wall_stain_cnt>=0) {
-	        wall_stain=wall_stains[wall_stain_cnt];
+	    wall_stains=do_things->body;
+	    wall_stain_cnt=cnt;
+	    while(--wall_stain_cnt>=0) {
+	      wall_stain=wall_stains[wall_stain_cnt];
+	      if((sidex&&wall_stain->sidex==sidex)||(sidey&&wall_stain->sidey==sidey)||(sidez&&wall_stain->sidez==sidez))
 	        if(wall_stain->tile_x==tx&&wall_stain->tile_y==ty&&wall_stain->tile_z==tz) {
-		  if(sidez&&wall_stain->sidez==sidez) {
-		    hit_dist2=(ath-origin->z)/slope*128;
-		    ttx=ClampI64(hit_dist2*cos+origin->x-tx*128,0,127);
-		    tty=ClampI64(hit_dist2*sin+origin->y-ty*128,0,127);
-		    dist=hit_dist2;
-		    if(0<=GrPeek(wall_stain->dc,
-			  (ttx&127),
-			  (tty&127)
-			  )<TRANSPARENT) {
-		      color=GrPeek(wall_stain->dc,ttx&127,tty&127);
-		      goto valid_color;
-		    }
-		  } else if((sidex&&wall_stain->sidex==sidex)||(sidey&&wall_stain->sidey==sidey)) {
-		    color=GrPeek(wall_stain->dc,segment&127,ToI64(ath*128+texture_y_offset)&127); 
-		    if(0<=color<TRANSPARENT) {
-		      goto valid_color;
-		    }
+		  if(0<=GrPeek(wall_stain->dc,
+		        (texture_cords.x&127),
+		        (texture_cords.y&127)
+		        )<TRANSPARENT) {
+		    color=GrPeek(wall_stain->dc,texture_cords.x&127,texture_cords.y&127);
+		    goto valid_color;
 		  }
-next_stain:;
 	        }
-	      }
-try_block:;
-	      CD3 new_origin;
-	      CD3 new_ray;
-	      idx=(ty*w->world_width+tx)*256+tz-I8_MIN;
-	      idx=w->world_blocks[idx];
-	      if(record_tile) {
-		man->cur_tile_x=tx;
-		man->cur_tile_y=ty;
-		man->cur_tile_z=tz;
-		man->cur_tile_side_x=sidex;
-		man->cur_tile_side_y=sidey;
-		man->cur_tile_side_z=sidez;
-	      }
-	      if(hit_wall)  {
-	        SegmentSegmentIntersect(&xyhit,&corners[side],&corners[(side+1)&3],&origin_d_128,&long,NULL,NULL);
-	        color=GrPeek0(hit_texture,ttx=segment&127,127-(tty=ToI64(ath*128+texture_y_offset)&127));
-//For-recursive
-	        hit_dist2=Sqrt(Sqr(xyhit.x*128-origin->x)+Sqr(xyhit.y*128-origin->y));
-	        new_origin.x=origin->x+hit_dist2*cos;
-	        new_origin.y=origin->y+hit_dist2*sin;
-	        new_origin.z=ath;
-
-	      } else {
-	        hit_dist2=(ath-origin->z)/slope*128;
-	        ttx=ClampI64(hit_dist2*cos+origin->x-tx*128,0,127);
-	        tty=ClampI64(hit_dist2*sin+origin->y-ty*128,0,127);
-	        dist=hit_dist2;
-	        color=GrPeek0(hit_texture,ttx&127,(tty+texture_y_offset)&127);
-//For-recursive
-	        new_origin.x=ttx;
-	        new_origin.y=tty;
-	        new_origin.z=hit_dist2/128.*slope+origin->z;
-	      }
-	      if(I8_MIN<=tz+sidez<I8_MAX) {
-	        if(0<=ty+sidey<w->world_height)
-		  if(0<=tx+sidex<w->world_width) {
-		    idx=(ty+sidey)*w->world_width+tx+sidex;
-		    lighting=ClampI64(w->world_lighting[idx*256+tz+sidez-I8_MIN],0,15);
-		  }
-	      }
-	      if(IsLiquidTile(idx)&&depth<RAY_TRACE_MAX_DEPTH) {
-//TODO displace ray based on "wavew"
-	        fog_color=color&0xff;
-	        depth++;
-	        last_block=idx;
-//Weird issues  with exact values
-	        //Snells law
-	        F64 snell_a,snell_a2,normal;
-	        F64 t=Frog_tS/30.;
-	        F64 rand_refrac=1.1+.1*(Abs(Sin((t/4.)*200))-Abs(Cos(t*125)))+.1*(Rand-.5)*2;
-	        if(hit_wall) {
-		  normal=(1+side)*pi/2;
-		  snell_a=Arg(origin->x-xyhit.x*128,origin->y-xyhit.y*128)-normal;
-		  snell_a=ASin(Sin(snell_a)/rand_refrac);
-		  snell_a=normal-snell_a+pi;
-		  new_ray.x=Sin(snell_a);
-		  new_ray.y=ray->y*ASin(Sin((pi/2-ATan(slope)))/(rand_refrac+.2));
-		  new_ray.z=-Cos(snell_a);
-	        } else {
-		  if(slope<0.)
-		    normal=pi/2;
-		  else
-		    normal=-pi/2;
-		  snell_a=ATan(slope)-normal;
-		  snell_a=ASin(Sin(snell_a)/rand_refrac);
-		  snell_a=normal-snell_a+pi;
-		  new_ray.x=ray->x;
-		  new_ray.y=-Sin(snell_a);
-		  new_ray.z=ray->z;
-	        }
-	        return GetColorForRay(man,&new_origin,&new_ray,128*VIEW_DIST,hit_at,hit_cords,depth,last_block,fog_color);
-	        goto pass;
-	      }
-valid_color:
-	      if(dist<hit_dist) {
-	        dist2=Sqrt(Sqr(slope*(dist/128.)*128)+Sqr(cos*dist)+Sqr(sin*dist));
-	        if(hit_cords) {
-//Slightly before our wall(not in wall).
-		  dist=Clamp(dist-2.,0,128*VIEW_DIST);
-		  hit_cords->x=origin->x+cos*dist;
-		  hit_cords->y=origin->y+sin*dist;
-		  hit_cords->z=slope*(dist/128.)+origin->z;
-	        }
-	        if(hit_at) *hit_at=dist;
-	        hit=TRUE;
-	        hit_dist=dist;
-		F64 ao_nodes[4];
-		F64 adj_lights[4];
-		F64 ao;
-		for(idx=0;idx!=4;idx++)
-		  ao_nodes[idx]=BlockAO(idx,tx,ty,tz,sidex,sidey,sidez);
-		for(idx=0;idx!=4;idx++)
-		  adj_lights[idx]=CornerLight(idx,tx,ty,tz,sidex,sidey,sidez);
-		F64 u0=ttx/127.;
-		F64 u1=1-ttx/127.;
-		F64 v0=tty/127.;
-		F64 v1=1-tty/127.;
-		//Bilnear
-		ao=.5;
-		ao+=ao_nodes[3]*v1*u1;
-		ao+=ao_nodes[2]*u0*v1;
-		ao+=ao_nodes[0]*u1*v0;
-		ao+=ao_nodes[1]*u0*v0;
-		lighting-=3.-ao;
-		lighting=(Lerp(u0,adj_lights[0],adj_lights[2])+Lerp(v0,adj_lights[1],adj_lights[3])+lighting)/3.;
-	        hit_color=Fog(color,dist2+1+depth*FOG_DIST*4+MaxI64((15-lighting)*FOG_DIST,0),fog_color);
-	      }
 	    }
+try_block:;
+//For-recursive
+	    if(0&&IsLiquidTile(idx)&&depth<RAY_TRACE_MAX_DEPTH) {
+//TODO displace ray based on "wavew"
+	      fog_color=color&0xff;
+	      depth++;
+	      last_block=idx;
+//Weird issues  with exact values
+	      //Snells law
+	      F64 snell_a,snell_a2,normal;
+	      F64 t=Frog_tS/30.;
+	      F64 rand_refrac=1.1+.1*(Abs(Sin((t/4.)*200))-Abs(Cos(t*125)))+.1*(Rand-.5)*2;
+	      if(!sidez) {
+	        normal=(1+side)*pi/2;
+	        snell_a=Arg(origin->x-xyhit.x*128,origin->y-xyhit.y*128)-normal;
+	        snell_a=ASin(Sin(snell_a)/rand_refrac);
+	        snell_a=normal-snell_a+pi;
+	        new_ray.x=Sin(snell_a);
+	        new_ray.y=ray->y*ASin(Sin((pi/2-ATan(slope)))/(rand_refrac+.2));
+	        new_ray.z=-Cos(snell_a);
+	      } else {
+	        if(slope<0.)
+		  normal=pi/2;
+	        else
+		  normal=-pi/2;
+	        snell_a=ATan(slope)-normal;
+	        snell_a=ASin(Sin(snell_a)/rand_refrac);
+	        snell_a=normal-snell_a+pi;
+	        new_ray.x=ray->x;
+	        new_ray.y=-Sin(snell_a);
+	        new_ray.z=ray->z;
+	      }
+	      return GetColorForRay(man,&new_origin,&new_ray,128*VIEW_DIST,hit_at,hit_cords,depth,last_block,fog_color);
+	    }
+valid_color:
+	    if(hit_cords) {
+	      D3Copy(hit_cords,&new_origin);
+	    }
+	    hit_dist*=128;
+	    if(hit_at) *hit_at=hit_dist;
+	    hit=TRUE;
+	    F64 ao_nodes[4];
+	    F64 adj_lights[4];
+	    F64 ao;
+	    for(idx=0;idx!=4;idx++)
+	      ao_nodes[idx]=BlockAO(idx,tx,ty,tz,sidex,sidey,sidez);
+	    for(idx=0;idx!=4;idx++)
+	      adj_lights[idx]=CornerLight(idx,tx,ty,tz,sidex,sidey,sidez);
+	    F64 u0=texture_cords.x/127.;
+	    F64 u1=1-texture_cords.x/127.;
+	    F64 v0=texture_cords.y/127.;
+	    F64 v1=1-texture_cords.y/127.;
+//Bilnear
+	    ao=.5;
+	    ao+=ao_nodes[3] *v1*u1;
+	    ao+=ao_nodes[2] *u0*v1;
+	    ao+=ao_nodes[0] *u1*v0;
+	    ao+=ao_nodes[1] *u0*v0;
+	    lighting=LightAtXYZ(tx+sidex,ty+sidey,tz+sidez);
+	    lighting-=3-ao;
+	    lighting=(Lerp(u0,adj_lights[0],adj_lights[2])+Lerp(v0,adj_lights[1],adj_lights[3])+lighting)/3.;
+	    hit_color=Fog(color,hit_dist+1+depth*FOG_DIST*4+MaxI64((15-lighting)*FOG_DIST,0),fog_color);
 	  }
 	  goto pass;
         }
     break;
 pass:;
+    sidex=sidey=sidez=0;
     if(tMaxX<tMaxY) {
       if(tMaxX<tMaxZ) {
         tMaxX+=r_abs_rz;
         tx+=stepx;
+        sidex=-stepx;
       } else {
         tMaxZ+=r_abs_ry;
         tz+=stepz;
+        sidez=-stepz;
       }
     } else {
       if(tMaxY<tMaxZ) {
         tMaxY+=r_abs_rx;
         ty+=stepy;
+        sidey=-stepy;
       } else {
         tMaxZ+=r_abs_ry;
         tz+=stepz;
+        sidez=-stepz;
       }
     } 
   }
@@ -2070,53 +1866,6 @@ fin:
     return gr.to_8_colors[fog_color&0xff];
   }
   return hit_color;
-}
-CDC *WhichTexture(C3DWorld *w,I64 tile,F64 h,F64 h2,F64 *hit_h,Bool *hit_wall) {
-  F64 have,have2;
-  F64 mx,mn;
-  CDoor *door;
-  I64 cnt;
-  CDC *ret=NULL;
-  if(h>h2) {
-    mx=h;
-    mn=h2;
-  } else {
-    mx=h2;
-    mn=h;
-  }
-  I64 tileh=(tile&255)+I8_MIN;
-  have=tileh;
-  have2=tileh+1;
-  if(hit_wall) *hit_wall=TRUE;
-
-  if(Max(mn,have)<=Min(mx,have2)) {
-    if(have<=h<=have2) {
-      if(hit_h) *hit_h=h;
-      ret=w->wall_textures[w->world_blocks[tile]];
-      goto en;
-    }
-    if(h>h2) {
-//Looking  Down
-      if(h>=have2) {//Hit top
-        if(hit_wall) *hit_wall=FALSE;
-        if(hit_h)*hit_h=have2;
-        ret=w->floor_textures[w->world_blocks[tile]];
-	goto en;
-      }
-    }
-    if(h<h2) {
-      if(h2>=have) {//Hit bottom
-        if(hit_wall) *hit_wall=FALSE;
-        if(hit_h) *hit_h=have;
-        ret=w->ceil_textures[w->world_blocks[tile]];
-	goto en;
-      }
-    }
-  }
-en:
-  if(ret&&(cnt=AnimDCCnt(ret)))
-    return ret+ToI64(Frog_tS/ANIM_DELAY)%cnt;
-  return NULL;
 }
 
 I64 mp_done=0;
@@ -2130,15 +1879,15 @@ U0 GenerateRay(C3DWorld *world,CD2 *ray_look,F64 i,F64 j,F64 width,F64 height,F6
   CD3 m,tmpy,tmpx;
   D3Equ(&m,(i/width-.5)*-2,(j/height-.5)*2,1);
   D3Equ(&tmpy,
-     m.x,
-     m.y*ca2-m.z*sa2,
-     m.y*sa2+m.z*ca2
-   );
+        m.x,
+        m.y*ca2-m.z*sa2,
+        m.y*sa2+m.z*ca2
+        );
   D3Equ(ray_look,
-     tmpy.x*ca+tmpy.z*sa,
-     tmpy.y,
-     -tmpy.x*sa+tmpy.z*ca,
-   );
+        tmpy.x*ca+tmpy.z*sa,
+        tmpy.y,
+        -tmpy.x*sa+tmpy.z*ca,
+        );
   D3Norm(ray_look);
 }
 
@@ -2239,7 +1988,7 @@ U0 MPCastCol(C3DWorldManager *wm) {
       if(x/w->step_width==(GR_WIDTH/2/w->step_width))
         if(y/w->step_width==(GR_HEIGHT/2/w->step_width)) {
 	  record_tile=TRUE;
-	}
+        }
 
       if(in_water) {
         color=GetColorForRay(wm,&origin,&ray,32*GRID_SZ,&dist,p,1*in_water,BlockAtXYZ(w->x/128.,w->y/128.,Floor(w->cam_height)),fogc,record_tile);
@@ -2329,7 +2078,7 @@ U0 C3DWorldCastRays(C3DWorld *w) {
   MPCastCol(man);
   for(c=1;c<mp_cnt;++c) {
     while(!Bt(&mp_done,c))
-     __Sleep(2);
+      __Sleep(2);
   }
 }
 Bool CanSee2DThing(C3DWorld *w,C3DThing *t) {
@@ -2340,50 +2089,20 @@ Bool CanSee2DThing(C3DWorld *w,C3DThing *t) {
   I64 at_tile=ToI64(w->x/GRID_SZ)+ToI64(w->y/GRID_SZ)*w->world_width;
   I64 t_at_tile=ToI64(t->x/GRID_SZ)+ToI64(t->y/GRID_SZ)*w->world_width;
   I64 x,y,z;
-  for(idx=0;ti[idx]!=-1;idx++) {
-    if(ti[idx]==at_tile) {
-      if(at_tile==t_at_tile) {
-	ret=TRUE;
-	break;
-      }
-    } else {
-      x=ti[idx]%w->world_width;
-      y=ti[idx]/w->world_width;
-      FindRayWall(w,
-	    Tan(angle),
-	    Cos(angle),
-	    Sin(angle),
-	    NULL,
-	    &near,
-	    NULL,
-	    I8_MIN,
-	    x,
-	    y,
-	    FALSE,
-	    TRUE
-      );
-      FindRayWall(w,
-	    Tan(angle),
-	    Cos(angle),
-	    Sin(angle),
-	    NULL,
-	    &far,
-	    NULL,
-	    I8_MIN,
-	    x,
-	    y,
-	    TRUE,//far sdie
-	    TRUE
-      );
-//TODO replace "+1" with thing height
-      interp=Min((near+far)/2,dist)/dist*(t->z+1.-w->cam_height)+w->cam_height;
-//Perhaps we got an extra block
-      if(ti[idx]==t_at_tile)
-	break;
-      if(BlockAtXYZ(x,y,Floor(interp))) {
-	ret=FALSE;
-	break;
-      }
+  I64 cnt=0;
+  for(idx=0;ti[idx]!=-1;idx++)
+    ++cnt;
+  for(idx=0;idx<cnt;idx++) {
+    x=ti[idx]%w->world_width;
+    y=ti[idx]/w->world_width;
+    interp=Lerp(ToF64(idx)/ToF64(cnt),w->cam_height,t->z);
+    if(BlockAtXYZ(x,y,ToI64(interp))) {
+      //Check if we are 1 block within result "good enough"
+      if(Abs(x-t->x/GRID_SZ)<0||Abs(y-t->y/GRID_SZ)<0
+	||Abs(z-t->z)<0)
+	break; //ret==TRUE
+      ret=FALSE;
+      break;
     }
   }
   Free(ti);
@@ -2391,40 +2110,32 @@ Bool CanSee2DThing(C3DWorld *w,C3DThing *t) {
 }
 #define THING_DRAW_CUTOFF GRID_SZ/2
 
-//Crammer's rule
-U0 Solve22(F64 a1,F64 a2,F64 a3,F64 a4,F64 a5,F64 a6,F64 *ra,F64 *rb) {
-  F64 det=a1*a4-a2*a3;
-  F64 dx=a5*a4-a2*a6;
-  F64 dy=a1*a6-a5*a3;
-  *ra=dx/det;
-  *rb=dy/det;
-}
 
 U0 WMPointToScreenX(C3DWorldManager *man,I64 *argv,I64 argc) {
   CD3 p;
   PointToScrn(w,
-	AsF64(argv[0]),
-	AsF64(argv[1]),
-	AsF64(argv[2]),
-	&p);
+        AsF64(argv[0]),
+        AsF64(argv[1]),
+        AsF64(argv[2]),
+        &p);
   return FrogNumNew(p.x);
 }
 U0 WMPointToScreenY(C3DWorldManager *man,I64 *argv,I64 argc) {
   CD3 p;
   PointToScrn(w,
-	AsF64(argv[0]),
-	AsF64(argv[1]),
-	AsF64(argv[2]),
-	&p);
+        AsF64(argv[0]),
+        AsF64(argv[1]),
+        AsF64(argv[2]),
+        &p);
   return FrogNumNew(p.y);
 }
 U0 WMPointToScreenZ(C3DWorldManager *man,I64 *argv,I64 argc) {
   CD3 p;
   PointToScrn(w,
-	AsF64(argv[0]),
-	AsF64(argv[1]),
-	AsF64(argv[2]),
-	&p);
+        AsF64(argv[0]),
+        AsF64(argv[1]),
+        AsF64(argv[2]),
+        &p);
   return FrogNumNew(p.z);
 }
 AddMethod("C3DWorldManager","pointToScreenXAtX:atY:atZ:",&WMPointToScreenX);
@@ -2443,7 +2154,7 @@ U0 DrawParticle(C3DWorld *w,C3DParticle *p) {
 
 U0 Line3D(C3DWorld *w,CDC *dc,CD3 *st,CD3 *en) {
 //Make sure the line isnt insanely cose the the camera.
-//I approximate the things based on angles,its pretty dumb.
+  //I approximate the things based on angles,its pretty dumb.
   CD3 clip,clip2,res,res2;
   F64 angle=Arg(en->x-st->x,en->y-st->y);
   clip.x=st->x;
@@ -2527,18 +2238,18 @@ AddMethod("C3DWorldManager","basicNewParticleAtX:atY:atZ:withSpread:withColor:wi
 CFrogThing *WorldManagerNewSweepSound(C3DWorldManager *man,I64 *argv,I64 argc) {
   if(man->sound_task) Kill(man->sound_task,FALSE);
   man->sound_task=Sweep(
-	AsF64(argv[0]),
-	AsF64(argv[1]),
-	AsF64(argv[2]));
+        AsF64(argv[0]),
+        AsF64(argv[1]),
+        AsF64(argv[2]));
   return FROG_SMALL_NIL;
 }
 AddMethod("C3DWorldManager","sweepSoundForTime:withMin:withMax:",&WorldManagerNewSweepSound);
 CFrogThing *WorldManagerNewNoiseSound(C3DWorldManager *man,I64 *argv,I64 argc) {
   if(man->sound_task) Kill(man->sound_task,FALSE);
   man->sound_task=Noise(
-	AsF64(argv[0]),
-	AsF64(argv[1]),
-	AsF64(argv[2]));
+        AsF64(argv[0]),
+        AsF64(argv[1]),
+        AsF64(argv[2]));
   return FROG_SMALL_NIL;
 }
 AddMethod("C3DWorldManager","noiseSoundForTime:withMin:withMax:",&WorldManagerNewNoiseSound);
@@ -2569,11 +2280,11 @@ CFrogThing *C3DThingMoveAtAngle(C3DThing *self,I64 *argv,I64 argc) {
   CFrogThing *angle=argv[1];
   Bool hit_wall=FALSE;
 //
-//
-//Heres the deal,world update gets ran 10 fps,but physics is 30 fps
-//I will "dumb" walk into a wall then set the momentum to "walk"
-//
-//
+  //
+  //Heres the deal,world update gets ran 10 fps,but physics is 30 fps
+  //I will "dumb" walk into a wall then set the momentum to "walk"
+  //
+  //
   F64 old_x=self->x;
   F64 old_y=self->y;
   hit_wall=C3DWorldMoveWithCollision(w,AsF64(angle),AsF64(dist),&self->x,&self->y,TRUE,self->z);
@@ -2614,7 +2325,7 @@ CFrogThing *ThingCanSeeThing(C3DThing *self,I64 *argv,I64 argc) {
   CFrogThing *ret;
   C3DThing *other=argv[0];
   if(!ThingHasClass(other,"C3DThing"))
-     return FROG_SMALL_NIL;
+    return FROG_SMALL_NIL;
   w->x=self->x;
   w->y=self->y;
 //TODO replace "+1"  with thing height
@@ -2687,7 +2398,7 @@ CFrogNum *WorldManagerSetTileAtXAtYAtZ(C3DWorldManager *,I64 *argv,I64 argc) {
   if(0<=x<w->world_width)
     if(0<=y<w->world_height)
       if(I8_MIN<=z<I8_MAX) {
-	w->world_blocks[(x+y*w->world_width)*256+z-I8_MIN]=AsF64(argv[0]);
+        w->world_blocks[(x+y*w->world_width)*256+z-I8_MIN]=AsF64(argv[0]);
       }
   return FROG_SMALL_NIL;
 }
@@ -2698,7 +2409,7 @@ AddMethod("C3DWorldManager","setTile:atX:atY:atZ:",&WorldManagerSetTileAtXAtYAtZ
 // Test section
 //
 #ifdef TEST_3D
- DocClear;
+DocClear;
 #include "UI.HC"
 InitWorld;
 I64 mp_thing_done=0;
@@ -2712,7 +2423,7 @@ CFrogThing *UpdateParticles(C3DWorldManager *man,I64 *argv,I64 argc) {
   for(p=head->next;head!=p;p=n) {
     n=p->next;
     if(!p->hit&&BlockAtXYZ(p->x/128,p->y/128,Floor(p->z))) {
-      //Pick nearest "wall"
+//Pick nearest "wall"
       fx=Floor(p->x/128.);
       cx=Ceil(p->x/128.);
       fy=Floor(p->y/128.);
@@ -2720,14 +2431,14 @@ CFrogThing *UpdateParticles(C3DWorldManager *man,I64 *argv,I64 argc) {
       dx=Min(cx-p->x/128.,p->x/128.-fx);
       dy=Min(cy-p->y/128.,p->y/128.-fy);
       if(dy<dx) {
-	if(p->y/128-fy>.5)
+        if(p->y/128-fy>.5)
 	  p->y=(fy-.1)*128;
-	else
+        else
 	  p->y=(cy+.1)*128;
       } else {
-	if(p->x/128.-fx>.5)
+        if(p->x/128.-fx>.5)
 	  p->x=(fx-.1)*128;
-	else
+        else
 	  p->x=(cx+.1)*128;
       }
       if(!p->hit)
@@ -2742,35 +2453,35 @@ CFrogThing *UpdateParticles(C3DWorldManager *man,I64 *argv,I64 argc) {
 	  FALSE,
 	  p->z
 	  )) {         
-	goto hit;
+      goto hit;
     }
     if(C3DWorldMoveZWithCollision(w,p->momz,p->x,p->y,&p->z)) {
-        goto hit;
+      goto hit;
     }
     p->momx*=20/30.;
     p->momy*=20/30.;
     p->momz-=.2;
     tx=p->x/GRID_SZ;
     ty=p->y/GRID_SZ;
-   if(0) {
+    if(0) {
 hit:
-	  if(p->momz<=0.) {
-	    p->z=Floor(p->z)+.001; //Sit on floors
- 	    p->hit=1;
-	    p->momz=0;
+      if(p->momz<=0.) {
+        p->z=Floor(p->z)+.001; //Sit on floors
+        p->hit=1;
+        p->momz=0;
 stain:
-	    if(p->splat_lump_name[0]) {
-	      CallScript("newStainAtX:atY:atZ:withGraphicsLump:withSpread:",ws_class,
-		    FrogNumNew(p->x),
-		    FrogNumNew(p->y),
-		    FrogNumNew(p->z),
-		    FrogStrNew(p->splat_lump_name),
-		    FrogNumNew(32.)
-	      );
-	      p->splat_lump_name[0]=0;
-	    }
-	  }
+        if(p->splat_lump_name[0]) {
+	  CallScript("newStainAtX:atY:atZ:withGraphicsLump:withSpread:",ws_class,
+	        FrogNumNew(p->x),
+	        FrogNumNew(p->y),
+	        FrogNumNew(p->z),
+	        FrogStrNew(p->splat_lump_name),
+	        FrogNumNew(32.)
+	  );
+	  p->splat_lump_name[0]=0;
         }
+      }
+    }
     if(Frog_tS>1+p->born_at) {
       QueRem(p);
       Free(p);
@@ -2841,7 +2552,7 @@ U0 Draw3DWorld(CTask *,CDC *dc) {
   }
   Free(body);
   w->to_dc->depth_buf=NULL;
-  
+
   Fs->user_data=0;
   if(ThingHasClass(player,"CPlayer")) {
     if(ThingHasClass(player->shell_casings,"CFrogArray")) {
@@ -2850,12 +2561,12 @@ U0 Draw3DWorld(CTask *,CDC *dc) {
       idx=s->cnt;
       while(--idx>=0) {
         shellc=body[idx];
-	if(ThingHasClass(shellc,"CShellCasing")) {
+        if(ThingHasClass(shellc,"CShellCasing")) {
 	  if(ThingHasClass(shellc->dc,"CFrogImg"))
-	   AnimDCBlot(dc,shellc->x,shellc->y,shellc->dc->dc);
-	}
+	    AnimDCBlot(dc,shellc->x,shellc->y,shellc->dc->dc);
+        }
       }
-   }
+    }
   } 
 
   if(ThingHasClass(hand,"CHandItem")) {
@@ -2865,8 +2576,8 @@ U0 Draw3DWorld(CTask *,CDC *dc) {
       if(hand->anim_no_repeat) {
         if(f>=c)
 	  f=c-1;
-	else
-          f%=c;
+        else
+	  f%=c;
       } else 
         f%=c;
       GrBlot(dc,hand->x+hand->xoff-hand_gr->dc->width/2,hand->y+hand->yoff-hand_gr->dc->height/2,hand_gr->dc+f);
@@ -2874,8 +2585,8 @@ U0 Draw3DWorld(CTask *,CDC *dc) {
   }
 fin:
 /*  minimap=MakeMinimap1(man,player->x,player->y,player->angle,64,player->z);
-  GrBlot(dc,GR_WIDTH-128-16,30,minimap);
-  DCDel(minimap);*/
+GrBlot(dc,GR_WIDTH-128-16,30,minimap);
+DCDel(minimap);*/
   dc->depth_buf=odepth_buf;
   w->to_dc=NULL;
 }
@@ -2903,7 +2614,7 @@ CFrogThing *WorldPhysics(C3DWorldManager *wm,I64 *argv,I64 argc) {
   I64 c=wm->things->items->cnt,idx;
   F64 t,now=AsF64(FrogTimeNow(FROG_SMALL_NIL,NULL,0)->ts);
 //Heres the deal.
-//If we are a client,we will let the server do the physics on everyting except the player
+  //If we are a client,we will let the server do the physics on everyting except the player
   if(wm->is_client) {
     if(ThingHasClass(player,"CPlayer")) {
       PhysicsOnThing(w,player,wm,0.);
@@ -2913,13 +2624,13 @@ CFrogThing *WorldPhysics(C3DWorldManager *wm,I64 *argv,I64 argc) {
 //interoplate things
       for(idx=0;idx<c;idx++) {
         thing=body[idx];
-	  if(thing!=player) {
+        if(thing!=player) {
 //interpolate_end_tS is the time we recived,start_tS is the frame before that
-	    t=(now-thing->interpolate_end_tS)/(thing->interpolate_end_tS-thing->interpolate_start_tS);
-            thing->x=Lerp(t,thing->server_old_x,thing->server_new_x);
-            thing->y=Lerp(t,thing->server_old_y,thing->server_new_y);
-            thing->z=Lerp(t,thing->server_old_z,thing->server_new_z);
-	  }
+	  t=(now-thing->interpolate_end_tS)/(thing->interpolate_end_tS-thing->interpolate_start_tS);
+	  thing->x=Lerp(t,thing->server_old_x,thing->server_new_x);
+	  thing->y=Lerp(t,thing->server_old_y,thing->server_new_y);
+	  thing->z=Lerp(t,thing->server_old_z,thing->server_new_z);
+        }
       }
     }
     Free(body);
@@ -2929,12 +2640,12 @@ CFrogThing *WorldPhysics(C3DWorldManager *wm,I64 *argv,I64 argc) {
     thing=body[idx];
 //Only update when in view
     if(Sqr(VIEW_DIST*GRID_SZ)
-		>Sqr(thing->y-player->y)+Sqr(thing->x-player->x)) {
+	  >Sqr(thing->y-player->y)+Sqr(thing->x-player->x)) {
       PhysicsOnThing(w,thing,wm,0.);
       if(body[idx]==player) {
-	player->momx2=0;
-	player->momy2=0;
-	player->momz2=0;
+        player->momx2=0;
+        player->momy2=0;
+        player->momz2=0;
       }
     }
   }
@@ -2961,7 +2672,7 @@ CFrogThing *TileTemplateUpdate(CTileTemplate *tile,I64 *argv,I64 argc) {
 
   if(ThingHasClass(tile->floor_texture,"CFrogImg")) {
     w->floor_textures[idx]=ScaleDC(tile->floor_texture->dc,128,128,frog_mem_task);
-  } else
+  $IV,0$} else
     w->floor_textures[idx]=NULL;
 
   if(ThingHasClass(tile->ceil_texture,"CFrogImg")) {

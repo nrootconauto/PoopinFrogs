@@ -7,6 +7,7 @@ explode ->CFrogNum
   fstain=CFloorStain
   floorh=CFrogNum 
 |
+  #world removeThing: self .
   things _ #world getThingsInRadiusFromX: x fromY: y withRadius:  128 .
   things do:[:t*|
     (t->z - z ) abs < 1.5 ifTrue: [
@@ -19,6 +20,5 @@ explode ->CFrogNum
   0 to: 10 do: [
     #world newParticleAtX: x atY: y atZ: z + .5 withSpread: 128 withColor: #color_BROWN withSplatLump: 'GR/PoopRocket/Splat'.
   ] .
-  #world removeThing: self .
   CWallStain newStainAtX: x atY: y atZ: z withGraphicsLump: 'GR/PoopRocket/Splat' .
   ^ 1 

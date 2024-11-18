@@ -37,7 +37,4 @@ withRadius: within=CFrogNum
     (t->z - (tt * ab last + z0 ))
   ) .
 
-'new' show .
-(dot value: new value: new ) sqrt show .
-
   ^ (dot value: new value: new ) < (within * within) . 
