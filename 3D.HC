@@ -1657,7 +1657,7 @@ zstyle:
     if(sidez)
       texture_cords->y=ty&127;
     else
-      texture_cords->y=127-ty&127;
+      texture_cords->y=127-ty;
   }
   if(texture)
     return GrPeek(texture,tx&127,ty&127);
@@ -1768,6 +1768,7 @@ try_stains:;
 		    color=GrPeek(wall_stain->dc,texture_cords.x&127,texture_cords.y&127);
 		    goto valid_color;
 		  }
+
 	        }
 	    }
 try_block:;
@@ -2681,6 +2682,211 @@ CFrogThing *TileTemplateUpdate(CTileTemplate *tile,I64 *argv,I64 argc) {
   return FROG_SMALL_NIL;
 }
 AddMethod("CTileTemplate","updateTextures",&TileTemplateUpdate);
+
+CFrogNum *WallStainPlaceAtXYZ(CWallStain *ws,I64 *argv,I64 argc) {
+  F64 x=AsF64(argv[0])/128;
+  F64 y=AsF64(argv[1])/128;
+  F64 z=AsF64(argv[2]);
+  F64 fz=Floor(z);
+  F64 cz=Ceil(z);
+  F64 fx=Floor(x);
+  F64 cx=Ceil(x);
+  F64 fy=Floor(y);
+  F64 cy=Ceil(y);
+
+  ws->tile_x=fx;
+  ws->tile_y=fy;
+  ws->tile_z=fz;
+
+  //Realy close to z==fz,so test for empty side
+  if(Abs(z-fz)<1./256) {
+    if(0==BlockAtXYZ(ws->tile_x,ws->tile_y,ws->tile_z))
+      goto fzc;
+  }
+  if(Abs(z-cz)<1./256) {
+    if(0==BlockAtXYZ(ws->tile_x,ws->tile_y,ws->tile_z-1)) {
+      ws->tile_z--;
+      goto czc;
+    }
+  }
+  if(Abs(x-fx)<1./256) {
+    if(0==BlockAtXYZ(ws->tile_x,ws->tile_y,ws->tile_z))
+      goto fxc;
+  }
+  if(Abs(x-cx)<1./256) {
+    if(0==BlockAtXYZ(ws->tile_x-1,ws->tile_y,ws->tile_z)) {
+      ws->tile_x--;
+      goto cxc;
+    }
+  }
+  if(Abs(y-fy)<1./256) {
+    if(0==BlockAtXYZ(ws->tile_x,ws->tile_y,ws->tile_z))
+      goto fyc;
+  }
+  if(Abs(y-cy)<1./256) {
+    if(0==BlockAtXYZ(ws->tile_x,ws->tile_y-1,ws->tile_z)) {
+      ws->tile_y--;
+      goto cyc;
+    }
+  }
+
+  if(z<fz+.1)  {
+fzc:
+    ws->sidez=1;
+    ws->center_x=ToI64(x*128-ws->tile_x*128);
+    ws->center_y=ToI64(y*128-ws->tile_y*128);
+    ws->tile_z--;
+final:
+    if(BlockAtXYZ(ws->tile_x,ws->tile_y,ws->tile_z)) {
+      return FrogNumNew(0==BlockAtXYZ(ws->tile_x+ws->sidex,ws->tile_y+ws->sidey,ws->tile_z+ws->sidez));
+    }
+    return FrogNumNew(0);
+  }
+
+  if(z>cz-.1) {
+czc:
+    ws->sidez=-1;
+    ws->center_x=ToI64(x*128-ws->tile_x*128);
+    ws->center_y=ToI64(y*128-ws->tile_y*128);
+    ws->tile_z++;
+    goto final;
+  }
+  if(x<fx+.1) {
+fxc:
+    ws->sidex=1;
+    ws->center_x=y*128-ws->tile_y*128;
+    ws->center_y=z*128-ws->tile_z*128;
+    ws->tile_x--;
+    goto final;
+  }
+  if(x>cx-.1) {
+cxc:
+    ws->sidex=-1;
+    ws->center_x=y*128-ws->tile_y*128;
+    ws->center_y=z*128-ws->tile_z*128;
+    ws->tile_x++;
+    goto final;
+  }
+  if(y<fy+.1) {
+fyc:
+    ws->sidey=1;
+    ws->center_x=x*128-ws->tile_x*128;
+    ws->center_y=z*128-ws->tile_z*128;
+    ws->tile_y--;
+    goto final;
+  }
+  if(y>cy-.1) {
+cyc:
+    ws->sidey=-1;
+    ws->center_x=x*128-ws->tile_x*128;
+    ws->center_y=z*128-ws->tile_z*128;
+    ws->tile_y++;
+    goto final;
+  }
+  return FrogNumNew(0);
+}
+AddMethod("CWallStain","placeAtX:atY:atZ:",&WallStainPlaceAtXYZ);
+CWallStain *WallStainTryMerge(CWallStain *have) {
+  C3DWorldManager *man=FrogSymbol("world")->value;
+  I64 cnt;
+  CWallStain **body,*got;
+  CFrogArray *arr=CallScript("at:",
+        CallScript("at:",man->stains_grid,
+        FrogNumNew(have->tile_x/4)),
+        FrogNumNew(have->tile_y/4)
+  );
+  arr=man->wall_stains;
+  if(ThingHasClass(arr,"CFrogArray")) {
+    cnt=arr->items->cnt;
+    body=arr->items->body;
+    while(--cnt>=0) {
+      got=body[cnt];
+      if(got->tile_x==have->tile_x&&
+	got->tile_y==have->tile_y&&
+	got->tile_z==have->tile_z&&
+	got->sidex==have->sidex&&
+	got->sidey==have->sidey&&
+	got->sidez==have->sidez
+	) {
+	return got;
+      }
+    }
+  }
+  got=ConstructThing("CWallStain");
+  got->tile_x=have->tile_x;
+  got->tile_y=have->tile_y;
+  got->tile_z=have->tile_z;
+  got->sidex=have->sidex;
+  got->sidey=have->sidey;
+  got->sidez=have->sidez;
+  CallScript("addWallStain:",man,got);
+  return got;
+}
+CFrogNum *WallStainPutGraphics(CWallStain *ws,I64 *argv,I64 argc) {
+  C3DWorldManager *man=FrogSymbol("world")->value;
+  CFrogStr *lump_name=argv[0];
+  CFrogImg *img=CallScript("get:",
+        FrogClassNew(UniverseAddClass("CFrogImg")),
+        lump_name
+        );
+  CWallStain *new;
+  F64 x=AsF64(argv[1]);  
+  F64 y=AsF64(argv[2]);
+  I64 xx,yy,zz;
+  I64 ox=ws->tile_x,oy=ws->tile_y,oz=ws->tile_z;
+  if(!ws->sidez) {
+    for(zz=-1;zz<=1;zz++) {
+      for(xx=-1;xx<=1;xx+=2) {
+        if(BlockAtXYZ(ox+xx,oy,oz+zz)) {
+	  ws->tile_x=ox+xx;
+	  ws->tile_y=oy;
+	  ws->tile_z=oz+zz;
+	  new=WallStainTryMerge(ws);
+	  if(AsF64(CallScript("addGraphics:atX:atY:",new,img,
+	        FrogNumNew(x-xx*128),
+	        FrogNumNew(y-zz*128)))) {
+	  }
+        }
+      }
+      for(yy=-1;yy<=1;yy+=2) {
+        if(BlockAtXYZ(ox,oy+yy,oz+zz)) {
+	  ws->tile_x=ox;
+	  ws->tile_y=oy+yy;
+	  ws->tile_z=oz+zz;
+	  new=WallStainTryMerge(ws);
+	  if(AsF64(CallScript("addGraphics:atX:atY:",new,img,
+	        FrogNumNew(x-yy*128),
+	        FrogNumNew(y-zz*128)))) {
+	  }
+        }
+      }
+    }
+  }
+  if(ws->sidez)
+    for(yy=-1;yy<=1;yy++) {
+      for(xx=-1;xx<=1;xx++) {
+        if(xx||yy) {
+	  ws->tile_x=ox+xx;
+	  ws->tile_y=oy+yy;
+	  ws->tile_z=oz;
+	  new=WallStainTryMerge(ws);
+	  if(AsF64(CallScript("addGraphics:atX:atY:",new,img,
+	        FrogNumNew(x-xx*128),
+	        FrogNumNew(y-yy*128)))) {
+	  }
+        }
+      }
+    }
+  ws->tile_x=ox;
+  ws->tile_y=oy;
+  ws->tile_z=oz;
+  new=WallStainTryMerge(ws);
+  if(AsF64(CallScript("addGraphics:atX:atY:",new,img,
+        FrogNumNew(x),
+        FrogNumNew(y)))) {
+  }
+}
+AddMethod("CWallStain","putGraphics:atX:atY:",&WallStainPutGraphics);
 // 
 //
 //
