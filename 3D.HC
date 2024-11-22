@@ -1,3 +1,4 @@
+#define mp_cnt 1
 #include "AnimDC.HC"
 #include "BlobFile.HC"
 #include "SmallTalk/Load.HC"
@@ -253,6 +254,7 @@ class C3DWorld {
   I64 things_around_camera_origin_x;
   I64 things_around_camera_origin_y;
   CI64Set *stains_around_camera[VIEW_DIST*2][VIEW_DIST*2];
+  CI64Set *doors_around_camera[VIEW_DIST*2][VIEW_DIST*2];
 };
 C3DWorld *w;
 #define MAX_PARTICLES 128
@@ -622,7 +624,34 @@ CFrogThing *WorldLightingSky(C3DWorldManager *man,I64 *argv,I64 argc) {
   }
 }
 AddMethod("C3DWorldManager","skylight:",&WorldLightingSky);
-Bool HeightImpossible(C3DWorld *w,I64 ix,I64 iy,F64 above,Bool allow_ceil,F64 tallness=.1,F64 wiggle_room=0) {
+CDoor *DoorAtXYZ(C3DWorldManager *man,I64 ix,I64 iy,F64 iz,F64 tallness=0.) {
+  CFrogArray *arr;
+  CDoor **doors;
+  CDoor *door;
+  I64 cnt;
+  arr=CallScript("at:",
+        CallScript("at:",man->doors_grid,FrogNumNew(ix/16)),
+        FrogNumNew(iy/16)
+  );
+  if(ThingHasClass(arr,"CFrogArray")) {
+    doors=arr->items->body;
+    cnt=arr->items->cnt;
+    while(--cnt>=0) {
+      door=doors[cnt];
+      if(door->x==ix&&door->y==iy) {
+        if(0<=iz-door->z<door->height*door->percent) {
+	  return door;
+        }
+//Check hitting bottom of door
+        if(iz<=door->z)
+	  if(door->z<iz+tallness)
+	    return door;
+      }
+    }
+  }
+  return NULL;
+}
+Bool HeightImpossible(C3DWorldManager *man,I64 ix,I64 iy,F64 above,Bool allow_ceil,F64 tallness=.1,F64 wiggle_room=0) {
   I64 iz=Floor(above);
   I64 c,idx2,t;
   F64 h;
@@ -639,6 +668,8 @@ Bool HeightImpossible(C3DWorld *w,I64 ix,I64 iy,F64 above,Bool allow_ceil,F64 ta
     if(IsSolidTile(BlockAtXYZ(ix,iy,iz+idx2)))
       return TRUE;
   }
+  if(DoorAtXYZ(man,ix,iy,above,tallness))
+    return TRUE;
   return FALSE;
 }
 
@@ -673,7 +704,8 @@ AddMethod("C3DThing","pathFinderAngleTowardsThing:withJump:",&C3DThingPathFindWa
 #define RADF_CEIL 1
 #define RADF_FLOOR 2
 #define RADF_DOOR 4
-Bool RadiusHitsWall(C3DWorld *w,F64 angle,F64 *_x,F64 *_y,F64 height,F64 radius=THING_RADIUS,Bool adjust=FALSE,F64 tallness=.8,I64 flags=RADF_CEIL|RADF_FLOOR) {
+Bool RadiusHitsWall(C3DWorldManager *man,F64 angle,F64 *_x,F64 *_y,F64 height,F64 radius=THING_RADIUS,Bool adjust=FALSE,F64 tallness=.8,I64 flags=RADF_CEIL|RADF_FLOOR,C3DThing *who=NULL) {
+  CDoor *door;
   F64 x=*_x;
   F64 y=*_y;
   x/=GRID_SZ;
@@ -720,9 +752,14 @@ Bool RadiusHitsWall(C3DWorld *w,F64 angle,F64 *_x,F64 *_y,F64 height,F64 radius=
 	      if(Sign(Sin(angle))!=yoff)
 	        goto skip;
 	    }
-	    if(HeightImpossible(w,x+xoff,y+yoff,height,TRUE,tallness)) {
+	    if(HeightImpossible(man,x+xoff,y+yoff,height,TRUE,tallness)) {
 //.2 for stepping over partly open doors
 	      check:
+	      if(who) {
+	        door=DoorAtXYZ(man,x+xoff,y+yoff,height,tallness);
+		if(door)
+		  CallScript("activateBy:",door,who);
+	      }
 	      if(Abs(x-tx)<=radius&&xoff) {
 	        if(adjust) {
 		  x=tx+radius*1.05*-xoff;
@@ -760,6 +797,7 @@ Bool C3DWorldMoveZWithCollision(C3DWorld *w,F64 dist,F64 x,F64 y,F64 *_height,F6
   I64 cnt=0,tile,best,ch,cr;
   F64 dir=Sign(dist);
   F64 oz=z;
+  C3DWorldManager *man=FrogSymbol("world")->value;
 //Wut
   if(dir==0) return FALSE;
   for(cnt=0;Abs(dist)>1/256.;cnt++) {
@@ -768,14 +806,14 @@ Bool C3DWorldMoveZWithCollision(C3DWorld *w,F64 dist,F64 x,F64 y,F64 *_height,F6
     else
       delta=Min(dist,1);
     dist-=delta;
-    if(HeightImpossible(w,x/128,y/128,z+delta,TRUE,tallness)) {
+    if(HeightImpossible(man,x/128,y/128,z+delta,TRUE,tallness)) {
       hit=TRUE;
       goto fix;
     }
     z+=delta;
   }
 fix:;
-  while(HeightImpossible(w,x/GRID_SZ,y/GRID_SZ,z,TRUE,tallness)) {
+  while(HeightImpossible(man,x/GRID_SZ,y/GRID_SZ,z,TRUE,tallness)) {
     hit=TRUE;
     z-=dir/128.;
     if(dir>0&&z<oz) {
@@ -789,7 +827,7 @@ fix:;
 
   //Cant move anywhere but up
   if(z==oz) {
-    while(HeightImpossible(w,x/GRID_SZ,y/GRID_SZ,z,TRUE,tallness))
+    while(HeightImpossible(man,x/GRID_SZ,y/GRID_SZ,z,TRUE,tallness))
       ++z;
   }
 
@@ -800,7 +838,7 @@ fix:;
   return hit;
 }
 //Returns true on wall hit
-Bool C3DWorldMoveWithCollision(C3DWorld *w,F64 angle,F64 dist,F64 *x,F64 *y,Bool adjust_smart=TRUE,F64 height=0) {
+Bool C3DWorldMoveWithCollision(C3DWorld *w,F64 angle,F64 dist,F64 *x,F64 *y,Bool adjust_smart=TRUE,F64 height=0,C3DThing *who=NULL) {
   F64 dist2=0,boundary;
   Bool hit_wall=FALSE,force;
   F64 old_x=w->x,old_y=w->y,deflect_angle;
@@ -809,7 +847,8 @@ Bool C3DWorldMoveWithCollision(C3DWorld *w,F64 angle,F64 dist,F64 *x,F64 *y,Bool
   if(dist<0.) angle+=pi,dist=-dist;
   I64 idx,idx2;
   I64 h,ch,cr;
-  if(RadiusHitsWall(w,angle,x,y,height,THING_RADIUS,TRUE,,RADF_CEIL|RADF_FLOOR|RADF_DOOR)) {
+  C3DWorldManager  *man=FrogSymbol("world")->value;
+  if(RadiusHitsWall(man,angle,x,y,height,THING_RADIUS,TRUE,,RADF_CEIL|RADF_FLOOR|RADF_DOOR,who)) {
     hit_wall=TRUE;
     goto fin;
   }
@@ -820,11 +859,11 @@ Bool C3DWorldMoveWithCollision(C3DWorld *w,F64 angle,F64 dist,F64 *x,F64 *y,Bool
         if(dist2>=dist) dist2=dist;
         *x=w->x+Cos(angle)*dist2;
         *y=w->y+Sin(angle)*dist2;
-        if(RadiusHitsWall(w,angle,x,y,height,THING_RADIUS,TRUE,,RADF_CEIL|RADF_FLOOR|RADF_DOOR)) {
+        if(RadiusHitsWall(man,angle,x,y,height,THING_RADIUS,TRUE,,RADF_CEIL|RADF_FLOOR|RADF_DOOR,who)) {
 	  hit_wall=TRUE;
 	  goto fin;
         }
-        if(HeightImpossible(w,*x/GRID_SZ,*y/GRID_SZ,height,TRUE,,.2)) {//.2 wiggle room for stepping over partly open doors
+        if(HeightImpossible(man,*x/GRID_SZ,*y/GRID_SZ,height,TRUE,,.2)) {//.2 wiggle room for stepping over partly open doors
 //Totally reject move,something when wrong
 	  //     (would be placed on top of unreachable wall)
 	  *x=w->x;
@@ -864,7 +903,8 @@ again:
 	  &self->x,
 	  &self->y,
 	  TRUE, //Slide along wall
-	  self->z);
+	  self->z,
+	  self);
     if(++attempt<15) goto again;
   }
   return ret;
@@ -966,6 +1006,7 @@ U0 PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm,F64 last_tS) {
   CDoor *to_open;
   C3DThing *other;
   CI64Set *set;
+  C3DWorldManager *man=FrogSymbol("world")->value;
   if(ThingHasClass(t,"CRocket"))
     rocket=t;
   WorldManagerRemoveFromGrid(wm,&t,1);
@@ -1008,7 +1049,8 @@ U0 PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm,F64 last_tS) {
 	  &t->x,
 	  &t->y,
 	  TRUE,
-	  t->z)) {
+	  t->z,
+	  t)) {
 
       hit:
       t->momx=0.;
@@ -1032,7 +1074,7 @@ explode:
         CallScript("update",t); //New Chase Dir
       }
     }
-  } else if(RadiusHitsWall(w,angle,&t->x,&t->y,t->z,THING_RADIUS,TRUE,,RADF_CEIL|RADF_FLOOR|RADF_DOOR))
+  } else if(RadiusHitsWall(man,angle,&t->x,&t->y,t->z,THING_RADIUS,TRUE,,RADF_CEIL|RADF_FLOOR|RADF_DOOR))
     goto hit;
   if(rocket) {
     if(!(0.<=t->x<w->world_width*128))
@@ -1054,7 +1096,7 @@ explode:
     }  
   }
   if(rocket) {
-    if(HeightImpossible(w,t->x/GRID_SZ,t->y/GRID_SZ,t->z,TRUE,1.))
+    if(HeightImpossible(man,t->x/GRID_SZ,t->y/GRID_SZ,t->z,TRUE,1.))
       goto explode;
   }
   WorldManagerUpdateThingPos(wm,&t,1);
@@ -1359,6 +1401,7 @@ U0 PrepareThingsForDraw(C3DWorldManager *wm,F64 thing_scale=.6) {
   CFrogArray *arr=WorldManagerThingsInRadius(wm,args,3);
   C3DThing **things=arr->items->body,*thing;
   CWallStain **stains,*stain;
+  CDoor **doors,*door;
   I64 cnt=arr->items->cnt,ix,iy,ox,oy,idx;
   Bool visible;
   F64 normal;
@@ -1493,9 +1536,28 @@ skip:;
       if(0<=iy<2*VIEW_DIST)
         I64SetAdd(w->stains_around_camera[ix][iy],stain);
   }
+
+  for(ox=0;ox!=2*VIEW_DIST;ox++)
+    for(oy=0;oy!=2*VIEW_DIST;oy++) {
+      if(!w->doors_around_camera[ox][oy])
+        w->doors_around_camera[ox][oy]=I64SetNew;
+      else
+        w->doors_around_camera[ox][oy]->cnt=0;
+    }
+
+  doors=wm->doors->items->body;
+  cnt=wm->doors->items->cnt;
+  while(--cnt>=0) {
+    door=doors[cnt];
+    ix=door->x-w->things_around_camera_origin_x;
+    iy=door->y-w->things_around_camera_origin_y;
+    if(0<=ix<2*VIEW_DIST)
+      if(0<=iy<2*VIEW_DIST)
+        I64SetAdd(w->doors_around_camera[ix][iy],door);
+  }
 }
 I64 ToTile(I64 block) {
-return block/256;
+  return block/256;
 }
 
 //https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection
@@ -1591,10 +1653,10 @@ Bool SegmentSegmentIntersect(CD2 *hit_at,CD2 *a,CD2 *b,CD2 *a2,CD2 *b2,F64 *t,F6
 #endif
 //https://github.com/cgyurgyik/fast-voxel-traversal-algorithm/blob/master/overview/FastVoxelTraversalOverview.md
 #define RAY_TRACE_MAX_DEPTH 3
-I64 BlockHitColor(CD3 *at,CD3 *ray,I64 x,I64 y,I64 z,I64 sidex,I64 sidey,I64 sidez,CD3 *hit_at=NULL,F64 *hit_d=NULL,CD2I64 *texture_cords=NULL) {
+I64 BlockHitColor(CD3 *at,CD3 *ray,I64 b,I64 x,I64 y,I64 z,I64 sidex,I64 sidey,I64 sidez,CD3 *hit_at=NULL,F64 *hit_d=NULL,CD2I64 *texture_cords=NULL,F64 percent=1.) {
   CD3 pos,dst;
   CDC *texture=NULL;
-  I64 b=BlockAtXYZ(x,y,z),tx,ty;
+  I64 tx,ty;
   pos.x=x;
   pos.y=y;
   pos.z=z;
@@ -1612,7 +1674,7 @@ I64 BlockHitColor(CD3 *at,CD3 *ray,I64 x,I64 y,I64 z,I64 sidex,I64 sidey,I64 sid
     pos.y=y;
   }
   else if(sidez>0) {
-    pos.z=z+1;
+    pos.z=z+percent;
   }
   else if(sidez<0) {
     pos.z=z;
@@ -1663,16 +1725,81 @@ zstyle:
     return GrPeek(texture,tx&127,ty&127);
   return BLACK;
 }
+//Tests all sides for best hit on a "paritally" filled block
+I64 PartialBlockHitColor(CD3 *at,CD3 *ray,I64 b,I64 x,I64 y,I64 z,I64 *sidex,I64 *sidey,I64 *sidez,CD3 *hit_at=NULL,F64 *hit_d=NULL,CD2I64 *texture_cords=NULL,F64 percent=1.) {
+  F64 best_dist=1e100,d;
+  I64 ox,oy,oz;
+  I64 run,run2,best_run=-1;
+  CD3 poo;
+  for(run=0;run!=6;run++) {
+    oz=oy=ox=0;
+    switch(run) {
+      case 0:
+        ox=1;
+        break;
+      case :
+        ox=-1;
+        break;
+      case :
+        oy=1;
+        break;
+      case :
+        oy=-1;
+        break;
+      case :
+        oz=1;
+        break;
+      case :
+        oz=-1;
+        break;
+    }
+    if(-1!=BlockHitColor(at,ray,b,x,y,z,ox,oy,oz,&poo,&d,,percent))
+      if(x<=poo.x/128<=x+1)
+        if(y<=poo.y/128<=y+1)
+	  if(z-.0001<=poo.z<=z+percent+.0001)
+	    if(d<best_dist) {
+	      best_dist=d;
+	      best_run=run;
+	    }
+  }
+  if(best_run==-1)
+    return -1;
+  oz=oy=ox=0;
+  switch(best_run) {
+    case 0:
+      ox=1;
+      break;
+    case :
+      ox=-1;
+      break;
+    case :
+      oy=1;
+      break;
+    case :
+      oy=-1;
+      break;
+    case :
+      oz=1;
+      break;
+    case :
+      oz=-1;
+      break;
+  }
+  if(sidex) *sidex=ox;
+  if(sidey) *sidey=oy;
+  if(sidez) *sidez=oz;
+  return BlockHitColor(at,ray,b,x,y,z,ox,oy,oz,hit_at,hit_d,texture_cords,percent);
+}
 I64 GetColorForRay(C3DWorldManager *man,CD3 *origin,CD3 *ray,F64 dist,F64 *hit_at,CD3 *hit_cords,I64 depth=0,I64 last_block=0,I64 fog_color=BLACK,Bool record_tile=FALSE) { 
   CFrogArray *grid=man->grid;
   C3DWorld *w=man->world_handle;
   CI64Set *do_things;
   F64 x=origin->x/128,y=origin->y/128;
-  CDoor *door;
   Bool hit=FALSE;
   F64 hit_dist=1e100;
   CWallStain **wall_stains,*wall_stain;
-  I64 wall_stain_cnt;
+  CDoor **doors,*door;
+  I64 wall_stain_cnt,door_cnt;
   I64 hit_color=-1;
   I64 tx=x,ty=y,idx,tz;
   I64 cnt=dist/128.;  
@@ -1692,9 +1819,6 @@ I64 GetColorForRay(C3DWorldManager *man,CD3 *origin,CD3 *ray,F64 dist,F64 *hit_a
   F64 tMaxY=(current_y_index-y)/-ray->x;
   F64 tMaxZ=(current_z_index-origin->z)/-ray->y;
   F64 h,h2;
-  F64 angle=Arg(ray->z,-ray->x);
-  F64 cos=Cos(angle),sin=Sin(angle);
-  F64 slope=-ray->y/Sqrt(Sqr(ray->z)+Sqr(ray->x)); //???
   F64 r_abs_rx=1./Abs(ray->x);
   F64 r_abs_ry=1./Abs(ray->y);
   F64 r_abs_rz=1./Abs(ray->z);
@@ -1705,22 +1829,21 @@ I64 GetColorForRay(C3DWorldManager *man,CD3 *origin,CD3 *ray,F64 dist,F64 *hit_a
   I64 stain_x,stain_y;
   I64 color;
   I64 relx,rely;
+  F64 rel_percent;
   F64 lighting;
-  CD2 long,long128,xyhit,origin_d_128;
+  CD2 xyhit,origin_d_128;
   I64 side;
   CD2I64 texture_cords;
   I64 sidex=0,sidey=0,sidez=0;
   CD3 o128,rp;
+  CD3 new_origin;
+  CD3 new_ray;
   rp.x=ray->z;
   rp.y=-ray->x;
   rp.z=-ray->y;
   o128.x=origin->x/128;
   o128.y=origin->y/128;
   o128.z=origin->z;
-  long.x=x+VIEW_DIST*cos;
-  long.y=y+VIEW_DIST*sin;
-  long128.x=long.x*128;
-  long128.y=long.y*128;
   tx=x;
   ty=y;
   tz=Floor(origin->z);
@@ -1732,12 +1855,35 @@ I64 GetColorForRay(C3DWorldManager *man,CD3 *origin,CD3 *ray,F64 dist,F64 *hit_a
 	  lighting=ClampI64(w->world_lighting[idx*256+tz-I8_MIN],0,15);
 	  relx=tx-w->things_around_camera_origin_x;
 	  rely=ty-w->things_around_camera_origin_y;
+	  if(0<=relx<2*VIEW_DIST)
+	    if(0<=rely<2*VIEW_DIST) {
+	      doors=w->doors_around_camera[relx][rely];
+	      door_cnt=doors(CI64Set*)->cnt;
+	      doors=doors(CI64Set*)->body;
+	      while(--door_cnt>=0) {
+	        door=doors[door_cnt];
+	        if(0<=tz-door->z<door->height*door->percent) {
+		  rel_percent=Min(door->height*door->percent-tz,1.);
+		  color=PartialBlockHitColor(&o128,&rp,door->act_as_wall,tx,ty,tz,&sidex,&sidey,&sidez,&new_origin,&hit_dist,&texture_cords,rel_percent);
+		  if(color!=-1) {
+		        if(record_tile) {
+			  man->cur_tile_x=tx;
+			  man->cur_tile_y=ty;
+			  man->cur_tile_z=tz;
+			  man->cur_tile_side_x=sidex;
+			  man->cur_tile_side_y=sidey;
+			  man->cur_tile_side_z=sidez;
+		        }
+		        goto valid_color;
+		      }   
+	        }
+	      }
+	    }
+
 	  idx=(ty*w->world_width+tx)*256+tz-I8_MIN;
 	  if(w->world_blocks[idx]) {
 	    if(w->world_blocks[idx]==last_block) goto pass;
 tile:;
-	    CD3 new_origin;
-	    CD3 new_ray;
 	    idx=(ty*w->world_width+tx)*256+tz-I8_MIN;
 	    idx=w->world_blocks[idx];
 	    if(record_tile) {
@@ -1748,7 +1894,7 @@ tile:;
 	      man->cur_tile_side_y=sidey;
 	      man->cur_tile_side_z=sidez;
 	    }
-	    color=BlockHitColor(&o128,&rp,tx,ty,tz,sidex,sidey,sidez,&new_origin,&hit_dist,&texture_cords);
+	    color=BlockHitColor(&o128,&rp,BlockAtXYZ(tx,ty,tz),tx,ty,tz,sidex,sidey,sidez,&new_origin,&hit_dist,&texture_cords);
 	    if(0<=relx<2*VIEW_DIST)
 	      if(0<=rely<2*VIEW_DIST)
 	        if(cnt=(do_things=w->stains_around_camera[relx][rely])->cnt)
@@ -1774,6 +1920,9 @@ try_stains:;
 try_block:;
 //For-recursive
 	    if(0&&IsLiquidTile(idx)&&depth<RAY_TRACE_MAX_DEPTH) {
+	      F64 angle=Arg(ray->z,-ray->x);
+	      F64 cos=Cos(angle),sin=Sin(angle);
+	      F64 slope=-ray->y/Sqrt(Sqr(ray->z)+Sqr(ray->x)); //???
 //TODO displace ray based on "wavew"
 	      fog_color=color&0xff;
 	      depth++;
@@ -1820,15 +1969,15 @@ valid_color:
 	    for(idx=0;idx!=4;idx++)
 	      adj_lights[idx]=CornerLight(idx,tx,ty,tz,sidex,sidey,sidez);
 	    F64 u0=texture_cords.x/127.;
-	    F64 u1=1-texture_cords.x/127.;
+	    F64 u1=1.-texture_cords.x/127.;
 	    F64 v0=texture_cords.y/127.;
-	    F64 v1=1-texture_cords.y/127.;
+	    F64 v1=1.-texture_cords.y/127.;
 //Bilnear
 	    ao=.5;
-	    ao+=ao_nodes[3] *v1*u1;
-	    ao+=ao_nodes[2] *u0*v1;
-	    ao+=ao_nodes[0] *u1*v0;
-	    ao+=ao_nodes[1] *u0*v0;
+	    ao+=ao_nodes[3]*v1*u1;
+	    ao+=ao_nodes[2]*u0*v1;
+	    ao+=ao_nodes[0]*u1*v0;
+	    ao+=ao_nodes[1]*u0*v0;
 	    lighting=LightAtXYZ(tx+sidex,ty+sidey,tz+sidez);
 	    lighting-=3-ao;
 	    lighting=(Lerp(u0,adj_lights[0],adj_lights[2])+Lerp(v0,adj_lights[1],adj_lights[3])+lighting)/3.;

@@ -316,6 +316,7 @@ class C3DWorldManager:CFrogThing {
 //A grid of things having the things(16*16 size)
   CFrogArray *grid;
   CFrogArray *stains_grid; //4*4 size has CWallStain's
+  CFrogArray *doors_grid; //16*16
   CFrogArray *doors;
   CFrogArray *clients; //CAsyncStream
   CFrogArray *lines; //C3DLine
@@ -345,6 +346,16 @@ class CHandItem:CFrogThing {
   I64 grid_x,grid_y;
   Bool in_quick_inventory,is_equiped;
 };
+
+class CDoorItem:CHandItem {
+  I64 height;
+  I64 tag;
+  I64 act_as_wall;
+  F64 speed;
+  F64 open_duration;
+  Bool side_door,small_key,big_key;
+};
+
 
 class CWorldEditBlock:CHandItem {
   I64 tile_idx;

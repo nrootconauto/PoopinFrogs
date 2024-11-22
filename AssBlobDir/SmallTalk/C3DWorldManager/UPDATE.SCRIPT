@@ -48,3 +48,7 @@ update ->* |
   clients do: [:c=C3DWorldClient|
     self sendLinesToClient: c .
   ] .
+
+  doors do: [:d=CDoor|
+    d update 
+  ] .

@@ -1,0 +1,41 @@
+fire ->* |
+ w=C3DWorldManager
+ cur_ts=CFrogNum
+ wz=CFrogNum
+ wx=CFrogNum
+ wy=CFrogNum
+ dist=CFrogNum
+ a=CFrogNum
+ player=CPlayer
+ tile=C3DPoint
+ side=C3DPoint
+
+ door=CDoor
+ |
+  w _ #world .
+  cur_ts _ CFrogTime now asSeconds .
+  timeout < cur_ts ifTrue: [
+    timeout _ cur_ts + .1 .
+
+    tile _ w screenTile .
+    side _ w screenTileSide. 
+    wx _ tile->x + side->x .
+    wy _ tile->y + side->y .
+    wz _ tile->z + side->z .
+
+    door _ CDoor new.
+    door->x _ wx .
+    door->y _ wy .
+    door->z _ wz .
+    door->tag _ tag .
+    door->speed _ speed .
+    door->open_duration _ open_duration .
+    door->act_as_wall _ act_as_wall .
+    door->height _height .
+
+    w addDoor: door .
+
+    w->is_client ifTrue: [
+      #client sendPlaceDoor: door .
+    ] .
+  ] .

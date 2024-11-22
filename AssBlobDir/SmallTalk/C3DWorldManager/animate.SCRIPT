@@ -15,3 +15,6 @@ animate ->*
   self updateParticles .
   self updateLines .
   day_night update .
+  doors do:[:d=CDoor|
+   d update .
+  ] .

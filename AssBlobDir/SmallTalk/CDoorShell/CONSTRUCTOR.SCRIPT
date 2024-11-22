@@ -1,0 +1,234 @@
+init ->* |
+  grid=CUIGrid
+  item=CUIGridItem
+  scroll_bars=CUIScrollBars
+  tile=CTileTemplate
+  new_texture=CFrogImg
+  ui_roots=CFrogArray
+  handled=CFrogNum
+  old*
+  inv_item=CWorldEditBlock
+  n=CUINotification 
+  array=CFrogArray
+
+  door_height=CFrogNum
+  small_key=CFrogNum
+  big_key=CFrogNum
+  tag_number=CFrogNum
+  button1=CFrogArray
+  button2=CFrogArray
+  button3=CFrogArray
+  button4=CFrogArray
+  button5=CFrogArray
+  list=CUIList
+
+  update_buttons=CFrogBlock
+
+  ask_num=CFrogBlock
+  text_input=CUITextBar
+
+  group=CUIBackground
+  
+  hand_item=CDoorItem
+  act_as_tile=CFrogNum
+|
+  ask_num _ [:result=CFrogBlock|
+    text_input _ CUITextBar new .
+    ui_roots add: text_input .
+    #ui_root _ text_input .
+    text_input->sz_x _ 200 .
+    text_input->sz_y _ 10 .
+    text_input->y _ 480 - 10 / 2 .
+    text_input->x _ 640 - 200 / 2 .
+    
+    text_input focus .
+    text_input setOnEscape: [
+      ui_roots remove: #ui_root .
+      #ui_root _ ui_roots last .
+    ]. 
+    text_input setOnEnter: [:v=CFrogStr|
+      result value: v asInteger .
+      ui_roots remove: #ui_root .
+      #ui_root _ ui_roots last .
+    ] .
+  ].
+
+  'Draw world in background' .
+  draw_it_name _ 'Draw3DWorld' .
+
+
+  update_buttons _ [
+    button5 _ #(
+      ('Add to Inventory')
+      [
+        hand_item _CDoorItem new .
+        hand_item->speed _ 1 . 'TODO'.
+        hand_item->open_duration _ 2 . 'TODO'.
+        hand_item->tag _ tag_number .
+        hand_item->small_key _ small_key .
+        hand_item->big_key _ big_key .
+        hand_item->height _ door_height .
+        hand_item->gr _ tile->wall_texture .
+        hand_item->act_as_wall _ tile->tile_idx .
+ 
+        item _ CUIGridItem  new .
+        item->graphics _ tile->wall_texture .
+        item->item _ hand_item .
+        item->cnt _ tag_number .
+        item onLeftUp: [
+          #hand_item _ hand_item .
+        ] .
+
+        #world getPlayer addInventoryItem: item .
+      ]
+    ) .
+    button1 _ #(
+      ('Door Height(' , door_height printString,')')
+      [
+        ask_num value:  [:n=CFrogNum|
+          door_height _ n .
+          update_buttons value .
+        ]
+      ]
+    ) .
+
+    button2 _ #(
+      ('Tag Number(' , tag_number printString,')')
+      [
+        ask_num value:  [:n=CFrogNum|
+          tag_number _ n .
+          update_buttons value .
+        ]
+      ]
+    ) .
+
+
+
+    small_key ifTrue: [
+      button3 _ #(
+        'Disable Small Key'
+        [
+          small_key _ small_key not.
+          update_buttons value.
+        ]
+      ).
+    ] ifFalse: [
+      button3 _ #(
+        'Enable Small Key'
+        [
+          small_key _ small_key not.
+          update_buttons value.
+        ]
+      ).
+    ] .
+
+    big_key ifTrue: [
+      button4 _ #(
+        'Disable Big Key'
+        [
+          big_key _ big_key not.
+          update_buttons value.
+        ]
+      ).
+    ] ifFalse: [
+      button4 _ #(
+        'Enable Big Key'
+        [
+          big_key _ big_key not.
+          update_buttons value.
+        ]
+      ).
+    ] .
+
+
+
+    group removeChild: list .
+    list _ CUIList new: #(button5 button1 button2 button3 button4) .
+    group addChild: list .
+  ].
+
+  on_init _ [
+    n _ CUINotification new: 'Click Block to For Door Menu' .
+    n setIcon: 'Icons/Button' . 
+    n addToPoopidexCategory: 'Controls/DoorEdit' withDescription: 'Click a block in the door shell to make a new door'.
+    #ms_grabbed _ 0 .
+    #ui_root _ CUIElem new .
+    ui_roots _ #(#ui_root) .'I make a stack of UIs that are POPed' .
+    #ui_root show .
+    #ui_root -> x _ 0 .
+    #ui_root -> y _ 0 .
+    #ui_root -> sz_x _ 640 .
+    #ui_root -> sz_y _ 480 .
+    scroll_bars _ CUIScrollBars new .
+    scroll_bars ->x _ 10 .
+    scroll_bars ->y _ 10 .
+    scroll_bars ->sz_y _ 460 .
+    scroll_bars ->sz_x _ 620 .
+    scroll_bars->bg_color _ #color_DKGRAY .
+    grid _ CUIGrid new .
+    grid setWidth: 16 withHeight: 16 .
+    1 to: 256 do:[:b=CFrogNum |
+      item _ CUIGridItem new .
+      tile _ (#world -> tile_templates at: b) .
+      item->graphics _  tile->wall_texture  .
+      (tile hasClass: CTileTemplate) ifTrue: [
+        item -> item _ tile  .
+      ] ifFalse: [
+        item -> item _ b .
+      ] .
+      item->cnt _ b .
+      item onLeftUp: [:elem=CUIGridItem |
+        tile _ elem -> item .
+        (tile hasClass: CTileTemplate) ifTrue: [
+
+          act_as_tile _ tile->tile_idx .
+          tag_number _ 0 .
+          small_key _ 0 .
+          big_key _ 0 .
+          door_height _ 2 .
+
+          'Remove old group ' .
+          group _ CUIBackground new .
+          ui_roots add: group .
+          #ui_root _ group .
+          group-> bg_color _ #color_DKGRAY .
+          group setHeight: 300 .
+          group setWidth: 200 .
+          group->x _ 640 / 2 - (group->sz_x / 2) .
+          group->y _ 480 / 2 - (group->sz_y / 2) .
+        
+          update_buttons value .
+        ] .
+
+      ] .
+      grid addItem: item .
+    ] .
+
+    #ui_root addChild: scroll_bars .
+    scroll_bars addChild: grid .
+    grid->x _ 10 .
+    grid->y _ 10 .
+  ] .
+
+  on_event _ [:v=CUIEvent |
+    handled _ 0 .
+    v->type = 'KeyDown' ifTrue: [
+      v->m1 = 27 ifTrue: [
+        'ESC '.
+        ui_roots size <= 1 ifTrue: [
+          exited _ 1 .
+          handled _ 1 . 
+        ] ifFalse:[
+'POP the ui menus until nothing left to pop' .
+          ui_roots remove: (ui_roots at: ui_roots size - 1) .
+          #ui_root _ ui_roots at: ui_roots size - 1 .
+          handled _  1.  
+        ] .
+      ] .
+    ] .
+    handled ifFalse: [
+      #ui_root sendEventToUI: v .
+    ].
+  ] .
+  ^ self
+
