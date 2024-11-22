@@ -1653,7 +1653,7 @@ Bool SegmentSegmentIntersect(CD2 *hit_at,CD2 *a,CD2 *b,CD2 *a2,CD2 *b2,F64 *t,F6
 #endif
 //https://github.com/cgyurgyik/fast-voxel-traversal-algorithm/blob/master/overview/FastVoxelTraversalOverview.md
 #define RAY_TRACE_MAX_DEPTH 3
-I64 BlockHitColor(CD3 *at,CD3 *ray,I64 b,I64 x,I64 y,I64 z,I64 sidex,I64 sidey,I64 sidez,CD3 *hit_at=NULL,F64 *hit_d=NULL,CD2I64 *texture_cords=NULL,F64 percent=1.) {
+I64 BlockHitColor(CD3 *at,CD3 *ray,I64 b,I64 x,I64 y,I64 z,I64 sidex,I64 sidey,I64 sidez,CD3 *hit_at=NULL,F64 *hit_d=NULL,CD2I64 *texture_cords=NULL,F64 percent=1.,I64 z_offset=0) {
   CD3 pos,dst;
   CDC *texture=NULL;
   I64 tx,ty;
@@ -1699,7 +1699,7 @@ zstyle:
     D3Mul(&dst,d,ray);
     D3AddEqu(&dst,at);
     tx=dst.y*128;
-    ty=dst.z*128;
+    ty=dst.z*128+z_offset;
     ty=127-ty&127;
   } else if(sidey) {
     texture=w->wall_textures[b];
@@ -1707,7 +1707,7 @@ zstyle:
     D3Mul(&dst,d,ray);
     D3AddEqu(&dst,at);
     tx=dst.x*128;
-    ty=dst.z*128;
+    ty=dst.z*128+z_offset;
     ty=127-ty&127;
   }
   if(hit_d) 
@@ -1726,7 +1726,7 @@ zstyle:
   return BLACK;
 }
 //Tests all sides for best hit on a "paritally" filled block
-I64 PartialBlockHitColor(CD3 *at,CD3 *ray,I64 b,I64 x,I64 y,I64 z,I64 *sidex,I64 *sidey,I64 *sidez,CD3 *hit_at=NULL,F64 *hit_d=NULL,CD2I64 *texture_cords=NULL,F64 percent=1.) {
+I64 PartialBlockHitColor(CD3 *at,CD3 *ray,I64 b,I64 x,I64 y,I64 z,I64 *sidex,I64 *sidey,I64 *sidez,CD3 *hit_at=NULL,F64 *hit_d=NULL,CD2I64 *texture_cords=NULL,F64 percent=1.,I64 z_offset=0) {
   F64 best_dist=1e100,d;
   I64 ox,oy,oz;
   I64 run,run2,best_run=-1;
@@ -1788,7 +1788,7 @@ I64 PartialBlockHitColor(CD3 *at,CD3 *ray,I64 b,I64 x,I64 y,I64 z,I64 *sidex,I64
   if(sidex) *sidex=ox;
   if(sidey) *sidey=oy;
   if(sidez) *sidez=oz;
-  return BlockHitColor(at,ray,b,x,y,z,ox,oy,oz,hit_at,hit_d,texture_cords,percent);
+  return BlockHitColor(at,ray,b,x,y,z,ox,oy,oz,hit_at,hit_d,texture_cords,percent,z_offset);
 }
 I64 GetColorForRay(C3DWorldManager *man,CD3 *origin,CD3 *ray,F64 dist,F64 *hit_at,CD3 *hit_cords,I64 depth=0,I64 last_block=0,I64 fog_color=BLACK,Bool record_tile=FALSE) { 
   CFrogArray *grid=man->grid;
@@ -1864,7 +1864,13 @@ I64 GetColorForRay(C3DWorldManager *man,CD3 *origin,CD3 *ray,F64 dist,F64 *hit_a
 	        door=doors[door_cnt];
 	        if(0<=tz-door->z<door->height*door->percent) {
 		  rel_percent=Min(door->height*door->percent-tz,1.);
-		  color=PartialBlockHitColor(&o128,&rp,door->act_as_wall,tx,ty,tz,&sidex,&sidey,&sidez,&new_origin,&hit_dist,&texture_cords,rel_percent);
+		  color=PartialBlockHitColor(&o128,&rp,
+			door->act_as_wall,
+			tx,ty,tz,&sidex,&sidey,&sidez,
+			&new_origin,&hit_dist,&texture_cords,rel_percent,
+			/*Z-Offset for doors*/
+			door->height*(1.-door->percent)*128
+		  );
 		  if(color!=-1) {
 		        if(record_tile) {
 			  man->cur_tile_x=tx;
