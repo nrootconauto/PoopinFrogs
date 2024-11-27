@@ -378,12 +378,15 @@ class CCeilStain:CFloorStain {
 };
 
 //Things like bullet holes or piss stains on the walls
+extern class CDoor;
 class CWallStain:CFrogThing {
   I64 tile_x,tile_y,tile_z;
 //sidez==1 for top,sidez==0 for walls,sidez==-1 for floor
   I64 sidex,sidey,sidez;
+  I64 added;
   F64 center_x,center_y;
  CDC *dc;
+  CDoor *door;
   U8 *destroy dft "WallStainDel";
 };
 class CCeilWallStain:CFloorStain {
@@ -656,6 +659,7 @@ class CDoor:CFrogThing {
   F64 open_duration;
   I64 x,y,z,act_as_wall;
   I64 tag;
+  CFrogArray *stains;
   Bool activated;
   Bool side_door,small_key,big_key;
 };

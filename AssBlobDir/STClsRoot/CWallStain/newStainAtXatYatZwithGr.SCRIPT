@@ -8,10 +8,18 @@ newStainAtX: x=CFrogNum atY: y=CFrogNum atZ: z=CFrogNum
   r=CFrogRandom
   sx=CFrogNum
   sy=CFrogNum
+  placed*
 |
   ws _ CWallStain new .
-  (ws placeAtX: x atY: y atZ: z) ifTrue: [
-    ws putGraphics: lump atX: ws->center_x + sx atY: ws->center_y + sy .
-    ^ ws .
+  placed _ ws placeAtX: x atY: y atZ: z .
+  (placed hasClass: CFrogNum) ifTrue: [
+    ( placed ~= 0 ) ifTrue: [
+      ws putGraphics: lump atX: ws->center_x + sx atY: ws->center_y + sy .
+      ^ ws .
+    ] .
+  ].
+  (placed hasClass: CDoor) ifTrue: [
+    ws putGraphics: lump atX: ws->center_x + sx atY: ws->center_y + sy.
+      ^ ws .
   ] .
   ^  0 

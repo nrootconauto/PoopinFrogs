@@ -5,8 +5,11 @@ addWallStain: s=CWallStain ->*
   type=CFrogNum
   stains=CFrogArray
 |
-  'wss' show .
-wall_stains size show .
+  s->added _ 1 .
+  (s->door hasClass: CDoor) ifTrue: [
+    s->door->stains add: s .
+    ^ 0 .
+  ] .
   wall_stains size > 256 ifTrue: [
     wall_stains removeAt: 0 .
   ] .
