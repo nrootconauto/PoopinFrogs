@@ -1517,18 +1517,7 @@ U0 FrogGarbageCollectThing(CFrogThing *root,Bool debug=FALSE) {
   if(LBts(&root->thing_flags,THINGf_GC_LOCK))
     goto fin;
   LBtr(&root->thing_flags,THINGf_TO_DELETE);
-  if(ThingHasClass(root,"CFrogFrame")) {
-    g=root;
-    idx=g->item_cnt;
-    while(--idx>=0) {
-    if(debug) "%d,%d,%c\n",idx,g->item_cnt,g->type;
-      if(!(g->raw_mask&(1<<idx))) {
-        FrogGarbageCollectThing(g->body[idx],debug); 
-      }
-    }
-    if(g->type=='Block')
-      FrogGarbageCollectThing(g->parent,debug);
-  } else if(ThingHasClass(root,"CInterpFrame")) {
+  if(ThingHasClass(root,"CInterpFrame")) {
     body=root(CFrogArray*)->items->body;
     idx=root(CFrogArray*)->items->cnt;
     while(--idx>=0)

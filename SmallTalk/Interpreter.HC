@@ -232,7 +232,7 @@ dft:
         I64SetAdd(stack,tt=arg1);
         break;
       case BC_SYMBOL_MEMBER:
-        tt=GetClassMemberVal0(FrogSymbol0(arg1.u32[0])->value,arg1.u32[1]);
+        tt=GetClassMemberVal0(FrogSymbol0(arg1.u32[0])->value,arg1.u32[1]);
         I64SetAdd(stack,tt);
 	break;
       case BC_VAR_MEMBER:

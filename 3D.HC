@@ -1,11 +1,9 @@
-#define mp_cnt 1
 #include "AnimDC.HC"
 #include "BlobFile.HC"
 #include "SmallTalk/Load.HC"
 #include "Intersect.HC"
 #include "QuestEditor.HC";
 #include "PathFinder.HC";
-#define TEST_3D
 #ifndef ENGINE_3D
 #include "SSE.HC";
 #define VIEW_DIST 32
@@ -349,7 +347,7 @@ CFrogThing *TileTemplateSave(CTileTemplate *t,I64 *argv,I64 argc) {
   return FROG_SMALL_NIL;
 }
 AddMethod("CTileTemplate","save",&TileTemplateSave);
-C3DWorld *InitWorld(U8 *blob_file="ASS",F64 fov=pi/2) {
+C3DWorld *InitWorld(F64 fov=pi/2) {
   C3DWorld *ret=CAlloc(sizeof(C3DWorld));
   F64 xoff,yoff;
   U8 *tmp;
@@ -378,7 +376,7 @@ C3DWorld *InitWorld(U8 *blob_file="ASS",F64 fov=pi/2) {
   ret->_floor_stains=man->floor_stains->items;
   ret->_2d_things=man->things->items;
 
-  CBlobFileHeader *bf_data=GetBlobFileData(blob_file); //Dont Free
+  CBlobFileHeader *bf_data=GetBlobFileData(NULL); //Dont Free
   CLumpHeader *bf_lump=bf_data->lump_table;
   CFileThingTemplate *f_template;
   idx=bf_data->lump_cnt;
@@ -576,7 +574,7 @@ n:;
   I64SetDel(stack2);
   I64SetDel(stack);
 }
-U0 LightingSky(I64 x,I64 y,I64 sky_light=16,I64 shadow_color=BLACK) {
+U0 LightingSky(I64 x,I64 y,I64 sky_light=16,CI64Set *lights) {
   I64 z=I8_MAX,b;
   U8 *col;
   U8 *lcol;
@@ -585,13 +583,15 @@ U0 LightingSky(I64 x,I64 y,I64 sky_light=16,I64 shadow_color=BLACK) {
   I64 tp=x+y*w->world_width;
   if(0<=x<w->world_width)
     if(0<=y<w->world_height) {
-      col=&w->world_blocks[tp*256+z-I8_MIN];
-      lcol=&w->world_lighting[tp*256+z-I8_MIN];
+      col=&w->world_blocks[tp*256];
+      lcol=&w->world_lighting[tp*256];
       while(z>=I8_MIN) {
         b=col[z-I8_MIN];
         if(IsSolidTile(b)) {
 	  sky=FALSE;
         }
+	if(1<=BlockLightLevel(b))
+	  I64SetAdd(lights,tp*256+z-I8_MIN);
         if(!sky)
 	  level=0;
         lcol[z-I8_MIN]=MaxI64(ToI64(level),0);
@@ -602,26 +602,28 @@ U0 LightingSky(I64 x,I64 y,I64 sky_light=16,I64 shadow_color=BLACK) {
 CFrogThing *WorldLightingSky(C3DWorldManager *man,I64 *argv,I64 argc) {
   I64 x=w->x/128.,ix;
   I64 y=w->y/128.,iy;
-  I64 sky_light=AsF64(argv[0]),z,tp;
-  I64 level;
+  I64 sky_light=AsF64(argv[0]),z;
+  I64 level,tp;
+  CI64Set *lights=I64SetNew;
 //Sky light
   for(ix=-VIEW_DIST*2;ix<VIEW_DIST*2;ix++) {
     for(iy=-VIEW_DIST*2;iy<VIEW_DIST*2;iy++) {
-      LightingSky(ix+x,iy+y,sky_light);
+      LightingSky(ix+x,iy+y,sky_light,lights);
     }
   }
-//Pass2 world lights
-  for(ix=-VIEW_DIST*2;ix<VIEW_DIST*2;ix++) {
-    for(iy=-VIEW_DIST*2;iy<VIEW_DIST*2;iy++) {
-      z=I8_MAX;
-      while(z>=I8_MIN) {
-        if(1<=(level=BlockLightLevel(BlockAtXYZ(x+ix,y+iy,z)))) {
-	  LightingLight(x+ix,y+iy,z,level);
-        }
-        --z;
-      }
-    }
+
+  //Pass2 world lights
+  for(x=0;x<lights->cnt;x++) {
+    tp=lights->body[x];
+    z=tp&255+I8_MIN;
+    tp=tp/256;
+    ix=tp%w->world_width;
+    iy=tp/w->world_width;
+    level=BlockLightLevel(BlockAtXYZ(ix,iy,z));
+    LightingLight(ix,iy,z,level);
   }
+  I64SetDel(lights);
+  return FROG_SMALL_NIL;
 }
 AddMethod("C3DWorldManager","skylight:",&WorldLightingSky);
 CDoor *DoorAtXYZ(C3DWorldManager *man,I64 ix,I64 iy,F64 iz,F64 tallness=.8) {
@@ -1722,8 +1724,9 @@ zstyle:
     else
       texture_cords->y=ty&127;
   }
-  if(texture)
+  if(texture) {
     return GrPeek(texture,tx&127,(ty+z_offset)&127);
+  }
   return BLACK;
 }
 //Tests all sides for best hit on a "paritally" filled block
@@ -2600,7 +2603,6 @@ AddMethod("C3DWorldManager","setTile:atX:atY:atZ:",&WorldManagerSetTileAtXAtYAtZ
 //
 // Test section
 //
-#ifdef TEST_3D
 DocClear;
 #include "UI.HC"
 InitWorld;
@@ -3219,7 +3221,6 @@ CallScript("newLandscapeWithWidth:withHeight:",FrogSymbol("world")->value,FrogNu
 C3DWorldShell *shell=ConstructThing("C3DWorldShell");
 CallScript("init",shell);
 UIShellRun(shell,NULL,0);
-#endif
 #endif
 #endif               
    

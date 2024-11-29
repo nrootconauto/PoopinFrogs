@@ -78,7 +78,7 @@ CFrogArray *SplitItems(U8 *poo_poo) {
   CallScript("add:",ret,FrogStrNew(LstSub(cnt,dummy)));
   return ret;
 }
-CEliza *LoadQuestChatBot(U8 *quest_name,U8 *ass_blob="ASS",I64 nest_level=2) {
+CEliza *LoadQuestChatBot(U8 *quest_name,U8 *ass_blob=blob_file_cache.filename,I64 nest_level=2) {
   ass_blob=ExtDft(ass_blob,"BLOB");
   CBlobFileHeader *lumps=FileRead(ass_blob);
   CLumpHeader *hdr,*hdr2;
@@ -250,7 +250,7 @@ U0 DeleteQuest(U8 *ass_blob,U8 *name) {
   Free(name);
 }
 
-U0 QuestEditor(U8 *blob_file="ASS",U8 *write_quest_name_to=NULL) {
+U0 QuestEditor(U8 *blob_file=blob_file_cache.filename,U8 *write_quest_name_to=NULL) {
   Bool continue=TRUE;
 ent:
   blob_file=ExtDft(blob_file,"BLOB");
