@@ -18,7 +18,9 @@
 #define BC_NVAR_NIL 15 //arg1 is universe name
 #define BC_CLASS 16
 #define BC_MEMBER 17
-#define BC_DROP18
+#define BC_DROP 18
+#define BC_VAR_MEMBER 19 //2 at once u32[0] is var name,u32[1] is member
+#define BC_SYMBOL_MEMBER 20 //Same as above
 CFrogThing *InterpFrameGet(CFrogThing *self,CInterpFrame *f,I64 un) {
   I64 key=un<<16|FROG_SMALL_NUM;
 enter:;
@@ -229,6 +231,14 @@ dft:
       case BC_VALUE:
         I64SetAdd(stack,tt=arg1);
         break;
+      case BC_SYMBOL_MEMBER:
+        tt=GetClassMemberVal0(FrogSymbol0(arg1.u32[0])->value,arg1.u32[1]);
+        I64SetAdd(stack,tt);
+	break;
+      case BC_VAR_MEMBER:
+        tt=GetClassMemberVal0(InterpFrameGet(self,fr,arg1.u32[0]),arg1.u32[1]);
+        I64SetAdd(stack,tt);
+	break;
       case BC_SYMBOL:
         I64SetAdd(stack,tt=FrogSymbol0(arg1)->value);
         break;
@@ -408,9 +418,17 @@ U0 CompileAST(CI64Set *to,CAST *ast,Bool cascade=FALSE) {
       break;
     case AST_MEMBER:
       arg=ast->args.last;
-      CompileAST(to,arg);
-      I64SetAdd(to,BC_MEMBER);
-      I64SetAdd(to,NameToUniverseNumber(ast->name));
+      if(arg->type==AST_VAR) {
+        I64SetAdd(to,BC_VAR_MEMBER);
+        I64SetAdd(to,NameToUniverseNumber(ast->name)<<32|NameToUniverseNumber(arg->name));
+      } else if(arg->type==AST_SYMBOL) {
+        I64SetAdd(to,BC_SYMBOL_MEMBER);
+        I64SetAdd(to,NameToUniverseNumber(ast->name)<<32|NameToUniverseNumber(arg->name));
+      } else {
+        CompileAST(to,arg);
+        I64SetAdd(to,BC_MEMBER);
+        I64SetAdd(to,NameToUniverseNumber(ast->name));
+      }
       break;
     case AST_SELF:
       I64SetAdd(to,BC_SELF);
