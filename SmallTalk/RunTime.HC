@@ -83,7 +83,14 @@ U0 AddClassMethod(U8 *cls,U8 *name,U8 *fptr) {
 #endif
 #endif
 
+#ifdef TARGET_RISCV
+#ifdef __AIWNIOS__
+#define USE_AIWNIOS_ASM 1
+#endif
+#endif
+
 #ifdef USE_AIWNIOS_ASM
+#ifdef TARGET_X86
 asm {
 _AS_F64::
   MOV RAX,8[RSP]
@@ -116,6 +123,45 @@ _TO_FROG_NUM::
 };
 _extern _AS_F64 F64 AsF64(CFrogThing *t);
 _extern _TO_FROG_NUM CFrogNum *FrogNumNew(F64);
+#endif
+#ifdef TARGET_RISCV
+asm {
+_AS_F64::
+  ANDI t1,a0,0xffFF
+  ADDI t2,zero,FROG_SMALL_NUM
+  BEQ t2,t1,@@is_num
+  ADDI t2,zero,FROG_SMALL_CHR
+  BEQ t2,t1,@@is_chr
+//Not a number type?
+  FCVTDL fa0,zero
+  FMVXD a0,fa0
+  JALR zero,ra,0
+@@is_num:
+  SRLI a0,a0,32
+//Why cant I just FMV it into a register then do it?
+  SDa0,-8[sp]
+  FLW fa0,-8[sp]
+  FCVTDS fa0,fa0
+  FMVXD a0,fa0
+  JALR zero,ra,0
+@@is_chr:
+  SRLI a0,a0,32
+  FCVTDL fa0,a0
+  FMVXD a0,fa0
+  JALR zero,ra,0
+
+_TO_FROG_NUM::
+  FMVDX fa0,a0
+  FCVTSD fa0,fa0
+  FMVXD a0,fa0
+  SLLI a0,a0,32
+  ORI a0,a0,FROG_SMALL_NUM
+  JALR zero,ra,0
+};
+
+_extern _AS_F64 F64 AsF64(CFrogThing *t);
+_extern _TO_FROG_NUM CFrogNum *FrogNumNew(F64);
+#endif
 #else
 F64 AsF64(CFrogThing *t) {
   I64 i=t;

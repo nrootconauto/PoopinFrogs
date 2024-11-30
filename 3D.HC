@@ -1687,7 +1687,7 @@ I64 BlockHitColor(CD3 *at,CD3 *ray,I64 b,I64 x,I64 y,I64 z,I64 sidex,I64 sidey,I
   if(sidez>0) {
     texture=w->floor_textures[b];
 zstyle:
-    d=(pos.z-at->z)/ray->z;
+    d=(pos.z-at->z)/ray->z-.001;
     D3Mul(&dst,d,ray);
     D3AddEqu(&dst,at);
     tx=dst.x*128;
@@ -1698,7 +1698,7 @@ zstyle:
     goto zstyle;
   } else if(sidex) {
     texture=w->wall_textures[b];
-    d=(pos.x-at->x)/ray->x;
+    d=(pos.x-at->x)/ray->x-.001;
     D3Mul(&dst,d,ray);
     D3AddEqu(&dst,at);
     tx=dst.y*128;
@@ -1706,7 +1706,7 @@ zstyle:
     ty=-ty;
   } else if(sidey) {
     texture=w->wall_textures[b];
-    d=(pos.y-at->y)/ray->y;
+    d=(pos.y-at->y)/ray->y-.001;
     D3Mul(&dst,d,ray);
     D3AddEqu(&dst,at);
     tx=dst.x*128;
@@ -2921,12 +2921,21 @@ CFrogNum *WallStainPlaceAtXYZ0(CWallStain *ws,I64 *argv,I64 argc) {
 
 }
 AddMethod("CWallStain","placeAtX:atY:atZ:atSideX:atSideY:atSideZ:withXOffset:withYOffset:",&WallStainPlaceAtXYZ0);
+F64 SaneRound(F64 x,F64 margin=1/255.) {
+  F64 c=Ceil(x);
+  F64 f=Floor(x);
+  if(c-x<=margin)
+    return c;
+  if(x-f<=margin)
+    return f;
+  return x;
+}
 CFrogNum *WallStainPlaceAtXYZ(CWallStain *ws,I64 *argv,I64 argc) {
   CDoor *door=NULL;
   C3DWorldManager *man=FrogSymbol("world")->value;
-  F64 x=AsF64(argv[0])/128;
-  F64 y=AsF64(argv[1])/128;
-  F64 z=AsF64(argv[2]);
+  F64 x=SaneRound(AsF64(argv[0])/128);
+  F64 y=SaneRound(AsF64(argv[1])/128);
+  F64 z=SaneRound(AsF64(argv[2]));
   F64 fz=Floor(z);
   F64 cz=Ceil(z);
   F64 fx=Floor(x);
