@@ -1,9 +1,9 @@
 init ->* | |
   mat _ #() .
   self onDragStart: [:e* :x=CFrogNum :y=CFrogNum |
-    e dragBeginAtX:x atY: y
+    self dragBeginAtX:x atY: y
   ].
   self onDragEnd: [:e* :x=CFrogNum :y=CFrogNum :i*|
-    e dragEndAtX:x atY: y
+    self dragEndAtX:x atY: y
   ].
   ^ self

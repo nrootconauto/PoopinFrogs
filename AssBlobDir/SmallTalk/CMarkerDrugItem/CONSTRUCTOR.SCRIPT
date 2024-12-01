@@ -14,6 +14,10 @@ init->* |
   inventory_item setGraphics: 'GR/MarkerDrug/Idle' .
   inventory_item setCount: ammo .
   inventory_item setItem: self .
+  inventory_item ->name _
+'Marker
+Huff for health
+' .
   inventory_item onLeftUp: [
     #hand_item _ self .
   ] .

@@ -1,7 +1,28 @@
-dragEndAtX: x=CFrogNum atY: y=CFrogNum ->* | e* |
+dragEndAtX: x=CFrogNum atY: y=CFrogNum ->*
+|
+  e*
+  x2=CFrogNum
+  y2=CFrogNum
+  swap_with=CUIGrid
+|
   e _ #ui_drag_item .
   (e hasClass: CUIGridItem ) ifTrue: [
     x _ x / 32 .
     y _ y / 32 .
-    self addItem: e atX: x atY: y
+    'Try to swap our current item with target one'.
+    (((mat at:x )at:y ) hasClass: CUIGridItem) ifTrue: [
+      (e->parent hasClass: CUIGrid) ifTrue: [
+         x2 _ e getParentX .
+         y2 _ e getParentY .
+         swap_with _ e->parent .
+         (x2>=0 and: y2>=0) ifTrue: [
+            swap_with removeItem: e .
+            swap_with addItem: ((mat at:x )at:y ) atX: x2 atY: y2 .
+         ] .
+      ] .
+      'Fallback' .
+      self addItem: e atX: x atY: y      
+    ] ifFalse: [
+      self addItem: e atX: x atY: y
+    ]
   ] . 

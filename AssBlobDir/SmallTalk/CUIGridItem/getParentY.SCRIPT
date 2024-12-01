@@ -1,0 +1,13 @@
+getParentY ->CFrogNum
+  |mat=CFrogArray|
+  (parent hasClass: CUIGrid) ifTrue: [
+    mat _ parent->mat .
+    mat do: [:col=CFrogArray |
+      0 to: col size do: [:y=CFrogNum|
+        (col at: y) = self ifTrue: [
+           ^ y .
+        ] .
+      ]. 
+    ] .
+  ].
+  ^ -1 .

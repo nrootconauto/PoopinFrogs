@@ -11,6 +11,11 @@ init | |
   inventory_item setGraphics: 'GR/Numchucks/Idle' .
   inventory_item setCount: 0 .
   inventory_item setItem: self .
+  inventory_item ->name _
+'Numchucks
+Ninja some asswipes
+kung-fu style
+' .
   inventory_item onLeftUp: [
     #hand_item _ self .
   ].

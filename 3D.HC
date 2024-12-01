@@ -57,16 +57,19 @@ U0 FrogImgBlank(CFrogImg *img) {
 }
 U0 FrogImgSetGraphics(CFrogImg *img,I64 *argv,I64 argc) {
   U8 *lunk=AsString(argv[0]),*data,*symbol_name;
+  U64 type;
   if(img->dc)
     AnimDCDel(img->dc);
   img->dc=AnimDCNew(1,1,frog_mem_task);
   if(lunk) {
-    if(data=BlobFileGetLump(,lunk)) {
-      AnimDCDel(img->dc);
-      img->dc=AnimDCLoad(data,,frog_mem_task);
-      img->name=FrogStrNew(lunk);
-      Free(data);
+    if(data=BlobFileGetLump(,lunk,,&type)) {
+      if(type=='GR') {
+        AnimDCDel(img->dc);
+        img->dc=AnimDCLoad(data,,frog_mem_task);
+        img->name=FrogStrNew(lunk);
+      }
     }
+    Free(data);
     Free(lunk);
   }
   return FROG_SMALL_NIL;

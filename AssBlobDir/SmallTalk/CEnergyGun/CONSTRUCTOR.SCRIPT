@@ -11,6 +11,10 @@ init | |
   inventory_item setGraphics: 'GR/EnergyGun/Icon' .
   inventory_item setCount: ammo .
   inventory_item setItem: self .
+  inventory_item ->name _
+'Engery Gun
+Zap some fuckin turds
+' .
   inventory_item onLeftUp: [
     #hand_item _ self .
   ] .

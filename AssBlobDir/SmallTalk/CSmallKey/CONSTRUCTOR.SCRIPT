@@ -11,6 +11,10 @@ init | |
   inventory_item setGraphics: 'GR/Keys/SmallKey' .
   inventory_item setCount: ammo .
   inventory_item setItem: self .
+  inventory_item ->name _
+'Small Key
+Small ass key
+' .
   inventory_item onLeftUp: [
     #hand_item _ self .
   ].

@@ -11,6 +11,13 @@ init | |
   inventory_item setGraphics: 'GR/Knife/HandIdle' .
   inventory_item setCount: 0 .
   inventory_item setItem: self .
+  inventory_item ->name _
+'Shank
+Yuno,the things you
+find in prision in 
+peoples rectums
+' .
+
   inventory_item onLeftUp: [
     #hand_item _ self .
   ].

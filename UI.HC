@@ -38,6 +38,13 @@ U0 RenderUI(CDC *dc,CUIElem *e,I64 left_x=0,I64 left_y=0,I64 right_x=GR_WIDTH,I6
   draw->computed_x=x;
   draw->computed_y=y;
 
+  if(ThingHasClass(e,"CUIGridItem")) {
+    if(0<=FramePtr("ui_msx")-x<=draw->sz_x)
+      if(0<=FramePtr("ui_msy")-y<=draw->sz_y) {
+        FramePtrSet("ui_tooltip_str",draw(CUIGridItem*)->name);
+      }
+  }
+
   if(dc&&!(draw->dont_draw)) {
     draw_it=GetClassMemberValI64(e,"draw_it");
     if(draw_it) {
@@ -170,6 +177,9 @@ pass:
         ret_code=TRUE;
         return &ret_code;
       }
+//Dont ldown when dragging,also check if we moved
+      if(drag&&m1!=drag_start_x&&m2!=drag_start_y)
+	break;
       cb=update->ms_lup;
 //If releaseing the left thing with a valid callback(not accepted by drag_end),just end the drag
       if(ThingHasClass(cb,"CFrogBlock")) 
@@ -561,8 +571,13 @@ U0 DrawUIRoot(CTask *t,CDC *dc) {
   I64 pass;
   CFrogSymbol *s;
   CUIElem *e;
-  I64 oldx,oldy;
+  CFrogStr *str;
+  I64 oldx,oldy,w,h,wl;
   I64 oldcx,oldcy;
+  U8 *ptr;
+  FramePtrAdd("ui_tooltip_str",NULL);
+  FramePtrAdd("ui_msx",ms.pos.x-t->pix_left);
+  FramePtrAdd("ui_msy",ms.pos.y-t->pix_top);
   for(pass=0;pass!=2;pass++) {
 //Draw ui_root2 on top	
     if(pass) s=FrogSymbol("ui_root2");
@@ -581,8 +596,44 @@ U0 DrawUIRoot(CTask *t,CDC *dc) {
       e->computed_y=oldcy;
       e->x=oldx;
       e->y=oldy;
+
     }
   }
+  if(str=FramePtr("ui_tooltip_str")) {
+    if(ThingHasClass(str,"CFrogStr")) {
+      dc->color=YELLOW;
+      wl=w=0;
+      h=8;
+      ptr=str->items->body;
+      while(*ptr) {
+        if(*ptr=='\n') {
+	  h+=8;
+	  wl=0;
+        } else
+	  w=MaxI64(w,wl+=8);
+        ++ptr;
+      }
+      GrRect(dc,
+	    ms.pos.x-t->pix_left-4+8,
+	    ms.pos.y-t->pix_top-4+8,
+	    w+8,
+	    h+8
+	    );
+      if(Blink)
+        dc->color=LTRED;
+      else
+        dc->color=LTBLUE;
+      GrTextBox3(dc,
+	    ms.pos.x-t->pix_left+8,
+	    ms.pos.y-t->pix_top+8,
+	    0,
+	    str->items->body
+	    );
+    }
+  }
+  FramePtrDel("ui_msx");
+  FramePtrDel("ui_msy");
+  FramePtrDel("ui_tooltip_str");
 }
 
 U0 LoadColorSyms() {

@@ -209,12 +209,13 @@ class CUICenter:CUIElem {
   Bool x_center,y_center;
 };
 
+extern class CUIGrid;
 
 class CUIGridItem:CUIElem {
   CFrogStr *name;
   CFrogImg *graphics;
   I64 cnt; //0 for none
-  CFrogThing *parent;
+  CUIGrid *parent;
   U8 *constructor dft "UIElemInit";
   U8 *draw_it dft "UIGridItemDraw";
   CFrogThing *item;
@@ -383,7 +384,7 @@ class CWallStain:CFrogThing {
   I64 tile_x,tile_y,tile_z;
 //sidez==1 for top,sidez==0 for walls,sidez==-1 for floor
   I64 sidex,sidey,sidez;
-  I64 added;
+  I64 added;
   F64 center_x,center_y;
  CDC *dc;
   CDoor *door;

@@ -4,6 +4,7 @@ removeItem: i* -> CFrogNum | idx=CFrogNum |
     idx _ row indexOf: i .
     idx ~= -1 ifTrue: [
       row at: idx put: 0 .
+      i->parent _ 0 .
       ^ 1 
     ]
   ]
