@@ -77,8 +77,9 @@ U0 UIUnFocus() {
 I64 *UpdateUI(CUIElem *update,I64 msg_type,I64 m1,I64 m2,I64 right_x=GR_WIDTH,I64 right_y=GR_HEIGHT,Bool root=TRUE) {
   if(!ThingHasClass(update,"CUIElem"))
     return NULL;
-  CUIElem *chain,**body=update->sub_elems->items->body,*drag;
-  I64 x,y,got,cnt=update->sub_elems->items->cnt,idx;
+  CFrogArray *dup=CallScript("copy",update->sub_elems); //Prevent items from disappearing during update
+  CUIElem *chain,**body=dup->items->body,*drag;
+  I64 x,y,got,cnt=dup->items->cnt,idx;
   U8 *cb;
   static I64 ret_code=0,drag_start_x=0,drag_start_y=0;
   ret_code=0;
@@ -125,22 +126,23 @@ I64 *UpdateUI(CUIElem *update,I64 msg_type,I64 m1,I64 m2,I64 right_x=GR_WIDTH,I6
 pass:
   if(!(update->update_parent_first))
     for(idx=0;idx!=cnt;idx++) {
-      if(chain=UpdateUI(body[idx],msg_type,m1,m2,x+body[idx]->sz_x,y+body[idx]->sz_y,FALSE)) {
-        return chain;
-      }
+      if(ThingHasClass(body[idx],"CUIElem"))
+        if(chain=UpdateUI(body[idx],msg_type,m1,m2,x+body[idx]->sz_x,y+body[idx]->sz_y,FALSE)) {
+	  return chain;
+        }
     }
-   cb=NULL;
+  cb=NULL;
   switch(msg_type) {
     case MSG_MS_SCROLL:
       if(update&&update->scroll)
-	cb=update->scroll;
+        cb=update->scroll;
       if(ThingHasClass(cb,"CFrogBlock")) {
-	FrogBlockValue(cb,
-		  update,
-		  FrogNumNew(m1)
-		  );
-	ret_code=TRUE;
-	return &ret_code;
+        FrogBlockValue(cb,
+	      update,
+	      FrogNumNew(m1)
+        );
+        ret_code=TRUE;
+        return &ret_code;
       }
       break;
     case MSG_MS_MOVE:
@@ -155,7 +157,7 @@ pass:
 //If we are at root and no one uses the drag,remove it 
       if(drag&&root)
         if(ThingHasClass(drag,"CUIGridItem"))
-          FramePtrDel(UI_GRID_DRAG_FPTR);
+	  FramePtrDel(UI_GRID_DRAG_FPTR);
       if(ThingHasClass(update->drag_end,"CFrogBlock")) {
         if(m1!=drag_start_x||m2!=drag_start_y) {
 	  if(drag&&update!=drag) {
@@ -165,21 +167,21 @@ pass:
 		  FrogNumNew(m2-y),
 		  drag
 		  );
-            FramePtrDel(UI_GRID_DRAG_FPTR);
+	    FramePtrDel(UI_GRID_DRAG_FPTR);
 	    ret_code=TRUE;
 	    return &ret_code;
 	  }
         }
       } else if(ThingHasClass(update,"CUITextBar")) {
-	FramePtrDel(UI_FOCUS_FPTR);
-       	FramePtrAdd(UI_FOCUS_FPTR,update);
+        FramePtrDel(UI_FOCUS_FPTR);
+        FramePtrAdd(UI_FOCUS_FPTR,update);
         FramePtrDel(UI_GRID_DRAG_FPTR);
         ret_code=TRUE;
         return &ret_code;
       }
 //Dont ldown when dragging,also check if we moved
       if(drag&&m1!=drag_start_x&&m2!=drag_start_y)
-	break;
+        break;
       cb=update->ms_lup;
 //If releaseing the left thing with a valid callback(not accepted by drag_end),just end the drag
       if(ThingHasClass(cb,"CFrogBlock")) 
