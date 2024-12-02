@@ -215,7 +215,7 @@ class CUIGridItem:CUIElem {
   CFrogStr *name;
   CFrogImg *graphics;
   I64 cnt; //0 for none
-  CUIGrid *parent;
+  CUIGrid *parent;
   U8 *constructor dft "UIElemInit";
   U8 *draw_it dft "UIGridItemDraw";
   CFrogThing *item;
@@ -501,6 +501,11 @@ class CDogTongue:CFrogTongue {
 };
 
 class CGun1:CHandItem {
+};
+class CUzi:CHandItem {
+  CFrogStr *state;
+};
+class CUziPickup:CPickup {
 };
 class CShootgun:CHandItem {
 };

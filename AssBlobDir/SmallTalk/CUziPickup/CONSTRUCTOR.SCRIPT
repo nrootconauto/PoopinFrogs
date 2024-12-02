@@ -1,0 +1,6 @@
+init | |
+  count _ 30  .
+  #world addThing: self .
+  item_class _ CUzi .
+  template _ #world getThingTemplate: 'CUziPickup' .
+  ^ self

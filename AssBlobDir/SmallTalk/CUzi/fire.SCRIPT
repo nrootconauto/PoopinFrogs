@@ -1,0 +1,47 @@
+fire ->* |
+ cur_ts=CFrogNum
+ player=CPlayer
+ canidates=CFrogArray 
+ wall_hole=CWallStain
+ case*
+ sz=CFrogNum
+ floor_stain=CFloorStain
+ best_thing*
+ w=C3DWorldManager
+ dmg=CFrogNum
+ |
+  w _ #world .
+  player _ w getPlayer .
+  ammo ifTrue: [
+   
+    cur_ts _ CFrogTime now asSeconds .
+
+    ((state = 'Normal' or: state = 'Fire' ) and: timeout < cur_ts) ifTrue: [
+      state = 'Normal' ifTrue: [
+        anim_no_repeat_ 0 .
+        anim_start_tS _ cur_ts .
+        self setGraphics: 'GR/Uzi/Fire' .
+      ] .
+      state _ 'Fire' .
+      case _ CShellCasing new .
+      case setGraphics: 'GR/GUN1/BULLET' .
+      case ejectAtX: x atY: y .
+      player addShellCasing: case .
+      w noiseSoundForTime: 1000/10. withMin: 42 withMax: 52 .
+      sz _ w screenCoordToZ .
+
+      timeout _ cur_ts + (1./10) .
+      ammo _ ammo - 1 max: 0 .
+      inventory_item setCount: ammo .
+      dmg _ 5 * CFrogRandom new next + 3 .
+      player rangeAttackAtAngle: player->angle withDamage: dmg .
+
+      CWallStain newStainAtX: w screenCoordToX atY: w screenCoordToY atZ: w screenCoordToZ
+        withGraphicsLump: 'GR/GUN1/BULLET_HOLE' withSpread: 16 .
+
+    ] .
+  ] .
+
+  ammo = 0 ifTrue: [
+    player removeItem: inventory_item .
+  ] .

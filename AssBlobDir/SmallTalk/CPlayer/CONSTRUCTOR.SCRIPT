@@ -17,6 +17,7 @@ init ->CPlayer | |
   CKnife new .
   CTalker  new .
   CMarkerDrugItem new .
+  CUzi new .
 
   CNumchucks new .
 
