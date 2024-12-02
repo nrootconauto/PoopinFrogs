@@ -126,7 +126,7 @@ I64 *UpdateUI(CUIElem *update,I64 msg_type,I64 m1,I64 m2,I64 right_x=GR_WIDTH,I6
 pass:
   if(!(update->update_parent_first))
     for(idx=0;idx!=cnt;idx++) {
-      if(ThingHasClass(body[idx],"CUIElem"))
+      if(ThingHasClass(body[idx],"CUIElem"))
         if(chain=UpdateUI(body[idx],msg_type,m1,m2,x+body[idx]->sz_x,y+body[idx]->sz_y,FALSE)) {
 	  return chain;
         }

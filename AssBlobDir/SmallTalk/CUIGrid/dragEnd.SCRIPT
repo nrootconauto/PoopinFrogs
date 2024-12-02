@@ -1,16 +1,40 @@
 dragEndAtX: x=CFrogNum atY: y=CFrogNum ->*
 |
-  e*
+  e=CUIGridItem
   x2=CFrogNum
   y2=CFrogNum
   swap_with=CUIGrid
+  have=CUIGridItem
+  have_item=CHandItem
+  got_item=CHandItem
+  orig_cnt=CFrogNum
 |
   e _ #ui_drag_item .
   (e hasClass: CUIGridItem ) ifTrue: [
     x _ x / 32 .
     y _ y / 32 .
+    have _ ((mat at:x )at:y ). 
+    'Try to merge'.
+    have_item _ have->item .
+    got_item _ e->item .
+    (have_item class = got_item class ) ifTrue: [
+      have_item->ammo ifTrue: [
+        have_item->max_ammo ifTrue: [
+          orig_cnt _ have_item->ammo .
+          have_item->ammo _ orig_cnt + got_item->ammo min: have_item->max_ammo .
+          got_item->ammo _ got_item->ammo - (have_item->ammo - orig_cnt) .
+'Update counts on CUIGridItem' .
+          got_item animate .
+          have_item animate .
+          got_item->ammo < 1 ifTrue: [
+            e->parent removeItem: e .
+          ] .
+          ^ 0 .
+        ] .
+      ] .
+    ] .
     'Try to swap our current item with target one'.
-    (((mat at:x )at:y ) hasClass: CUIGridItem) ifTrue: [
+    (have hasClass: CUIGridItem) ifTrue: [
       (e->parent hasClass: CUIGrid) ifTrue: [
          x2 _ e getParentX .
          y2 _ e getParentY .

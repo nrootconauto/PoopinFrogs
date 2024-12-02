@@ -782,7 +782,6 @@ CFrogThing *CallScriptUniverse0(I64 who,CFrogThing *self,I64 *argv,I64 argc) {
       ret=(*fptr)(self,argv,argc);
       goto fin;
     }
-    goto fin;
   }
   if(!(self&1)) {
     fptr=UniverseGetMethodForClassByIdx(who,self->universe_class_idx);   
