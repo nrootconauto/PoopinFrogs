@@ -363,6 +363,7 @@ class CWorldEditBlock:CHandItem {
 };
 
 class CWorldEditThing:CHandItem {
+  I64 tag;
   CFrogStr *name ;
 };
 
@@ -505,7 +506,7 @@ class CGun1:CHandItem {
 class CUzi:CHandItem {
   CFrogStr *state;
 };
-class CUziPickup:CPickup {
+class CUziPickup:CPickup {
 };
 class CShootgun:CHandItem {
 };

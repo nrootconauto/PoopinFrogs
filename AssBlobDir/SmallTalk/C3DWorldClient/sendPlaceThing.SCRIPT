@@ -1,4 +1,5 @@
 sendPlaceThing: t=CFrogClass atX: x* atY: y* atZ: z*
+withActivateTag: tag=CFrogNum
 ->*
 |
 |
@@ -7,5 +8,6 @@ sendPlaceThing: t=CFrogClass atX: x* atY: y* atZ: z*
       (x)
       (y)
       (z)
+      (tag)
     )
     withType: 'PThg' .

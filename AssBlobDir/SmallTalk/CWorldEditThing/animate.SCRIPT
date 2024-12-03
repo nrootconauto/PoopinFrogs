@@ -3,6 +3,7 @@ animate->*
  t=C3DThingTemplate 
 |
   t _ #world getThingTemplate: name .
+  inventory_item ->cnt _ tag .
   (t hasClass: C3DThingTemplate) ifTrue: [
     self setGraphics :  t->front->name  .
   ] .

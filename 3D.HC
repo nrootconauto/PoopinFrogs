@@ -1690,7 +1690,7 @@ I64 BlockHitColor(CD3 *at,CD3 *ray,I64 b,I64 x,I64 y,I64 z,I64 sidex,I64 sidey,I
   if(sidez>0) {
     texture=w->floor_textures[b];
 zstyle:
-    d=(pos.z-at->z)/ray->z-.001;
+    d=(pos.z-at->z)/ray->z;
     D3Mul(&dst,d,ray);
     D3AddEqu(&dst,at);
     tx=dst.x*128;
@@ -1701,7 +1701,7 @@ zstyle:
     goto zstyle;
   } else if(sidex) {
     texture=w->wall_textures[b];
-    d=(pos.x-at->x)/ray->x-.001;
+    d=(pos.x-at->x)/ray->x;
     D3Mul(&dst,d,ray);
     D3AddEqu(&dst,at);
     tx=dst.y*128;
@@ -1709,7 +1709,7 @@ zstyle:
     ty=-ty;
   } else if(sidey) {
     texture=w->wall_textures[b];
-    d=(pos.y-at->y)/ray->y-.001;
+    d=(pos.y-at->y)/ray->y;
     D3Mul(&dst,d,ray);
     D3AddEqu(&dst,at);
     tx=dst.x*128;
@@ -1769,13 +1769,14 @@ I64 DoorBlockHitColor(CD3 *at,CD3 *ray,CDoor *door,I64 x,I64 y,I64 z,I64 *sidex,
         break;
     }
     if(-1!=BlockHitColor(at,ray,b,x,y,z,ox,oy,oz,&poo,&d,,percent))
-      if(x<=poo.x/128<=x+1)
-        if(y<=poo.y/128<=y+1)
-	  if(z-.0001<=poo.z<=z+percent+.0001)
+      if(x-.001<=poo.x/128<=x+1.001)
+        if(y-.001<=poo.y/128<=y+1.001) {
+	  if(z-.001<=poo.z<=z+percent+.001)
 	    if(d<best_dist) {
 	      best_dist=d;
 	      best_run=run;
 	    }
+        }
   }
   if(best_run==-1)
     return -1;
@@ -1821,7 +1822,7 @@ I64 DoorBlockHitColor(CD3 *at,CD3 *ray,CDoor *door,I64 x,I64 y,I64 z,I64 *sidex,
     if(stain->sidex==ox&&stain->sidey==oy&&
 	  stain->sidez==oz) {
       if(stain->dc) {
-	z_offset=(Abs(hit_at->z)%1.*128);
+        z_offset=(Abs(hit_at->z)%1.*128);
         color2=GrPeek(stain->dc,
 	      texture_cords->x&127,
 //Ask God

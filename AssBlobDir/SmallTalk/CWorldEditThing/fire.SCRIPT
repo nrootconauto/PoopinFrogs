@@ -34,9 +34,10 @@ fire ->* |
     thing->x _ wx .
     thing->y _ wy .
     thing->z _ wz . 
+    thing->activate_tag _ tag .
 
     w->is_client ifTrue: [
-      #client sendPlaceThing: (CFrogClass fromString: name) atX: wx atY: wy atZ: wz 
+      #client sendPlaceThing: (CFrogClass fromString: name) atX: wx atY: wy atZ: wz withActivateTag: tag . 
     ] .
 
 

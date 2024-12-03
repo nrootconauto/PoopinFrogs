@@ -17,9 +17,39 @@ init ->* |
   tbuttons=CFrogArray
   tree=CUITree
   n=CUINotification
+
+  ask_num=CFrogBlock
+  wet=CWorldEditThing
 |
   'Draw world in background' .
   draw_it_name _ 'Draw3DWorld' .
+
+  ask_num _ [:title=CFrogStr :cb=CFrogBlock |
+      #ui_root _ CUIBackground new .
+      ui_roots add: #ui_root .
+      #ui_root->color _ #color_DKGRAY .
+      #ui_root ->x _ 100 .
+      #ui_root ->y _ 200 .
+      #ui_root -> sz_x _ 440 .
+      #ui_root -> sz_y _ 80 .
+      label _ CUILabel new .
+      label setLabel: title .
+      label->color _ #color_LTCYAN .
+      label->x _ 100 .
+      label->y _ 20 .
+      #ui_root addChild: label .
+      text_bar _ CUITextBar new .
+      #ui_root addChild: text_bar .
+      text_bar->y _ 30 .
+      text_bar->sz_x _ 400 .
+      text_bar->sz_y _ 12 .
+
+      text_bar->on_enter _ [:b=CFrogStr |
+         cb value: b asInteger .
+         ui_roots remove: #ui_root .
+         #ui_root _ ui_roots at: ui_roots size - 1 .
+      ].
+  ] .
 
   edit_template _ [:template=C3DThingTemplate |
     #ui_root _ CUIBackground new .
@@ -40,7 +70,13 @@ init ->* |
     button -> fg_color _ #color_RED .
     button->label _ 'Add to inventory' .
     button onLeftUp: [
-      CWorldEditThing new: template -> name.
+      wet _ CWorldEditThing new: template -> name.
+      ask_num
+        value: 'Tag number for thing(used for doors).'
+        value: [:tagn=CFrogNum |
+          wet->tag _ tagn.
+          wet animate. 'Update icon' .
+        ]
     ] .
     #ui_root addChild: button .
 
