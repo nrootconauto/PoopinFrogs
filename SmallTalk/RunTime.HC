@@ -1565,8 +1565,9 @@ U0 FrogGarbageCollectThing(CFrogThing *root,Bool debug=FALSE) {
   if(ThingHasClass(root,"CInterpFrame")) {
     body=root(CFrogArray*)->items->body;
     idx=root(CFrogArray*)->items->cnt;
-    while(--idx>=0)
-      FrogGarbageCollectThing(body[idx],debug);
+    while((idx-=2)>=0) //[key1,value1,...,keyN,valueN]
+      FrogGarbageCollectThing(body[idx+1],debug);
+    FrogGarbageCollectThing(root(CInterpFrame*)->stack,debug);
     FrogGarbageCollectThing(root(CInterpFrame*)->next_frame,debug);
   } else if(ThingHasClass(root,"CFrogArray")) {
     body=root(CFrogArray*)->items->body;

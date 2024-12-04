@@ -675,7 +675,7 @@ CFrogThing *UIShellRun(CUIShell *shell,I64 *argv,I64 argc) {
   dc->flags|=DCF_NO_TRANSPARENTS;
   CUIEvent *ev;
   I64 last_z=ms.pos.z;
-  I64 t,m1,m2,tick=0;
+  I64 t,m1,m2;
   U8 *di=AsString(shell->draw_it_name);
   Bool ldown=FALSE,rdown=FALSE,old_ldown=FALSE,old_rdown=FALSE;
   CHashFun *fun=HashFind(di,Fs->hash_table,HTT_FUN);
@@ -759,8 +759,6 @@ skip:;
       if(ThingHasClass(shell->on_event,"CFrogBlock"))
 	FrogBlockValue(shell->on_event,ev);
     }
-    if(tick++&15==0)
-       FrogGarbageCollect(FROG_SMALL_NIL);
     if(ThingHasClass(shell->on_refresh,"CFrogBlock")) {
        FrogBlockValue(shell->on_refresh);
     }

@@ -79,5 +79,6 @@ class CFrogTime:CFrogThing {
 class CInterpFrame:CFrogArray { 
   CInterpFrame *next_frame;
   CFrogThing *returned;
+  CFrogArray *stack;
   Bool return_flag;
 };

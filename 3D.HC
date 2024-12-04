@@ -3230,7 +3230,7 @@ AddMethod("CWallStain","putGraphics:atX:atY:",&WallStainPutGraphics);
 //
 //
 #if __CMD_LINE__
-CallScript("newLandscapeWithWidth:withHeight:",FrogSymbol("world")->value,FrogNumNew(64),FrogNumNew(64));
+CallScript("newLandscapeWithWidth:withHeight:",FrogSymbol("world")->value,FrogNumNew(32),FrogNumNew(32));
 C3DWorldShell *shell=ConstructThing("C3DWorldShell");
 CallScript("init",shell);
 UIShellRun(shell,NULL,0);

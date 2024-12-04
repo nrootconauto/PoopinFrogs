@@ -70,8 +70,10 @@ extern CFrogThing *RunByteCode(CFrogThing *self,CI64Set *bytecode_stack,CI64Set 
 
 
 CFrogThing*BytecodeBlock(CFrogBlock *me,I64 *data,I64 len) {
-  CI64Set *stack=I64SetNew;
+  CI64Set *stack;
   CInterpFrame *frame=ConstructThing("CInterpFrame");
+  frame->stack=FrogArrayNew;
+  stack=frame->stack->items;
   frame->next_frame=me->frame;
   frame->thing_flags|=THINGF_GC_ROOT;
   I64 i;
@@ -82,21 +84,27 @@ CFrogThing*BytecodeBlock(CFrogBlock *me,I64 *data,I64 len) {
       I64SetAdd(stack,FROG_SMALL_NIL);
   }
   i=RunByteCode(me->self,me->bytecode,stack,frame);
-  I64SetDel(stack);
+  QueRem(frame->stack); //Remove from GC
+  FrogArrayDel(frame->stack);
+  frame->stack=FROG_SMALL_NIL;
   frame->thing_flags&=~THINGF_GC_ROOT;
   return i;
 }
 
 CFrogThing*BytecodeMethod(CFrogBlock *me,CI64Set *bc,I64 *data,I64 len) {
-  CI64Set *stack=I64SetNew;
+  CI64Set *stack;
   CInterpFrame *frame=ConstructThing("CInterpFrame");
+  frame->stack=FrogArrayNew;
+  stack=frame->stack->items;
   frame->thing_flags|=THINGF_GC_ROOT;
   I64 i;
   for(i=0;i!=len;i++) {
     I64SetAdd(stack,data[i]);
   }
   RunByteCode(me,bc,stack,frame);
-  I64SetDel(stack);
+  QueRem(frame->stack); //Remove from GC
+  FrogArrayDel(frame->stack);
+  frame->stack=FROG_SMALL_NIL;
   frame->thing_flags&=~THINGF_GC_ROOT;
   return frame->returned;
 }
@@ -117,6 +125,11 @@ CFrogThing *FrogBlockNewBC(CI64Set *bc,CInterpFrame *frame,CFrogThing *self) {
   return me;
 }
 CFrogThing *RunByteCode(CFrogThing *self,CI64Set *bytecode_stack,CI64Set *stack,CInterpFrame *fr) {
+  static F64 last_collect=tS;
+  if(tS>last_collect+1./3.) { 
+    FrogGarbageCollect(FROG_SMALL_NIL);
+    last_collect=tS;
+  }
   I64 ip=0,bc,arg1;
   I64 *code=bytecode_stack->body;
   I64 sp=stack->cnt,arity;
@@ -310,6 +323,7 @@ dft:
     } else {
       fast_ready=0;
     }
+
   }
 final:
   if(Fs->user_data==fr)
@@ -565,5 +579,4 @@ STRepl(
 "  (#fib value: 10 ) show .",
 FALSE
 );
-"INTERP:%n\n",tS-t;
 #endif

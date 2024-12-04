@@ -1,0 +1,16 @@
+placeAtAngle: a=CFrogNum
+  fromX: xx=CFrogNum
+  fromY: yy=CFrogNum
+  atHeight: zz=CFrogNum
+  ->*
+|
+  X=CFrogNum
+  Y=CFrogNum
+  rando=CFrogRandom
+  h=CFrogNum
+  seg=CFrogNum
+  door_offset=CFrogNum
+  door=CDoorx
+|
+ 'TODO' .
+  ^ 0 
