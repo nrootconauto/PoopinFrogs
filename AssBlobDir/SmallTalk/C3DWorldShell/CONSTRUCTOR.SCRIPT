@@ -70,7 +70,6 @@ init ->* |
       ] ifFalse: [
         'Checks if client for us' .
         #world pause .
-#world -> is_paused show .
 
         e _ CUIBackground new .
         e->bg_color _ #color_DKGRAY .
@@ -105,9 +104,10 @@ init ->* |
         e ->x _ 320 - (e ->sz_x /2 ) .
         e ->y _ 240 - (e ->sz_y /2 ) .
         #ui_root addChild: e .
-        #ms_grabbed _ 0 .
         ask_exit_active _ 1 .
         handled _ 1 .
+'Game will be paused,so we wont check for ask_exit_active' .
+        #ms_grabbed _ 0 .
       ] .
     ] .
 
@@ -123,6 +123,20 @@ init ->* |
   on_event _ [:v=CUIEvent |
      player _ #world getPlayer .
      handled _ 0 .
+     #world->is_paused ifTrue: [
+       v->type='KeyDown' ifTrue: [
+         'CH_ESC' .
+         v->m1 = 27 ifTrue: [
+           handled _ 1 .
+           ask_exit value .
+         ] .
+         'CH_SHIFT_ESC' .
+         v->m1 = 28 ifTrue: [
+           handled _ 1 .
+           ask_exit value .
+         ] .
+       ]
+     ] ifFalse: [
      v->type = 'MsLUp' ifTrue: [
        ldown _ 0 .
      ].
@@ -255,6 +269,7 @@ init ->* |
          handled _ 1 .
        ].
      ] .
+     ].
 
      handled ifFalse: [
        #ui_root sendEventToUI: v .
@@ -266,11 +281,7 @@ init ->* |
        last_lighting_tS _ CFrogTime now asSeconds  + 1 .
        #world lighting .
      ] .
-'PAUSE' show .
-     #world show .
-     #world -> is_paused show .
      #world ->is_paused ifFalse: [
-'REFREESH 'show .
        now _ CFrogTime now asSeconds .
        now >= next_refresh ifTrue: [
          next_refresh _ now + (1 / 3 ).

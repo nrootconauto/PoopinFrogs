@@ -360,10 +360,11 @@ class CDoorItem:CHandItem {
 
 class CWorldEditBlock:CHandItem {
   I64 tile_idx;
+  I64 wall_size;
 };
 
 class CWorldEditThing:CHandItem {
-  I64 tag;
+  I64 tag;
   CFrogStr *name ;
 };
 
@@ -571,8 +572,6 @@ class CPlayer:C3DThing {
   F64 angle2; // up/down angle
 //Has form "QuestName/Codename"
   CFrogArray *quest_seen_responses recur_serialize 1;
-//How many bloody footprints will be made
-  F64 bloody_foot_count;
   CFrogArray *notifications;
 }; 
 class CPoopMan:C3DThing {

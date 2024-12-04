@@ -1,0 +1,6 @@
+animate->*
+|
+|
+  inventory_item setCount: wall_size .
+'wall_size ' show .
+  wall_size show .

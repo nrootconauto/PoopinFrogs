@@ -11,7 +11,36 @@ init ->* |
   old*
   inv_item=CWorldEditBlock
   n=CUINotification 
+  ask_num=CFrogBlock
+  text_input=CUITextBar
+  wall_size=CFrogNum
+  tall_button=CUIButton
+  web=CWorldEditBlock
 |
+  ask_num _ [:result=CFrogBlock|
+    text_input _ CUITextBar new .
+    ui_roots add: text_input .
+    #ui_root _ text_input .
+    text_input->sz_x _ 200 .
+    text_input->sz_y _ 10 .
+    text_input->y _ 480 - 10 / 2 .
+    text_input->x _ 640 - 200 / 2 .
+    text_input focus .
+    
+    text_input focus .
+    text_input setOnEscape: [
+      ui_roots remove: #ui_root .
+      #ui_root _ ui_roots last .
+    ]. 
+    text_input setOnEnter: [:v=CFrogStr|
+      result value: v asInteger .
+      ui_roots remove: #ui_root .
+      #ui_root _ ui_roots last .
+    ] .
+  ].
+
+
+
   'Draw world in backgroubnd' .
   draw_it_name _ 'Draw3DWorld' .
 
@@ -46,6 +75,7 @@ init ->* |
       ] .
       item->cnt _ b .
       item onLeftUp: [:elem=CUIGridItem |
+        wall_size _ 1 .
         tile _ elem -> item .
         (tile hasClass: CTileTemplate) ifFalse: [
           tile _ CTileTemplate new .
@@ -115,10 +145,30 @@ init ->* |
         button->bg_color _ #color_YELLOW .
         button setLabel: 'Add To Players stash' .
         button onLeftUp: [:elem* |
-          CWorldEditBlock new: tile->tile_idx .
+          web _ CWorldEditBlock new: tile->tile_idx .
+          web->wall_size _ wall_size
+          
         ] .
         button-> x _ 50 .
         button-> y _ 200 .
+        button->sz_y _ 40 .
+        button->sz_x _ 200 .
+        group addChild: button .
+
+
+        button _ CUIButton new .
+        tall_button _ button .
+        button->fg_color _ #color_LTRED .
+        button->bg_color _ #color_YELLOW .
+        button setLabel: 'Set wall size(' , wall_size printString ,')' .
+        button onLeftUp: [:elem* |
+          ask_num value: [:n=CFrogNum|
+            wall_size _ n .
+            tall_button setLabel: 'Set wall size(' , wall_size printString ,')' .
+          ]
+        ] .
+        button-> x _ 50 .
+        button-> y _ 250 .
         button->sz_y _ 40 .
         button->sz_x _ 200 .
         group addChild: button .

@@ -21,9 +21,11 @@ fire ->* |
     wy _ tile->y + side->y .
     wz _ tile->z + side->z .
 
-    w setTile: tile_idx atX: wx atY: wy atZ: wz.
+    0 to: wall_size do: [:o=CFrogNum|
+      w setTile: tile_idx atX: wx atY: wy atZ: wz + o .
 
-    w->is_client ifTrue: [
-      #client sendPlaceBlock: tile_idx atX: wx atY: wy atZ: wz 
+      w->is_client ifTrue: [
+        #client sendPlaceBlock: tile_idx atX: wx atY: wy atZ: wz + o 
+      ] .
     ] .
   ] .

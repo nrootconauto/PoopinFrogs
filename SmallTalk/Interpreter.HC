@@ -167,6 +167,8 @@ CFrogThing *RunByteCode(CFrogThing *self,CI64Set *bytecode_stack,CI64Set *stack,
 	      fast_stk[fast_ready]=fast_stk[fast_ready]>=fast_stk[fast_ready+1];
 	      break;case #exe{ExeUniverse("<=");}:
 	      fast_stk[fast_ready]=fast_stk[fast_ready]<=fast_stk[fast_ready+1];
+	      break;case #exe{ExeUniverse("not");}:
+	      fast_stk[fast_ready]=fast_stk[fast_ready]==0.;
 	      break;case #exe{ExeUniverse(">");}:
 	      fast_stk[fast_ready]=fast_stk[fast_ready]>fast_stk[fast_ready+1];
 	      break;case #exe{ExeUniverse("<");}:
