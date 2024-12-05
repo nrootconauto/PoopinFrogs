@@ -17,7 +17,7 @@ Ninja some asswipes
 kung-fu style
 ' .
   inventory_item onLeftUp: [
-    #hand_item _ self .
+    #world getPlayer selectItem: self .
   ].
   #world getPlayer addInventoryItem: inventory_item.
   ^ self

@@ -12,7 +12,7 @@ init: idx=CFrogNum ->* | |
   inventory_item _ CUIGridItem new .
   inventory_item setItem: self .
   inventory_item onLeftUp: [
-    #hand_item _ self .
+    #world getPlayer selectItem: self .
   ] .
   self animate . 'Update inventory item '.
 

@@ -76,7 +76,7 @@ init ->* |
         item->item _ hand_item .
         item->cnt _ tag_number .
         item onLeftUp: [
-          #hand_item _ hand_item .
+          #world getPlayer selectItem: hand_item .
         ] .
 
         #world getPlayer addInventoryItem: item .

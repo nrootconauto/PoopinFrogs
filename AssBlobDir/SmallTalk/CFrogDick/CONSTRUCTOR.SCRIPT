@@ -16,7 +16,7 @@ What do you think it does
 ' .
   dick _ self .
   inventory_item onLeftUp: [:x=CFrogNum :y=CFrogNum |
-    #hand_item _ dick .
+    #world getPlayer selectItem: dick 
   ].
   #world getPlayer addInventoryItem: inventory_item.
   ^ self

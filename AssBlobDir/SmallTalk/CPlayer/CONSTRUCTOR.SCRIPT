@@ -11,7 +11,7 @@ init ->CPlayer | |
   self makeUI .
   piss_stream _ CPissStream new .
   piss_stream ->from _ self .
-  #hand_item _ CGun1 new .
+  self selectItem: CGun1 new .
 
   CFrogDick new .
   CKnife new .

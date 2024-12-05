@@ -42,7 +42,7 @@ class CFrogClass:CFrogThing {
 class CFrogChr:CFrogThing {
   U64 ch;
 };
-class CFrogBlock:CFrogThing {
+class CFrogBlock:CFrogThing {
   CFrogThing *self;
   CFrogThing *frame;
   U8 (*fun_ptr)(CFrogThing *self,U8 *);//CSTFrame
@@ -283,6 +283,7 @@ class C3DThing:CFrogThing {
   Bool draw_flip;
   Bool no_update;
   Bool invisible;
+  Bool pad[8-2];
 };
 class CDayNightStar:CFrogThing {
   I64 color;
@@ -571,6 +572,7 @@ class CPlayer:C3DThing {
   F64 last_x,last_y;
   CFrogArray *quest_flags recur_serialize 1;
   F64 angle2; // up/down angle
+  CHandItem *want_hand_item;
 //Has form "QuestName/Codename"
   CFrogArray *quest_seen_responses recur_serialize 1;
   CFrogArray *notifications;

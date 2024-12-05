@@ -12,7 +12,7 @@ init: names=CFrogStr ->* | |
   inventory_item setItem: self .
   inventory_item onLeftUp: [
     'poo ' show.
-    #hand_item _ self .
+    #world getPlayer selectItem: self .
   ] .
 
   ((#world getThingTemplate: name) hasClass: C3DThingTemplate) ifTrue: [

@@ -534,6 +534,8 @@ U0 UIGridItemDraw(CDC *dc,I64 x,I64 y,CUIGridItem *self) {
   U8 *str;
   if(ThingHasClass(self->parent,"CUIGrid"))
     if(self->parent(CUIGrid*)->active==self) {
+      dc->color=LTPURPLE;
+      GrRect(dc,x+2,y+2,UI_GRID_WIDTH-4,UI_GRID_WIDTH-4);
       if(Blink)
         dc->color=RED;
       else

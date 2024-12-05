@@ -18,3 +18,20 @@ animate ->* |tS=CFrogNum|
   shell_casings do: [:c=CShellCasing|
     c update .
   ] .
+
+
+  (want_hand_item hasClass: CHandItem) ifTrue: [
+    'Just in case we hand have a valid hand item'.
+    (#hand_item hasClass: CHandItem) ifFalse: [
+      #hand_item _ want_hand_item .
+      want_hand_item _ 0 . 
+      ^ 0
+    ].
+'swapt' show.
+(#hand_item ->timeout - tS ) show .
+    #hand_item ->timeout <= tS ifTrue: [
+      #hand_item _ want_hand_item .
+      want_hand_item _ 0 . 
+      ^ 0
+    ].
+  ].

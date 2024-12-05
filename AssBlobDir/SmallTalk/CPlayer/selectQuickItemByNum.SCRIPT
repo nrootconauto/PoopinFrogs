@@ -6,10 +6,7 @@ selectQuickItemByNum: idx=CFrogNum ->CHandItem
   (idx between: 0 and: 10) ifFalse: [^ 0 ] .
   gi _ (quick_inventory  ->mat at: idx) at: 0 .
   (gi hasClass: CUIGridItem) ifTrue: [
-    #hand_item _ gi->item .
-    'Update properties' .
-    self animate .
-    #hand_item animate .
-    ^ #hand_item
+    #world getPlayer selectItem: gi->item .
+    ^ gi->item 
   ] .
   ^ 0 .

@@ -26,6 +26,7 @@ init ->* |
   last_lighting_tS=CFrogNum
   notification=CUINotification
   poopidex_active=CFrogNum
+  want_item=CHandItem
 |
   draw_it_name _ 'Draw3DWorld' .
 
@@ -54,7 +55,6 @@ init ->* |
     hand_animate_mom_y _ 0 .
     hand_animate_xoff _ 320 .
     hand_animate_yoff _ 300 .
-    hand_animate_gravity _ 20 .
     hand_active _ 1 .
     ask_exit_active _ 0 .
 
@@ -360,8 +360,25 @@ init ->* |
          hand_animate_yoff > 450 ifTrue: [
            hand_animate_yoff _ 450 .
          ].
+
+
+         hand_animate_gravity _ 40 .
+
+         'If we want to switch hand items'
+         'Be sure to push move current item towards bottom of screen'.
+         
+         (player->want_hand_item hasClass: CHandItem) ifTrue: [
+           want_item _ player->want_hand_item .
+           #hand_item->x _ 320 .
+           #hand_item->y _ 600 .
+           want_item->x _ #hand_item->x .
+           want_item->y _ #hand_item->y .
+         ] ifFalse: [
+           #hand_item->x _ 320 .
+           #hand_item->y _ 340 .
+         ] .
+
          'base position' .
-         #hand_item->x _ 320 . 
          #hand_item->xoff _ hand_animate_xoff - #hand_item->x .
          #hand_item->yoff _ hand_animate_yoff - #hand_item->y .
 

@@ -1,0 +1,17 @@
+selectItem: h=CHandItem ->*
+  |
+   now=CFrogNum
+   inv=CUIGridItem
+   parent=CUIGrid
+  |
+  now _ CFrogTime now asSeconds .
+  'If we are beginging to choose a new item'
+  'be sure to reserve time for swap animation' .
+  (want_hand_item hasClass: CHandItem) ifFalse: [
+   '+.05 for swap animation' show.
+   #hand_item->timeout _ #hand_item->timeout max: now +(5 / 30.) .
+  ] .
+  inv _ h->inventory_item .
+  parent _ inv->parent .
+  parent->active _ inv .
+  want_hand_item _ h . 
