@@ -248,7 +248,7 @@ Bool IsSmalltalkMember2(CHashClass *cls) {
 //Account for pointers to cls
   if(cls->ptr_stars_cnt)
     --cls;
-  while(cls) {
+  while(cls&&cls->str) {
     if(!StrCmp(cls->str,"CFrogThing")){
       return TRUE;
     }
@@ -279,7 +279,8 @@ U8 *FrogThingClassName(CFrogThing *thing) {
 //Is a generic frame
       return "CFrogThing";
     }
-    name=thing->class_name;
+    name=UniverseNumberToName(thing->universe_class_idx);
+    if(!name) return "U0";
   }
   return name;
 }
@@ -294,12 +295,11 @@ Bool ThingHasClass(CFrogThing *thing,U8 *name,I64 small_type=0) {
         return TRUE;
       return FALSE;
     }
-//Skip hash table call
-    if(!StrCmp(name,thing->class_name))
-      return TRUE;
   }
 
-  CHashClass *cls=HashFind(FrogThingClassName(thing),frog_mem_task->hash_table,HTT_CLASS);
+  U8 *name2=FrogThingClassName(thing);
+  if(!name2) return FALSE;
+  CHashClass *cls=HashFind(name2,frog_mem_task->hash_table,HTT_CLASS);
   while(cls) {
     if(!StrCmp(cls->str,name))
       return TRUE;
@@ -334,7 +334,7 @@ I64 GetClassMeta(U8 *class_name,U8 *member,U8 *meta_name) {
 }
 I64 GetClassMemberValI64(CFrogThing *t,U8 *member) {
   if(t&1) return 0; //Special "small type"
-  CHashClass *cls=HashFind(t->class_name,frog_mem_task->hash_table,HTT_CLASS);
+  CHashClass *cls=HashFind(FrogThingClassName(t),frog_mem_task->hash_table,HTT_CLASS);
   CMemberLst *mlst;
   CMemberLstMeta *meta;
   if(!cls) return NULL;
@@ -547,7 +547,7 @@ CFrogThing *GetClassMemberVal(CFrogThing *t,U8 *member) {
 }
 U0 SetClassMemberValF64(CFrogThing *t,U8 *member,F64 val) {
   if(t&1) return 0; //Special "small type"
-  CHashClass *cls=HashFind(t->class_name,frog_mem_task->hash_table,HTT_CLASS);
+  CHashClass *cls=HashFind(FrogThingClassName(t),frog_mem_task->hash_table,HTT_CLASS);
   CMemberLst *mlst;
   CMemberLstMeta *meta;
   if(!cls) NULL;
@@ -588,7 +588,7 @@ U0 SetClassMemberValF64(CFrogThing *t,U8 *member,F64 val) {
 
 F64 GetClassMemberValF64(CFrogThing *t,U8 *member) {
   if(t&1) return 0; //Special "small type"
-  CHashClass *cls=HashFind(t->class_name,frog_mem_task->hash_table,HTT_CLASS);
+  CHashClass *cls=HashFind(FrogThingClassName(t),frog_mem_task->hash_table,HTT_CLASS);
   CMemberLst *mlst;
   CMemberLstMeta *meta;
   if(mlst=MemberFind(member,cls)) {
@@ -629,7 +629,6 @@ CFrogThing *_ConstructThing(U8 *class_name,I64 argc,I64 *argv) {
   CFrogThing *t=CAlloc(cls->size,mem_task);
   t->universe_class_idx=UniverseAddClass(class_name);
   QueInit(t);
-  StrCpy(t->class_name,class_name);
   CHashFun *fun;
   U0 (*init)(CFrogThing*);
   for(cls=ocls;cls;cls=cls->base_class)
@@ -1158,13 +1157,13 @@ CFrogThing *FrogThingCopy(CFrogThing *t) {
   CFrogThing *ret,dummy;
   MemSet(&dummy,0,sizeof CFrogThing);
   CMemberLst *mlst;
-  CHashClass *cls=HashFind(t->class_name,frog_mem_task->hash_table,HTT_CLASS);
+  CHashClass *cls=HashFind(FrogThingClassName(t),frog_mem_task->hash_table,HTT_CLASS);
   if(!cls) return FROG_SMALL_NIL;
-  ret=ConstructThing(t->class_name);
+  ret=ConstructThing(FrogThingClassName(t));
   while(cls) {
     for(mlst=cls->member_lst_and_root;mlst;mlst=mlst->next) {
       if(mlst->member_class->ptr_stars_cnt==1) {
-        StrCpy(dummy.class_name,mlst->member_class[-1].str);
+	dummy.universe_class_idx=UniverseAddClass(mlst->member_class[-1].str);
 	if(ThingHasClass(&dummy,"CFrogThing")) {
 	  (ret(U8*)+mlst->offset)(CFrogThing**)[0]=FrogIncRefCnt((t(U8*)+mlst->offset)(CFrogThing**)[0]);
 	}
@@ -1410,7 +1409,7 @@ CFrogThing *FrogThingShow(CFrogStr *self,I64 *argv,I64 argc) {
       break;
     } else  {
       if(!(self&1))
-        DbgPrint("<%s.%x>\n",self->class_name,self);
+        DbgPrint("<%s.%x>\n",FrogThingClassName(self),self);
       else
         DbgPrint("???\n");
       break;
@@ -1580,7 +1579,7 @@ U0 FrogGarbageCollectThing(CFrogThing *root,Bool debug=FALSE) {
     while(cls) {
       for(mlst=cls->member_lst_and_root;mlst;mlst=mlst->next) {
 	cls2=mlst->member_class-mlst->member_class->ptr_stars_cnt;
-        StrCpy(dummy.class_name,cls2->str);
+	dummy.universe_class_idx=UniverseAddClass(cls2->str);
         if(ThingHasClass(&dummy,"CFrogThing")) {
 //TODO scan for pointers of pointers
 	  if(mlst->member_class->ptr_stars_cnt==1) {
@@ -1647,6 +1646,9 @@ U0 FrogGarbageCollectUnlock() {
 U0 FrogGarbageCollect(CFrogThing *root=FROG_SMALL_NIL,Bool debug=FALSE) {
   if(gc_lock_cnt)
     return;
+  U64 bucket;
+  CFrogThing **stacks,**stacke;
+  CFrogThing **heap_hash=CAlloc(sizeof(CFrogThing*)*0x200);
   FrogDisableScripts;
   CFrogThing *head=&allocs_head,*cur,*next;
   for(cur=head->next;cur!=head;cur=cur->next) {
@@ -1654,9 +1656,36 @@ U0 FrogGarbageCollect(CFrogThing *root=FROG_SMALL_NIL,Bool debug=FALSE) {
       LBts(&cur->thing_flags,THINGf_TO_DELETE);
       cur->shadow_ref_cnt=0;
       cur->ref_cnt=I64_MAX;
-      
     }
+    bucket=(cur>>3)(U64)%0x200;
+    cur->_heap_hash_next=NULL;
+    next=heap_hash[bucket];
+    heap_hash[bucket]=cur;
+    cur->_heap_hash_next=next;
+    
   } 
+
+//Scan stack "HolyC side may be using some poop"
+  stacks=Fs->stk;
+  stacke=GetRBP;
+  while(stacks<stacke) {
+    cur=stacks[0];
+    if(cur&&!(cur&0b111)) {
+      bucket=(cur>>3)(U64)%0x200;
+      next=heap_hash[bucket];
+      while(next) {
+        if(next==cur) {
+          FrogGarbageCollectThing(cur,debug);
+	  break;
+	}
+        next=next->_heap_hash_next;
+      }
+    }
+    stacks++;
+  }
+  Free(heap_hash);
+  
+
   for(cur=head->next;cur!=head;cur=cur->next) {
     if(ThingHasClass(cur,"CFrogSymbol")) {
       FrogGarbageCollectThing(cur(CFrogSymbol*)->value,debug);

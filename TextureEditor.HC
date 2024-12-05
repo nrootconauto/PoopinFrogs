@@ -316,7 +316,7 @@ U0 DrawSidebar(CTask *t,CDC *dc,CTextureEditor *ed) {
 	  ch='[P]Pause';
 	}
     }
-    GrPrint(dc,0,y,"%c",ch);
+    GrPrint(dc,0,y,"%c",ch);
     y+=8;
   }
 }

@@ -20,7 +20,8 @@ class CFrogThing:CQue {
   I32 id,ref_cnt;
   CCPU *owner_cpu;
   I32 lock_cnt,universe_class_idx;
-  U8 class_name[32];
+//Used for garbage collector
+  CFrogThing *_heap_hash_next;
 };
 
 class CFrogFrame {

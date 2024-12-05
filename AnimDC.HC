@@ -35,7 +35,7 @@ U8 *AnimDCSave(CDC *dc,I64 *_len=NULL,F64 delay=ANIM_DELAY_DFT) {
   *ptr(I64*)++=idx;
   for(idx=0;dc[idx].dc_signature==DCS_SIGNATURE_VAL;idx++) {
     tmp=DCSave(dc+idx,&cur_sz);
-    MemCpy(ptr,tmp,cur_sz);
+    MemCpy(ptr,tmp,cur_sz);
     Free(tmp);
     ptr+=cur_sz;
   }

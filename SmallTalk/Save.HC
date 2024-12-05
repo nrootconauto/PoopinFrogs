@@ -178,7 +178,7 @@ nil:
         mlst=cls->member_lst_and_root;
         while(mlst) {
 	  if(mlst->member_class->ptr_stars_cnt==1) {
-	    StrCpy(dummy.class_name,mlst->member_class[-1].str);
+	    dummy.universe_class_idx=UniverseAddClass(mlst->member_class[-1].str);
 	    if(!MemberMetaFind("no_serialize",mlst)) {
 	      force_ser=ToBool(MemberMetaFind("recur_serialize",mlst));
 	      if(ThingHasClass(&dummy,"CFrogThing")) {

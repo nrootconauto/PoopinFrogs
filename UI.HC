@@ -670,7 +670,7 @@ CFrogThing *UIShellRun(CUIShell *shell,I64 *argv,I64 argc) {
   CUIShell*old_shell=FrogSymbol("ui_shell")->value;
   CFrogNum *old_grabbed=FrogSymbol("ms_grabbed")->value;
   FrogSymbol("ui_shell")->value=shell;
-  if(ThingHasClass(old_ui_root,"CUIElem")) old_ui_root->thing_flags|=THINGF_GC_ROOT;
+  if(ThingHasClass(old_ui_root,"CUIElem")) old_ui_root->thing_flags|=THINGF_GC_ROOT;
   if(ThingHasClass(old_shell,"CUIShell")) old_shell->thing_flags|=THINGF_GC_ROOT;
   dc->flags|=DCF_NO_TRANSPARENTS;
   CUIEvent *ev;

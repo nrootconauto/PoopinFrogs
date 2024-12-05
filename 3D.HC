@@ -2768,7 +2768,7 @@ U0 Draw3DWorld(CTask *,CDC *dc) {
   } 
 
   if(ThingHasClass(hand,"CHandItem")) {
-    if(ThingHasClass(hand_gr=hand->gr,"CFrogImg")) {
+    if(ThingHasClass(hand_gr=hand->gr,"CFrogImg")) {
       c=AnimDCCnt(hand_gr->dc);
       f=(Frog_tS-hand->anim_start_tS)/AnimDCDelay(hand_gr->dc);
       if(hand->anim_no_repeat) {

@@ -136,7 +136,7 @@ Bool UniverseIsSubClassOf(I64 a,I64 b) {
   if(!aa||!bb) return FALSE;
   CFrogThing dummy;
   MemSet(&dummy,0,sizeof CFrogThing);
-  StrCpy(dummy.class_name,aa);
+  dummy.universe_class_idx=a;
   Bool has=ThingHasClass(&dummy,bb);
   if(!vec) 
     I64SetInsAt(universe_class_matrix,a,vec=I64SetNew);
