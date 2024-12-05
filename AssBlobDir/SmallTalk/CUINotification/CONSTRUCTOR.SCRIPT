@@ -33,8 +33,12 @@ init: msg=CFrogStr ->* |
 
   p->notifications add: self .
 
-  animate _ [
+  animate _ [:e*|
+    'FANIMATE' show .
     self animate .
   ] .
 
+  'ANIMATE' show.
+  animate show .
+  #ui_root2 show .
   ^ self

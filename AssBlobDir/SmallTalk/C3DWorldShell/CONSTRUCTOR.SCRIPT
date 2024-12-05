@@ -210,6 +210,18 @@ init ->* |
          idx _ idx + 1 .
        ] .
        
+       ('' ,v->m1 asCharactor) uppercase = 'I' ifTrue: [
+         handled _ 1 .
+         'Toggle invisible' .
+         player-> invisible _ player-> invisible not .
+         player ->invisible ifTrue:[
+           notification _ CUINotification new: 'You are invisible(feel free to edit the world in peace)' .
+           notification setIcon: 'Icons/Button'.
+         ] ifFalse: [
+           notification _ CUINotification new: 'You are now visible again(Enemies will attack you now).' .
+           notification setIcon: 'Icons/Button'.
+         ] .
+       ].
        ('' ,v->m1 asCharactor) uppercase = 'W' ifTrue: [
          handled _ 1 .
          up _ 1.

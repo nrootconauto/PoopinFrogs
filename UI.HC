@@ -570,6 +570,11 @@ U0 UIGridDraw(CDC *dc,I64 x,I64 y,CUIGrid *self) {
 }
 FrogSymbol("ui_root");
 U0 DrawUIRoot(CTask *t,CDC *dc) {
+//
+// $BK,1$IMPORANT:$BK,0$
+//  Clear the Fs->user_data to reset "return frame" on SmallTalk
+// 
+  Fs->user_data=NULL;
   I64 pass;
   CFrogSymbol *s;
   CUIElem *e;
@@ -584,8 +589,9 @@ U0 DrawUIRoot(CTask *t,CDC *dc) {
 //Draw ui_root2 on top	
     if(pass) s=FrogSymbol("ui_root2");
     else if(!pass) s=FrogSymbol("ui_root");
-    if(ThingHasClass(s->value,"CUIElem"))
+    if(ThingHasClass(s->value,"CUIElem")) {
       RenderUI(dc,s->value,0,0,t->pix_width,t->pix_height);
+    }
     if(e=FramePtr(UI_GRID_DRAG_FPTR,t)) {
       oldx=e->x;
       oldy=e->y;

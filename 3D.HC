@@ -2525,6 +2525,7 @@ CFrogThing *ThingCanSeeThing(C3DThing *self,I64 *argv,I64 argc) {
   C3DThing *other=argv[0];
   if(!ThingHasClass(other,"C3DThing"))
     return FROG_SMALL_NIL;
+  if(other->invisible) return FrogNumNew(0);
   w->x=self->x;
   w->y=self->y;
 //TODO replace "+1"  with thing height

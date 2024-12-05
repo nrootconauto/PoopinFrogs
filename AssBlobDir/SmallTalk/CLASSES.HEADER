@@ -13,7 +13,7 @@ class CFrogThing:CQue {
   I32 id,ref_cnt;
   CCPU *owner_cpu;
   I32 lock_cnt,universe_class_idx;
-//Used for garbage collection
+//Used for garbage collection
   CFrogThing **_heap_hash_next;
 };
 class CNetStream:CFrogThing {
@@ -42,7 +42,7 @@ class CFrogClass:CFrogThing {
 class CFrogChr:CFrogThing {
   U64 ch;
 };
-class CFrogBlock:CFrogThing {
+class CFrogBlock:CFrogThing {
   CFrogThing *self;
   CFrogThing *frame;
   U8 (*fun_ptr)(CFrogThing *self,U8 *);//CSTFrame
@@ -273,16 +273,16 @@ class C3DThing:CFrogThing {
   CEliza *chat_bot;
   CFrogStr *chat_bot_name;
   I64 activate_tag;
+//Private,See GetColorForRay/PrepareThingsForDraw
+  CDC *draw_face no_serialize 1 ; //Private
+  CD2 scrn_st,scrn_en; //Private
+  CD3 draw_normal; //Private
   Bool no_fall_off_edge;
   Bool floating;
   Bool hit_thing; //Set by physics when we hit a thing
   Bool draw_flip;
   Bool no_update;
-  Bool pad[8-3];
-//Private,See GetColorForRay/PrepareThingsForDraw
-  CDC *draw_face no_serialize 1 ; //Private
-  CD2 scrn_st,scrn_en; //Private
-  CD3 draw_normal; //Private
+  Bool invisible;
 };
 class CDayNightStar:CFrogThing {
   I64 color;
