@@ -1,9 +1,16 @@
 #ifndef ANIM_DC
 #define ANIM_DC
-#define ANIM_DELAY .25
+#define ANIM_DELAY_DFT .25
 #ifndef Frog_tS
 extern F64 Frog_tS();
 #endif
+F64 AnimDCDelay(CDC *dc) {
+  I64 idx=0;
+  if(dc->cdt) {
+     return ToF64(dc->cdt)/CDATE_FREQ;
+  }
+  return ANIM_DELAY_DFT;
+}
 U0 AnimDCDel(CDC *dc) {
   I64 idx=0;
   while(dc[idx].dc_signature==DCS_SIGNATURE_VAL) {
@@ -15,10 +22,11 @@ U0 AnimDCDel(CDC *dc) {
   }
   Free(dc);
 }
-U8 *AnimDCSave(CDC *dc,I64 *_len=NULL) {
+U8 *AnimDCSave(CDC *dc,I64 *_len=NULL,F64 delay=ANIM_DELAY_DFT) {
   I64 total_sz=8,cur_sz;
   I64 idx;
   U8 *ret,*tmp,*ptr;
+  dc->cdt=delay*CDATE_FREQ;
   for(idx=0;dc[idx].dc_signature==DCS_SIGNATURE_VAL;idx++) {
      Free(DCSave(dc+idx,&cur_sz));
      total_sz+=cur_sz;
@@ -27,7 +35,7 @@ U8 *AnimDCSave(CDC *dc,I64 *_len=NULL) {
   *ptr(I64*)++=idx;
   for(idx=0;dc[idx].dc_signature==DCS_SIGNATURE_VAL;idx++) {
     tmp=DCSave(dc+idx,&cur_sz);
-    MemCpy(ptr,tmp,cur_sz);
+    MemCpy(ptr,tmp,cur_sz);
     Free(tmp);
     ptr+=cur_sz;
   }
@@ -52,18 +60,20 @@ CDC *AnimDCLoad(U8 *ptr,I64 *_len=NULL,CTask *mem_task=NULL) {
 }
 U0 AnimDCBlot(CDC *dst,I64 x,I64 y,CDC *anim,I64 frame=I64_MAX) {
   I64 cnt=0;
+  F64 delay=AnimDCDelay(anim);
   for(cnt=0;anim[cnt].dc_signature==DCS_SIGNATURE_VAL;cnt++);
   if(cnt<=0) return;
   if(frame==I64_MAX)
-    frame=ToI64(tS/ANIM_DELAY)%cnt;
+    frame=ToI64(tS/delay)%cnt;
   GrBlot(dst,x,y,anim+frame);
 }
 U0 AnimDCBlotScaled(CDC *dst,I64 x,I64 y,I64 w,I64 h,CDC *anim,I64 frame=I64_MAX) {
   I64 cnt=0,xo,yo;
+  F64 delay=AnimDCDelay(anim);
   for(cnt=0;anim[cnt].dc_signature==DCS_SIGNATURE_VAL;cnt++);
   if(cnt<=0) return;
   if(frame==I64_MAX)
-    frame=ToI64(tS/ANIM_DELAY)%cnt;
+    frame=ToI64(tS/delay)%cnt;
   anim+=frame;
   F64 wr=(anim->width-1)/ToF64(w),hr=(anim->height-1)/ToF64(h);
   for(xo=0;xo!=w;xo++)
@@ -91,6 +101,7 @@ CDC *AnimDCCopy(CDC *copy,CTask *mem_task,I64 exclude=-1) {
       Free(tmp);
     }
   }
+  ret->cdt=copy->cdt;
   Free(heap);
   return ret;
 }

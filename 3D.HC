@@ -1198,7 +1198,7 @@ draw:
   if(!ThingHasClass(use_dc,"CFrogImg")) return NULL;
   use_dc=use_dc(CFrogImg*)->dc;
   if(!use_dc||!AnimDCCnt(use_dc)) return NULL;
-  frame=ToI64((Frog_tS-thing->animation_start_tS)/ANIM_DELAY);
+  frame=ToI64((Frog_tS-thing->animation_start_tS)/AnimDCDelay(use_dc));
   frame=MaxI64(frame,0); //Prevent poo poo suace
   if(thing->animation_no_repeat) 
     use_dc+=MinI64(frame,AnimDCCnt(use_dc)-1);
@@ -2768,9 +2768,9 @@ U0 Draw3DWorld(CTask *,CDC *dc) {
   } 
 
   if(ThingHasClass(hand,"CHandItem")) {
-    if(ThingHasClass(hand_gr=hand->gr,"CFrogImg")) {
+    if(ThingHasClass(hand_gr=hand->gr,"CFrogImg")) {
       c=AnimDCCnt(hand_gr->dc);
-      f=(Frog_tS-hand->anim_start_tS)/ANIM_DELAY;
+      f=(Frog_tS-hand->anim_start_tS)/AnimDCDelay(hand_gr->dc);
       if(hand->anim_no_repeat) {
         if(f>=c)
 	  f=c-1;

@@ -3,6 +3,7 @@
 #include "BlobFile.HC"
 #include "FileBMP.HC";
 #include "QuestEditor.HC";
+
 class CUndoLayer:CQue {
   CDC *anim_dc;
   I64 at_frame;
@@ -50,7 +51,8 @@ class CTextureEditor {
 #define TOOL_COPY 12
 #define TOOL_CUT 13
 #define TOOL_PASTE 14
-#define TOOL_CNT 15
+#define TOOL_SPEED 15
+#define TOOL_CNT 16
   I64 cur_tool,last_tool;
 //Used with tools
   I64 last_x,last_y; 
@@ -263,6 +265,9 @@ U0 DrawSidebar(CTask *t,CDC *dc,CTextureEditor *ed) {
 	  dc->color=LTGRAY;
 	ch='[Paste ]';
 	break;
+      case TOOL_SPEED:
+	ch='[Speed ]';
+	break;
     }
     GrPrint(dc,0,y,"%c",ch);
     if(ed->ms_left_down)
@@ -311,7 +316,7 @@ U0 DrawSidebar(CTask *t,CDC *dc,CTextureEditor *ed) {
 	  ch='[P]Pause';
 	}
     }
-    GrPrint(dc,0,y,"%c",ch);
+    GrPrint(dc,0,y,"%c",ch);
     y+=8;
   }
 }
@@ -456,6 +461,7 @@ U0 DrawEditor(CTask *t,CDC *dc) {
 //Takes a list of frames to animate
 //Write_name_to will write the name of the lump to(must be STR_LEN bytes long)
 U0 _TextureEdit(CDC **_image,U8 *blob_file=NULL,U8 *write_to_name=NULL) {
+  F64 anim_fps;
   CDC*image=*_image,*mask,mat[16];
   I64 w2,w,h,msg;
   CDC *paste,*dummy;
@@ -465,6 +471,11 @@ U0 _TextureEdit(CDC **_image,U8 *blob_file=NULL,U8 *write_to_name=NULL) {
   U8 *trace;
   CTextureEditor *ed=&editor;
   CUndoLayer *undo_layer;
+  if(image->cdt)
+    anim_fps=1./(ToF64(image->cdt)/CDATE_FREQ);
+  else
+    anim_fps=1./ANIM_DELAY_DFT;
+
   MemSet(ed,0,sizeof(CTextureEditor));
   CDC *frames=AnimDCCopy(*_image,Fs),*tmp;
   QueInit(&ed->undo);
@@ -502,6 +513,7 @@ U0 _TextureEdit(CDC **_image,U8 *blob_file=NULL,U8 *write_to_name=NULL) {
         "  Thick(,'t');"
         "  Ellipse(,'E');"
         "  Erase(,'e');"
+        "  Speed(,'s');"
         "}"
         ""
         );
@@ -511,6 +523,7 @@ U0 _TextureEdit(CDC **_image,U8 *blob_file=NULL,U8 *write_to_name=NULL) {
   Bts(&(Fs->win_inhibit),WIf_FOCUS_TASK_MS_L_D);
   Bts(&(Fs->win_inhibit),WIf_FOCUS_TASK_MS_R_D);
   while(continue) {
+    ed->frames->cdt=1./anim_fps*CDATE_FREQ;
     vis_x=SIDEBAR_WIDTH+(Fs->pix_width-SIDEBAR_WIDTH)/2-ed->screen->width/2;
     vis_y=Fs->pix_height/2-ed->screen->height/2;
     ed->last_ms_left_down=ed->ms_left_down;
@@ -623,6 +636,8 @@ U0 _TextureEdit(CDC **_image,U8 *blob_file=NULL,U8 *write_to_name=NULL) {
 	  ed->cur_tool=TOOL_COLOR;
         } else if(m1=='t') {
 	  ed->cur_tool=TOOL_THICK;
+        } else if(m1=='s') {
+	  ed->cur_tool=TOOL_SPEED;
         } else if(m1=='d') {
 	  ed->cur_tool=TOOL_DELETE_FRAME;
         } else if(m1=='l') {
@@ -807,6 +822,11 @@ U0 _TextureEdit(CDC **_image,U8 *blob_file=NULL,U8 *write_to_name=NULL) {
 	  }
       end:
         break;
+      case TOOL_SPEED:
+	anim_fps=PopUpGetF64("Animation Speed",1./ANIM_DELAY_DFT,.1,30);
+//Dumb hack,prevent mouse from "clicking" against after popup window
+	ed->ms_left_down=FALSE;
+	goto use_last_tool;
       case TOOL_DELETE_FRAME:
         if(PopUpNoYes("Would you like to delete the current frame?")) {
 	  if(AnimDCCnt(ed->frames)>1) {
@@ -888,6 +908,7 @@ next:
   MenuPop;
   gr.fp_draw_ms=old_draw_ms;
   SettingsPop;
+  ed->frames->cdt=1./anim_fps*CDATE_FREQ; //Force animaton delay
   if(!abort)
     *_image=ed->frames;
   else
@@ -924,7 +945,10 @@ new:
   StrCpy(write_to,lump_name);
   _TextureEdit(&dc,blob_file,write_to);
   Free(data);
-  data=AnimDCSave(dc,&len);
+  if(!dc->cdt)
+    data=AnimDCSave(dc,&len);
+  else
+    data=AnimDCSave(dc,&len,ToF64(dc->cdt)/CDATE_FREQ);
   BlobFileAddLump(blob_file,write_to,data,len,'GR');
   AnimDCDel(dc);
 fin:
