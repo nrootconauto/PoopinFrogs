@@ -1,8 +1,8 @@
+Option(OPTf_WARN_UNUSED_VAR,0);
 #include "AnimDC.HC"
 #include "BlobFile.HC"
 #include "SmallTalk/Load.HC"
-Silent(0);
-#include "Intersect.HC"
+#include "Intersect.HC"
 #include "QuestEditor.HC";
 #include "PathFinder.HC";
 #ifndef ENGINE_3D
@@ -235,8 +235,8 @@ class C3DWorld {
   I64 step_width,step_width_y;
   I64 world_width;
   I64 world_height;
-  I8 *world_blocks; //x*y*256+z
-  I8 *world_lighting; //x*y*256+z
+  I8 *world_blocks; //x*y*128+z
+  I8 *world_lighting; //x*y*128+z
   CDC *wall_textures[0x10000/2],*to_dc;
   CDC *floor_textures[0x10000/2];
   CDC *floor_textures1616[0x10000/2];
@@ -369,8 +369,8 @@ C3DWorld *InitWorld(F64 fov=pi/2) {
   ret->step_width_y=4;
   ret->world_width=64;
   ret->world_height=64;
-  ret->world_blocks=CAlloc(ret->world_width*ret->world_height*256);
-  ret->world_lighting=CAlloc(ret->world_width*ret->world_height*256);
+  ret->world_blocks=CAlloc(ret->world_width*ret->world_height*128);
+  ret->world_lighting=CAlloc(ret->world_width*ret->world_height*128);
   w=ret;
   QueInit(&ret->_2d_thing_templates);
 
@@ -435,8 +435,8 @@ C3DWorld *InitWorld(F64 fov=pi/2) {
 I64 BlockAtXYZ(I64 x,I64 y,I64 z) {
   I64 tile=x+y*w->world_width;
   if(0<=tile<w->world_height*w->world_width) {
-    if(I8_MIN<=z<I8_MAX) {
-      return w->world_blocks[tile*256+z-I8_MIN];
+    if(0<=z<=I8_MAX) {
+      return w->world_blocks[tile*128+z];
     }
   }
   return -1;
@@ -444,8 +444,8 @@ I64 BlockAtXYZ(I64 x,I64 y,I64 z) {
 I64 LightAtXYZ(I64 x,I64 y,I64 z) {
   I64 tile=x+y*w->world_width;
   if(0<=tile<w->world_height*w->world_width) {
-    if(I8_MIN<=z<I8_MAX) {
-      return w->world_lighting[tile*256+z-I8_MIN];
+    if(0<=z<=I8_MAX) {
+      return w->world_lighting[tile*128+z];
     }
   }
   return 15;
@@ -468,10 +468,10 @@ Bool SetLightAtXYZ(I64 x,I64 y,I64 z,I64 light) {
     return FALSE;
   if(0<=x<w->world_width)
     if(0<=y<w->world_height)
-      if(I8_MIN<=z<I8_MAX) {
-        l=w->world_lighting[tp*256+z-I8_MIN];
+      if(0<=z<=I8_MAX) {
+        l=w->world_lighting[tp*128+z];
         if(l<light) {
-	  w->world_lighting[tp*256+z-I8_MIN]=light;
+	  w->world_lighting[tp*128+z]=light;
 	  return TRUE;
         }
       }
@@ -588,18 +588,18 @@ U0 LightingSky(I64 x,I64 y,I64 sky_light=16,CI64Set *lights) {
   I64 tp=x+y*w->world_width;
   if(0<=x<w->world_width)
     if(0<=y<w->world_height) {
-      col=&w->world_blocks[tp*256];
-      lcol=&w->world_lighting[tp*256];
-      while(z>=I8_MIN) {
-        b=col[z-I8_MIN];
+      col=&w->world_blocks[tp*128];
+      lcol=&w->world_lighting[tp*128];
+      while(z>=0) {
+        b=col[z];
         if(IsSolidTile(b)) {
 	  sky=FALSE;
         }
 	if(1<=BlockLightLevel(b))
-	  I64SetAdd(lights,tp*256+z-I8_MIN);
+	  I64SetAdd(lights,tp*128+z);
         if(!sky)
 	  level=0;
-        lcol[z-I8_MIN]=MaxI64(ToI64(level),0);
+        lcol[z]=MaxI64(ToI64(level),0);
         --z;
       }
     }
@@ -620,8 +620,8 @@ CFrogThing *WorldLightingSky(C3DWorldManager *man,I64 *argv,I64 argc) {
   //Pass2 world lights
   for(x=0;x<lights->cnt;x++) {
     tp=lights->body[x];
-    z=tp&255+I8_MIN;
-    tp=tp/256;
+    z=tp&127;
+    tp=tp/128;
     ix=tp%w->world_width;
     iy=tp/w->world_width;
     level=BlockLightLevel(BlockAtXYZ(ix,iy,z));
@@ -1565,7 +1565,7 @@ skip:;
   }
 }
 I64 ToTile(I64 block) {
-  return block/256;
+  return block/128;
 }
 
 //https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection
@@ -1896,11 +1896,11 @@ I64 GetColorForRay(C3DWorldManager *man,CD3 *origin,CD3 *ray,F64 dist,F64 *hit_a
   ty=y;
   tz=Floor(origin->z);
   for(cur=0;cur!=cnt&&!hit;cur++) {
-    if(I8_MIN<=tz<I8_MAX)
+    if(0<=tz<I8_MAX)
       if(0<=tx<w->world_width)
         if(0<=ty<w->world_height) {
 	  idx=ty*w->world_width+tx;
-	  lighting=ClampI64(w->world_lighting[idx*256+tz-I8_MIN],0,15);
+	  lighting=ClampI64(w->world_lighting[idx*128+tz],0,15);
 	  relx=tx-w->things_around_camera_origin_x;
 	  rely=ty-w->things_around_camera_origin_y;
 	  if(0<=relx<2*VIEW_DIST)
@@ -1932,11 +1932,11 @@ I64 GetColorForRay(C3DWorldManager *man,CD3 *origin,CD3 *ray,F64 dist,F64 *hit_a
 	      }
 	    }
 
-	  idx=(ty*w->world_width+tx)*256+tz-I8_MIN;
+	  idx=(ty*w->world_width+tx)*128+tz;
 	  if(w->world_blocks[idx]) {
 	    if(w->world_blocks[idx]==last_block) goto pass;
 tile:;
-	    idx=(ty*w->world_width+tx)*256+tz-I8_MIN;
+	    idx=(ty*w->world_width+tx)*128+tz;
 	    idx=w->world_blocks[idx];
 	    if(record_tile) {
 	      man->cur_tile_x=tx;
@@ -2378,9 +2378,8 @@ U0 Line3D(C3DWorld *w,CDC *dc,CD3 *st,CD3 *en) {
     clip2.y=32*Sin(angle)+w->y;
   }
 
-  PointToScrn(w,clip.x,clip.y,clip.z,&res);
-  PointToScrn(w,clip2.x,clip2.y,clip2.z,&res2);
-  GrLine3(dc,res.x,res.y,res.z,res2.x,res2.y,res2.z);
+  if(PointToScrn(w,clip.x,clip.y,clip.z,&res)&&PointToScrn(w,clip2.x,clip2.y,clip2.z,&res2))
+    GrLine3(dc,res.x,res.y,res.z,res2.x,res2.y,res2.z);
 }
 
 U0 WallStainDel(CWallStain *s) {
@@ -2468,7 +2467,7 @@ CFrogNum *WorldManagerIsLiquid(C3DWorldManager *man,I64 *argv,I64 argc) {
   I64 x=AsF64(argv[0]);
   I64 y=AsF64(argv[1]);
   I64 z=Floor(AsF64(argv[2]));
-  I64 tile=(x+y*w->world_width)*256+z-I8_MIN;
+  I64 tile=(x+y*w->world_width)*128+z;
   if(0<=tile<w->world_width*w->world_height) {
     return FrogNumNew(IsLiquidTile(w->world_blocks[tile]));
   }
@@ -2514,8 +2513,8 @@ CFrogThing *WorldManagerSetTileAtXAtY(C3DWorldManager *self,I64 *argv,I64 argc) 
   I64 z=AsF64(argv[3]);
   if(0<=x<w->world_width)
     if(0<=y<w->world_height) {
-      if(I8_MIN<=z<I8_MAX)
-        return w->world_blocks[(x+y*w->world_width)*256+z-I8_MIN]=tile;
+      if(0<=z<=I8_MAX)
+        return w->world_blocks[(x+y*w->world_width)*128+z]=tile;
     }
   return FROG_SMALL_NIL;
 }
@@ -2600,8 +2599,8 @@ CFrogNum *WorldManagerSetTileAtXAtYAtZ(C3DWorldManager *,I64 *argv,I64 argc) {
   I64 z=Floor(AsF64(argv[3]));
   if(0<=x<w->world_width)
     if(0<=y<w->world_height)
-      if(I8_MIN<=z<I8_MAX) {
-        w->world_blocks[(x+y*w->world_width)*256+z-I8_MIN]=AsF64(argv[0]);
+      if(0<=z<=I8_MAX) {
+        w->world_blocks[(x+y*w->world_width)*128+z]=AsF64(argv[0]);
       }
   return FROG_SMALL_NIL;
 }
@@ -2795,8 +2794,8 @@ CFrogThing *WorldManagerEmptyWithDim(C3DWorldManager *man,I64 *argv,I64 argc) {
   w->world_height=AsF64(argv[1]);
   Free(w->world_blocks);
   Free(w->world_lighting);
-  w->world_lighting=CAlloc(256*(w->world_width*w->world_height),frog_mem_task);
-  w->world_blocks=CAlloc(256*(w->world_width*w->world_height),frog_mem_task);
+  w->world_lighting=CAlloc(128*(w->world_width*w->world_height),frog_mem_task);
+  w->world_blocks=CAlloc(128*(w->world_width*w->world_height),frog_mem_task);
   CFrogDictionary *old_templates=man->thing_templates,*ot2=man->tile_templates;
   CallScript("initGrid",man);
   man->thing_templates=old_templates;
