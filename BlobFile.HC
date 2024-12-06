@@ -44,6 +44,7 @@ U8 *GetBlobFileData(U8 *filename=NULL,I64 *len=NULL) {
   filename=ExtDft(filename,"BLOB");
   CDirEntry de;
   U8 *data=NULL,*fn;
+//  if(blob_file_cache.filename) goto force_cache;
 //Dumb hack,seth_task(on differnt core) has different Fs->cur_dir so use the cached one.
   if(Gs->num) goto force_cache;
   if(FileFind(filename,&de)) {
@@ -396,6 +397,7 @@ Del("ASS.BLOB*");
 "%s\n",__DIR__;
 UndumpBlobFile(#exe {StreamPrint("\"%Q\"",__DIR__);} "/ASS.BLOB",DEVELOPMENT_DIR);
 #endif
+//Load file into cache
 GetBlobFileData("ASS.BLOB");
 
 #endif

@@ -1,6 +1,7 @@
 #include "AnimDC.HC"
 #include "BlobFile.HC"
 #include "SmallTalk/Load.HC"
+Silent(0);
 #include "Intersect.HC"
 #include "QuestEditor.HC";
 #include "PathFinder.HC";
@@ -382,6 +383,7 @@ C3DWorld *InitWorld(F64 fov=pi/2) {
   CBlobFileHeader *bf_data=GetBlobFileData(NULL); //Dont Free
   CLumpHeader *bf_lump=bf_data->lump_table;
   CFileThingTemplate *f_template;
+  CFrogClass *imgc=FrogClassNew(UniverseAddClass("CFrogImg"));
   idx=bf_data->lump_cnt;
   while(--idx>=0) {
     if(!StrNCmp(bf_lump->name,BLOB_THINGS_ROOT,StrLen(BLOB_THINGS_ROOT))) {
@@ -390,9 +392,9 @@ C3DWorld *InitWorld(F64 fov=pi/2) {
       if(I16_MIN<=tile<=I16_MAX) {
         template=ConstructThing("C3DThingTemplate");
         templates[f_template->idx-I16_MIN]=template;
-        CallScript("setFront:",template,FrogStrNew(f_template->blob_front_name));
-        CallScript("setBack:",template,FrogStrNew(f_template->blob_back_name));
-        CallScript("setSide:",template,FrogStrNew(f_template->blob_side_name));
+	template->front=CallScript("get:",imgc,FrogStrNew(f_template->blob_front_name));
+	template->back=CallScript("get:",imgc,FrogStrNew(f_template->blob_back_name));
+	template->side=CallScript("get:",imgc,FrogStrNew(f_template->blob_side_name));
         CallScript("addThingTemplate:withName:",man,template,FrogStrNew(f_template->name));
       }
     }
@@ -408,9 +410,9 @@ C3DWorld *InitWorld(F64 fov=pi/2) {
       if(0<=tile<U8_MAX) {
         tile_template=ConstructThing("CTileTemplate");
         tile_template->tile_idx=tile;
-        CallScript("setWall:",tile_template,FrogStrNew(ftxtr->wall_blob_name));
-        CallScript("setFloor:",tile_template,FrogStrNew(ftxtr->blob_name));
-        CallScript("setCeil:",tile_template,FrogStrNew(ftxtr->ceil_blob_name));
+	tile_template->wall_texture=CallScript("get:",imgc,FrogStrNew(ftxtr->wall_blob_name));
+	tile_template->ceil_texture=CallScript("get:",imgc,FrogStrNew(ftxtr->ceil_blob_name));
+	tile_template->floor_texture=CallScript("get:",imgc,FrogStrNew(ftxtr->blob_name));
 
         if(ThingHasClass(tile_template->wall_texture,"CFrogImg")) {
 	  ret->wall_textures[tile]=ScaleDC(tile_template->wall_texture->dc,GRID_SZ,GRID_SZ);
@@ -2009,7 +2011,9 @@ valid_color:
 	      D3Copy(hit_cords,&new_origin);
 	    }
 	    hit_dist*=128;
+	    hit=TRUE;
 	    if(hit_at) *hit_at=hit_dist;
+	    lighting=LightAtXYZ(tx+sidex,ty+sidey,tz+sidez);
 	    hit=TRUE;
 	    F64 ao_nodes[4];
 	    F64 adj_lights[4];
@@ -2028,7 +2032,6 @@ valid_color:
 	    ao+=ao_nodes[2]*u0*v1;
 	    ao+=ao_nodes[0]*u1*v0;
 	    ao+=ao_nodes[1]*u0*v0;
-	    lighting=LightAtXYZ(tx+sidex,ty+sidey,tz+sidez);
 	    lighting-=3-ao;
 	    lighting=(Lerp(u0,adj_lights[0],adj_lights[2])+Lerp(v0,adj_lights[1],adj_lights[3])+lighting)/3.;
 	    hit_color=Fog(color,hit_dist+1+depth*FOG_DIST*4+MaxI64((15-lighting)*FOG_DIST,0),fog_color);
