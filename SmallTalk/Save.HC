@@ -72,6 +72,9 @@ again:
       ret=ConstructThing(cls);
       StrPrint(dummy,"PTR.%d",ptr);
       FramePtrAdd(dummy,ret);
+static CFrogThing *s=NULL;
+if(!s) s=ret;
+else PrintI(FrogThingClassName(s),s);
       if(ret) CallScript("beforeRestore",ret);
       str=SkipWhitespace(str);
       while(*str&&*str!='}') {
@@ -80,11 +83,15 @@ again:
         str=SkipWhitespace(str);
       }
     }
+PrintI(FrogThingClassName(s),1);
     while(*str&&*str!='}') str++;
     if(*str=='}') str++;
   }
+PrintI(FrogThingClassName(s),2);
   I64SetAdd(init_list,ret);
+PrintI(FrogThingClassName(s),3);
 en:
+PrintI(FrogThingClassName(s),4);
   *_str=str;
   return ret;
 }
@@ -96,7 +103,9 @@ CFrogThing *RestoreThing0(U8 *s) {
   FramePtrAdd("STInitList",init_list);
   I64 cnt;
   U8 *s2=s;
+  gc_lock_cnt++;
   CFrogThing *r=LoadThing0(&s2); 
+  gc_lock_cnt--;
   cnt=init_list->cnt; 
   while(--cnt>=0) {
     CallScript("afterRestore",init_list->body[cnt]);
@@ -115,6 +124,7 @@ U0 SaveDefacto0(CDoc *doc,U8 *str,CFrogThing *have,I64 depth=1,CI64Set *save_lis
   if(!(have&1)) //Dont save primtive types
     I64SetAdd(save_list,have);
   if(depth<=0) return;
+  gc_lock_cnt++;
   I64 cnt,val,idx,force_ser;
   F64 fval;
   U8 *ptr,buf[STR_LEN];
@@ -195,7 +205,8 @@ nil:
       }
       DocPrint(doc,"}\n");
     }
-  } 
+  }
+  gc_lock_cnt--;
 }
 CFrogStr *SaveThing(CFrogThing *t,I64 *argv,I64 argc) {
   CDoc *doc=DocNew();

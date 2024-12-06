@@ -41,8 +41,6 @@ init ->* |
 
 
 
-  'Draw world in backgroubnd' .
-  draw_it_name _ 'Draw3DWorld' .
 
   on_init _ [
     n _ CUINotification new: 'Click Block to For Menu' .
@@ -203,5 +201,10 @@ init ->* |
       #ui_root sendEventToUI: v .
     ].
   ] .
+
+  'Draw world in backgroubnd' .
+  draw_it_name _ 'Draw3DWorld' .
+
+
   ^ self
 

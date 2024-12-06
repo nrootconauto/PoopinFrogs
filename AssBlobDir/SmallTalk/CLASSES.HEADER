@@ -298,7 +298,27 @@ class CDayNight:CFrogThing {
   I64 sky_color;
   CFrogArray *stars; //CDayNightStar
 };
+
+
+
+//Properties for the current level
+class CLevel:CFrogThing {
+  CFrogStr *display_name;
+  CFrogStr *blob_name;
+  CFrogStr *next_level_blob_name;
+//When this tag is activated,the level ends(See CDoor)
+// Baiscally If  all the enemies with the tag die,the level ends.
+  I64 level_end_tag;
+//Where the player spawns
+  F64 spawn_x;
+  F64 spawn_y;
+  F64 spawn_z;
+};
+
+
+
 class C3DWorldManager:CFrogThing {
+  CLevel *level;
   I64 cur_tile_x;
   I64 cur_tile_y;
   I64 cur_tile_z;
@@ -572,7 +592,7 @@ class CPlayer:C3DThing {
   F64 last_x,last_y;
   CFrogArray *quest_flags recur_serialize 1;
   F64 angle2; // up/down angle
-  CHandItem *want_hand_item;
+  CHandItem *want_hand_item;
 //Has form "QuestName/Codename"
   CFrogArray *quest_seen_responses recur_serialize 1;
   CFrogArray *notifications;
@@ -735,6 +755,13 @@ class CUITree:CUIElem {
   CUITree *parent;
 };
 class CUIList:CUIElem {
+};
+
+// See CLevel
+class CLevelEditShell:CUIShell {
+  CUIList *list;
+  CUILabel *title;
+  CUIBackground *background;
 };
 //Will disappear after awhile
 class CUINotification:CUIElem {

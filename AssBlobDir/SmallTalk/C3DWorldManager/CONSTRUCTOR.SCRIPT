@@ -21,4 +21,6 @@ init | gx=CFrogNum gy=CFrogNum col=CFrogArray |
   lines _ #() .
   free_ids _ #().
 
+  level _ CLevel new .
+  level->display_name _ 'Untitled mofufckin level'.
   ^ self

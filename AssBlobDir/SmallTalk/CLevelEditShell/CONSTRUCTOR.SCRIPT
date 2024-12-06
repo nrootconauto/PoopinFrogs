@@ -1,0 +1,111 @@
+init->CLevelEditShell
+|
+  level=CLevel
+  p=CPlayer
+  ask_str=CFrogBlock
+  text_input=CUITextBar
+  ui_roots=CFrogArray
+  handled=CFrogNum
+|
+  #ms_grabbed _ 0 .  
+  ask_str _ [:result=CFrogBlock|
+    text_input _ CUITextBar new .
+    ui_roots add: text_input .
+    #ui_root _ text_input .
+    text_input->sz_x _ 200 .
+    text_input->sz_y _ 10 .
+    text_input->y _ 480 - 10 / 2 .
+    text_input->x _ 640 - 200 / 2 .
+    text_input focus .
+    
+    text_input focus .
+    text_input setOnEscape: [
+      ui_roots remove: #ui_root .
+      #ui_root _ ui_roots last .
+    ]. 
+    text_input setOnEnter: [:v=CFrogStr|
+      result value: v .
+'Value(should) regen menu'.
+    ] .
+  ].
+
+  'Draw world in backgroubnd' .
+  draw_it_name _ 'Draw3DWorld' .
+
+
+  on_init _ [
+
+  level _ #world->level .
+  p _ #world getPlayer . 
+  list _ CUIList new: #(
+     #(
+       'Save Level to Blob'
+       [#world saveLevelToBlob]
+     )
+     #(
+       'Load Level from Blob'
+       [#world loadLevelFromBlob]
+     )
+     #(
+       ('Set Level Name(' , level->display_name,')') 
+       [ask_str value: [:v=CFrogStr|
+          level->display_name _ v .
+          'Regen menu' .
+          on_init value 
+       ]]
+     )
+     #(
+       ('End when tag(',level->level_end_tag ,') is triggered')
+       [ask_str value: [:v=CFrogStr|
+          level->level_end_tag _ v asInteger .
+          'Regen menu' .
+          on_init value 
+       ]]
+     )
+     #(
+       'Set Spawn from current location'
+       [
+         level->spawn_x _ p->x .
+         level->spawn_y _ p->y .
+         level->spawn_z _ p->z .
+       ]
+     )
+
+  ).
+  background _ CUIBackground new .
+  background->bg_color _ #color_LTGRAY .
+  background addChild: list .
+  list->x _ 10 .
+  list->y _ 10 .
+  background->sz_x _ list->sz_x + 20 .
+  background->sz_y _ list->sz_y + 20 .
+
+  background->x _ 100 .
+  background->y _ 75 .
+  #ui_root _ background .
+  ui_roots _ #(background) .
+  ]. 
+  
+  on_event _ [:v=CUIEvent |
+    handled _ 0 .
+    v->type = 'KeyDown' ifTrue: [
+      v->m1 = 27 ifTrue: [
+        'ESC '.
+        ui_roots size <= 1 ifTrue: [
+          exited _ 1 .
+          handled _ 1 . 
+        ] ifFalse:[
+'POP the ui menus until nothing left to pop' .
+          ui_roots remove: (ui_roots at: ui_roots size - 1) .
+          #ui_root _ ui_roots at: ui_roots size - 1 .
+          handled _  1.  
+        ] .
+      ] .
+    ] .
+    handled ifFalse: [
+      #ui_root sendEventToUI: v .
+    ].
+  ] .
+
+
+  ^ self

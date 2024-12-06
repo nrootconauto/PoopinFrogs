@@ -9,7 +9,7 @@ saveBlocksToString ->CFrogStr
   0 to: self width do:[:x=CFrogNum|
     consec=0 .
     0 to: self height do:[:y=CFrogNum|
-      ptr _ -128 .
+      ptr _ 0 .
       [ptr <= 127 ] whileTrue: [
         block _ self getTileAtX: x atY: y atZ: ptr .
         consec _ 0 .

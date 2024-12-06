@@ -216,10 +216,10 @@ init ->* |
          player-> invisible _ player-> invisible not .
          player ->invisible ifTrue:[
            notification _ CUINotification new: 'You are invisible(feel free to edit the world in peace)' .
-           notification setIcon: 'Icons/Button'.
+           notification setIcon: 'Icons/Eye'.
          ] ifFalse: [
            notification _ CUINotification new: 'You are now visible again(Enemies will attack you now).' .
-           notification setIcon: 'Icons/Button'.
+           notification setIcon: 'Icons/Eye'.
          ] .
        ].
        ('' ,v->m1 asCharactor) uppercase = 'W' ifTrue: [
@@ -254,6 +254,16 @@ init ->* |
          hand_active _ 1 .
          handled _ 1 .
        ].
+
+
+       'Level editor MEta menu' .
+       ('', v->m1 asCharactor) uppercase = 'L' ifTrue: [
+         hand_active _ 0 .
+         CLevelEditShell new run .
+         hand_active _ 1 .
+         handled _ 1 .
+       ].
+
        
        'Door Editor'.
        ('', v->m1 asCharactor) = 'D' ifTrue: [

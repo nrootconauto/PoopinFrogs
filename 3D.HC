@@ -2,7 +2,7 @@ Option(OPTf_WARN_UNUSED_VAR,0);
 #include "AnimDC.HC"
 #include "BlobFile.HC"
 #include "SmallTalk/Load.HC"
-#include "Intersect.HC"
+#include "Intersect.HC"
 #include "QuestEditor.HC";
 #include "PathFinder.HC";
 #ifndef ENGINE_3D
@@ -1109,6 +1109,71 @@ explode:
   }
   WorldManagerUpdateThingPos(wm,&t,1);
 }
+
+
+CFrogThing *WorldLoadLevelFromBlob(C3DWorldManager *man,I64 argc,CFrogThing **argv) {
+  U8 *want=BlobFileSelect,*have;
+  CFrogStr *str;
+  if(!want) return FROG_SMALL_NIL; 
+  have=BlobFileGetLump(,want);
+  Free(want);
+  if(!have) return FROG_SMALL_NIL; 
+  str=FrogStrNew(have);
+PrintI(have,man);
+  Free(have); 
+  man=CallScript("restoreThing",str);
+PrintI(FrogThingClassName(man),man);
+  if(ThingHasClass(man,"C3DWorldManager")) {
+PrintI("pass",man);
+    FrogSymbol("world")->value=man;
+    return man;
+  }
+  return FROG_SMALL_NIL;
+}
+AddMethod("C3DWorldManager","loadLevelFromBlob",&WorldLoadLevelFromBlob);
+
+CFrogThing *WorldLoadLevelFromBlob2(C3DWorldManager *man,I64 argc,CFrogThing **argv) {
+  CFrogStr *str=argv[0];
+  U8 *have=BlobFileGetLump(,str->items->body);
+  if(!have) return FROG_SMALL_NIL;
+  str=FrogStrNew(have);
+  Free(have); 
+  man=CallScript("restoreThing",str);
+  if(ThingHasClass(man,"C3DWorldManager")) {
+    FrogSymbol("world")->value=man;
+    return man;
+  }
+  return FROG_SMALL_NIL;
+}
+AddMethod("C3DWorldManager","loadLevelFromBlob:",&WorldLoadLevelFromBlob2);
+
+
+
+CFrogThing *WorldSaveLevelToBlob(C3DWorldManager *man,I64 argc,CFrogThing **argv) {
+  U8 *want=BlobFileSelect;
+  if(!want) return FROG_SMALL_NIL; 
+  CU8Set *u8_set;
+  CFrogStr *str=CallScript("saveThing",man);
+  if(ThingHasClass(str,"CFrogStr")) {
+    u8_set=str->items;
+PrintI(u8_set->body,want);
+    BlobFileAddLump(,want,u8_set->body,u8_set->cnt,'LEVEL');
+  }
+  Free(want);
+  return str;
+}
+AddMethod("C3DWorldManager","saveLevelToBlob",&WorldSaveLevelToBlob);
+
+
+CFrogThing *WorldSaveLevelToBlob2(C3DWorldManager *man,I64 argc,CFrogThing **argv) {
+  CFrogStr *str0=argv[0];
+  if(ThingHasClass(str0,"CFrogStr")) {
+    CFrogStr *str=CallScript("saveThing",man);
+    BlobFileAddLump(,str0->items->body,str->items->body,str->items->cnt,'LEVEL');
+  }
+  return str;
+}
+AddMethod("C3DWorldManager","saveLevelToBlob:",&WorldSaveLevelToBlob2);
 F64 Lerp(F64 per,F64 min,F64 max) {
   if(min<max)
     return Clamp(per*(max-min)+min,min,max);
