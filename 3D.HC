@@ -3294,6 +3294,52 @@ CFrogNum *WallStainPutGraphics(CWallStain *ws,I64 *argv,I64 argc) {
   return FrogNumNew(ret);
 }
 AddMethod("CWallStain","putGraphics:atX:atY:",&WallStainPutGraphics);
+
+CFrogStr *WorldSaveBlocksToString(C3DWorldManager *man,I64 argc,I64 *argv) {
+  CFrogStr *ret=FrogStrNew("");
+  CU8Set *set=ret->items;
+  I64 consec,x,y,ptr,z,b;
+  for(y=0;y!=w->world_height;y++) {
+    for(x=0;x!=w->world_width;x++) {
+      b=BlockAtXYZ(x,y,ptr);
+      consec=0;
+      for(ptr=0;ptr<=I8_MAX;ptr++) {
+        if(b==BlockAtXYZ(x,y,ptr))
+	  consec++;
+        else {
+	  U8SetAdd(set,consec);
+	  U8SetAdd(set,b);
+	  consec=1;
+	  b=BlockAtXYZ(x,y,ptr);
+        }
+      }
+      U8SetAdd(set,consec);
+      U8SetAdd(set,b);
+    }
+  }
+  return ret;
+}
+AddMethod("C3DWorldManager","saveBlocksToString",&WorldSaveBlocksToString);
+CFrogStr *WorldRestoreBlocksFromString(C3DWorldManager *man,I64 *argv,I64 argc) {
+  CFrogStr *str=argv[0];
+  CU8Set *set=str->items;
+  U8 *to,*from;
+  I64 consec,b,len;
+  CallScript("emptyWorldWithWidth:withHeight:",man,argv[1],argv[2]);
+  to=w->world_blocks;
+  from=set->body;
+  len=set->cnt;
+  while(len>0) {
+   consec=*from++;
+   b=*from++;
+   while(--consec>=0) 
+     *to++ =b;
+   len-=2;
+  } 
+  return FROG_SMALL_NIL;
+}
+AddMethod("C3DWorldManager","restoreBlocksFromString:withWidth:withHeight:",&WorldRestoreBlocksFromString);
+
 // 
 //
 //

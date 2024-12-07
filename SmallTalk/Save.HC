@@ -73,8 +73,6 @@ again:
       StrPrint(dummy,"PTR.%d",ptr);
       FramePtrAdd(dummy,ret);
 static CFrogThing *s=NULL;
-if(!s) s=ret;
-else PrintI(FrogThingClassName(s),s);
       if(ret) CallScript("beforeRestore",ret);
       str=SkipWhitespace(str);
       while(*str&&*str!='}') {
@@ -83,15 +81,11 @@ else PrintI(FrogThingClassName(s),s);
         str=SkipWhitespace(str);
       }
     }
-PrintI(FrogThingClassName(s),1);
     while(*str&&*str!='}') str++;
     if(*str=='}') str++;
   }
-PrintI(FrogThingClassName(s),2);
   I64SetAdd(init_list,ret);
-PrintI(FrogThingClassName(s),3);
 en:
-PrintI(FrogThingClassName(s),4);
   *_str=str;
   return ret;
 }
