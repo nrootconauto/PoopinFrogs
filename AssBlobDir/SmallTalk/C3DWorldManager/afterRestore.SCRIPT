@@ -10,11 +10,11 @@ afterRestore->* |
   wall_stains _ #() .
   floor_stains _ #() .
 
+  self restoreBlocksFromString: blocks_string withWidth: blocks_width withHeight: blocks_height .
 
   CFrogTime setTime: game_load_tS .
 
   self updateDoorMatrix .
-
-  self restoreBlocksFromString: blocks_string withWidth: blocks_width withHeight: blocks_height .
-
+ 
   #world _ self . 
+  is_tainted _ 1 .

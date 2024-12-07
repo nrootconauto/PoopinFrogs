@@ -40,7 +40,6 @@ makeUI ->*
   save_game_button setY: 10  .
   save_game_button setX : ( w * (2 /3) ).
 
-
   main_inventory _ CUIGrid new .
   main_inventory setWidth: 10 withHeight: 6 .
   main_inventory setX: (w / 2) - ( main_inventory getWidth / 2 ) .
@@ -154,7 +153,6 @@ makeUI ->*
     'Defactivate save button' .
     save_game_button setBackgroundColor: #color_YELLOW .
     load_menu_active _ load_menu_active not .
-load_menu_active show .
     load_menu_active ifTrue: [
       load_game_button setBackgroundColor: #color_RED .
       make_save_game_menu value: 1 .

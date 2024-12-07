@@ -299,6 +299,11 @@ init ->* |
   ] .
   on_refresh _ [
      player _ #world getPlayer .
+     #world ->is_tainted ifTrue: [
+        #ui_root _ 0 .
+        player regenUI .
+        #world ->is_tainted _ 0 .
+     ].
      last_lighting_tS < CFrogTime now asSeconds ifTrue: [
        last_lighting_tS _ CFrogTime now asSeconds  + 1 .
        #world lighting .

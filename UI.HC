@@ -669,7 +669,7 @@ U0 UIShellDrawIt(CTask *t,CDC *dc) {
 }
 CFrogThing *UIShellRun(CUIShell *shell,I64 *argv,I64 argc) {
   CDC *dc=DCNew(GR_WIDTH,GR_HEIGHT);
-  DCDepthBufAlloc(dc);
+  DCDepthBufAlloc(dc);
   SettingsPush;
   AutoComplete(0);
   WinMax;

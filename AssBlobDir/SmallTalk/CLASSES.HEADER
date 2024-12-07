@@ -146,7 +146,7 @@ class CUIShell:CFrogThing {
   CFrogBlock *on_init; //First thing run(used for repeat entry)
   CFrogBlock *on_event; //See CUIEvent,send eveents to #ui_root via sendEventToUI:
   Bool exited dft FALSE; //TRUE on exit
-};
+};
 class CPoopidexShell:CUIShell {
 };
 class CUIChatLog:CUIElem {
@@ -326,7 +326,6 @@ class C3DWorldManager:CFrogThing {
   I64 cur_tile_side_y;
   I64 cur_tile_side_z;
   CDayNight *day_night;
-  CFrogArray *free_ids no_serialize 1;
   U8 *world_handle;
   CFrogArray *things recur_serialize 1;
 //See CWallStain mofo
@@ -341,7 +340,7 @@ class C3DWorldManager:CFrogThing {
   CFrogArray *stains_grid; //4*4 size has CWallStain's
   CFrogArray *doors_grid; //16*16
   CFrogArray *doors;
-  CFrogArray *clients; //CAsyncStream
+  CFrogArray *clients; //CAsyncStream
   CFrogArray *lines; //C3DLine
   CAsyncStream *server_sock;
   I64 is_client;
@@ -353,6 +352,7 @@ class C3DWorldManager:CFrogThing {
   CFrogThing *player;
   CFrogStr *blocks_string recur_serialize 1;
   I64 blocks_width,blocks_height;
+  I64 is_tainted;
 };
 
 class CHandItem:CFrogThing {

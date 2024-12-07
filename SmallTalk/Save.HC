@@ -40,6 +40,8 @@ again:
         CallScript("at:put:",ret,FrogStrNew(member),tmp);
         str=SkipWhitespace(str);
       }    
+    } else if(!StrCmp(cls,"CFrogSymbol")&&member[0]=='#') {
+      FrogSymbol(member+1)->value=LoadThing0(_str,dummy);
     } else if(!StrCmp(cls,"CFrogNum")) {
       num=Str2F64(str,&str);
       ret=FrogNumNew(num);
@@ -128,7 +130,11 @@ U0 SaveDefacto0(CDoc *doc,U8 *str,CFrogThing *have,I64 depth=1,CI64Set *save_lis
   CHashGeneric *dtab_e;
   CFrogThing *as,**array_body,dummy;
   CallScript("beforeSave",have);
-  if(ThingHasClass(have,"CFrogNum")) {
+  if(ThingHasClass(have,"CFrogSymbol")) {
+    DocPrint(doc,"-%d.#%s.CFrogSymbol:{\n",have,have(CFrogSymbol*)->name);
+    SaveDefacto0(doc,"value",have(CFrogSymbol*)->value,depth+1,save_list);
+    DocPrint(doc,"}\n");
+  } else if(ThingHasClass(have,"CFrogNum")) {
     DocPrint(doc,"-0.%s.CFrogNum:{%n}\n",str,AsF64(have));
   } else if(ThingHasClass(have,"CFrogUndefined")) {
 nil:

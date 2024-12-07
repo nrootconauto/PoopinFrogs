@@ -1,0 +1,34 @@
+regenUI->* 
+|
+  om=CUIGrid
+  oq=CUIGrid
+  g=CUIGrid
+  target=CUIGrid
+  have=CUIGridItem
+|
+  om _ main_inventory.
+  oq _ quick_inventory.
+  self makeUI .
+  0 to: 2 do:[:i=CFrogNum|
+    g _ #( om oq) at: i .
+    target _ #(main_inventory quick_inventory) at: i .
+    0 to: g->mat size do:[:x=CFrogNum|
+      0 to: (g->mat at: x) size do:[:y=CFrogNum|
+        have _ (g->mat at: x) at: y .
+       (have hasClass: CUIGridItem) ifTrue: [
+  'xy' show .
+  x show .
+  y show .
+    have show .
+         g->active = have ifTrue: [
+           g removeItem: have .
+           target addItem: have atX: x atY: y .
+           self selectItem: have->item.
+         ] ifFalse: [
+           g removeItem: have .
+           target addItem: have atX: x atY: y .
+         ].
+       ].
+      ] .
+    ] .
+  ] .

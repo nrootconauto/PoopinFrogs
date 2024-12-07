@@ -1,6 +1,3 @@
 removeThing: t=C3DThing ->* | |
   self removeFromGrid: t .
   things remove: t .
-  is_server ifTrue: [
-    free_ids add: t->server_id
-  ] .

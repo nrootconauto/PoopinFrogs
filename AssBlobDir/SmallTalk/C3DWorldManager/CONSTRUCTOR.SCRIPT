@@ -1,8 +1,6 @@
 init | gx=CFrogNum gy=CFrogNum col=CFrogArray |
   #world _ self .
   day_night _ CDayNight new .
-'ass' show .
-  day_night show .
   wall_stains _ #() .
   floor_stains _ #() .
   things _ #() .
@@ -19,7 +17,6 @@ init | gx=CFrogNum gy=CFrogNum col=CFrogArray |
   doors _ #() .
   clients _ #().
   lines _ #() .
-  free_ids _ #().
 
   level _ CLevel new .
   level->display_name _ 'Untitled mofufckin level'.

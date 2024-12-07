@@ -60,7 +60,7 @@ class CFrogStr:CFrogThing {
   U8 *constructor dft "FrogStrInit";
   U8 *destroy dft "FrogStrDel";
 };
-class CFrogSymbol:CFrogThing {
+class CFrogSymbol:CFrogThing {
   U8 name[STR_LEN];
   CFrogThing *value;
 };
