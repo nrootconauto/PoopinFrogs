@@ -146,7 +146,7 @@ class CUIShell:CFrogThing {
   CFrogBlock *on_init; //First thing run(used for repeat entry)
   CFrogBlock *on_event; //See CUIEvent,send eveents to #ui_root via sendEventToUI:
   Bool exited dft FALSE; //TRUE on exit
-};
+};
 class CPoopidexShell:CUIShell {
 };
 class CUIChatLog:CUIElem {
@@ -756,9 +756,14 @@ class CUITree:CUIElem {
 };
 class CUIList:CUIElem {
 };
-
+class CUITextPopup:CUIShell {
+  CFrogStr *title;
+  CFrogBlock *cb;
+  CUITextBar *text_bar;
+  CUIBackground *background;
+};
 // See CLevel
-class CLevelEditShell:CUIShell {
+class CLevelEditShell:CUIShell {
   CUIList *list;
   CUILabel *title;
   CUIBackground *background;

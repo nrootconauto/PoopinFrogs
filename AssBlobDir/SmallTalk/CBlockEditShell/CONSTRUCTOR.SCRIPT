@@ -16,29 +16,16 @@ init ->* |
   wall_size=CFrogNum
   tall_button=CUIButton
   web=CWorldEditBlock
+  popup=CUITextPopup
 |
-  ask_num _ [:result=CFrogBlock|
-    text_input _ CUITextBar new .
-    ui_roots add: text_input .
-    #ui_root _ text_input .
-    text_input->sz_x _ 200 .
-    text_input->sz_y _ 10 .
-    text_input->y _ 480 - 10 / 2 .
-    text_input->x _ 640 - 200 / 2 .
-    text_input focus .
-    
-    text_input focus .
-    text_input setOnEscape: [
-      ui_roots remove: #ui_root .
-      #ui_root _ ui_roots last .
-    ]. 
-    text_input setOnEnter: [:v=CFrogStr|
-      result value: v asInteger .
-      ui_roots remove: #ui_root .
-      #ui_root _ ui_roots last .
-    ] .
-  ].
 
+  ask_num _ [:result=CFrogBlock|
+    popup _ CUITextPopup new .
+    popup->cb _ [:s=CFrogStr|
+      result value: s asInteger
+    ] .
+    popup run .
+  ].
 
 
 

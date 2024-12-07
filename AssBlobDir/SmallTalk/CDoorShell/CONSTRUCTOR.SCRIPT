@@ -31,26 +31,16 @@ init ->* |
   
   hand_item=CDoorItem
   act_as_tile=CFrogNum
+
+  popup=CTextPopup
 |
-  ask_num _ [:result=CFrogBlock|
-    text_input _ CUITextBar new .
-    ui_roots add: text_input .
-    #ui_root _ text_input .
-    text_input->sz_x _ 200 .
-    text_input->sz_y _ 10 .
-    text_input->y _ 480 - 10 / 2 .
-    text_input->x _ 640 - 200 / 2 .
-    
-    text_input focus .
-    text_input setOnEscape: [
-      ui_roots remove: #ui_root .
-      #ui_root _ ui_roots last .
-    ]. 
-    text_input setOnEnter: [:v=CFrogStr|
-      result value: v asInteger .
-      ui_roots remove: #ui_root .
-      #ui_root _ ui_roots last .
+  ask_num _ [:t=CFrogStr :result=CFrogBlock|
+    popup _ CUITextPopup new .
+    popup->title _ t .
+    popup->cb _ [:s=CFrogStr|
+      result value: s asInteger
     ] .
+    popup run .
   ].
 
   'Draw world in background' .
@@ -85,7 +75,7 @@ init ->* |
     button1 _ #(
       ('Door Height(' , door_height printString,')')
       [
-        ask_num value:  [:n=CFrogNum|
+        ask_num value: 'Door Height' value:  [:n=CFrogNum|
           door_height _ n .
           update_buttons value .
         ]
@@ -95,7 +85,7 @@ init ->* |
     button2 _ #(
       ('Tag Number(' , tag_number printString,')')
       [
-        ask_num value:  [:n=CFrogNum|
+        ask_num value: 'Tag Number' value:  [:n=CFrogNum|
           tag_number _ n .
           update_buttons value .
         ]

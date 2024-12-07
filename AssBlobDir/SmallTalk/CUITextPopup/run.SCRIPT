@@ -1,0 +1,22 @@
+run: cb=CFrogBlock ->*
+|
+|
+  text_bar _ CUITextBar new .
+
+  background _ CUIBackground new .
+  background -> bg_color _ #color_DKGRAY .
+  background->sz_y _ 24 .
+  background->sz_x _ 250 .
+  background->x _ 640 - background->sz_x /2 .
+  background->y _ 480 - background->sz_y /2 .
+
+  text_bar->sz_y _ 12 .
+  text_bar->sz_x _ 250-24 .
+  text_bar->x _ 12 .
+  text_bar->y _ 16 .
+  text_bar focus .
+
+  
+
+  background addChild: text_bar .
+  background addChild: label .

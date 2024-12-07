@@ -1,0 +1,61 @@
+init
+|
+  label=CUILabel
+|
+  on_init _ [
+    text_bar _ CUITextBar new .
+
+    background _ CUIBackground new .
+    background -> bg_color _ #color_DKGRAY .
+    background->sz_y _ 24 .
+    background->sz_x _ 250 .
+    background->x _ 640 - background->sz_x /2 .
+    background->y _ 480 - background->sz_y /2 .
+
+    text_bar->sz_y _ 12 .
+    text_bar->sz_x _ 250-24 .
+    text_bar->x _ 12 .
+    text_bar->y _ 16 .
+    text_bar focus .
+
+    text_bar setOnEnter: [:v=CFrogStr|
+      cb value: v .
+      exited _ 1 . 
+    ] .
+  
+    background addChild: text_bar .
+
+    (title hasClass: CFrogStr) ifTrue: [
+      label _ CUILabel new .
+      label setLabel: title. 
+      label->x _ 4 .
+      label->y _ 4 .
+      background addChild: label .
+    ]  ifFalse: [
+      background->sz_y _ 16 .
+      text_bar->y _ 2 .
+    ]
+
+    #ui_root _ background .
+
+  ] .
+
+  draw_it_name _ 'Draw3DWorld'.
+  on_refresh _ [] .
+  on_event _ [:v=CUIEvent |
+    v->type = 'KeyDown' ifTrue: [
+      'CH_ESC' .
+      v->m1 = 27 ifTrue: [
+        exited _  1.
+      ] .
+     'CH_SHIFT_ESC' .
+      v->m1 = 28 ifTrue: [
+        exited _ 1 .
+      ] .
+      exited ifFalse: [
+       #ui_root sendEventToUI: v .
+
+      ].
+    ].
+  ].
+   ^ self
