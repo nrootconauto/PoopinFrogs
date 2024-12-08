@@ -1113,18 +1113,17 @@ explode:
 
 CFrogThing *WorldLoadLevelFromBlob(C3DWorldManager *man,I64 argc,CFrogThing **argv) {
   U8 *want=BlobFileSelect,*have;
+  I64 len;
   CFrogStr *str;
   if(!want) return FROG_SMALL_NIL; 
-  have=BlobFileGetLump(,want);
+  have=BlobFileGetLump(,want,&len);
   Free(want);
   if(!have) return FROG_SMALL_NIL; 
-  str=FrogStrNew(have);
-PrintI(have,man);
+  str=FrogStrNew("");
+  U8SetAddBytes(str->items,have,len);
   Free(have); 
   man=CallScript("restoreThing",str);
-PrintI(FrogThingClassName(man),man);
   if(ThingHasClass(man,"C3DWorldManager")) {
-PrintI("pass",man);
     FrogSymbol("world")->value=man;
     return man;
   }
@@ -1134,9 +1133,11 @@ AddMethod("C3DWorldManager","loadLevelFromBlob",&WorldLoadLevelFromBlob);
 
 CFrogThing *WorldLoadLevelFromBlob2(C3DWorldManager *man,I64 argc,CFrogThing **argv) {
   CFrogStr *str=argv[0];
-  U8 *have=BlobFileGetLump(,str->items->body);
+  I64 len;
+  U8 *have=BlobFileGetLump(,str->items->body,&len);
   if(!have) return FROG_SMALL_NIL;
-  str=FrogStrNew(have);
+  str=FrogStrNew("");
+  U8SetAddBytes(str->items,have,len);
   Free(have); 
   man=CallScript("restoreThing",str);
   if(ThingHasClass(man,"C3DWorldManager")) {
@@ -3344,7 +3345,7 @@ AddMethod("C3DWorldManager","restoreBlocksFromString:withWidth:withHeight:",&Wor
 //
 //
 #if __CMD_LINE__
-CallScript("newLandscapeWithWidth:withHeight:",FrogSymbol("world")->value,FrogNumNew(32),FrogNumNew(32));
+CallScript("newLandscapeWithWidth:withHeight:",FrogSymbol("world")->value,FrogNumNew(256),FrogNumNew(256));
 C3DWorldShell *shell=ConstructThing("C3DWorldShell");
 CallScript("init",shell);
 UIShellRun(shell,NULL,0);
