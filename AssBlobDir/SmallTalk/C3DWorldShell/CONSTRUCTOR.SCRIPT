@@ -9,6 +9,8 @@ init ->* |
   down=CFrogNum
   left=CFrogNum
   right=CFrogNum
+  jump=CFrogNum
+  shift=CFrogNum
   idx=CFrogNum
   ldown=CFrogNum
   rdown=CFrogNum
@@ -45,7 +47,8 @@ init ->* |
     up _ 0 . 
     down _ 0 . 
     left _ 0 . 
-    right _ 0 . 
+    right _ 0 .
+    jump _ 0 . 
 
     ldown _ 0 .
     rdown _ 0 .
@@ -158,6 +161,15 @@ init ->* |
        ] .
      ] .
      v->type = 'KeyUp' ifTrue: [
+       v->m1 = 32 ifTrue: [ 'Space'.
+         jump _ 0 .
+       ].
+       'Shiuft released(?)' .
+       'SCF_SHIFT is not set as shift is not down' .
+       v->m1 = 0 ifTrue: [
+          shift _ 0 .
+          handled _ 1 .
+       ].
        ('', v->m1 asCharactor) uppercase = 'P' ifTrue: [
          player->poopidex activate .
          handled _ 1 .
@@ -195,9 +207,14 @@ init ->* |
          handled _ 1 .
          ask_exit value .
        ] .
+       'Shiuft key' .
+       (v->m1 = 0 and: v->m2 & 512 ) ifTrue: [
+          shift _ 1 .
+          handled _ 1 .
+       ].
        'Space '.
        v->m1 = 32 ifTrue: [
-          player jump .
+          jump _ 1 .
           handled _ 1 .
        ].
 
@@ -217,9 +234,11 @@ init ->* |
          player ->invisible ifTrue:[
            notification _ CUINotification new: 'You are invisible(feel free to edit the world in peace)' .
            notification setIcon: 'Icons/Eye'.
+           player->floating _ 1 .
          ] ifFalse: [
            notification _ CUINotification new: 'You are now visible again(Enemies will attack you now).' .
            notification setIcon: 'Icons/Eye'.
+           player->floating _ 0 .
          ] .
        ].
        ('' ,v->m1 asCharactor) uppercase = 'W' ifTrue: [
@@ -317,7 +336,13 @@ init ->* |
        player->momx2 _ 0 .
        player->momy2 _ 0 .
        player->momz2 _ 0 .
-       (#world tileIsLiquidAtX: player->x /128 atY: player->y /128  atZ: player->z) ifTrue: [
+       ((#world tileIsLiquidAtX: player->x /128 atY: player->y /128  atZ: player->z) or: player->floating ) ifTrue: [
+         shift ifTrue: [
+           player swim: 128 /4 atAngle: player->angle atAngle2: -3.14 / 2 .
+         ].
+         jump ifTrue: [
+           player swim: 128 /4 atAngle: player->angle atAngle2: 3.14 / 2  .
+         ].
          up ifTrue: [
            player swim: 128 /4 atAngle: player->angle atAngle2: player->angle2 negated .
          ] .
@@ -331,6 +356,9 @@ init ->* |
            player swim: 128 /4 atAngle: player->angle + (3.14 / 2) atAngle2: player->angle2 negated.
          ] .
        ] ifFalse: [
+         jump ifTrue: [
+           player jump .
+         ] .
          up ifTrue: [
            player move: 128 / 4 atAngle: player->angle .
          ] .

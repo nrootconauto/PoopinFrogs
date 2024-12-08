@@ -1,4 +1,4 @@
 isOnGround ->CFrogNum 
 |
 |
-  ^ 0 ~= (#world getTileAtX: x / 128 atY: y / 128 atZ: z - .9 ) .
+  ^ 0 ~= (#world getTileAtX: x / 128 atY: y / 128 atZ: z - .1 ) .

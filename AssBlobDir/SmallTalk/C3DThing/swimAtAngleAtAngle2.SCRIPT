@@ -26,5 +26,5 @@ swim: d=CFrogNum atAngle: a=CFrogNum atAngle2: a2=CFrogNum
   yy2  _ (xx * a sin) + (yy * a cos) .
   zz2 _ zz .
 
-  momz2 _ zz2/ 128  .
+  momz2 _ momz2 +(zz2/ 128)  .
   ^ self move: (xx2 squared + yy2 squared ) sqrt atAngle: (xx2 arg: yy2) . 

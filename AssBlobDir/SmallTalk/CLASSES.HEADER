@@ -340,7 +340,7 @@ class C3DWorldManager:CFrogThing {
   CFrogArray *stains_grid; //4*4 size has CWallStain's
   CFrogArray *doors_grid; //16*16
   CFrogArray *doors;
-  CFrogArray *clients; //CAsyncStream
+  CFrogArray *clients; //CAsyncStream
   CFrogArray *lines; //C3DLine
   CAsyncStream *server_sock;
   I64 is_client;

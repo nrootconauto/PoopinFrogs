@@ -926,7 +926,7 @@ Bool IsOnLavaTile(C3DThing *t) {
 }
 CFrogNum *WorldManagerRemoveFromGrid(C3DWorldManager *wm,I64 *argv,I64 argc) {
   C3DThing *t=argv[0];
-  if(!ThingHasClass(t,"C3DThing")) {Beep;return FROG_SMALL_NIL;}
+  if(!ThingHasClass(t,"C3DThing")) return FROG_SMALL_NIL;
   CFrogArray *arr=wm->grid;
   I64 atx=t->x/GRID_SZ/4.;
   I64 aty=t->y/GRID_SZ/4.;
