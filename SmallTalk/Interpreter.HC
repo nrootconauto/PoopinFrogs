@@ -21,6 +21,9 @@
 #define BC_DROP 18
 #define BC_VAR_MEMBER 19 //2 at once u32[0] is var name,u32[1] is member
 #define BC_SYMBOL_MEMBER 20 //Same as above
+#define BC_JUMP_IF_NOT 21
+#define BC_JUMP_IF 22
+#define BC_JUMP 23
 CFrogThing *InterpFrameGet(CFrogThing *self,CInterpFrame *f,I64 un) {
   I64 key=un<<16|FROG_SMALL_NUM;
 enter:;
@@ -62,6 +65,7 @@ CFrogThing *I64SetPop(CI64Set *s) {
   if(s->cnt) {
     return s->body[--s->cnt];
   }
+Beep;
   throw('ass');
   return FROG_SMALL_NIL;
 }
@@ -130,9 +134,10 @@ CFrogThing *RunByteCode(CFrogThing *self,CI64Set *bytecode_stack,CI64Set *stack,
     FrogGarbageCollect(FROG_SMALL_NIL);
     last_collect=tS;
   }
-  I64 ip=0,bc,arg1;
+  I64 ip=0,bc,arg1,i;
   I64 *code=bytecode_stack->body;
   I64 sp=stack->cnt,arity;
+  I64 *body;
   CFrogSymbol *sym;
   U8 *str_name;
   CFrogThing *tt,*tt2;
@@ -151,12 +156,25 @@ CFrogThing *RunByteCode(CFrogThing *self,CI64Set *bytecode_stack,CI64Set *stack,
     arg1=code[ip++];
     tt=FROG_SMALL_NIL;
     switch(bc) {
+      case BC_JUMP:
+	ip=arg1;
+	break;
+      case BC_JUMP_IF:
+	if(AsF64(I64SetPop(stack)))
+	  ip=arg1;
+	break;
+      case BC_JUMP_IF_NOT:
+	if(!AsF64(I64SetPop(stack)))
+	  ip=arg1;
+	break;
       case BC_CASCADE_UNIVERSE:
       case BC_RUN_UNIVERSE:
         arity=arg1.i32[1];
         sp=stack->cnt;
         if(sp<arity+1) {
 	  DbgPrint("sp,%d,%d\n",sp,arity+1);
+Beep;
+Beep;
 	  throw('Fuck');
 	  sp=0;
 	  tt=FROG_SMALL_NIL;
@@ -240,6 +258,14 @@ dft:
         I64SetAdd(fr->items,tt=I64SetPop(stack));
         break;
       case BC_NVAR_NIL:
+//Check for existing var of same name
+	body=fr->items->body;
+	for(i=fr->items->cnt-2;i>=0;i-=2){
+	  if(body[i]==arg1<<16|FROG_SMALL_NUM) {
+	    body[i+1]=FrogNumNew(0.);
+	    goto next;
+	  }
+        }
         I64SetAdd(fr->items,arg1<<16|FROG_SMALL_NUM);
         I64SetAdd(fr->items,FrogNumNew(0.));
         break;
@@ -316,8 +342,12 @@ dft:
         return tt;
       default:
         DbgPrint("%d\n",bc);
+Beep;
+Beep;
+Beep;
         throw('As');
     }
+next:;
     if(tt&0xffFF==FROG_SMALL_NUM) {
       fast_stk[fast_ready++]=AsF64(tt);
     } else {
@@ -332,12 +362,64 @@ final:
     return I64SetPop(stack);
   return FROG_SMALL_NIL;
 }
+extern U0 CompileAST(CI64Set *to,CAST *ast,Bool cascade=FALSE);
+U0 UnrollBlock(CI64Set *to,CAST *ast,I64 arity=0) {
+  if(ast->type!=AST_BLOCK) {
+    switch(arity) {
+      case 0:
+        I64SetAdd(to,BC_RUN_UNIVERSE);
+        I64SetAdd(to,UniverseAddClass("value"));
+        break;
+      case :
+        I64SetAdd(to,BC_RUN_UNIVERSE);
+        I64SetAdd(to,UniverseAddClass("value:"));
+    }
+    return;
+  }
+  I64 depth=FramePtr("UnrollDepth")+1,idx;
+  U8 buf[STR_LEN];
+  FramePtrSet("UnrollDepth",depth);
+  CAST *arg,*head;
+  head=&ast->args;
+  for(arg=head->last;arg!=head;arg=arg->last) {
+    idx=NameToUniverseNumber(arg->name)|depth<<32;
+    I64SetAdd(to,BC_NVAR_NIL); //BC_NVAR_NIL will automaticalyl reuse vars
+    I64SetAdd(to,idx);
+    StrPrint(buf,"VAR.%s",arg->name);
+    FramePtrAdd(buf,idx);
+    I64SetAdd(to,BC_ASSIGN_VAR);
+    I64SetAdd(to,idx);
+  } 
+  head=&ast->body;
+  for(arg=head->next;arg!=head;arg=arg->next) {
+    CompileAST(to,arg);
+    if(head->last!=arg) {
+      if(arg->type!=AST_ASSIGN) {
+        I64SetAdd(to,BC_DROP);
+        I64SetAdd(to,0);
+      }
+    }
+    if(head->last==arg) {
+      if(arg->type==AST_ASSIGN) {
+        I64SetAdd(to,BC_VALUE);
+        I64SetAdd(to,FROG_SMALL_NIL);
+      }
+    }
+  }
+  head=&ast->args;
+  for(arg=head->next;arg!=head;arg=arg->next) {
+    StrPrint(buf,"VAR.%s",arg->name);
+    FramePtrDel(buf);
+  }
+  FramePtrSet("UnrollDepth",depth-1);
+}
 U0 CompileAST(CI64Set *to,CAST *ast,Bool cascade=FALSE) {
   I64 argc,u;
-  I64 bc,arg1,arg2;
+  I64 bc,arg1,arg2,ptr,ptr2;
   Bool first;
   I64 old_sz;
-   CAST *arg;
+  U8 buf[STR_LEN];
+  CAST *arg;
   CI64Set *tmp;
   switch(ast->type) {
     case AST_RETURN:
@@ -403,6 +485,110 @@ U0 CompileAST(CI64Set *to,CAST *ast,Bool cascade=FALSE) {
     case AST_UNOP:
     case AST_BINOP:
     case AST_KEYWORD:
+      if(!StrCmp(ast->name,"ifTrue:")) {
+//Store a NIL in case we fail
+	I64SetAdd(to,BC_VALUE);
+	I64SetAdd(to,FROG_SMALL_NIL);
+        arg=ast->args.next;
+        CompileAST(to,arg);
+	I64SetAdd(to,BC_JUMP_IF_NOT);
+	ptr=to->cnt;
+	I64SetAdd(to,0);
+	I64SetAdd(to,BC_DROP); //Drop our nil
+	I64SetAdd(to,0);
+        arg=arg->next;
+	UnrollBlock(to,arg);
+	to->body[ptr]=to->cnt;
+        break;
+      }
+      if(!StrCmp(ast->name,"ifFalse:")) {
+//Store a NIL in case we fail
+	I64SetAdd(to,BC_VALUE);
+	I64SetAdd(to,FROG_SMALL_NIL);
+        arg=ast->args.next;
+        CompileAST(to,arg);
+	I64SetAdd(to,BC_JUMP_IF);
+	ptr=to->cnt;
+	I64SetAdd(to,0);
+	I64SetAdd(to,BC_DROP); //Drop our nil
+	I64SetAdd(to,0);
+        arg=arg->next;
+	UnrollBlock(to,arg);
+	to->body[ptr]=to->cnt;
+        break;
+      }
+      if(!StrCmp(ast->name,"ifFalse:ifTrue:")) {
+        arg=ast->args.next;
+        CompileAST(to,arg);
+	I64SetAdd(to,BC_JUMP_IF);
+	ptr=to->cnt;
+	I64SetAdd(to,0);
+        arg=arg->next;
+	UnrollBlock(to,arg);
+	to->body[ptr]=to->cnt;
+	I64SetAdd(to,BC_JUMP);
+	ptr2=to->cnt;
+	I64SetAdd(to,0);
+	to->body[ptr]=to->cnt;
+        arg=arg->next;
+	UnrollBlock(to,arg);
+	to->body[ptr2]=to->cnt;
+        break;
+      }
+      if(!StrCmp(ast->name,"ifTrue:ifFalse:")) {
+        arg=ast->args.next;
+        CompileAST(to,arg);
+	I64SetAdd(to,BC_JUMP_IF_NOT);
+	ptr=to->cnt;
+	I64SetAdd(to,0);
+        arg=arg->next;
+	UnrollBlock(to,arg);
+	to->body[ptr]=to->cnt;
+	I64SetAdd(to,BC_JUMP);
+	ptr2=to->cnt;
+	I64SetAdd(to,0);
+	to->body[ptr]=to->cnt;
+        arg=arg->next;
+	UnrollBlock(to,arg);
+	to->body[ptr2]=to->cnt;
+        break;
+      }
+      if(!StrCmp(ast->name,"whileTrue:")) {
+	ptr=to->cnt;
+        arg=ast->args.next;
+        UnrollBlock(to,arg);
+	I64SetAdd(to,BC_JUMP_IF_NOT);
+	ptr2=to->cnt;
+	I64SetAdd(to,0);
+	arg=arg->next;
+        UnrollBlock(to,arg);
+	I64SetAdd(to,BC_DROP);
+	I64SetAdd(to,0);
+	I64SetAdd(to,BC_JUMP);
+	I64SetAdd(to,ptr);
+	to->body[ptr2]=to->cnt;
+	I64SetAdd(to,BC_VALUE);
+	I64SetAdd(to,FROG_SMALL_NIL);
+	break;
+      }
+      if(!StrCmp(ast->name,"whileFalse:")) {
+	ptr=to->cnt;
+        arg=ast->args.next;
+        UnrollBlock(to,arg);
+	I64SetAdd(to,BC_JUMP_IF);
+	ptr2=to->cnt;
+	I64SetAdd(to,0);
+	arg=arg->next;
+        UnrollBlock(to,arg);
+	I64SetAdd(to,BC_DROP);
+	I64SetAdd(to,0);
+	I64SetAdd(to,BC_JUMP);
+	I64SetAdd(to,ptr);
+	to->body[ptr2]=to->cnt;
+	I64SetAdd(to,BC_VALUE);
+	I64SetAdd(to,FROG_SMALL_NIL);
+	break;
+      }
       argc=QueCnt(&ast->args);
       u=NameToUniverseNumber(ast->name);
       bc=BC_RUN_UNIVERSE;
@@ -423,7 +609,12 @@ U0 CompileAST(CI64Set *to,CAST *ast,Bool cascade=FALSE) {
       I64SetAdd(to,arg1);
       break;
     case AST_VAR:
-      arg1=NameToUniverseNumber(ast->name);
+//See UnrollBlock
+      StrPrint(buf,"VAR.%s",ast->name);
+      if(!FramePtr(buf))
+        arg1=NameToUniverseNumber(ast->name);
+      else
+        arg1=FramePtr(buf);
       if(HashFind(ast->name,frog_mem_task->hash_table,HTT_CLASS)) {
 	bc=BC_VALUE;
 	arg1=FrogClassNew(arg1);
@@ -525,6 +716,7 @@ skip:;
 
 U0 CompileToHolyC(U8 *src,U8 *class_name,U8 *src_path=NULL,Bool class_method=FALSE,Bool register_method=FALSE) {
   FramePtrAdd("MethodClass",class_name);
+  FramePtrAdd("UnrollDepth",0);
   try {
     CDoc *dumb=DocNew;
     I64 idx;
@@ -566,8 +758,10 @@ U0 CompileToHolyC(U8 *src,U8 *class_name,U8 *src_path=NULL,Bool class_method=FAL
     DocDel(dumb);
 fin:
     FramePtrDel("MethodClass");
+    FramePtrDel("UnrollDepth");
     MethodDel(m);
   } catch {
+    FramePtrDel("UnrollDepth");
     FramePtrDel("MethodClass");
   }
 }
