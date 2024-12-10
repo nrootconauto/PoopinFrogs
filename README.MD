@@ -3,4 +3,4 @@
 
 # Making images/textures for FrogsEngine
 
-![Editing a Texture in FrogsEngine](https://aiwnios.com/Videos/FrogsEngine/EditTexture.mp4)
+![Editing a Texture in FrogsEngine](https://aiwnios.com/ViewVideo.HC?view=FrogsEngine/EditTexture.DD)
