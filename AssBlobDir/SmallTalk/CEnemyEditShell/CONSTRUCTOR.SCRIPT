@@ -5,6 +5,7 @@ init:t=C3DThing ->* |
   handled=CFrogNum
   list=CUIList
   pairs=CFrogArray 
+  sorted=CFrogArray 
 
   makeui=CFrogBlock
   regen=CFrogNum
@@ -48,13 +49,20 @@ init:t=C3DThing ->* |
               regen _ 1 .
            ])
          ).
-         pairs addAll:(#world->thing_templates keys collect: [:k=CFrogStr|
+         sorted _#world->thing_templates keys collect: [:k=CFrogStr|
            #((k copy) [
               t->drop_thing _ CFrogClass fromString: k .
               regen _ 1 .
            ])
-         ] ).
-         #ui_root _ CUIScrollBars new .
+         ].
+
+         sorted sort: [:a* :b*|
+             a first compare: b first
+         ].
+         sorted _ sorted reject: [:p*|
+           0 <  (p first indexOf: '/') .
+         ] .
+         pairs addAll: sorted .
          #ui_root->bg_color _ #color_LTGRAY .
          #ui_root->sz_x _ 600 .
          #ui_root->sz_y _ 480 .
