@@ -1,0 +1,110 @@
+init:t=C3DThing ->* |
+  ask_num=CFrogNum
+  popup=CUITextPopup
+  ui_roots=CFrogArray
+  handled=CFrogNum
+  list=CUIList
+  pairs=CFrogArray 
+
+  makeui=CFrogBlock
+  regen=CFrogNum
+|
+  'Draw world in background' .
+  draw_it_name _ 'Draw3DWorld' .
+
+
+  ask_num _ [:title=CFrogBlock :cb=CFrogBlock |
+    popup _ CUITextPopup new .
+    popup->title _ title .
+    popup->cb _ [:s=CFrogStr|
+      cb value: s asInteger
+    ] .
+    popup run .
+  ].
+
+  makeui _ [
+    #ui_root _ CUIScrollBars new .
+    #ui_root->bg_color _ #color_LTGRAY .
+    #ui_root->sz_x _ 600 .
+    #ui_root->sz_y _ 480 .
+    #ui_root->x _ 40 . 
+    #ui_root->y _ 40 . 
+
+    list _ CUIList new: #(
+      #(('Set Tag number:', t->activate_tag printString) [
+        ask_num value: 'Tag number' value: [:v=CFrogNum |
+          t->activate_tag _ v .
+          regen _ 1 .
+        ]
+      ])
+      #(('Set/Edit Quest:',t->chat_bot_name) [
+         t->chat_bot_name _ #world selectQuest .
+          regen _ 1 .
+      ])
+      #(('Drop Thing:',t->drop_thing asString) [
+         pairs _ #(
+           #('Drop Nothing' [
+              t->drop_thing _ 0 .
+              regen _ 1 .
+           ])
+         ).
+         pairs addAll:(#world->thing_templates keys collect: [:k=CFrogStr|
+           #((k copy) [
+              t->drop_thing _ CFrogClass fromString: k .
+              regen _ 1 .
+           ])
+         ] ).
+         #ui_root _ CUIScrollBars new .
+         #ui_root->bg_color _ #color_LTGRAY .
+         #ui_root->sz_x _ 600 .
+         #ui_root->sz_y _ 480 .
+         #ui_root->x _ 40 . 
+         #ui_root->y _ 40 . 
+         #ui_root->sub_elems add: (CUIList new: pairs).
+         ui_roots add: #ui_root .
+
+         list _CUIList new: pairs .
+         #ui_root addChild: list .
+
+      ])
+    ).
+
+    #ui_root addChild: list .
+    ui_roots _#(#ui_root).
+  ] .
+
+
+  on_init _ [
+    ui_roots _ #() .
+    #ms_grabbed _ 0 .
+
+    makeui value .
+  ] .
+
+  on_event _ [:v=CUIEvent |
+    handled _ 0 .
+    t show .
+    regen _ 0 .
+    v->type = 'KeyDown' ifTrue: [
+      v->m1 = 27 ifTrue: [
+        'ESC '.
+        ui_roots size <= 1 ifTrue: [
+          exited _ 1 .
+          handled _ 1 . 
+        ] ifFalse:[
+          'POP the ui menus until nothing left to pop' .
+          ui_roots remove: (ui_roots at: ui_roots size - 1) .
+          #ui_root _ ui_roots at: ui_roots size - 1 .
+          handled _  1.  
+        ] .
+      ] .
+    ] .
+    handled ifFalse: [
+      #ui_root sendEventToUI: v .
+    ].
+    regen ifTrue: [
+      regen _ 0 .
+      makeui value .
+    ]
+  ] .
+  ^ self

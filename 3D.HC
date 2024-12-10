@@ -3340,12 +3340,19 @@ CFrogStr *WorldRestoreBlocksFromString(C3DWorldManager *man,I64 *argv,I64 argc) 
   return FROG_SMALL_NIL;
 }
 AddMethod("C3DWorldManager","restoreBlocksFromString:withWidth:withHeight:",&WorldRestoreBlocksFromString);
-
+CFrogStr *WorldSelectQuest(C3DWorldManager *man,I64 *argv,I64 argc) {
+  U8 name[STR_LEN];
+  name[0]=0;
+  QuestEditor(,name);
+  if(name[0]) return FrogStrNew(name);
+  return FROG_SMALL_NIL;
+}
+AddMethod("C3DWorldManager","selectQuest",&WorldSelectQuest);
 // 
 //
 //
 #if __CMD_LINE__
-CallScript("newLandscapeWithWidth:withHeight:",FrogSymbol("world")->value,FrogNumNew(256),FrogNumNew(256));
+CallScript("newLandscapeWithWidth:withHeight:",FrogSymbol("world")->value,FrogNumNew(32),FrogNumNew(32));
 C3DWorldShell *shell=ConstructThing("C3DWorldShell");
 CallScript("init",shell);
 UIShellRun(shell,NULL,0);

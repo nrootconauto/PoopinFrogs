@@ -1,0 +1,10 @@
+fire->*
+|
+  p=CPlayer
+  best_thing=C3DThing
+|
+  p _ #world getPlayer .
+  best_thing _ p bestTargetAtAngle: p->angle .
+  (best_thing hasClass: C3DThing) ifTrue: [
+    ( CEnemyEditShell new: best_thing) run 
+  ] .

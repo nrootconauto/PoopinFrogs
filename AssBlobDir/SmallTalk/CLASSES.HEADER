@@ -385,6 +385,10 @@ class CWorldEditBlock:CHandItem {
   I64 wall_size;
 };
 
+class CEnemyEdit:CHandItem {
+};
+
+
 class CWorldEditThing:CHandItem {
   I64 tag;
   CFrogStr *name ;
@@ -712,6 +716,9 @@ class CThingEditShell:CUIShell {
 };
 class CDoorShell:CUIShell {
 };
+class CEnemyEditShell:CUIShell {
+};
+
 
 class CLandscapeGenerator:CFrogThing {
   CFrogArray *perlin_vectors;

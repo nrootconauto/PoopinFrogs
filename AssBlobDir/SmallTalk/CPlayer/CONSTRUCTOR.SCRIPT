@@ -14,6 +14,7 @@ init ->CPlayer | |
   self selectItem: CGun1 new .
 
   CFrogDick new .
+  CEnemyEdit new.
   CKnife new .
   CTalker  new .
   CMarkerDrugItem new .

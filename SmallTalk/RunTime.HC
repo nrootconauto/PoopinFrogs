@@ -1207,6 +1207,7 @@ CFrogStr *FrogStrCopyFrom(CFrogStr *a,...) {
 }
 #exe {
 //Object
+  ConstructBuiltin("FrogStrNew(UniverseNumberToName(self>>16))","CFrogClass","CFrogStr","asString");
   ConstructBuiltin("FrogThingClass(self)","CFrogThing","CFrogClass","class");
   ConstructBuiltin("FrogThingIsNil(self)","CFrogThing","CFrogNum","isNil");
   ConstructBuiltin("FrogNumNew(self==a)","CFrogThing","CFrogNum","=","CFrogThing","a");
