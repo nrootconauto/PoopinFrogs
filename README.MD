@@ -1,5 +1,63 @@
+
 # Poopin Frogs
  This README.MD is under development,stay tuned
+
+# Editing the World.
+
+  The world is finite in size,I will add a menu in the  future to change its size
+
+  You can place blocks and things in the world(**YOU MIGHT WANT TO PRESS `I` TO TURN INVISIBLE SO ENEMIES DONT ATTACK YOU**).
+  
+  Its like classic minecaft but with poop.
+   
+## Things edit menu(Press `t`).
+![Thing Edit Shell](ThingEdit1.png)
+
+  From here you can make new things(`Green button`).
+  
+  You can edit things. **USE  '/' IN THE THING NAMES TO MAKE "states" FOR THE THINGS**
+  You get edit the graphics from the things menu.
+
+![Thing Edit Shell](ThingEdit2.png)
+
+## Doors Edit Menu(Press `Shift+d`)
+
+
+  Doors do what you think they do. They have various properties. Doors will open if you walk into them unless they need a key or have a tag number that isnt 0.
+
+ ### Door Properties
+  - Tag Number
+	  - When all enemies of a certian tag die,then the door opens.
+ - Small Key
+	 - Will open if you have a small key
+- Big Key
+	 - Will open if you have a big key
+- Height
+	- How tall the door is
+	- 
+## Block Edit Shell(Press `b`)
+
+![Block Edit Shell](BlockEdit1.png)
+
+This will open a grid,press an item on the grid to edit the block's textures.
+
+Current properties are hard coded. Ask nrootconauto to easily change this(so you can make lights and liquid blocks).
+
+![Block Edit Shell](BlockEdit2.png)
+
+## Poopidex(Press `p`). 
+![Poopidex](Poopidex.png)
+This is a "dictionary" of stuff. You probably wont need this for now.
+
+## Magic Wand(Select from inventory).
+![Select wand](Wand.png)
+Select the wand,then use it on a thing(click the thing)
+
+![Use Wand](Wand2.png)
+This will let you these properties on a thing
+- Tag Number
+- Quest	
+- And dropped item(when killed). 
 
 # Making images/textures for FrogsEngine
 Run `TextureEditor.HC`.
