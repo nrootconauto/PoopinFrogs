@@ -1,0 +1,9 @@
+stopChat->*
+|
+|
+  chatting_active ifFalse: [
+    ^ 0.
+  ] .
+  chatting_active _ 0 .
+  #ui_root->sub_elems remove: chat_log .
+  #ui_root->sub_elems remove: chat_log_input .

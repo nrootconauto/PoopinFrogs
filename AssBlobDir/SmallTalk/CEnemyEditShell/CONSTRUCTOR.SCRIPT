@@ -40,7 +40,8 @@ init:t=C3DThing ->* |
       ])
       #(('Set/Edit Quest:',t->chat_bot_name) [
          t->chat_bot_name _ #world selectQuest .
-          regen _ 1 .
+         t->chat_bot _ CEliza newFromBlob: t->chat_bot_name.
+         regen _ 1 .
       ])
       #(('Drop Thing:',t->drop_thing asString) [
          pairs _ #(

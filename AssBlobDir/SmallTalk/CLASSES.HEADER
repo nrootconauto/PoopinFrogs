@@ -785,3 +785,7 @@ class CUINotification:CUIElem {
 //Private
   F64 anim_start_y;
 };
+
+class CTalkShell:CUIShell {
+};
+

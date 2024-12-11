@@ -62,6 +62,11 @@ init ->* |
     ask_exit_active _ 0 .
 
     ask_exit _ [
+     player->main_inventory_active ifTrue: [
+       player->main_inventory_active ifTrue: [
+         player toggleMenu.
+       ] .
+     ] ifFalse: [
       #ui_root removeChild: e. 
       
       (e hasClass: CUIElem ) ifTrue: [
@@ -112,6 +117,7 @@ init ->* |
 'Game will be paused,so we wont check for ask_exit_active' .
         #ms_grabbed _ 0 .
       ] .
+     ].
     ] .
 
     notification _ CUINotification new:'Press "T" for things menu' .
@@ -386,8 +392,7 @@ init ->* |
        #world physics .
 
        (hand_active and: ((
-          player->main_inventory_active or:
-          player->chatting_active
+          player->main_inventory_active
         ) or: ask_exit_active) not) ifTrue: [
          #ms_grabbed _ 1 .
          'Hand item movement'.

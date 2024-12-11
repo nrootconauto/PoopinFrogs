@@ -1,0 +1,43 @@
+init ->*
+|
+  handled=CFrogNum
+  player=CPlayer
+|
+  draw_it_name _ 'Draw3DWorld' .
+
+  on_init _ [
+    player _ #world getPlayer .
+    (#ui_root hasClass: CUIElem ) ifFalse: [
+      #ui_root _ CUIElem new .
+      #ui_root->sz_x _ 640 .
+      #ui_root->sz_y _ 480 .
+    ] .
+    #ui_root addChild: player->chat_log .
+    #ui_root addChild: player->chat_log_input .
+  ] . 
+
+  on_event _ [:v=CUIEvent |
+   player _ #world getPlayer .
+   handled _ 0 .
+   v->type='KeyDown' ifTrue: [
+     'CH_ESC' .
+     v->m1 = 27 ifTrue: [
+       handled _ 1 .
+       exited_ 1 .
+     ] .
+     'CH_SHIFT_ESC' .
+     v->m1 = 28 ifTrue: [
+       handled _ 1 .
+       exited_ 1 .
+     ] .
+   ].
+
+   handled ifFalse: [
+     #ui_root sendEventToUI: v .
+   ] .
+   
+   exited ifTrue: [
+     player stopChat.
+   ] .
+  ] .
+  ^ self 

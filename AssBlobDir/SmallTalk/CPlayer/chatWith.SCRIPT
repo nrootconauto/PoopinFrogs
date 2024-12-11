@@ -7,8 +7,6 @@ chatWith: thing* ->* |
   ( eliza hasClass: CEliza ) ifFalse: [^ 0 ].
   chatting_active ifTrue: [ ^ 0 ] .
   chatting_active _ 1 .
-  #ui_root addChild: chat_log .
-  #ui_root addChild: chat_log_input .
  
   name _ thing getName .
 
@@ -23,4 +21,6 @@ chatWith: thing* ->* |
     add_to_chat_log value: name value: (eliza message: buf ) .
   ] .
 
-  chat_log_input focus 
+  chat_log_input focus  .
+
+  CTalkShell new run .

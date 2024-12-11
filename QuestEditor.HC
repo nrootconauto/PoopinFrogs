@@ -331,6 +331,15 @@ fin:
   DocDel(menu);
   if(continue) goto ent;
 }
+CEliza *ElizaNewFromBlob(CFrogClass *ul,I64 *argv,I64 *argc) {
+  U8 *s=AsString(argv[0]);
+  if(!s) return FROG_SMALL_NIL;
+  CEliza *e=LoadQuestChatBot(s);
+  Free(s);
+  if(!e) return FROG_SMALL_NIL;
+  return e;
+}
+AddClassMethod("CEliza","newFromBlob:",&ElizaNewFromBlob);
 #if __CMD_LINE__
 QuestEditor;
 #define TEST_QUEST 1
