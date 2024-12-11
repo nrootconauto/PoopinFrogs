@@ -11,14 +11,14 @@
   Its like classic minecaft but with poop.
    
 ## Things edit menu(Press `t`).
-![Thing Edit Shell](ThingEdit1.png)
+![Thing Edit Shell](ThingMenu1.png)
 
   From here you can make new things(`Green button`).
   
   You can edit things. **USE  '/' IN THE THING NAMES TO MAKE "states" FOR THE THINGS**
   You get edit the graphics from the things menu.
 
-![Thing Edit Shell](ThingEdit2.png)
+![Thing Edit Shell](ThingMenu2.png)
 
 ## Doors Edit Menu(Press `Shift+d`)
 
@@ -37,13 +37,13 @@
 	- 
 ## Block Edit Shell(Press `b`)
 
-![Block Edit Shell](BlockEdit1.png)
+![Block Edit Shell](BlockMenu1.png)
 
 This will open a grid,press an item on the grid to edit the block's textures.
 
 Current properties are hard coded. Ask nrootconauto to easily change this(so you can make lights and liquid blocks).
 
-![Block Edit Shell](BlockEdit2.png)
+![Block Edit Shell](BlockMenu2.png)
 
 ## Poopidex(Press `p`). 
 ![Poopidex](Poopidex.png)
