@@ -529,54 +529,46 @@ F64 CornerLight(I64 which,I64 x,I64 y,I64 z,I64 sidex,I64 sidey,I64 sidez) {
   return 0; 
 }
 
-
 U0 LightingLight(I64 x,I64 y,I64 z,I64 light) {
-  CI64Set *stack=I64SetNew,*stack2=I64SetNew;
-  CI64Set *visited=I64SetNew;
+  CI64Set *stack=I64SetNew;
   I64 xo,yo,zo,dummy;
-  I64 time=0;
+  I64 time=0,have;
   I64SetAdd(stack,x);
   I64SetAdd(stack,y);
   I64SetAdd(stack,z);
-  do {
-    while(stack->cnt>0) {
-      z=stack->body[--stack->cnt];
-      y=stack->body[--stack->cnt];
-      x=stack->body[--stack->cnt];
-      dummy.u16[0]=x;
-      dummy.u16[1]=y;
-      dummy.i16[2]=z;
-      dummy.i16[3]=0;
-      if(I64SetHas(visited,dummy))
-        goto n;
-      I64SetAdd(visited,dummy);
-      for(zo=-1;zo<=1;zo+=2) {
-        if(SetLightAtXYZ(x,y,z+zo,light)) {
-	  I64SetAdd(stack2,x);
-	  I64SetAdd(stack2,y);
-	  I64SetAdd(stack2,z+zo);
-        }
+  I64SetAdd(stack,light);
+  while(stack->cnt>0) {
+    light=stack->body[--stack->cnt];
+    z=stack->body[--stack->cnt];
+    y=stack->body[--stack->cnt];
+    x=stack->body[--stack->cnt];
+    if(light<=0) goto n;
+    for(zo=-1;zo<=1;zo+=2) {
+      if(SetLightAtXYZ(x,y,z+zo,light)) {
+        I64SetAdd(stack,x);
+        I64SetAdd(stack,y);
+        I64SetAdd(stack,z+zo);
+	I64SetAdd(stack,light-1);
       }
-      for(xo=-1;xo<=1;xo+=2) {
-        if(SetLightAtXYZ(x+xo,y,z,light)) {
-	  I64SetAdd(stack2,x+xo);
-	  I64SetAdd(stack2,y);
-	  I64SetAdd(stack2,z);
-        }
-      }
-      for(yo=-1;yo<=1;yo+=2) {
-        if(SetLightAtXYZ(x,y+yo,z,light)) {
-	  I64SetAdd(stack2,x);
-	  I64SetAdd(stack2,y+yo);
-	  I64SetAdd(stack2,z);
-        }
-      }
-n:;
     }
-    SwapI64(&stack2,&stack);
-  } while(--light>0);
-  I64SetDel(visited);
-  I64SetDel(stack2);
+    for(xo=-1;xo<=1;xo+=2) {
+      if(SetLightAtXYZ(x+xo,y,z,light)) {
+        I64SetAdd(stack,x+xo);
+        I64SetAdd(stack,y);
+        I64SetAdd(stack,z);
+	I64SetAdd(stack,light-1);
+      }
+    }
+    for(yo=-1;yo<=1;yo+=2) {
+      if(SetLightAtXYZ(x,y+yo,z,light)) {
+        I64SetAdd(stack,x);
+        I64SetAdd(stack,y+yo);
+        I64SetAdd(stack,z);
+	I64SetAdd(stack,light-1);
+      }
+    }
+n:;
+  }
   I64SetDel(stack);
 }
 U0 LightingSky(I64 x,I64 y,I64 sky_light=16,CI64Set *lights) {
@@ -592,14 +584,14 @@ U0 LightingSky(I64 x,I64 y,I64 sky_light=16,CI64Set *lights) {
       lcol=&w->world_lighting[tp*128];
       while(z>=0) {
         b=col[z];
-        if(IsSolidTile(b)) {
+        if(sky&&IsSolidTile(b)) {
 	  sky=FALSE;
+	  LightingLight(x,y,z+1,sky_light);
+	  level=0;
         }
 	if(1<=BlockLightLevel(b))
 	  I64SetAdd(lights,tp*128+z);
-        if(!sky)
-	  level=0;
-        lcol[z]=MaxI64(ToI64(level),0);
+        if(sky) lcol[z]=MaxI64(ToI64(level),0);
         --z;
       }
     }
@@ -610,6 +602,8 @@ CFrogThing *WorldLightingSky(C3DWorldManager *man,I64 *argv,I64 argc) {
   I64 sky_light=AsF64(argv[0]),z;
   I64 level,tp;
   CI64Set *lights=I64SetNew;
+//Zero lights
+  MemSet(w->world_lighting,0,w->world_width*w->world_height*128);
 //Sky light
   for(ix=-VIEW_DIST*2;ix<VIEW_DIST*2;ix++) {
     for(iy=-VIEW_DIST*2;iy<VIEW_DIST*2;iy++) {
@@ -1979,21 +1973,21 @@ I64 GetColorForRay(C3DWorldManager *man,CD3 *origin,CD3 *ray,F64 dist,F64 *hit_a
 	        if(0<=tz-door->z<door->height*door->percent) {
 		  rel_percent=Min(door->z+door->height*door->percent-tz,1.);
 		  color=DoorBlockHitColor(&o128,&rp,
-			door,
-			tx,ty,tz,&sidex,&sidey,&sidez,
-			&new_origin,&hit_dist,&texture_cords,rel_percent
-		  );
+		        door,
+		        tx,ty,tz,&sidex,&sidey,&sidez,
+		        &new_origin,&hit_dist,&texture_cords,rel_percent
+		        );
 		  if(color!=-1) {
-		        if(record_tile) {
-			  man->cur_tile_x=tx;
-			  man->cur_tile_y=ty;
-			  man->cur_tile_z=tz;
-			  man->cur_tile_side_x=sidex;
-			  man->cur_tile_side_y=sidey;
-			  man->cur_tile_side_z=sidez;
-		        }
-		        goto valid_color;
-		      }   
+		    if(record_tile) {
+		      man->cur_tile_x=tx;
+		      man->cur_tile_y=ty;
+		      man->cur_tile_z=tz;
+		      man->cur_tile_side_x=sidex;
+		      man->cur_tile_side_y=sidey;
+		      man->cur_tile_side_z=sidez;
+		    }
+		    goto valid_color;
+		  }   
 	        }
 	      }
 	    }
@@ -2090,8 +2084,14 @@ valid_color:
 	      adj_lights[idx]=CornerLight(idx,tx,ty,tz,sidex,sidey,sidez);
 	    F64 u0=texture_cords.x/127.;
 	    F64 u1=1.-texture_cords.x/127.;
-	    F64 v0=texture_cords.y/127.;
-	    F64 v1=1.-texture_cords.y/127.;
+	    F64 v0,v1;
+	    if(!sidez) {
+	      v0=1.-texture_cords.y/127.;
+	      v1=texture_cords.y/127.;
+	    } else {
+	      v0=texture_cords.y/127.;
+	      v1=1.-texture_cords.y/127.;
+	    }
 //Bilnear
 	    ao=.5;
 	    ao+=ao_nodes[3]*v1*u1;
@@ -3352,7 +3352,7 @@ AddMethod("C3DWorldManager","selectQuest",&WorldSelectQuest);
 //
 //
 #if __CMD_LINE__
-CallScript("newLandscapeWithWidth:withHeight:",FrogSymbol("world")->value,FrogNumNew(64),FrogNumNew(64));
+CallScript("newLandscapeWithWidth:withHeight:",FrogSymbol("world")->value,FrogNumNew(128),FrogNumNew(128));
 C3DWorldShell *shell=ConstructThing("C3DWorldShell");
 CallScript("init",shell);
 UIShellRun(shell,NULL,0);
