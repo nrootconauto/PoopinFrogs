@@ -345,7 +345,6 @@ U0 UndumpBlobFile(U8 *filename,U8 *dir="/Tmp",Bool delete=FALSE) {
   lump_hdr=final->lump_table;
   cnt=0;
   for(cur=finds;cur;cur=cur->next) {
-PrintI(cur->full_name,1);
     tmp=FileRead(cur->full_name,&len);
     MemCpy(final(U8*)+total,tmp,len);
 

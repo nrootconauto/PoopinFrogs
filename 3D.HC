@@ -1151,7 +1151,6 @@ CFrogThing *WorldSaveLevelToBlob(C3DWorldManager *man,I64 argc,CFrogThing **argv
   CFrogStr *str=CallScript("saveThing",man);
   if(ThingHasClass(str,"CFrogStr")) {
     u8_set=str->items;
-PrintI(u8_set->body,want);
     BlobFileAddLump(,want,u8_set->body,u8_set->cnt,'LEVEL');
   }
   Free(want);
@@ -1269,12 +1268,15 @@ draw:
   return use_dc;
 }
 Bool PointToScrn(C3DWorld *w,F64 x,F64 y,F64 z,CD3 *p) {
+  CD3 view_plane,push_origin;
+  CD3 pt1;
   z-=w->cam_height;
   y=(y-w->y)/128;
   x=(x-w->x)/128;
-  F64 o=Sqrt(z*z+x*x+y*y);
-  CD3 view_plane;
-  CD3 pt1;
+
+  F64 o=Sqrt(z*z+x*x+y*y),push_back=10.,scale;
+
+
   pt1.z=z;
   pt1.x=x*Cos(-w->angle)-y*Sin(-w->angle);
   pt1.y=x*Sin(-w->angle)+y*Cos(-w->angle);
@@ -1285,14 +1287,15 @@ Bool PointToScrn(C3DWorld *w,F64 x,F64 y,F64 z,CD3 *p) {
   x=pt1.x;
   z=pt1.z;
 
+  x+=push_back;
   p->x=x;
   p->y=y;
   p->z=z;
 
+
   //Begind camera
-  if(p->x<=.01) {
-    p->x=.01;
-    D3MulEqu(p,1./p->x);
+  if(p->x-push_back<.01) {
+    D3MulEqu(p,1./Max(.01,p->x)); //Hueristic not exact
     D3Equ(p,
 	  (p->y/2+.5)*GR_WIDTH,
 	  (p->z/-2+.5)*GR_HEIGHT,
@@ -1300,7 +1303,7 @@ Bool PointToScrn(C3DWorld *w,F64 x,F64 y,F64 z,CD3 *p) {
 	  );
     return FALSE;
   } else {
-    D3MulEqu(p,1./p->x);
+    D3MulEqu(p,1./(p->x-push_back));
     D3Equ(p,
 	  (p->y/2+.5)*GR_WIDTH,
 	  (p->z/-2+.5)*GR_HEIGHT,
@@ -1555,7 +1558,7 @@ U0 PrepareThingsForDraw(C3DWorldManager *wm,F64 thing_scale=.6) {
 	    if(0.<=yy<1.) {
 //Account for "clipped" start/end
 	      if(thing->draw_flip) {
-	        xx=Lerp(xx,1.-st,1.-en);
+	        xx=Lerp(xx,1-st,1-en);
 	        dist=Lerp(xx,enz,stz);
 	      } else {
 	        xx=Lerp(xx,st,en);
@@ -2415,9 +2418,9 @@ U0 DrawParticle(C3DWorld *w,C3DParticle *p) {
   CD3 res;
   w->to_dc->color=p->color;
   w->to_dc->thick=(DIST_SCALE/ToF64(1+dist))/GRID_SZ*p->size;
-  PointToScrn(w,p->x,p->y,p->z,&res);
-  if(w->to_dc->thick>0)
-    GrPlot3(w->to_dc,res.x,res.y,dist+1);
+  if(PointToScrn(w,p->x,p->y,p->z,&res))
+    if(w->to_dc->thick>0)
+      GrPlot3(w->to_dc,res.x,res.y,dist+1);
 }
 
 U0 Line3D(C3DWorld *w,CDC *dc,CD3 *st,CD3 *en) {

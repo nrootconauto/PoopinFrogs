@@ -1645,6 +1645,13 @@ U0 FrogGarbageCollectUnlock() {
 
 //Run this on core 0,it will wait for cores to be done
 U0 FrogGarbageCollect(CFrogThing *root=FROG_SMALL_NIL,Bool debug=FALSE) {
+#ifndef __AIWNIOS__
+  PUSH_REGS //Force regiksters on stack
+#else
+  CExcept *except;
+#endif
+  try {
+//Force No-registers.I will scan the system except blocks
   if(gc_lock_cnt)
     return;
   U64 bucket;
@@ -1684,6 +1691,27 @@ U0 FrogGarbageCollect(CFrogThing *root=FROG_SMALL_NIL,Bool debug=FALSE) {
     }
     stacks++;
   }
+#ifdef __AIWNIOS__
+  for(except=Fs->next_except;except!=&Fs->next_except;except=except->next) {
+  stacks=Fs->last_except;
+  stacke=Fs->last_except+1;
+  while(stacks<stacke) {
+    cur=stacks[0];
+    if(cur&&!(cur&0b111)) {
+      bucket=(cur>>3)(U64)%0x200;
+      next=heap_hash[bucket];
+      while(next) {
+        if(next==cur) {
+          FrogGarbageCollectThing(cur,debug);
+	  break;
+	}
+        next=next->_heap_hash_next;
+      }
+    }
+    stacks++;
+  }
+}
+#endif
   Free(heap_hash);
   
 
@@ -1707,6 +1735,11 @@ U0 FrogGarbageCollect(CFrogThing *root=FROG_SMALL_NIL,Bool debug=FALSE) {
     }
   }
   FrogEnableScripts;
+#ifndef __AIWNIOS__
+  POP_REGS
+#endif
+  } catch
+    PutExcept;
 }
 U0 STCleanup() {
   FrogNullifySymbols;

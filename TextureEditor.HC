@@ -321,7 +321,9 @@ U0 DrawSidebar(CTask *t,CDC *dc,CTextureEditor *ed) {
   }
 }
 F64 Lerp(F64 per,F64 min,F64 max) {
-  return Clamp(per*(max-min)+min,min,max);
+  if(min<max)
+    return Clamp(per*(max-min)+min,min,max);
+  return Clamp(per*(max-min)+min,max,min);
 }
 U0 DrawEditor(CTask *t,CDC *dc) {
   I64 w,x,y,idx,h,mat[16],w2,x2,y2;
