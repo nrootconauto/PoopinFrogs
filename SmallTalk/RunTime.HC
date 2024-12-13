@@ -1641,103 +1641,104 @@ U0 FrogGarbageCollectUnlock() {
   --gc_lock_cnt;
 }
 
+#include "MultiThread.HC";
 
 
 //Run this on core 0,it will wait for cores to be done
 U0 FrogGarbageCollect(CFrogThing *root=FROG_SMALL_NIL,Bool debug=FALSE) {
-#ifndef __AIWNIOS__
-  PUSH_REGS //Force regiksters on stack
-#else
-  CExcept *except;
-#endif
+  CTask *task;
   try {
 //Force No-registers.I will scan the system except blocks
-  if(gc_lock_cnt)
-    return;
-  U64 bucket;
-  CFrogThing **stacks,**stacke;
-  CFrogThing **heap_hash=CAlloc(sizeof(CFrogThing*)*0x200);
-  FrogDisableScripts;
-  CFrogThing *head=&allocs_head,*cur,*next;
-  for(cur=head->next;cur!=head;cur=cur->next) {
-    if(!ThingHasClass(cur,"CFrogSymbol")&&!(cur->thing_flags&THINGF_GC_ROOT)) {
-      LBts(&cur->thing_flags,THINGf_TO_DELETE);
-      cur->shadow_ref_cnt=0;
-      cur->ref_cnt=I64_MAX;
-    }
-    bucket=(cur>>3)(U64)%0x200;
-    cur->_heap_hash_next=NULL;
-    next=heap_hash[bucket];
-    heap_hash[bucket]=cur;
-    cur->_heap_hash_next=next;
-    
-  } 
-
-//Scan stack "HolyC side may be using some poop"
-  stacks=Fs->stk;
-  stacke=GetRBP;
-  while(stacks<stacke) {
-    cur=stacks[0];
-    if(cur&&!(cur&0b111)) {
+    if(gc_lock_cnt)
+      return;
+    U64 bucket,i;
+    CFrogThing **stacks,**stacke;
+    CFrogThing **heap_hash=CAlloc(sizeof(CFrogThing*)*0x200);
+    FrogDisableScripts;
+    CFrogThing *head=&allocs_head,*cur,*next;
+    for(cur=head->next;cur!=head;cur=cur->next) {
+      if(!ThingHasClass(cur,"CFrogSymbol")&&!(cur->thing_flags&THINGF_GC_ROOT)) {
+        LBts(&cur->thing_flags,THINGf_TO_DELETE);
+        cur->shadow_ref_cnt=0;
+        cur->ref_cnt=I64_MAX;
+      }
       bucket=(cur>>3)(U64)%0x200;
+      cur->_heap_hash_next=NULL;
       next=heap_hash[bucket];
-      while(next) {
-        if(next==cur) {
-          FrogGarbageCollectThing(cur,debug);
-	  break;
-	}
-        next=next->_heap_hash_next;
+      heap_hash[bucket]=cur;
+      cur->_heap_hash_next=next;
+
+    } 
+
+    //Scan stack "HolyC side may be using some poop"
+    stacks=Fs->stk;
+    stacke=GetRBP;
+    while(stacks<stacke) {
+      cur=stacks[0];
+      if(cur&&!(cur&0b111)) {
+        bucket=(cur>>3)(U64)%0x200;
+        next=heap_hash[bucket];
+        while(next) {
+	  if(next==cur) {
+	    FrogGarbageCollectThing(cur,debug);
+	    break;
+	  }
+	  next=next->_heap_hash_next;
+        }
+      }
+      stacks++;
+    }
+    I64 what;
+    for(what=0;what!=2;what++)
+      for(i=0;i!=threads->cnt;i++) {
+        task=threads->body[i];
+        if(what) {
+	  stacks=task->last_except;
+	  stacke=task->last_except+1;
+        } else {
+//Scan any registers saved in the Task(context swap)
+	  stacks=task;
+	  stacke=task+1;
+        }
+        while(stacks<stacke) {
+	  cur=stacks[0];
+	  if(cur&&!(cur&0b111)) {
+	    bucket=(cur>>3)(U64)%0x200;
+	    next=heap_hash[bucket];
+	    while(next) {
+	      if(next==cur) {
+	        FrogGarbageCollectThing(cur,debug);
+	        break;
+	      }
+	      next=next->_heap_hash_next;
+	    }
+	  }
+	  stacks++;
+        }
+      }
+    Free(heap_hash);
+
+
+    for(cur=head->next;cur!=head;cur=cur->next) {
+      if(ThingHasClass(cur,"CFrogSymbol")) {
+        FrogGarbageCollectThing(cur(CFrogSymbol*)->value,debug);
+      }
+      if(cur->thing_flags&THINGF_GC_ROOT)
+        FrogGarbageCollectThing(cur,debug);
+    }
+    FrogGarbageCollectThing(root);
+    for(cur=head->next;cur!=head;cur=next) {
+      next=cur->next;
+      if(ThingHasClass(cur,"CFrogSymbol")) {
+      } else if(Bt(&cur->thing_flags,THINGf_TO_DELETE)) {
+        cur->ref_cnt=1;
+        ThingDel(cur,FALSE);
+      } else {
+        cur->ref_cnt=cur->shadow_ref_cnt;
+        LBtr(&cur->thing_flags,THINGf_GC_LOCK);
       }
     }
-    stacks++;
-  }
-#ifdef __AIWNIOS__
-  for(except=Fs->next_except;except!=&Fs->next_except;except=except->next) {
-  stacks=Fs->last_except;
-  stacke=Fs->last_except+1;
-  while(stacks<stacke) {
-    cur=stacks[0];
-    if(cur&&!(cur&0b111)) {
-      bucket=(cur>>3)(U64)%0x200;
-      next=heap_hash[bucket];
-      while(next) {
-        if(next==cur) {
-          FrogGarbageCollectThing(cur,debug);
-	  break;
-	}
-        next=next->_heap_hash_next;
-      }
-    }
-    stacks++;
-  }
-}
-#endif
-  Free(heap_hash);
-  
-
-  for(cur=head->next;cur!=head;cur=cur->next) {
-    if(ThingHasClass(cur,"CFrogSymbol")) {
-      FrogGarbageCollectThing(cur(CFrogSymbol*)->value,debug);
-    }
-    if(cur->thing_flags&THINGF_GC_ROOT)
-      FrogGarbageCollectThing(cur,debug);
-  }
-  FrogGarbageCollectThing(root);
-  for(cur=head->next;cur!=head;cur=next) {
-    next=cur->next;
-    if(ThingHasClass(cur,"CFrogSymbol")) {
-    } else if(Bt(&cur->thing_flags,THINGf_TO_DELETE)) {
-      cur->ref_cnt=1;
-      ThingDel(cur,FALSE);
-    } else {
-      cur->ref_cnt=cur->shadow_ref_cnt;
-      LBtr(&cur->thing_flags,THINGf_GC_LOCK);
-    }
-  }
-  FrogEnableScripts;
-#ifndef __AIWNIOS__
-  POP_REGS
-#endif
+    FrogEnableScripts;
   } catch
     PutExcept;
 }
@@ -1866,7 +1867,6 @@ AddClassMethod("CFrogClass","fromString:",&FrogClassFromString);
 
 #exe{Cd(__DIR__);}; //???
 #include "Network.HC";
-#include "MultiThread.HC";
 U0 FrogBinDel(CFrogBin *bin) {
   Free(bin->data);
   Free(bin);

@@ -1,4 +1,4 @@
 lighting ->* 
 |
 |
-  self skylight: 4 
+  self skylight: sky_light 

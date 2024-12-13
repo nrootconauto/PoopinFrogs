@@ -13,6 +13,7 @@ update->*
   tmp2=CFrogNum
   sky_colors=CFrogArray
   sky_times=CFrogArray
+  sky_brights=CFrogArray
 |
   w _ #world .
   p _ w getPlayer .
@@ -20,11 +21,13 @@ update->*
   rot2 _2 * 3.14 * (t / day_length) .
 
 
-  sky_colors _ #(#color_BLUE #color_LTBLUE #color_LTCYAN #color_LTCYAN #color_LTBLUE #color_BLUE #color_BLACK #color_BLACK #color_BLACK #color_BLACK #color_BLACK)
+  sky_colors _ #(#color_BLUE #color_LTBLUE #color_LTCYAN #color_LTCYAN #color_LTBLUE #color_BLUE #color_BLACK #color_BLACK #color_BLACK #color_BLACK #color_BLACK) .
+  sky_brights _ #(4 6 9 10 6 4 3 2 2 2 3) .
 
   'Adjust sky_color(Lerp the values)' .
   sky_color _ (rot2 / (2 * 3.14) rem: 1) * sky_colors size .
 
+  w->sky_light _ sky_brights at: sky_color .
   sky_color _sky_colors at: sky_color .
 
   stars do:[:s=CDayNightStar|

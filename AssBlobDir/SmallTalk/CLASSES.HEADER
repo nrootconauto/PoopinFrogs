@@ -319,6 +319,7 @@ class CLevel:CFrogThing {
 
 class C3DWorldManager:CFrogThing {
   CLevel *level;
+  I64 sky_light; //The light from the sun. 
   I64 cur_tile_x;
   I64 cur_tile_y;
   I64 cur_tile_z;
@@ -544,12 +545,21 @@ class CEnergyGunPickup:CPickup {
 class CTalker:CHandItem {
   C3DThing *talking_to;
 };
+class CSmallPig:C3DThing {
+  CFrogRandom *random_generator;
+  F64 speed;
+  C3DThing *target;
+  F64 state_start_tS;
+  F64 state_duration;
+  F64 steps_to_walk;
+  CFrogStr *state;
+};
 class CFrogNPC:C3DThing {
   CFrogRandom *random_generator;
   F64 speed;
   CFrogTongue *tongue;
 //Who are we chasing/attacking
-  C3DThing *target; //TODO
+  C3DThing *target;
 //The state varaible does things like move the frog around
 // or run around if low health. It will attack if provoked
   F64 state_start_tS;

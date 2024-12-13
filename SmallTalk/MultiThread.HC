@@ -1,10 +1,12 @@
 class CFrogThread:CFrogThing {
    CFrogBlock *block;
    CTask *task;
-}; 
+};
+CI64Set *threads=I64SetNew(frog_mem_task); 
 U0 STThreadEnd() {
 //We are killed IF thread->task is set,otherwise we exited normally
   CFrogThread *thread=FramePtr("ThreadSelf");
+  I64SetRem(threads,Fs);
   if(thread->task) {
     FrogGarbageCollectUnlock;
   }
@@ -13,6 +15,7 @@ U0 STThreadEnd() {
 U0 STThreadRT(CFrogThread *thread) {
   Fs->user_data=0;
  FramePtrAdd("ThreadSelf",thread);
+  I64SetAdd(threads,Fs);
   thread->thing_flags|=THINGF_GC_ROOT;
   Fs->task_end_cb=&STThreadEnd;
   FrogGarbageCollectLock;
