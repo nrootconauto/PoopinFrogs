@@ -19,8 +19,6 @@ update->*
     (state ~= 'Dead') ifTrue: [
        w sweepSoundForTime: 500 withMin: 40 withMax: 17 .
        momz _ 0 .
-       momx2 _ 0 .
-       momy2 _ 0 .
        momx _ (random_generator next - .5) * 10 .
        momy _ (random_generator next - .5) * 10 .
        animation_no_repeat _ 1 .
@@ -68,8 +66,6 @@ update->*
              state _ 'Chase1' .
              made_sound _ 0 .
              angle _ target->x - x arg: target->y - y .
-             momx2 _ 0 .
-             momy2 _ 0 .
              momx _ speed * angle cos .
              momy _ speed * angle sin .
              momz _ (target->z - z) / dist sqrt * speed .

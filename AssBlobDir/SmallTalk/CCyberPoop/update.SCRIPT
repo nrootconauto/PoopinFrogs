@@ -8,8 +8,6 @@ update ->*
   hit_wall=CFrogNum
 |
 'Ask nroot to get off his ass and do this autoamticaly'. 
-  momx2 _ 0 .
-  momy2 _ 0 .
   w _ #world .
   now _ CFrogTime now asSeconds.
 

@@ -2436,11 +2436,11 @@ Bool CanSee2DThing(C3DWorld *w,C3DThing *t) {
   for(idx=0;idx<cnt;idx++) {
     x=ti[idx]%w->world_width;
     y=ti[idx]/w->world_width;
-    interp=Lerp(ToF64(idx)/ToF64(cnt),w->cam_height,t->z);
+    interp=Lerp(ToF64(idx)/ToF64(cnt),w->cam_height,t->z+1.);
     if(BlockAtXYZ(x,y,ToI64(interp))) {
       //Check if we are 1 block within result "good enough"
-      if(Abs(x-t->x/GRID_SZ)<0||Abs(y-t->y/GRID_SZ)<0
-	||Abs(z-t->z)<0)
+      if(Abs(x+.5-t->x/GRID_SZ)<.5||Abs(y+.5-t->y/GRID_SZ)<.5
+	||Abs(z-t->z)<.5)
 	break; //ret==TRUE
       ret=FALSE;
       break;

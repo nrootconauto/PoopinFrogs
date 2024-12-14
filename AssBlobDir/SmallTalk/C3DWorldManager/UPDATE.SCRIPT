@@ -35,6 +35,9 @@ update ->* |
     t->server_old_y _ t->y .
     t->server_old_z _ t->z .
     t->no_update ifFalse: [
+      t->momx2 _ 0 .
+      t->momy2 _ 0 .
+      t->momz2 _ 0 .
       t update
     ] .
   ].

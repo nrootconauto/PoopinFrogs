@@ -10,8 +10,6 @@ update ->* |
   state show .
   target show .
   target->health show .
-  momx2 _ 0 .
-  momy2 _ 0 .
   health <= 0 ifTrue: [
     new_t _ #world getThingTemplate: 'CFrogNPC/DEAD' .
     new_t ~= template ifTrue: [

@@ -8,8 +8,6 @@ update->* |
 
 
   tS _ CFrogTime now asSeconds.
-  momx2 _ 0 .
-  momy2 _ 0 .
   w _ #world .
 
 

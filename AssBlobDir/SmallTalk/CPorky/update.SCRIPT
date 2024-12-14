@@ -7,15 +7,11 @@ update ->*
   r=CFrogNum 
 |
   tS _ CFrogTime now asSeconds.
-  momx2 _ 0 .
-  momy2 _ 0 .
   w _ #world .
 
   health <= 0 ifTrue: [
     state ~= 'Dead' ifTrue: [
       w sweepSoundForTime: 500 withMin: 50 withMax: 30 .
-      momx2 _ 0 .
-      momy2 _ 0 .
       template _ w getThingTemplate: 'CPorky/Dead' .
       state _ 'Dead' .
       self die .

@@ -7,8 +7,6 @@ update -> * |
   w=C3DWorldManager
 |
   w _ #world .
-  momx2 _ 0 .
-  momy2 _ 0 .
   health <= 0 ifTrue: [
     state ~= 'Dead' ifTrue: [
       template  _ #world getThingTemplate: 'CZombie/Dead' .

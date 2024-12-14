@@ -23,6 +23,7 @@ thingsInDist: dist=CFrogNum atAngle: angle=CFrogNum fromThing: thing=C3DThing
       (t hasClass: C3DThing ) ifTrue: [
 'IndexOF' show .
 ret size show .
+t show .
         (ret indexOf: t) = -1 ifTrue: [
            ret add: t
         ] 
@@ -35,7 +36,7 @@ ret size show .
     gy _ y + (step * sin) .
     -1 to: 2 do: [:xo=CFrogNum |
       -1 to: 2 do: [:yo=CFrogNum |
-      add_thing value: x / 128 / 4 + xo value: y / 128 / 4 + yo .
+      add_thing value: gx / 128 / 4 + xo value: gy / 128 / 4 + yo .
       ] .
     ] .
     step _ step +  ( 128 * 4 ) .

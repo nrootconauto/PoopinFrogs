@@ -323,7 +323,7 @@ class CLight:CFrogThing {
 };
 
 class C3DWorldManager:CFrogThing {
-  CI64Set *_lights_cache; //List of tiles-Private dont use
+  CI64Set *_lights_cache; //List of tiles-Private dont use
   CLevel *level;
   CFrogArray *lights; //CLight
   I64 sky_light; //The light from the sun. 

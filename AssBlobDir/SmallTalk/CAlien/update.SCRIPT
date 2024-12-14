@@ -11,8 +11,6 @@ update->* |
   pickup=CShitItemPickup
 |
   tS _ CFrogTime now asSeconds.
-  momx2 _ 0 .
-  momy2 _ 0 .
   w _ #world .
 
   health <= 0 ifTrue: [
