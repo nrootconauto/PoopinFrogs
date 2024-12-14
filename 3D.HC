@@ -659,8 +659,8 @@ CFrogThing *WorldLightingSky(C3DWorldManager *man,I64 *argv,I64 argc) {
 //Zero lights
   MemSet(w->world_lighting,0,w->world_width*w->world_height*128);
 //Sky light
-  for(ix=-VIEW_DIST*2;ix<VIEW_DIST*2;ix++) {
-    for(iy=-VIEW_DIST*2;iy<VIEW_DIST*2;iy++) {
+  for(ix=-VIEW_DIST-15;ix<VIEW_DIST+15;ix++) {
+    for(iy=-VIEW_DIST-15;iy<VIEW_DIST+15;iy++) {
       LightingSky(ix+x,iy+y,sky_light,lights);
     }
   }
@@ -716,6 +716,7 @@ CDoor *DoorAtXYZ(C3DWorldManager *man,I64 ix,I64 iy,F64 iz,F64 tallness=.8) {
   }
   return NULL;
 }
+
 Bool HeightImpossible(C3DWorldManager *man,I64 ix,I64 iy,F64 above,Bool allow_ceil,F64 tallness=.1,F64 wiggle_room=0) {
   I64 iz=Floor(above);
   I64 c,idx2,t;
@@ -737,7 +738,16 @@ Bool HeightImpossible(C3DWorldManager *man,I64 ix,I64 iy,F64 above,Bool allow_ce
     return TRUE;
   return FALSE;
 }
-
+CFrogNum *ThingIsOnGround(C3DThing *self,I64 *argv,I64 argc) {
+  return FrogNumNew(HeightImpossible(
+	FrogSymbol("world")->value,
+	self->x/128.,
+	self->y/128.,
+	self->z-.11,
+	FALSE
+  ));
+}
+AddMethod("C3DThing","isOnGround",&ThingIsOnGround);
 C3DThing *BumpsIntoThing(C3DThing *self,I64 *argv,I64 argc) {
   C3DThing *who=argv[0];
   F64 radius=THING_RADIUS*THING_RADIUS;
@@ -880,7 +890,7 @@ Bool C3DWorldMoveZWithCollision(C3DWorld *w,F64 dist,F64 x,F64 y,F64 *_height,F6
 fix:;
   while(HeightImpossible(man,x/GRID_SZ,y/GRID_SZ,z,TRUE,tallness)) {
     hit=TRUE;
-    z-=dir/128.;
+    z-=dir/64.;
     if(dir>0&&z<oz) {
       z=oz;
       break;
@@ -889,11 +899,10 @@ fix:;
       break;
     }
   }
-
   //Cant move anywhere but up
   if(z==oz) {
     while(HeightImpossible(man,x/GRID_SZ,y/GRID_SZ,z,TRUE,tallness))
-      ++z;
+      z+=1/64.;
   }
 
   if(hit)
