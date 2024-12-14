@@ -1,0 +1,12 @@
+newExplosionLightAtX: x=CFrogNum atY: y=CFrogNum atZ: z=CFrogNum withLevel: l=CFrogNum ->CLight
+|
+  light=CLight
+|
+  light _ CLight new .
+  light->x _ x .
+  light->y _ y .
+  light->z _ z .
+  light->level _ l min: 15 .
+  lights add: light .
+  light->start_tS _ CFrogTime now asSeconds .
+  light update .

@@ -194,22 +194,6 @@ class CFileDoor {
   I32 flags;
   I32 tag;
 };
-F64 cos_lookup_table[GR_WIDTH];
-F64 cos2_lookup_table[GR_WIDTH];
-F64 sin_lookup_table[GR_WIDTH];
-F64 tan_lookup_table[GR_WIDTH];
-U0 InitTables(F64 base,F64 fov) {
-  F64 angle=base-fov/2,angle2=-fov/2;
-  I64 idx;
-  for(idx=0;idx!=GR_WIDTH;idx++) {
-    cos2_lookup_table[idx]=Cos(angle2);
-    cos_lookup_table[idx]=Cos(angle);
-    sin_lookup_table[idx]=Sin(angle);
-    tan_lookup_table[idx]=Tan(angle);
-    angle2+=fov/GR_WIDTH;
-    angle+=fov/GR_WIDTH;
-  }
-}
 
 class C3DParticle:CQue {
   F64 x,y,z,born_at;
@@ -585,7 +569,7 @@ n:;
   }
   I64SetDel(stack);
 }
-U0 LightingSky(I64 x,I64 y,I64 sky_light=15,CI64Set *lights) {
+U0 LightingSky(I64 x,I64 y,I64 sky_light=15,CI64Set *lights=NULL) {
   sky_light=ClampI64(sky_light,0,15);
   I64 z=I8_MAX,b;
   U8 *col;
@@ -612,45 +596,66 @@ U0 LightingSky(I64 x,I64 y,I64 sky_light=15,CI64Set *lights) {
       }
     }
 }
-Bool RemoveLight(I64 x,I64 y,I64 z) {
+U0 RemoveLight(I64 x,I64 y,I64 z,I64 level) {
   C3DWorldManager *man=FrogSymbol("world")->value;
+  if(!man->_lights_cache) 
+    man->_lights_cache=I64SetNew(frog_mem_task);
   U8 *lights=w->world_lighting;
   U8 *blocks=w->world_blocks;
-  I64 ox,oy,oz,ww=w->world_width,wh=w->world_height,t,t2;
-  CI64Set *llist=I64SetNew;
-//Sky light to fill in the hole
-  LightingSky(x,y,man->sky_light,NULL);
-  for(ox=-16;ox<=16;ox++)
-    for(oz=-16;oz<=16;oz++)
-      for(oy=-16;oy<=16;oy++) {
+  I64 ox,oy,oz,ww=w->world_width,wh=w->world_height,t,t2,l,c;
+  CI64Set *llist;
+  CLight **lights2,*light;
+  for(ox=-level;ox<=level;ox++)
+    for(oz=-level;oz<=level;oz++)
+      for(oy=-level;oy<=level;oy++) {
         if(0<=z+oz<=I8_MAX)
 	  if(0<=ox+x<ww)
 	    if(0<=oy+y<wh) {
 	      t=(ox+x+(oy+y)*ww)*128+z+oz;
 	      lights[t]&=0xf0; //Keep skylight
-	      if(BlockLightLevel(blocks[t])>=1) {
-		I64SetAdd(llist,t);
-	      }
 	    }
       }
-  while(--llist->cnt>=0)  {
-    t=t2=llist->body[llist->cnt];
+
+  ox=x;
+  oy=y;
+  oz=z;
+
+  llist=man->_lights_cache;
+  c=llist->cnt;
+  while(--c>=0)  {
+    t=t2=llist->body[c];
     z=t&127;
     t=t/128;
     x=t%ww;
     y=t/ww;
-    LightingLight(x,y,z,BlockLightLevel(blocks[t2]));
+    l=BlockLightLevel(blocks[t2]);
+    if(l>=Sqrt(Sqr(ox-x)+Sqr(oy-y)+Sqr(oz-z))) {
+      LightingLight(x,y,z,l);
+    }
   }
-  I64SetDel(llist);
+
+  t=man->lights->items->cnt;
+  lights2=man->lights->items->body;
+  while(--t>=0) {
+    light=lights2[t];
+    l=light->level;
+    if(l>=
+	Sqrt(Sqr(light->x-ox)+Sqr(light->y-oy)+Sqr(light->z-oz)))
+      LightingLight(light->x,light->y,light->z,light->display_level);
+  }
 }
 
 
 CFrogThing *WorldLightingSky(C3DWorldManager *man,I64 *argv,I64 argc) {
+  if(!man->_lights_cache) 
+    man->_lights_cache=I64SetNew(frog_mem_task);
+  else
+    man->_lights_cache->cnt=0;
   I64 x=w->x/128.,ix;
   I64 y=w->y/128.,iy;
   I64 sky_light=AsF64(argv[0]),z;
   I64 level,tp;
-  CI64Set *lights=I64SetNew;
+  CI64Set *lights=man->_lights_cache;
 //Zero lights
   MemSet(w->world_lighting,0,w->world_width*w->world_height*128);
 //Sky light
@@ -670,7 +675,16 @@ CFrogThing *WorldLightingSky(C3DWorldManager *man,I64 *argv,I64 argc) {
     level=BlockLightLevel(BlockAtXYZ(ix,iy,z));
     LightingLight(ix,iy,z,level);
   }
-  I64SetDel(lights);
+
+  CLight **lights2,*light;
+  tp=man->lights->items->cnt;
+  lights2=man->lights->items->body;
+  while(--tp>=0) {
+    light=lights2[tp];
+    if(VIEW_DIST*VIEW_DIST>=
+	DistSqrI64(light->x,light->y,x,y))
+      LightingLight(light->x,light->y,light->z,light->display_level);
+  }
   return FROG_SMALL_NIL;
 }
 AddMethod("C3DWorldManager","skylight:",&WorldLightingSky);
@@ -1323,7 +1337,7 @@ Bool PointToScrn(C3DWorld *w,F64 x,F64 y,F64 z,CD3 *p) {
   y=(y-w->y)/128;
   x=(x-w->x)/128;
 
-  F64 o=Sqrt(z*z+x*x+y*y),push_back=10.,scale;
+  F64 o=Sqrt(z*z+x*x+y*y);
 
 
   pt1.z=z;
@@ -1336,15 +1350,14 @@ Bool PointToScrn(C3DWorld *w,F64 x,F64 y,F64 z,CD3 *p) {
   x=pt1.x;
   z=pt1.z;
 
-  x+=push_back;
   p->x=x;
   p->y=y;
   p->z=z;
 
 
   //Begind camera
-  if(p->x-push_back<.01) {
-    D3MulEqu(p,1./Max(.01,p->x)); //Hueristic not exact
+  if(p->x<.01) {
+    D3MulEqu(p,1./Max(.01,p->x+.001)); //Hueristic not exact
     D3Equ(p,
 	  (p->y/2+.5)*GR_WIDTH,
 	  (p->z/-2+.5)*GR_HEIGHT,
@@ -1352,7 +1365,7 @@ Bool PointToScrn(C3DWorld *w,F64 x,F64 y,F64 z,CD3 *p) {
 	  );
     return FALSE;
   } else {
-    D3MulEqu(p,1./(p->x-push_back));
+    D3MulEqu(p,1./p->x);
     D3Equ(p,
 	  (p->y/2+.5)*GR_WIDTH,
 	  (p->z/-2+.5)*GR_HEIGHT,
@@ -2624,6 +2637,8 @@ CFrogThing *WorldManagerHeight(C3DWorldManager *self,I64 *argv,I64 argc) {
 AddMethod("C3DWorldManager","width",&WorldManagerWidth);
 AddMethod("C3DWorldManager","height",&WorldManagerHeight);
 CFrogThing *WorldManagerSetTileAtXAtY(C3DWorldManager *self,I64 *argv,I64 argc) {
+  if(!self->_lights_cache) 
+    self->_lights_cache=I64SetNew(frog_mem_task);
   I8 tile=AsF64(argv[0]);
   I64 x=AsF64(argv[1]);
   I64 y=AsF64(argv[2]);
@@ -2635,10 +2650,13 @@ CFrogThing *WorldManagerSetTileAtXAtY(C3DWorldManager *self,I64 *argv,I64 argc) 
 	l=BlockLightLevel(w->world_blocks[tt]);
 //Remove tile then set light
         w->world_blocks[tt]=tile;
-	if(l>=1)
-	  RemoveLight(x,y,z);
+	if(l>=1) {
+	  I64SetRem(self->_lights_cache,tt);
+	  RemoveLight(x,y,z,l);
+        }
 	if(l=BlockLightLevel(tile)) {
 	  LightingLight(x,y,z,l);
+	  I64SetAdd(self->_lights_cache,tt);
 	}
 //Re-assign sky light
         LightingSky(x,y,self->sky_light,NULL);
@@ -2825,17 +2843,33 @@ U0 Draw3DWorld(CTask *,CDC *dc) {
   CFrogImg *hand_gr,*minimap;
   C3DLine *line;
   I32 *odepth_buf;
-  I64 tx,ty,c,f;
+  I64 tx,ty,c,f,l;
   CI64Set *s;
   C3DParticle *p,*head,*n;
   CShellCasing *shellc;
   CHandItem *hand=FrogSymbol("hand_item")->value;
+
+  c=man->lights->items->cnt;
+
   w->angle2=player->angle2;
   w->angle=player->angle;
   w->x=player->x;
   w->y=player->y;
   w->cam_height=player->z+.6;
   DCFill(dc,man->day_night->sky_color);
+
+  CLight **lights2=man->lights->items->body,*light;
+  while(--c>=0) {
+    light=lights2[c];
+    l=light->level;
+    if(l>=
+	Sqrt(Sqr(light->x-w->x/128)+Sqr(light->y-w->y/128)+Sqr(light->z-w->cam_height)))
+ //Remove light will re-light close lights
+//+1 for previous(?) light level
+      RemoveLight(light->x,light->y,light->z,light->display_level+1);
+  }
+
+
   stars=man->day_night->stars->items->body;
   c=man->day_night->stars->items->cnt;
   while(--c>=0) {
@@ -2846,7 +2880,6 @@ U0 Draw3DWorld(CTask *,CDC *dc) {
   DCDepthBufRst(dc);
   PrepareThingsForDraw(man);
   odepth_buf=dc->depth_buf;
-  InitTables(w->angle,w->fov);
   C3DWorldCastRays(w);   
   mp_thing_done=0;
   C3DLine ***body;

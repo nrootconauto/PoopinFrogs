@@ -316,10 +316,17 @@ class CLevel:CFrogThing {
 };
 
 
+class CLight:CFrogThing {
+  I64 x,y,z;
+  I64 level,display_level;
+  F64 start_tS;
+};
 
 class C3DWorldManager:CFrogThing {
+  CI64Set *_lights_cache; //List of tiles-Private dont use
   CLevel *level;
-  I64 sky_light; //The light from the sun. 
+  CFrogArray *lights; //CLight
+  I64 sky_light; //The light from the sun. 
   I64 cur_tile_x;
   I64 cur_tile_y;
   I64 cur_tile_z;

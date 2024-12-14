@@ -18,4 +18,5 @@ explode ->CFrogNum
     #world newParticleAtX: x atY: y atZ: z + .5 withSpread: 3 * 128 withColor: #color_LTGRAY
   ] .
   #world removeThing: self .
+  #world newExplosionLightAtX: x / 128 atY: y / 128 atZ: z withLevel: 13 .
   ^ 1 
