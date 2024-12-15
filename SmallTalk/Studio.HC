@@ -50,55 +50,55 @@ again:
         DocPrint(out,"$$FD$$");
 //Flush whitespace
         while(lpos!=l->pos) {
-          if(txt[lpos]=='\d')
+	  if(txt[lpos]=='\d')
 	    DocPrint(out,"$$$$",txt[lpos++]);
-          else
-	  DocPrint(out,"%c",txt[lpos++]);
-	}
+	  else
+	    DocPrint(out,"%c",txt[lpos++]);
+        }
         LexerDel(l);
-	return;
+        return;
       start:
-      case TOK_STR:
-        DocPrint(out,"$$LTRED$$");
-	break;
-      case TOK_CHR:
-        DocPrint(out,"$$LTRED$$");
-	break;
-      case TOK_NUM:
-        DocPrint(out,"$$BROWN$$");
-	break;
-      case TOK_NAME:
-        DocPrint(out,"$$BLUE$$");
-	break;
-      case '(':
-      case '[':
-        if(nest_depth&1)
-          DocPrint(out,"$$RED$$");
-	else
-          DocPrint(out,"$$GREEN$$");
-        nest_depth++;
-	break;
-      case ')':
-      case ']':
-        nest_depth--;
-        if(nest_depth&1)
-          DocPrint(out,"$$RED$$");
-	else
-          DocPrint(out,"$$LTGREEN$$");
-	break;
-      default:
-        DocPrint(out,"$$FD$$");
-	break;
+        case TOK_STR:
+	  DocPrint(out,"$$LTRED$$");
+	  break;
+        case TOK_CHR:
+	  DocPrint(out,"$$LTRED$$");
+	  break;
+        case TOK_NUM:
+	  DocPrint(out,"$$BROWN$$");
+	  break;
+        case TOK_NAME:
+	  DocPrint(out,"$$BLUE$$");
+	  break;
+        case '(':
+        case '[':
+	  if(nest_depth&1)
+	    DocPrint(out,"$$RED$$");
+	  else
+	    DocPrint(out,"$$GREEN$$");
+	  nest_depth++;
+	  break;
+        case ')':
+        case ']':
+	  nest_depth--;
+	  if(nest_depth&1)
+	    DocPrint(out,"$$RED$$");
+	  else
+	    DocPrint(out,"$$LTGREEN$$");
+	  break;
+        default:
+	  DocPrint(out,"$$FD$$");
+	  break;
       end:
-	off=0;
-	if(l->flags&(1<<LEXf_USE_LAST_CHAR))
+        off=0;
+        if(l->flags&(1<<LEXf_USE_LAST_CHAR))
 	  off=-1;
         while(lpos<l->pos+off) {
-          if(txt[lpos]=='\d')
+	  if(txt[lpos]=='\d')
 	    DocPrint(out,"$$$$",txt[lpos++]);
-          else 
+	  else 
 	    DocPrint(out,"%c",txt[lpos++]);
-	}
+        }
         goto again;
     }
   } catch {
@@ -198,26 +198,26 @@ Bool STStudioRegisterNewClasses(U8 *blob_file) {
     for(idx=0;idx<=new->mask;idx++) {
       cls=new->body[idx];
       while(cls) {
-	if(cls->type&HTT_CLASS) {
+        if(cls->type&HTT_CLASS) {
 	  StrPrint(buf,ST_ROOT"%s/CONSTRUCTOR",cls->str);
-          if(dummy=BlobFileGetLump(blob_file,buf)) {
+	  if(dummy=BlobFileGetLump(blob_file,buf)) {
 //Lump already exists
-          } else {
+	  } else {
 	    dummy=MStrPrint("init | |\n ^ self\n");
-            BlobFileAddLump(blob_file,buf,dummy,StrLen(dummy),'SCRIPT');
-          }
-          Free(dummy);
+	    BlobFileAddLump(blob_file,buf,dummy,StrLen(dummy),'SCRIPT');
+	  }
+	  Free(dummy);
 //Class Methods
 	  StrPrint(buf,ST_CLASS_ROOT"%s/NEW",cls->str);
-          if(dummy=BlobFileGetLump(blob_file,buf)) {
+	  if(dummy=BlobFileGetLump(blob_file,buf)) {
 //Lump already exists
-          } else {
+	  } else {
 	    dummy=MStrPrint("new | |\n ^ self basicNew init\n");
-            BlobFileAddLump(blob_file,buf,dummy,StrLen(dummy),'SCRIPT');
-          }
-          Free(dummy);
-	}
-	cls=cls->next;
+	    BlobFileAddLump(blob_file,buf,dummy,StrLen(dummy),'SCRIPT');
+	  }
+	  Free(dummy);
+        }
+        cls=cls->next;
       }
     }
   } catch {
@@ -236,7 +236,7 @@ U0 STValidateCode(U8 *blob_file="../ASS",U8 *code,U8 *path,Bool script=FALSE) {
   CDoc *pd=Fs->put_doc,*new=DocNew;
   CMethod *m;
   CAST *ast;
-  //
+//
   //Dumy hash table for tmeporary headers
   //
   CHashTable *dummy=HashTableNew(0x100);
@@ -274,8 +274,8 @@ U0 STValidateCode(U8 *blob_file="../ASS",U8 *code,U8 *path,Bool script=FALSE) {
   DocDel(new);
   Fs->hash_table=dummy->next;
 //
-// Done with header symbols
-//
+  // Done with header symbols
+  //
   HashTableDel(dummy);
 }
 U0 STFindText(CDoc *help_doc,U8 *blob_file="../ASS",U8 *search_text,Bool include_src=TRUE) {
@@ -300,20 +300,20 @@ U0 STFindText(CDoc *help_doc,U8 *blob_file="../ASS",U8 *search_text,Bool include
     hdr=&lumps->lump_table[idx];
     if(!StrNCmp(hdr->name,ST_ROOT,StrLen(ST_ROOT))) {
       if(data=BlobFileGetLump(blob_file,hdr->name)) {
-	if(StrIMatch(search_text,data)) {
+        if(StrIMatch(search_text,data)) {
 	  if(en=StrLastOcc(hdr->name,"/")) {
 	    DocBottom(help_doc);
 	    DocPrint(help_doc,"$$RED$$$$MU+CX,\"%Q\",LE=%d$$$$FD$$\n",en+1,idx);
 	    DocPrint(help_doc,"$$ID,2$$\n");
 	    STSyntaxHighlight(help_doc,data,FALSE);
 	    DocPrint(help_doc,"$$ID,-2$$\n");
-            tmp=LumpNameToPath(hdr->name);
+	    tmp=LumpNameToPath(hdr->name);
 	    tmp2=MStrPrint("Results/%s",tmp);
 	    DocTreeAppend(help_doc,tmp2,FALSE,"$$RED$$$$MU,\"%Q\",LE=%d$$$$FD$$\n",en+1,idx);
 	    Free(tmp),Free(tmp2);
 	  }
-	}
-	Free(data);
+        }
+        Free(data);
       } 
     }
   }
@@ -328,7 +328,7 @@ U0 STFindText(CDoc *help_doc,U8 *blob_file="../ASS",U8 *search_text,Bool include
 	  help_doc->cur_entry=doc_e;
 	  DocPrint(help_doc,"$$RED$$$$MU+CX,\"%Q\",LE=%d$$$$FD$$\n",doc_e->tag,doc_e->left_exp);
 	  DocEntryDel(help_doc,doc_e);
-          DocRecalc(help_doc);
+	  DocRecalc(help_doc);
         }
       }
       Free(tmp);
@@ -339,16 +339,89 @@ U0 STFindText(CDoc *help_doc,U8 *blob_file="../ASS",U8 *search_text,Bool include
   I64SetDel(matches);
   Free(lumps);
 }
-/*U0 STHelpIdxMarkdown(CDoc *help_doc,U8 *blob_file="../ASS",) {
-  CBlobFileHeader *lumps=FileRead(blob_file);
+U0 STHelpIdxMarkdown(CDoc *help_doc,U8 *blob_file="ASS",) {
   blob_file=ExtDft(blob_file,"BLOB");
   if(!FileFind(blob_file)) {
     PopUpOk("Cant Find Blob file!!!");
     Free(blob_file);
     return;
   }
-  Free();
-}*/
+  CBlobFileHeader *lumps=FileRead(blob_file);
+  CLumpHeader *hdr;
+  I64 idx,idx2,idx3;
+  CLexer *l;
+  CMethod *m;
+  U8 cur_class_name[STR_LEN],*prefix,*name,*method_name,*tmp;
+  U8 cls_name[STR_LEN],*cls_name_ptr=cls_name;
+  U8 name2[STR_LEN],*name_ptr=name2;
+  cur_class_name[0]=0;
+  QSort(lumps->lump_table,lumps->lump_cnt,sizeof(CLumpHeader),&BlobLumpSort);
+  DocPrint(help_doc,"# SmallTalk reference\n\n");
+  Bool os=Silent(1);
+  CHashTable *ht;
+  CHashGeneric *hgen; 
+  for(idx2=0;idx2!=2;idx2++) {
+    if(idx2==0)
+      DocPrint(help_doc,"## Instance Methods\n\n");
+    else
+      DocPrint(help_doc,"## Class Methods\n\n");
+    for(idx=0;idx!=lumps->lump_cnt;idx++) {
+      hdr=&lumps->lump_table[idx];
+      if(idx2==0&&!StrNCmp(hdr->name,ST_ROOT,StrLen(ST_ROOT))) {
+enter:
+        prefix=StrNew(hdr->name+StrLen(ST_ROOT));
+        if(name=StrFirstOcc(prefix,"/")) {
+	  *name++=0;
+	  if(!StrCmp(prefix,cur_class_name)) {
+	  } else {
+	    StrCpy(cur_class_name,prefix);
+	    DocPrint(help_doc," - %Q\n",prefix);
+//Do builtins
+	    for(ht=Fs->hash_table;ht;ht=ht->next) 
+	      for(idx3=0;idx3!=ht->mask+1;idx3++) {
+	        for(hgen=ht->body[idx3];hgen;hgen=hgen->next) {
+		  if(hgen->type&HTT_FRAME_PTR) {
+		    if(idx2==0&&!StrNCmp("METHOD_",hgen->str,StrLen("METHOD_"))) {
+		      StrScan(hgen->str,"METHOD_%s.%s",&cls_name_ptr,&name_ptr);
+builtin:
+			if(!StrCmp(cur_class_name,cls_name))
+		          DocPrint(help_doc,"\t - **%s**(builtin)\n",name2);
+		      } else if(idx2==1&&!StrNCmp("CMETHOD_",hgen->str,StrLen("CMETHOD_"))) {
+		        StrScan(hgen->str,"CMETHOD_%s.%s",&cls_name_ptr,&name_ptr);
+		        goto builtin;
+		      }
+		    }
+		  }
+	        }
+	  }
+	  method_name=StrNew(name);
+	  l=LexerNew(BlobFileGetLump(,hdr->name));
+	  try {
+	    Lex(l);
+	    if(m=ParseMethod(l,HashFind(prefix,Fs->hash_table,HTT_CLASS))) {
+	      Free(method_name);
+	      method_name=StrNew(m->name);
+	      MethodDel(m);
+	    }
+	  } catch 
+	    Fs->catch_except=TRUE;
+	  LexerDel(l);
+	  if(idx2==0)
+	    DocPrint(help_doc,"\t - [%Q](AssBlobDir/SmallTalk/%Q/%Q.SCRIPT)\n",method_name,prefix,name);
+	  else if(idx2==1) {
+	    DocPrint(help_doc,"\t - [%Q](AssBlobDir/STClsRoot/%Q/%Q.SCRIPT)\n",method_name,prefix,name);
+	  }
+        }
+        Free(prefix);
+      } else if(idx2==1&&!StrNCmp(hdr->name,ST_CLASS_ROOT,StrLen(ST_CLASS_ROOT))) {
+        goto enter;
+      }
+    }
+  }
+  Silent(os);
+  Free(lumps);
+  Free(blob_file);
+}
 U0 STHelpIdx(CDoc *help_doc,U8 *blob_file="../ASS",U8 *method_wildcard="*",Bool include_src=TRUE) {
   blob_file=ExtDft(blob_file,"BLOB");
   if(!FileFind(blob_file)) {
@@ -495,7 +568,7 @@ U0 STHelpIdx(CDoc *help_doc,U8 *blob_file="../ASS",U8 *method_wildcard="*",Bool 
   for(ht=Fs->hash_table;ht;ht=ht->next) 
     for(idx=0;idx!=ht->mask+1;idx++) {
       for(hgen=ht->body[idx];hgen;hgen=hgen->next) {
-	if(hgen->type&HTT_FRAME_PTR) {
+        if(hgen->type&HTT_FRAME_PTR) {
 	  if(!StrNCmp("METHOD_",hgen->str,StrLen("METHOD_"))) {
 	    StrScan(hgen->str,"METHOD_%s.%s",&cls_name_ptr,&name_ptr);
 	    tmp=MStrPrint("Instance Methods/%s",cls_name);
@@ -508,7 +581,7 @@ builtin:
 	    tmp=MStrPrint("Class Methods/%s",cls_name);
 	    goto builtin;
 	  }
-	}
+        }
       }
     }
   Silent(FALSE);
@@ -537,14 +610,15 @@ builtin:
   HashTableDel(new);
 }
 
-U0 STStudio(U8 *blob_file="../ASS") {
-  blob_file=ExtDft(blob_file,"BLOB");
-  if(!FileFind(blob_file)) {
+U0 STStudio(U8 *blob_file="../ASS")
+  {
+    blob_file=ExtDft(blob_file,"BLOB");
+    if(!FileFind(blob_file)) {
     PopUpOk("Cant Find Blob file!!!");
-    Free(blob_file);
-    return;
+  Free(blob_file);
+return;
   }
-again:;
+  again:;
   STStudioRegisterNewClasses(blob_file);
   Bool repeat=TRUE;
   I64 idx,code,len;
@@ -556,236 +630,236 @@ again:;
   DocPrint(main_menu,"$$PURPLE$$$$TX+CX,\"SmallTalk Studio\"$$$$FD$$\n");
   DocPrint(main_menu,"\n\n$$BT+CX,\"Add/Edit Class\",LE=STS_ADD_CLASS$$\n\n");
   DocPrint(main_menu,"\n\n$$BT+CX,\"Method Name Search\",LE=STS_METHOD_HELP$$\n\n");
-  DocPrint(main_menu,"\n\n$$BT+CX,\"Text Search\",LE=STS_FIND$$\n\n");
+DocPrint(main_menu,"\n\n$$BT+CX,\"Text Search\",LE=STS_FIND$$\n\n");
   DocPrint(main_menu,"$$RED$$$$TX+CX,\"Edit A Method\"$$$$FD$$\n");
- 
-//Phase 1,New method button
-  for(idx=0;idx!=lumps->lump_cnt;idx++) {
-    hdr=&lumps->lump_table[idx];
-    if(!StrNCmp(hdr->name,ST_ROOT,StrLen(ST_ROOT))&&
-	StrCmp(hdr->name,ST_ROOT"CLASSES") //Make sure not CLASSES lump
-	&&StrOcc(hdr->name,'/')==2) { //1 '/' for root,1 '/' for class/method
+
+    //Phase 1,New method button
+    for(idx=0;idx!=lumps->lump_cnt;idx++) {
+	  hdr=&lumps->lump_table[idx];
+	  if(!StrNCmp(hdr->name,ST_ROOT,StrLen(ST_ROOT))&&
+      StrCmp(hdr->name,ST_ROOT"CLASSES") //Make sure not CLASSES lump
+      &&StrOcc(hdr->name,'/')==2) { //1 '/' for root,1 '/' for class/method
       prefix=LumpNameToPath(hdr->name);
       tmp=MStrPrint("Instance Methods/%s",prefix);
       DocTreeWrite(main_menu,tmp,FALSE,"$$RED$$$$MU,\"New Method\",LE=%d$$$$FD$$\n",idx|(1<<32));
-      Free(prefix);
-      Free(tmp);
-    }
+    Free(prefix);
+  Free(tmp);
+}
   }
-//Phase 2,fill in methods
-  for(idx=0;idx!=lumps->lump_cnt;idx++) {
-    hdr=&lumps->lump_table[idx];
-    if(!StrNCmp(hdr->name,ST_ROOT,StrLen(ST_ROOT))
-       &&StrCmp(hdr->name,ST_ROOT"CLASSES") //Make sure not CLASSES lump
-	&&StrOcc(hdr->name,'/')==2 //"SmallTalk/Class/Method"
-	&&hdr->name[0]!='.'
-       ) {
+    //Phase 2,fill in methods
+    for(idx=0;idx!=lumps->lump_cnt;idx++) {
+	  hdr=&lumps->lump_table[idx];
+	  if(!StrNCmp(hdr->name,ST_ROOT,StrLen(ST_ROOT))
+	  &&StrCmp(hdr->name,ST_ROOT"CLASSES") //Make sure not CLASSES lump
+    &&StrOcc(hdr->name,'/')==2 //"SmallTalk/Class/Method"
+      &&hdr->name[0]!='.'
+      ) {
       prefix=LumpNameToPath(hdr->name);
-      tmp=MStrPrint("Instance Methods/%s",prefix);
+        tmp=MStrPrint("Instance Methods/%s",prefix);
       if(en=StrLastOcc(hdr->name,"/")) {
-        DocTreeAppend(main_menu,tmp,FALSE,"$$BLUE$$$$MU,\"%Q\",LE=%d$$$$RED$$$$MU,\"(delete)\",LE=%d$$$$FD$$\n",en+1,idx,idx|(2<<32));
+      DocTreeAppend(main_menu,tmp,FALSE,"$$BLUE$$$$MU,\"%Q\",LE=%d$$$$RED$$$$MU,\"(delete)\",LE=%d$$$$FD$$\n",en+1,idx,idx|(2<<32));
       }
-      Free(prefix);
-      Free(tmp);
-    }
+    Free(prefix);
+  Free(tmp);
+}
   }
-//Phase 3,Class Methods(start with .)
-  for(idx=0;idx!=lumps->lump_cnt;idx++) {
-    hdr=&lumps->lump_table[idx];
+    //Phase 3,Class Methods(start with .)
+    for(idx=0;idx!=lumps->lump_cnt;idx++) {
+	  hdr=&lumps->lump_table[idx];
     if(!StrNCmp(hdr->name,ST_CLASS_ROOT,StrLen(ST_CLASS_ROOT))
-	&&StrOcc(hdr->name,'/')==2
-	) { //1 '/' for root,1 '/' for class/method
+      &&StrOcc(hdr->name,'/')==2
+      ) { //1 '/' for root,1 '/' for class/method
       prefix=LumpNameToPath(hdr->name);
       tmp=MStrPrint("Class Methods/%s",prefix);
       DocTreeWrite(main_menu,tmp,FALSE,"$$RED$$$$MU,\"New Method\",LE=%d$$$$FD$$\n",idx|(4<<32));
-      Free(prefix);
-      Free(tmp);
-    }
+    Free(prefix);
+  Free(tmp);
+}
   }
-//Phase 4 fill in class Methods
-  for(idx=0;idx!=lumps->lump_cnt;idx++) {
-    hdr=&lumps->lump_table[idx];
+    //Phase 4 fill in class Methods
+    for(idx=0;idx!=lumps->lump_cnt;idx++) {
+	  hdr=&lumps->lump_table[idx];
     if(!StrNCmp(hdr->name,ST_CLASS_ROOT,StrLen(ST_CLASS_ROOT))
-	&&StrOcc(hdr->name,'/')==2 //"SmallTalk/Class/Method"
-       ) {
+      &&StrOcc(hdr->name,'/')==2 //"SmallTalk/Class/Method"
+      ) {
       prefix=LumpNameToPath(hdr->name);
-      tmp=MStrPrint("Class Methods/%s",prefix);
+        tmp=MStrPrint("Class Methods/%s",prefix);
       if(en=StrLastOcc(hdr->name,"/")) {
-        DocTreeAppend(main_menu,tmp,FALSE,"$$BLUE$$$$MU,\"%Q\",LE=%d$$$$RED$$$$MU,\"(delete)\",LE=%d$$$$FD$$\n",en+1,idx,idx|(2<<32));
+      DocTreeAppend(main_menu,tmp,FALSE,"$$BLUE$$$$MU,\"%Q\",LE=%d$$$$RED$$$$MU,\"(delete)\",LE=%d$$$$FD$$\n",en+1,idx,idx|(2<<32));
       }
-      Free(prefix);
-      Free(tmp);
-    }
+    Free(prefix);
+  Free(tmp);
+}
   }
-//Phase 5,Load scripts
-  DocTreeWrite(main_menu,"Scripts",FALSE,"$$RED$$$$MU,\"New Script\",LE=%d$$$$FD$$\n",3<<32);
-  for(idx=0;idx!=lumps->lump_cnt;idx++) {
-    hdr=&lumps->lump_table[idx];
-    if(!StrNCmp(hdr->name,ST_SCRIPT_ROOT,StrLen(ST_SCRIPT_ROOT))) {
-      tmp=MStrPrint("Scripts");
+  //Phase 5,Load scripts
+    DocTreeWrite(main_menu,"Scripts",FALSE,"$$RED$$$$MU,\"New Script\",LE=%d$$$$FD$$\n",3<<32);
+    for(idx=0;idx!=lumps->lump_cnt;idx++) {
+      hdr=&lumps->lump_table[idx];
+      if(!StrNCmp(hdr->name,ST_SCRIPT_ROOT,StrLen(ST_SCRIPT_ROOT))) {
+        tmp=MStrPrint("Scripts");
       if(en=hdr->name+StrLen(ST_SCRIPT_ROOT)) {
-        DocTreeAppend(main_menu,tmp,FALSE,"$$BLUE$$$$MU,\"%Q\",LE=%d$$$$RED$$$$MU,\"(delete)\",LE=%d$$$$FD$$\n",en,idx,idx|(2<<32));
-      }
-      Free(tmp);
+      DocTreeAppend(main_menu,tmp,FALSE,"$$BLUE$$$$MU,\"%Q\",LE=%d$$$$RED$$$$MU,\"(delete)\",LE=%d$$$$FD$$\n",en,idx,idx|(2<<32));
     }
+  Free(tmp);
+}
   }
 
   code=PopUpMenu(main_menu);
-  DocDel(main_menu);
-  switch(code) {
-    case DOCM_CANCEL:
-      repeat=FALSE;
-    break;
-    case STS_FIND:
+    DocDel(main_menu);
+      switch(code) {
+      case DOCM_CANCEL:
+    repeat=FALSE;
+      break;
+      case STS_FIND:
       edit=DocNew;
-      tmp=PopUpGetStr("Enter Text to find:\n");
+        tmp=PopUpGetStr("Enter Text to find:\n");
       if(StrLen(tmp)) {
-	STFindText(edit,blob_file,tmp);
+      STFindText(edit,blob_file,tmp);
       }
       Free(tmp);
-      goto find_end;
-     break;
-    case STS_ADD_CLASS:
-    edit=DocNew;
-    en=BlobFileGetLump(blob_file,ST_ROOT"CLASSES");
-    if(!en)
-      DocType(edit,__DIR__ "/RunTime.HH");
-    else
+    goto find_end;
+      break;
+      case STS_ADD_CLASS:
+      edit=DocNew;
+        en=BlobFileGetLump(blob_file,ST_ROOT"CLASSES");
+      if(!en)
+        DocType(edit,__DIR__ "/RunTime.HH");
+      else
       DocPrint(edit,"%s",en);
-    Free(en);
-    PopUpPrint("FramePtrAdd(\"SAVED?\",DocEd(%d),%d);\n",edit,Fs);
-    if(FramePtr("SAVED?")) {
-      en=DocSave(edit);
+      Free(en);
+        PopUpPrint("FramePtrAdd(\"SAVED?\",DocEd(%d),%d);\n",edit,Fs);
+        if(FramePtr("SAVED?")) {
+        en=DocSave(edit);
       BlobFileAddLump(blob_file,ST_ROOT"CLASSES",en,StrLen(en),'HEADER');
       Free(en);
-    }
+      }
     DocDel(edit);
-    break;
-    case STS_METHOD_HELP:
-    edit=DocNew("/SmallTalkHelp.DD");
-    tmp=PopUpGetStr("Enter Method Name Fragment:\n");
-    if(StrLen(tmp)) {
-      en=MStrPrint("*%s*",tmp);
-    } else
+      break;
+      case STS_METHOD_HELP:
+      edit=DocNew("/SmallTalkHelp.DD");
+        tmp=PopUpGetStr("Enter Method Name Fragment:\n");
+      if(StrLen(tmp)) {
+        en=MStrPrint("*%s*",tmp);
+      } else
       en=StrNew("*");
-    STHelpIdx(edit,blob_file,en);
-    Free(tmp),Free(en);
-find_end:;
-    DocWrite(edit);
-    idx=PopUpMenu(edit);
-    if(0<=idx<lumps->lump_cnt) {
-      hdr=&lumps->lump_table[idx];
-      if(!StrNCmp(ST_ROOT,hdr->name,StrLen(ST_ROOT))) {
-        tmp=StrNew(hdr->name+StrLen(ST_ROOT));
+STHelpIdx(edit,blob_file,en);
+      Free(tmp),Free(en);
+      find_end:;
+      DocWrite(edit);
+        idx=PopUpMenu(edit);
+        if(0<=idx<lumps->lump_cnt) {
+	  hdr=&lumps->lump_table[idx];
+	  if(!StrNCmp(ST_ROOT,hdr->name,StrLen(ST_ROOT))) {
+	  tmp=StrNew(hdr->name+StrLen(ST_ROOT));
         if(StrOcc(tmp,'/')) *StrFirstOcc(tmp,"/")=0;
         FramePtrAdd("MethodClass",tmp);
-      }
-      if(!StrNCmp(ST_CLASS_ROOT,hdr->name,StrLen(ST_CLASS_ROOT))) {
+	  }
+        if(!StrNCmp(ST_CLASS_ROOT,hdr->name,StrLen(ST_CLASS_ROOT))) {
         FramePtrAdd("MethodClass",StrNew("CFrogClass"));
-      }
-      edit=DocNew;
-      DocPrint(edit,"%s",tmp=BlobFileGetLump(blob_file,lumps->lump_table[idx].name));
-      Free(tmp);
-      PopUpPrint("FramePtrAdd(\"SAVED?\",SynView(%d),%d);\n",edit,Fs);
-      if(FramePtr("SAVED?")) {
-        en=DocSave(edit,&len);
-        SanitizeStr(en); //raw DolDoc puts in werid cahractors
-        BlobFileAddLump(blob_file,lumps->lump_table[idx].name,en,StrLen(en),'SCRIPT');
+        }
+        edit=DocNew;
+        DocPrint(edit,"%s",tmp=BlobFileGetLump(blob_file,lumps->lump_table[idx].name));
+        Free(tmp);
+	  PopUpPrint("FramePtrAdd(\"SAVED?\",SynView(%d),%d);\n",edit,Fs);
+	  if(FramePtr("SAVED?")) {
+	  en=DocSave(edit,&len);
+	  SanitizeStr(en); //raw DolDoc puts in werid cahractors
+	  BlobFileAddLump(blob_file,lumps->lump_table[idx].name,en,StrLen(en),'SCRIPT');
         STValidateCode(blob_file,en,lumps->lump_table[idx].name,0==StrNCmp(lumps->lump_table[idx].name,ST_SCRIPT_ROOT,StrLen(ST_SCRIPT_ROOT)));
         Free(en);
+        }
+      Free(FramePtr("MethodClass"));
+      FramePtrDel("MethodClass");
+      }
+    DocDel(edit);
+      break;
+      default:
+        hdr=&lumps->lump_table[code&(1<<32-1)];
+        if(!StrNCmp(ST_ROOT,hdr->name,StrLen(ST_ROOT))) {
+        tmp=StrNew(hdr->name+StrLen(ST_ROOT));
+      if(StrOcc(tmp,'/')) *StrFirstOcc(tmp,"/")=0;
+      FramePtrAdd("MethodClass",tmp);
+        }
+      if(!StrNCmp(ST_CLASS_ROOT,hdr->name,StrLen(ST_CLASS_ROOT))) {
+      FramePtrAdd("MethodClass",StrNew("CFrogClass"));
+        }
+        if((3<<32)&code==3<<32) {
+        en=PopUpFileName("NEW_SCRIPT");
+        edit=DocNew;
+	  PopUpPrint("FramePtrAdd(\"SAVED?\",SynView(%d),%d);\n",edit,Fs);
+	  if(FramePtr("SAVED?")) {
+	  tmp=DocSave(edit);
+	  prefix=MStrPrint(ST_SCRIPT_ROOT"%s",en);
+	  SanitizeStr(tmp); //raw DolDoc puts in werid cahractors
+	  BlobFileAddLump(blob_file,prefix,tmp,StrLen(tmp),'SCRIPT');
+	  STValidateCode(blob_file,tmp,prefix,TRUE);
+        Free(prefix);
+        Free(tmp);
+      }
+        Free(en);
+        } else if((4<<32)&code) { //New Class Method
+        prefix=LumpNameToPath(lumps->lump_table[code&(1<<32-1)].name);
+        tmp=MStrPrint("%s/METHOD",prefix);
+        en=PopUpFileName(tmp);
+        Free(tmp);
+        Free(prefix);
+        edit=DocNew;
+	  PopUpPrint("FramePtrAdd(\"SAVED?\",SynView(%d),%d);\n",edit,Fs);
+	  if(FramePtr("SAVED?")) {
+	  tmp=DocSave(edit);
+	  prefix=MStrPrint(ST_CLASS_ROOT"%s",en);
+	  SanitizeStr(tmp); //raw DolDoc puts in werid cahractors
+	  BlobFileAddLump(blob_file,prefix,tmp,StrLen(tmp),'SCRIPT');
+        STValidateCode(blob_file,tmp,prefix);
+        Free(prefix);
+      }
+        Free(en);
+        } else if((2<<32)&code) { //Delete method
+        prefix=lumps->lump_table[code&(1<<32-1)].name;
+	  tmp=MStrPrint("Delete Method \"%Q\"?",prefix);
+        if(PopUpNoYes(tmp)) {
+        BlobFileDeleteLump(blob_file,prefix);
+      }
+        Free(tmp);
+        } else if((1<<32)&code) { //New Instance method
+        prefix=LumpNameToPath(lumps->lump_table[code&(1<<32-1)].name);
+        tmp=MStrPrint("%s/METHOD",prefix);
+        en=PopUpFileName(tmp);
+        Free(tmp);
+        Free(prefix);
+        edit=DocNew;
+	  PopUpPrint("FramePtrAdd(\"SAVED?\",SynView(%d),%d);\n",edit,Fs);
+	  if(FramePtr("SAVED?")) {
+	  tmp=DocSave(edit);
+	  prefix=MStrPrint(ST_ROOT"%s",en);
+	  SanitizeStr(tmp); //raw DolDoc puts in werid cahractors
+	  BlobFileAddLump(blob_file,prefix,tmp,StrLen(tmp),'SCRIPT');
+        STValidateCode(blob_file,tmp,prefix);
+        Free(prefix);
+      }
+        Free(en);
+        } else {
+        edit=DocNew;
+        DocPrint(edit,"%s",tmp=BlobFileGetLump(blob_file,lumps->lump_table[code].name));
+        Free(tmp);
+	  PopUpPrint("FramePtrAdd(\"SAVED?\",SynView(%d),%d);\n",edit,Fs);
+	  if(FramePtr("SAVED?")) {
+	  en=DocSave(edit,&len);
+	  SanitizeStr(en); //raw DolDoc puts in werid cahractors
+	  BlobFileAddLump(blob_file,lumps->lump_table[code].name,en,StrLen(en),'SCRIPT');
+        STValidateCode(blob_file,en,lumps->lump_table[code].name,0==StrNCmp(lumps->lump_table[code].name,ST_SCRIPT_ROOT,StrLen(ST_SCRIPT_ROOT)));
+      Free(en);
+      }
       }
       Free(FramePtr("MethodClass"));
       FramePtrDel("MethodClass");
+      DocDel(edit);
+      break;
     }
-    DocDel(edit);
-    break;
-    default:
-    hdr=&lumps->lump_table[code&(1<<32-1)];
-    if(!StrNCmp(ST_ROOT,hdr->name,StrLen(ST_ROOT))) {
-      tmp=StrNew(hdr->name+StrLen(ST_ROOT));
-      if(StrOcc(tmp,'/')) *StrFirstOcc(tmp,"/")=0;
-      FramePtrAdd("MethodClass",tmp);
-    }
-    if(!StrNCmp(ST_CLASS_ROOT,hdr->name,StrLen(ST_CLASS_ROOT))) {
-      FramePtrAdd("MethodClass",StrNew("CFrogClass"));
-    }
-    if((3<<32)&code==3<<32) {
-      en=PopUpFileName("NEW_SCRIPT");
-      edit=DocNew;
-      PopUpPrint("FramePtrAdd(\"SAVED?\",SynView(%d),%d);\n",edit,Fs);
-      if(FramePtr("SAVED?")) {
-        tmp=DocSave(edit);
-        prefix=MStrPrint(ST_SCRIPT_ROOT"%s",en);
-        SanitizeStr(tmp); //raw DolDoc puts in werid cahractors
-        BlobFileAddLump(blob_file,prefix,tmp,StrLen(tmp),'SCRIPT');
-        STValidateCode(blob_file,tmp,prefix,TRUE);
-	Free(prefix);
-	Free(tmp);
-      }
-      Free(en);
-    } else if((4<<32)&code) { //New Class Method
-      prefix=LumpNameToPath(lumps->lump_table[code&(1<<32-1)].name);
-      tmp=MStrPrint("%s/METHOD",prefix);
-      en=PopUpFileName(tmp);
-      Free(tmp);
-      Free(prefix);
-      edit=DocNew;
-      PopUpPrint("FramePtrAdd(\"SAVED?\",SynView(%d),%d);\n",edit,Fs);
-      if(FramePtr("SAVED?")) {
-        tmp=DocSave(edit);
-        prefix=MStrPrint(ST_CLASS_ROOT"%s",en);
-        SanitizeStr(tmp); //raw DolDoc puts in werid cahractors
-        BlobFileAddLump(blob_file,prefix,tmp,StrLen(tmp),'SCRIPT');
-        STValidateCode(blob_file,tmp,prefix);
-	Free(prefix);
-      }
-      Free(en);
-    } else if((2<<32)&code) { //Delete method
-      prefix=lumps->lump_table[code&(1<<32-1)].name;
-      tmp=MStrPrint("Delete Method \"%Q\"?",prefix);
-      if(PopUpNoYes(tmp)) {
-	BlobFileDeleteLump(blob_file,prefix);
-      }
-      Free(tmp);
-    } else if((1<<32)&code) { //New Instance method
-      prefix=LumpNameToPath(lumps->lump_table[code&(1<<32-1)].name);
-      tmp=MStrPrint("%s/METHOD",prefix);
-      en=PopUpFileName(tmp);
-      Free(tmp);
-      Free(prefix);
-      edit=DocNew;
-      PopUpPrint("FramePtrAdd(\"SAVED?\",SynView(%d),%d);\n",edit,Fs);
-      if(FramePtr("SAVED?")) {
-        tmp=DocSave(edit);
-        prefix=MStrPrint(ST_ROOT"%s",en);
-        SanitizeStr(tmp); //raw DolDoc puts in werid cahractors
-        BlobFileAddLump(blob_file,prefix,tmp,StrLen(tmp),'SCRIPT');
-        STValidateCode(blob_file,tmp,prefix);
-	Free(prefix);
-      }
-      Free(en);
-    } else {
-      edit=DocNew;
-      DocPrint(edit,"%s",tmp=BlobFileGetLump(blob_file,lumps->lump_table[code].name));
-      Free(tmp);
-      PopUpPrint("FramePtrAdd(\"SAVED?\",SynView(%d),%d);\n",edit,Fs);
-      if(FramePtr("SAVED?")) {
-        en=DocSave(edit,&len);
-        SanitizeStr(en); //raw DolDoc puts in werid cahractors
-        BlobFileAddLump(blob_file,lumps->lump_table[code].name,en,StrLen(en),'SCRIPT');
-        STValidateCode(blob_file,en,lumps->lump_table[code].name,0==StrNCmp(lumps->lump_table[code].name,ST_SCRIPT_ROOT,StrLen(ST_SCRIPT_ROOT)));
-        Free(en);
-      }
-    }
-    Free(FramePtr("MethodClass"));
-    FramePtrDel("MethodClass");
-    DocDel(edit);
-    break;
-  }
-  Free(lumps);
-  if(repeat)
-    goto again;
-  Free(blob_file);
+    Free(lumps);
+    if(repeat)
+      goto again;
+   Free(blob_file);
 }
 U0 LoadMethodsFromBlob(U8 *blob_file=NULL,Bool dry_only=FALSE) {
   if(!blob_file) blob_file=dft_blob_path;
@@ -835,14 +909,14 @@ U0 LoadMethodsFromBlob(U8 *blob_file=NULL,Bool dry_only=FALSE) {
 	  }
         }
       } else if(!dry&&!StrNCmp(hdr->name,ST_SCRIPT_ROOT,StrLen(ST_SCRIPT_ROOT))) {
-	try {
+        try {
 	  tmp=BlobFileGetLump(blob_file,hdr->name);
 	  STRepl(tmp,FALSE );
 	  Free(tmp);
-	} catch {
+        } catch {
 	  "In %s:",hdr->name;
 	  PutExcept(TRUE);
-	}
+        }
       }
     }
     if(dry_only) {
@@ -862,3 +936,4 @@ LoadMethodsFromBlob;
 Silent(0);
 #include "STDictionary.HC";
 #endif
+

@@ -3444,8 +3444,8 @@ AddMethod("C3DWorldManager","selectQuest",&WorldSelectQuest);
 // 
 // Generate with builtins
 //
-CDoc *d=DocNew("/WWW/SmallTalkHelp.DD");
-STHelpIdx(d,"ASS.BLOB");
+CDoc *d=DocNew("SmallTalkHelp.md");
+STHelpIdxMarkdown(d,"ASS.BLOB");
 DocWrite(d);
 DocDel(d);
 
