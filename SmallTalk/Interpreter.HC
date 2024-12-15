@@ -749,9 +749,9 @@ U0 CompileToHolyC(U8 *src,U8 *class_name,U8 *src_path=NULL,Bool class_method=FAL
     DocPrint(dumb,"  return BytecodeMethod(self,%d,argv,argc);\n",to);
     DocPrint(dumb,"};\n");
     if(!class_method) {
-      DocPrint(dumb,"AddMethod(\"%Q\",\"%Q\",&Dumb);;",class_name,m->name);
+      DocPrint(dumb,"AddMethod(\"%Q\",\"%Q\",&Dumb,FALSE);;",class_name,m->name);
     } else {
-      DocPrint(dumb,"AddClassMethod(\"%Q\",\"%Q\",&Dumb);;",class_name,m->name);
+      DocPrint(dumb,"AddClassMethod(\"%Q\",\"%Q\",&Dumb,FALSE);;",class_name,m->name);
     }
     DocTop(dumb);
     ExeDoc(dumb);

@@ -1,4 +1,3 @@
-
 # Poopin Frogs
  This README.MD is under development,stay tuned
 
@@ -46,14 +45,19 @@ Current properties are hard coded. Ask nrootconauto to easily change this(so you
 ![Block Edit Shell](BlockMenu2.png)
 
 ## Poopidex(Press `p`). 
+
 ![Poopidex](Poopidex.png)
+
 This is a "dictionary" of stuff. You probably wont need this for now.
 
 ## Magic Wand(Select from inventory).
+
 ![Select wand](Wand.png)
+
 Select the wand,then use it on a thing(click the thing)
 
 ![Use Wand](Wand2.png)
+
 This will let you these properties on a thing
 - Tag Number
 - Quest	
@@ -145,3 +149,208 @@ Run `TextureEditor.HC`.
   ```
   PoopTalk lets you access class members via `var->member`.
 
+# Tutorials
+## Making a new enemy.
+
+First make a new SmallTalk class by running `Studio.HC`.
+
+Press the `New Class` button
+
+!(Tutorials/NewClass.png)
+
+SmallTalk classes are actually HolyC classes,be sure to have the base class of `C3DThing`.
+```c
+class CSmallPig:C3DThing {
+  CFrogRandom *random_generator;
+  F64 speed;
+  C3DThing *target;
+  F64 state_start_tS;
+  F64 state_duration;
+  F64 steps_to_walk;
+  CFrogStr *state;
+};
+```
+
+
+![](Tutorials/NewClass2.png)
+
+Now make an init method
+
+![](Tutorials/PigMethods.png)
+
+Put this in the file:
+```
+init->CSmallPig | |
+  #world addThing: self .
+  template _ #world getThingTemplate: 'CSmallPig' .
+  state_start_tS _ CFrogTime now asSeconds .
+  state _ 'Normal' .
+  random_generator _ CFrogRandom new .
+  health _ 25 .
+  no_fall_off_edge _ 1 .
+  ^ self
+```
+
+The `template` member has the current World template. You'll have to make this within the game itself.
+
+Run `3D.HC` and press `t` for a things menu.
+
+![](Tutorials/NewTemplate.png)
+
+Enter the name:
+
+![](Tutorials/PigName.png)
+
+Then edit the Front/Side/Back graphics with the buttons.
+
+![](Tutorials/PigTemplateEdit.png)
+
+**BE SURE TO MAKE THESE TEMPLATES ALSO**
+Use a slash in the name to make a subcategory.
+- CSmallPig
+   - CSmallPig/Jump
+   - CSmallPig/Dead
+
+Now make these methods:
+
+- `update` (Called 10 times per second)
+- `animate` (Called every frame boi)
+- `damage:` Damage the enemy
+- `damage:from:` Damage from a certian dude.
+- `init` Add to the world and set health and initial state
+
+### init
+```
+init->CSmallPig | |
+  #world addThing: self .
+  template _ #world getThingTemplate: 'CSmallPig' .
+  state_start_tS _ CFrogTime now asSeconds .
+  state _ 'Normal' .
+  random_generator _ CFrogRandom new .
+  health _ 25 .
+  no_fall_off_edge _ 1 .
+  ^ self
+```
+
+### animate
+
+This is called every frame,if we jump we check for radius and damage non-pigs
+```
+animate->*
+|
+  in_rad=CFrogArray
+|
+  state = 'Jump' ifTrue: [
+    in_rad _ #world getThingsInRadiusFromX: x fromY: y withRadius: 1.5 * 128 .
+    in_rad do:[:t=C3DThing|
+      'Dont damage other pigs' .
+      (t hasClass: CSmallPig) ifFalse: [
+        (t ~= self and: t->health > 0) ifTrue: [
+          state _ 'Normal' .
+          t damage: 10 + (random_generator next * 15) from: self .
+        ].
+      ] .
+    ] .
+  ].
+```
+
+### update
+
+```
+update->* |
+  w=C3DWorldManager
+  p=CPlayer
+  hit_wall=CFrogNum
+  rocket=CPoopRocket
+  dist=CFrogNum
+  tS=CFrogNum
+  dist=CFrogNum
+  force=CFrogNum
+  angle2=CFrogNum
+
+  in_rad=CFrogArray
+|
+  tS _ CFrogTime now asSeconds.
+  w _ #world .
+
+  health <= 0 ifTrue: [
+    state ~= 'Dead' ifTrue: [
+      w noiseSoundForTime: 500 withMin: 30 withMax: 70 .
+      momx2 _ 0 .
+      momy2 _ 0 .
+      state _ 'Dead' .
+      template _ w getThingTemplate: 'CSmallPig/Dead' .
+      self die .
+      animation_no_repeat _ 1 .
+      animation_start_tS _ tS .
+    ] .
+    ^ 0 . 
+  ] .
+
+  ((state = 'Jump') and: self isOnGround) ifTrue: [
+    state _ 'Normal' .
+  ] .
+
+
+  state = 'Normal' ifTrue: [
+    steps_to_walk _  steps_to_walk - 1 .
+    speed _ 70 / 10 *  3.4 .
+    template _ w getThingTemplate: 'CSmallPig' .
+    animation_no_repeat _ 0 .
+
+    (target hasClass: C3DThing) ifTrue: [
+      (target->health <= 0) ifTrue: [
+        p _ self lookForTarget .
+        (self canSeeThing: p) ifTrue: [
+          target _ p.
+        ]
+      ] .
+    ] ifFalse: [
+      p _ self lookForTarget .
+      (self canSeeThing: p) ifTrue: [
+        target _ p.
+      ]
+    ] .
+
+    'Only walk around if target is defined'.
+    ((target hasClass:C3DThing) and: target->health >0) ifTrue: [
+      self wander: speed withJumpVelocity: .55 withTarget: target .
+      dist _ ((target->x - x) squared + (target->y - y) squared ) sqrt .
+      (10*128) >= dist  ifTrue: [
+        ((steps_to_walk <= 0 or: random_generator next < .45 ) and: (self canSeeThing: target)) ifTrue: [
+          state _ 'Jump' .
+          w sweepSoundForTime: 500 withMin: 50 withMax: 70 .
+          template _ w getThingTemplate: 'CSmallPig/Jump' .
+          angle _ (target->x - x) arg: (target->y - y) .
+          force _ 3 * 128 / 30  .
+          angle2 _ dist arg: 128 * (target->z - z + .5 ).
+          
+          momx _ force * angle cos * angle2 cos .
+          momy _ force * angle sin * angle2 cos .
+          momz _ momz + (force * angle2 sin / 512) + .55 max: .55 . 
+        ] .
+      ].
+    ] .
+    steps_to_walk < 0 ifTrue: [
+      steps_to_walk _ random_generator next * 10 * 1.3 .
+    ] .
+  ] .
+```
+
+### damage:from:
+
+Sets the target to who damaged the pig.
+
+```
+damage: d=CFrgoNum from: f=C3DThing
+->*
+|
+|
+  1 to: d / 6 + 4 do:[ 
+    #world newParticleAtX: x atY: y atZ: z + .5 withSpread: 64 withColor: #color_RED 
+  ] .
+
+  health _ health - d .
+  target _ f .
+  self update .
+```

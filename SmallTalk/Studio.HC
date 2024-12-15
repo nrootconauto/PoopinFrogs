@@ -339,6 +339,16 @@ U0 STFindText(CDoc *help_doc,U8 *blob_file="../ASS",U8 *search_text,Bool include
   I64SetDel(matches);
   Free(lumps);
 }
+/*U0 STHelpIdxMarkdown(CDoc *help_doc,U8 *blob_file="../ASS",) {
+  CBlobFileHeader *lumps=FileRead(blob_file);
+  blob_file=ExtDft(blob_file,"BLOB");
+  if(!FileFind(blob_file)) {
+    PopUpOk("Cant Find Blob file!!!");
+    Free(blob_file);
+    return;
+  }
+  Free();
+}*/
 U0 STHelpIdx(CDoc *help_doc,U8 *blob_file="../ASS",U8 *method_wildcard="*",Bool include_src=TRUE) {
   blob_file=ExtDft(blob_file,"BLOB");
   if(!FileFind(blob_file)) {
@@ -387,7 +397,7 @@ U0 STHelpIdx(CDoc *help_doc,U8 *blob_file="../ASS",U8 *method_wildcard="*",Bool 
 	      StrScan(hdr->name,ST_ROOT"%s/",&cls_name_ptr);
 	      m=ParseMethod(l,HashFind(cls_name,Fs->hash_table,HTT_CLASS));
 	      Free(method_name);
-	   	   method_name=StrNew(m->name);
+	      method_name=StrNew(m->name);
 	      MethodDel(m);
 	    } catch {
 	      Fs->catch_except=TRUE;
@@ -395,7 +405,7 @@ U0 STHelpIdx(CDoc *help_doc,U8 *blob_file="../ASS",U8 *method_wildcard="*",Bool 
 	    if(WildMatch(method_name,method_wildcard)) {
 	      I64SetAdd(matches,hdr);
 	      DocTreeAppend(help_doc,tmp,FALSE,"$$RED$$$$MU,\"%Q\",LE=%d$$$$FD$$\n",en+1,idx);
-            }
+	    }
 	  }
         } else if(I64SetHas(matches,hdr)) {
 	  if(en=StrLastOcc(hdr->name,"/")) {
@@ -436,7 +446,7 @@ U0 STHelpIdx(CDoc *help_doc,U8 *blob_file="../ASS",U8 *method_wildcard="*",Bool 
 	      Fs->catch_except=TRUE;
 	    if(WildMatch(method_name,method_wildcard)) {
 	      I64SetAdd(matches,hdr);
- 	      DocTreeAppend(help_doc,tmp,FALSE,"$$MU,\"%Q\",LE=%d$$\n",method_name,idx);
+	      DocTreeAppend(help_doc,tmp,FALSE,"$$RED$$$$MU,\"%Q\",LE=%d$$$$FD$$\n",method_name,idx);
 	    }
 	    Free(method_name);
 	  }
@@ -476,6 +486,31 @@ U0 STHelpIdx(CDoc *help_doc,U8 *blob_file="../ASS",U8 *method_wildcard="*",Bool 
       }
     }
   }
+//Phase 4,Load builtins
+  CHashTable *ht;
+  CHashGeneric *hgen;
+  U8 name[STR_LEN];
+  U8 *name_ptr=name;
+  cls_name_ptr=cls_name;
+  for(ht=Fs->hash_table;ht;ht=ht->next) 
+    for(idx=0;idx!=ht->mask+1;idx++) {
+      for(hgen=ht->body[idx];hgen;hgen=hgen->next) {
+	if(hgen->type&HTT_FRAME_PTR) {
+	  if(!StrNCmp("METHOD_",hgen->str,StrLen("METHOD_"))) {
+	    StrScan(hgen->str,"METHOD_%s.%s",&cls_name_ptr,&name_ptr);
+	    tmp=MStrPrint("Instance Methods/%s",cls_name);
+builtin:
+	    if(WildMatch(name,method_wildcard))
+	      DocTreeAppend(help_doc,tmp,FALSE,"$$GREEN$$%Q(builitn)$$FD$$\n",name);
+	    Free(tmp);
+	  } else if(!StrNCmp("CMETHOD_",hgen->str,StrLen("CMETHOD_"))) {
+	    StrScan(hgen->str,"CMETHOD_%s.%s",&cls_name_ptr,&name_ptr);
+	    tmp=MStrPrint("Class Methods/%s",cls_name);
+	    goto builtin;
+	  }
+	}
+      }
+    }
   Silent(FALSE);
   U8 *filename,*needle;
   I64 num;
@@ -489,7 +524,7 @@ U0 STHelpIdx(CDoc *help_doc,U8 *blob_file="../ASS",U8 *method_wildcard="*",Bool 
 	  help_doc->cur_entry=doc_e;
 	  DocPrint(help_doc,"$$RED$$$$MU+CX,\"%Q\",A=\"FL:/SmallTalkHelp.DD,%d\"$$$$FD$$",doc_e->tag,idx);
 	  DocEntryDel(help_doc,doc_e);
-          DocRecalc(help_doc);
+	  DocRecalc(help_doc);
         }
       }
       Free(tmp);
@@ -640,6 +675,14 @@ find_end:;
     idx=PopUpMenu(edit);
     if(0<=idx<lumps->lump_cnt) {
       hdr=&lumps->lump_table[idx];
+      if(!StrNCmp(ST_ROOT,hdr->name,StrLen(ST_ROOT))) {
+        tmp=StrNew(hdr->name+StrLen(ST_ROOT));
+        if(StrOcc(tmp,'/')) *StrFirstOcc(tmp,"/")=0;
+        FramePtrAdd("MethodClass",tmp);
+      }
+      if(!StrNCmp(ST_CLASS_ROOT,hdr->name,StrLen(ST_CLASS_ROOT))) {
+        FramePtrAdd("MethodClass",StrNew("CFrogClass"));
+      }
       edit=DocNew;
       DocPrint(edit,"%s",tmp=BlobFileGetLump(blob_file,lumps->lump_table[idx].name));
       Free(tmp);
@@ -651,6 +694,8 @@ find_end:;
         STValidateCode(blob_file,en,lumps->lump_table[idx].name,0==StrNCmp(lumps->lump_table[idx].name,ST_SCRIPT_ROOT,StrLen(ST_SCRIPT_ROOT)));
         Free(en);
       }
+      Free(FramePtr("MethodClass"));
+      FramePtrDel("MethodClass");
     }
     DocDel(edit);
     break;
@@ -811,11 +856,6 @@ U0 LoadMethodsFromBlob(U8 *blob_file=NULL,Bool dry_only=FALSE) {
 #if __CMD_LINE__
 LoadMethodsFromBlob;
 STStudio;;
-//STRepl;
-CDoc *d=DocNew("/WWW/SmallTalkHelp.DD");
-STHelpIdx(d);
-DocWrite(d);
-DocDel(d);
 #else
 LoadMethodsFromBlob;
 #endif

@@ -59,18 +59,27 @@ CFrogThing *FrogIncRefCnt(CFrogThing *t) {
 
 
 #include "Universe";
-U0 AddMethod(U8 *cls,U8 *name,U8 *fptr) {
-//See GenerateMethodCall
+U0 AddMethod(U8 *cls,U8 *name,U8 *fptr,Bool builtin=TRUE) {
   U8 *canon=MStrPrint("METHOD_%s.%s",cls,name);
+  if(builtin) {
 //Replace(possibly dummy) method.
-  if(FramePtr(canon))
-    FramePtrSet(canon,fptr);
-  else
-    FramePtrAdd(canon,fptr);
+    if(FramePtr(canon))
+      FramePtrSet(canon,fptr);
+    else
+      FramePtrAdd(canon,fptr);
+  }
   UniverseAddMethod(name,cls,fptr);
   Free(canon);
 }
-U0 AddClassMethod(U8 *cls,U8 *name,U8 *fptr) {
+U0 AddClassMethod(U8 *cls,U8 *name,U8 *fptr,Bool builtin=TRUE) {
+  U8 *canon=MStrPrint("CMETHOD_%s.%s",cls,name);
+  if(builtin) {
+//Replace(possibly dummy) method.
+    if(FramePtr(canon))
+      FramePtrSet(canon,fptr);
+    else
+      FramePtrAdd(canon,fptr);
+  }
   UniverseAddClassMethod(name,cls,fptr);
 }
 

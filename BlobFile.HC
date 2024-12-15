@@ -101,8 +101,19 @@ found:
 I64 BlobLumpSort(CLumpHeader *a,CLumpHeader *b) {
   return StrCmp(a->name,b->name);
 }
+U8*SanitizeName(U8 *s) {
+  s=StrNew(s);
+  U8 *ptr=s,c;
+  while(c=*ptr) {
+    if(c==':')
+      *ptr='_';
+    ptr++;
+  }
+  return s;
+}
 //dlen can be -1 for delete
 U0 BlobFileAddLump(U8 *filename=NULL,U8 *name,U8 *data,I64 dlen,U64 type='DATA') {
+  U8 *oname=SanitizeName(name);
   if(*name=='/') name++;
   if(!filename) filename=dft_blob_path;
   I64 ofsz,want_sz,idx,idx2;
@@ -187,6 +198,7 @@ U0 BlobFileAddLump(U8 *filename=NULL,U8 *name,U8 *data,I64 dlen,U64 type='DATA')
 //  DumpBlobFile(filename,DEVELOPMENT_DIR);
 #endif
   Free(filename);
+  Free(oname);
 }
 U0 BlobFileDeleteLump(U8 *blob_file,U8 *path) {
   BlobFileAddLump(blob_file,path,"",-1);

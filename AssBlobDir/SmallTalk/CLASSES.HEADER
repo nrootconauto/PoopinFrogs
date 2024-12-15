@@ -561,7 +561,7 @@ class CSmallPig:C3DThing {
   F64 steps_to_walk;
   CFrogStr *state;
 };
-class CFrogNPC:C3DThing {
+class CFrogNPC:C3DThing {
   CFrogRandom *random_generator;
   F64 speed;
   CFrogTongue *tongue;

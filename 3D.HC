@@ -3440,15 +3440,24 @@ CFrogStr *WorldSelectQuest(C3DWorldManager *man,I64 *argv,I64 argc) {
   return FROG_SMALL_NIL;
 }
 AddMethod("C3DWorldManager","selectQuest",&WorldSelectQuest);
+
 // 
+// Generate with builtins
 //
+CDoc *d=DocNew("/WWW/SmallTalkHelp.DD");
+STHelpIdx(d,"ASS.BLOB");
+DocWrite(d);
+DocDel(d);
+
 //
+
 #if __CMD_LINE__
 CallScript("newLandscapeWithWidth:withHeight:",FrogSymbol("world")->value,FrogNumNew(128),FrogNumNew(128));
 C3DWorldShell *shell=ConstructThing("C3DWorldShell");
 CallScript("init",shell);
 UIShellRun(shell,NULL,0);
 #endif
+
 #endif               
    
 *   ]   g   3   
