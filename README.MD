@@ -1,6 +1,8 @@
 # Poopin Frogs
  This README.MD is under development,stay tuned
 
+ If you want to program SmallTalk-80 like code,see this document [SmallTalkHelp.md](SmallTalkHelp.md).
+
 # Editing the World.
 
   The world is finite in size,I will add a menu in the  future to change its size
