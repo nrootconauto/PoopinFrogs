@@ -381,12 +381,14 @@ class CHandItem:CFrogThing {
 class CDoorItem:CHandItem {
   I64 height;
   I64 tag;
-  I64 act_as_wall;
+  I64 act_as_wall;
   F64 speed;
   F64 open_duration;
   Bool side_door,small_key,big_key;
 };
 
+class CHouseMaker:CHandItem {
+};
 
 class CWorldEditBlock:CHandItem {
   I64 tile_idx;
@@ -561,7 +563,7 @@ class CSmallPig:C3DThing {
   F64 steps_to_walk;
   CFrogStr *state;
 };
-class CFrogNPC:C3DThing {
+class CFrogNPC:C3DThing {
   CFrogRandom *random_generator;
   F64 speed;
   CFrogTongue *tongue;

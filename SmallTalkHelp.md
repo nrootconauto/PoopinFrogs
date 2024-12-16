@@ -152,6 +152,7 @@
 	 - [recv3DThing:](AssBlobDir/SmallTalk/C3DWorldManager/recv3DThing.SCRIPT)
 	 - [recv3DThingTemplate:](AssBlobDir/SmallTalk/C3DWorldManager/recv3DThingTemplate.SCRIPT)
 	 - [recvBlockEdit:](AssBlobDir/SmallTalk/C3DWorldManager/recvBlockEdit.SCRIPT)
+	 - [removeDoor:](AssBlobDir/SmallTalk/C3DWorldManager/removeDoor.SCRIPT)
 	 - [removeThing:](AssBlobDir/SmallTalk/C3DWorldManager/removeThing.SCRIPT)
 	 - [restoreBlocksFromString](AssBlobDir/SmallTalk/C3DWorldManager/restoreBlocksFromString.SCRIPT)
 	 - [saveBlocksToString](AssBlobDir/SmallTalk/C3DWorldManager/saveBlocksToString.SCRIPT)
@@ -500,6 +501,9 @@
 	 - [setMaxAmmo:](AssBlobDir/SmallTalk/CHandItem/setMaxAmmo.SCRIPT)
  - CHealthPickup
 	 - [init](AssBlobDir/SmallTalk/CHealthPickup/CONSTRUCTOR.SCRIPT)
+ - CHouseMaker
+	 - [init](AssBlobDir/SmallTalk/CHouseMaker/CONSTRUCTOR.SCRIPT)
+	 - [fire](AssBlobDir/SmallTalk/CHouseMaker/fire.SCRIPT)
  - CKnife
 	 - [init](AssBlobDir/SmallTalk/CKnife/CONSTRUCTOR.SCRIPT)
 	 - [animate](AssBlobDir/SmallTalk/CKnife/animate.SCRIPT)
@@ -936,6 +940,8 @@
 	 - [new](AssBlobDir/STClsRoot/CHandItem/NEW.SCRIPT)
  - CHealthPickup
 	 - [new](AssBlobDir/STClsRoot/CHealthPickup/NEW.SCRIPT)
+ - CHouseMaker
+	 - [new](AssBlobDir/STClsRoot/CHouseMaker/NEW.SCRIPT)
  - CKnife
 	 - [new](AssBlobDir/STClsRoot/CKnife/NEW.SCRIPT)
  - CLandscapeGenerator

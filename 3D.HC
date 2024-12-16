@@ -688,7 +688,7 @@ CFrogThing *WorldLightingSky(C3DWorldManager *man,I64 *argv,I64 argc) {
   return FROG_SMALL_NIL;
 }
 AddMethod("C3DWorldManager","skylight:",&WorldLightingSky);
-CDoor *DoorAtXYZ(C3DWorldManager *man,I64 ix,I64 iy,F64 iz,F64 tallness=.8) {
+CDoor *DoorAtXYZ(C3DWorldManager *man,I64 ix,I64 iy,F64 iz,F64 tallness=.8,F64 wiggle_room=1/16.) {
   CFrogArray *arr;
   CDoor **doors;
   CDoor *door;
@@ -704,20 +704,22 @@ CDoor *DoorAtXYZ(C3DWorldManager *man,I64 ix,I64 iy,F64 iz,F64 tallness=.8) {
     while(--cnt>=0) {
       door=doors[cnt];
       if(door->x==ix&&door->y==iy) {
-        if(0.<=iz-door->z<door->height*door->percent) {
-	  return door;
+        if(0<=iz-door->z<door->height*door->percent-wiggle_room) {
+	    return door;
         }
 //Check hitting bottom of door
-        if(iz<=door->z)
-	  if(door->z<iz+tallness)
-	    return door;
+        if(iz<=door->z) {
+	  if(iz-door->z>wiggle_room) 
+	    if(door->z<iz+tallness)
+	      return door;
+	}
       }
     }
   }
   return NULL;
 }
 
-Bool HeightImpossible(C3DWorldManager *man,I64 ix,I64 iy,F64 above,Bool allow_ceil,F64 tallness=.1,F64 wiggle_room=0) {
+Bool HeightImpossible(C3DWorldManager *man,I64 ix,I64 iy,F64 above,Bool allow_ceil,F64 tallness=.1,F64 wiggle_room=.1) {
   I64 iz=Floor(above);
   I64 c,idx2,t;
   F64 h;
@@ -770,7 +772,7 @@ CFrogNum *C3DThingPathFindWalkTowardsThing(C3DThing *self,I64 *argv,I64 argc) {
     I64SetDel(path);
     return FrogNumNew(Arg(thing->x-self->x,thing->y-self->y));
   }
-//TODO account for large same direction
+//TODO account for large same direction
   pt=path->body[1];
   I64SetDel(path);
   return FrogNumNew(Arg(pt.x+.5-self->x/128,pt.y+.5-self->y/128));
