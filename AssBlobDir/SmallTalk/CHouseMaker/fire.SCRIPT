@@ -39,7 +39,42 @@ fire->*
   door=CDoor
 
   doors_grid=CFrogArray
+  make_ceil=CFrogBlock
+  ceil_interp=CFrogBlock
+
+  first_run=CFrogNum
 |
+  first_run _ 1 . 
+'Makes a triangle sort of'.
+  ceil_interp _ [:percent=CFrogNum :width=CFrogNum|
+    percent <= .5 ifTrue: [
+      tmp _ percent * width + 1
+    ] ifFalse:[
+      tmp _ width - (percent * width) + 1
+    ] .
+    tmp
+  ].
+  make_ceil _ [
+    rand next < .5 ifTrue: [
+      0 to: width + 3  do: [:x=CFrogNum|
+        ceil_interp value: x /(width+3)  value: width + 3 .
+        base_y to: base_y + height + 1 do:[:y=CFrogNum|
+          base_z to: base_z + tmp - 1 do: [:z=CFrogNum|
+            #world setTile: ceil atX: base_x + x - 1 atY: y atZ: z
+          ].
+        ]
+      ].
+    ] ifFalse: [
+      0 to: height + 3  do: [:y=CFrogNum|
+        ceil_interp value: y /(height+3)  value: height + 2 .
+        base_x to: base_x + width + 1 do:[:x=CFrogNum|
+          base_z to: base_z + tmp - 1 do: [:z=CFrogNum|
+            #world setTile: ceil atX: x atY: base_y + y - 1 atZ: z
+          ].
+        ]
+      ].
+    ].
+  ] .
 
   cur_tS _ CFrogTime now asSeconds .
   timeout < cur_tS ifFalse: [
@@ -65,15 +100,19 @@ fire->*
   wall_occupied _ [:sc=CFrogArray :ec=CFrogArray|
     tmp _ 0 .
 'start+1 end-1 to ignore corners '.
-    (sc at:0 ) + 1 to: (ec at:0) - 1 do:[:x=CFrogNum|
-      (sc at:1 ) + 1 to: (ec at:1) - 1 do:[:y=CFrogNum|
-        base_z + 1 to: base_z + wall_height do:[:z=CFrogNum|
-          (#world getTileAtX: x atY: y atZ: z) ifTrue: [
-            tmp _ 1.
-          ] .
+    first_run  ifTrue: [
+      tmp _ 0 .
+    ] ifFalse: [
+      (sc at:0 ) + 1 to: (ec at:0) - 1 do:[:x=CFrogNum|
+        (sc at:1 ) + 1 to: (ec at:1) - 1 do:[:y=CFrogNum|
+          base_z + 1 to: base_z + wall_height do:[:z=CFrogNum|
+            (#world getTileAtX: x atY: y atZ: z) ifTrue: [
+              tmp _ 1.
+            ] .
+          ]
         ]
-      ]
-    ].
+      ].
+    ] .
     tmp
   ] .
 
@@ -161,6 +200,11 @@ fire->*
         value: #((sc at:0) (sc at:1)) 
         value: #(((sc at:0)+1) (ec at:1)) .
 
+      'Make floor lights in corner of room'.
+      #world setTile: 13 atX: (sc at:0) + 1 atY: (sc at:1) + 1 atZ: base_z .
+      #world setTile: 13 atX: (sc at:0) + 1 atY: (ec at:1) - 1 atZ: base_z .
+      #world setTile: 13 atX: (ec at:0) - 1 atY: (sc at:1) + 1 atZ: base_z .
+      #world setTile: 13 atX: (ec at:0) - 1 atY: (ec at:1) - 1 atZ: base_z .
     ].
 
     stack  _ #(
@@ -186,6 +230,9 @@ fire->*
            make_room
              value: top first 
              value: top last .
+
+           first_run _ 0 .
+
            rand next < .5 ifTrue: [
              partition _  #((x + (w /2 )) (y+h)).
              stack add: #(
@@ -206,4 +253,8 @@ fire->*
          ].
        ] .
     ].
+
+    base_z _ base_z + wall_height .
   ].
+
+  make_ceil value .

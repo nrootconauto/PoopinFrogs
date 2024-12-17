@@ -3,6 +3,7 @@ class CFrogThread:CFrogThing {
    CTask *task;
 };
 CI64Set *threads=I64SetNew(frog_mem_task); 
+I64SetAdd(threads,Fs); //Add self to threaad
 U0 STThreadEnd() {
 //We are killed IF thread->task is set,otherwise we exited normally
   CFrogThread *thread=FramePtr("ThreadSelf");

@@ -772,7 +772,7 @@ CFrogNum *C3DThingPathFindWalkTowardsThing(C3DThing *self,I64 *argv,I64 argc) {
     I64SetDel(path);
     return FrogNumNew(Arg(thing->x-self->x,thing->y-self->y));
   }
-//TODO account for large same direction
+//TODO account for large same directionz
   pt=path->body[1];
   I64SetDel(path);
   return FrogNumNew(Arg(pt.x+.5-self->x/128,pt.y+.5-self->y/128));
