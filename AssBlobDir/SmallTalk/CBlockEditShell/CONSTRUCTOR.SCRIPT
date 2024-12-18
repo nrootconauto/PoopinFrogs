@@ -4,7 +4,7 @@ init ->* |
   group=CUIBackground
   button=CUIButton
   scroll_bars=CUIScrollBars
-  tile*
+  tile=CTileTemplate
   new_texture=CFrogImg
   ui_roots=CFrogArray
   handled=CFrogNum
@@ -17,6 +17,9 @@ init ->* |
   tall_button=CUIButton
   web=CWorldEditBlock
   popup=CUITextPopup
+  light_level=CFrogNum
+  tainted=CFrogNum
+  again=CFrogBlock
 |
 
   ask_num _ [:result=CFrogBlock|
@@ -69,12 +72,16 @@ init ->* |
           #world -> tile_templates at: tile->tile_idx put: tile .
           elem->item _ tile .
         ] .
+        light_level _ tile ->light_level .
         'Remove old group ' .
+  
+       again _ [ 
+        ui_roots remove: #ui_root  .
         group _ CUIBackground new .
         ui_roots add: group .
         #ui_root _ group .
         group-> bg_color _ #color_DKGRAY .
-        group setHeight: 300 .
+        group setHeight: 350 .
         group setWidth: 200 .
         group->x _ 640 / 2 - (group->sz_x / 2) .
         group->y _ 480 / 2 - (group->sz_y / 2) .
@@ -142,14 +149,16 @@ init ->* |
 
 
         button _ CUIButton new .
-        tall_button _ button .
         button->fg_color _ #color_LTRED .
         button->bg_color _ #color_YELLOW .
-        button setLabel: 'Set wall size(' , wall_size printString ,')' .
+        button setLabel: 'Set Light Level' , light_level printString ,')' .
         button onLeftUp: [:elem* |
           ask_num value: [:n=CFrogNum|
-            wall_size _ n .
-            tall_button setLabel: 'Set wall size(' , wall_size printString ,')' .
+            light_level _ n .
+            tile->light_level _ n .
+            tile updateTextures . 'Update light level' .
+            tall_button setLabel: 'Set Light level(' , light_level printString ,')' .
+            tainted _ 1 .
           ]
         ] .
         button-> x _ 50 .
@@ -158,6 +167,30 @@ init ->* |
         button->sz_x _ 200 .
         group addChild: button .
 
+
+        button _ CUIButton new .
+        tile->is_solid ifTrue:[
+          button->fg_color _ #color_LTRED .
+          button->bg_color _ #color_LTGREEN .
+          button setLabel: 'Make it Liquid(currently solid)' .
+        ] ifFalse:[
+          button->fg_color _ #color_YELLOW .
+          button->bg_color _ #color_LTRED .
+          button setLabel: 'Make it Solid(currently Liquid)' .
+        ] .
+        button onLeftUp: [:elem* |
+          tile -> is_solid _ tile -> is_solid = 0 .
+'Update properties' .
+          tile updateTextures .
+          tainted _ 1 .
+        ] .
+        button-> x _ 50 .
+        button-> y _ 300 .
+        button->sz_y _ 40 .
+        button->sz_x _ 200 .
+        group addChild: button .
+       ] .
+       again  value .
       ] .
       grid addItem: item .
     ] .
@@ -166,6 +199,13 @@ init ->* |
     scroll_bars addChild: grid .
     grid->x _ 10 .
     grid->y _ 10 .
+  ] .
+
+  on_refresh _ [
+    tainted ifTrue:[
+      tainted _ 0 .
+      again value .
+    ] .
   ] .
 
   on_event _ [:v=CUIEvent |

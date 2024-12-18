@@ -7,6 +7,11 @@ Option(OPTf_WARN_UNUSED_VAR,0);
 #include "PathFinder.HC";
 #ifndef ENGINE_3D
 #include "SSE.HC";
+
+extern Bool IsSolidTile(I64 t);
+extern I8 BlockLightLevel(I64 t);
+
+
 #define VIEW_DIST 32
 #define FOG_DIVISIONS 0x10
 #define FOG_DIST (128*4.)
@@ -165,6 +170,9 @@ class CFileTexture {
   U8 blob_name[STR_LEN];
   U8 wall_blob_name[STR_LEN];
   U8 ceil_blob_name[STR_LEN];
+  U64 health; 
+  I64 light_level;
+  I64 is_solid;
 };
 
 class CFileThingTemplate {
@@ -221,10 +229,12 @@ class C3DWorld {
   I64 world_height;
   U8 *world_blocks; //x*y*128+z
   U8 *world_lighting; //x*y*128+z
-  CDC *wall_textures[0x10000/2],*to_dc;
-  CDC *floor_textures[0x10000/2];
-  CDC *floor_textures1616[0x10000/2];
-  CDC *ceil_textures[0x10000/2];
+  CDC *wall_textures[0x100],*to_dc;
+  CDC *floor_textures[0x100];
+  CDC *floor_textures1616[0x100];
+  CDC *ceil_textures[0x100];
+  Bool light_levels[0x100];
+  Bool solids[0x100];
   C3DThingTemplate *thing_templates[0x10000];
   I64 mp_done,dc_lock;
   CQue _2d_thing_templates; 
@@ -307,34 +317,6 @@ CFrogThing *ThingTemplateSave(C3DThingTemplate *t,I64 *argv,I64 argc) {
 AddMethod("C3DThingTemplate","save",&ThingTemplateSave);
 
 
-CFrogThing *TileTemplateSave(CTileTemplate *t,I64 *argv,I64 argc) {
-  CFileTexture f_template;
-  U8 *name;
-  if(ThingHasClass(t,"CTileTemplate")) {
-    MemSet(&f_template,0,sizeof CFileTexture);
-    f_template.idx=t->tile_idx;
-    if(ThingHasClass(t->floor_texture,"CFrogImg"))
-      if(name=AsString(t->floor_texture->name)){
-        StrCpy(f_template.blob_name,name);
-        Free(name);
-      }
-    if(ThingHasClass(t->wall_texture,"CFrogImg"))
-      if(name=AsString(t->wall_texture->name)){
-        StrCpy(f_template.wall_blob_name,name);
-        Free(name);
-      }
-    if(ThingHasClass(t->ceil_texture,"CFrogImg"))
-      if(name=AsString(t->ceil_texture->name)){
-        StrCpy(f_template.ceil_blob_name,name);
-        Free(name);
-      }
-    name=MStrPrint(BLOB_TILES_ROOT"/%d",t->tile_idx);
-    BlobFileAddLump(,name,&f_template,sizeof(CFileTexture));
-    Free(name);
-  }
-  return FROG_SMALL_NIL;
-}
-AddMethod("CTileTemplate","save",&TileTemplateSave);
 C3DWorld *InitWorld(F64 fov=pi/2) {
   C3DWorld *ret=CAlloc(sizeof(C3DWorld));
   F64 xoff,yoff;
@@ -397,6 +379,9 @@ C3DWorld *InitWorld(F64 fov=pi/2) {
 	tile_template->wall_texture=CallScript("get:",imgc,FrogStrNew(ftxtr->wall_blob_name));
 	tile_template->ceil_texture=CallScript("get:",imgc,FrogStrNew(ftxtr->ceil_blob_name));
 	tile_template->floor_texture=CallScript("get:",imgc,FrogStrNew(ftxtr->blob_name));
+	tile_template->is_solid=ftxtr->is_solid;
+	tile_template->health=ftxtr->health;
+	tile_template->light_level=ftxtr->light_level;
 
         if(ThingHasClass(tile_template->wall_texture,"CFrogImg")) {
 	  ret->wall_textures[tile]=ScaleDC(tile_template->wall_texture->dc,GRID_SZ,GRID_SZ);
@@ -408,6 +393,12 @@ C3DWorld *InitWorld(F64 fov=pi/2) {
 	  ret->ceil_textures[tile]=ScaleDC(tile_template->ceil_texture->dc,GRID_SZ,GRID_SZ);
         }
         CallScript("addTileTemplate:",man,tile_template);
+	ret->solids[tile]=ftxtr->is_solid;
+	ret->light_levels[tile]=ftxtr->light_level;
+	if(tile==0) ret->solids[0]=0;
+PrintI("t",tile);
+PrintI("ftxtr->is_solid",ret->solids[tile]);
+PrintI("ftxtr->ll",ret->light_levels[tile]);
       }
     }
     bf_lump++;
@@ -439,16 +430,7 @@ I64 LightAtXYZ(I64 x,I64 y,I64 z) {
   return 15;
 }
 
-Bool IsSolidTile(I64 t) {
-  if(!t) return FALSE;
-  return !IsLiquidTile(t);
-}
 #define LIGHT_DECAY 1.
-I8 BlockLightLevel(I64 t) {
-  if(t==13)
-    return 15;
-  return 0;
-}
 Bool SetLightAtXYZ(I64 x,I64 y,I64 z,I64 light,Bool sky=FALSE) {
   I64 tp=x+y*w->world_width;
   I64 l,l2;
@@ -3034,6 +3016,8 @@ CFrogThing *TileTemplateUpdate(CTileTemplate *tile,I64 *argv,I64 argc) {
     w->ceil_textures[idx]=ScaleDC(tile->ceil_texture->dc,128,128,frog_mem_task);
   } else
     w->ceil_textures[idx]=NULL;
+  w->solids[idx]=tile->is_solid;
+  w->light_levels[idx]=tile->light_level;
   return FROG_SMALL_NIL;
 }
 AddMethod("CTileTemplate","updateTextures",&TileTemplateUpdate);
@@ -3439,6 +3423,48 @@ CFrogStr *WorldSelectQuest(C3DWorldManager *man,I64 *argv,I64 argc) {
   return FROG_SMALL_NIL;
 }
 AddMethod("C3DWorldManager","selectQuest",&WorldSelectQuest);
+
+CFrogThing *TileTemplateSave(CTileTemplate *t,I64 *argv,I64 argc) {
+  CFileTexture f_template;
+  U8 *name;
+  if(ThingHasClass(t,"CTileTemplate")) {
+    MemSet(&f_template,0,sizeof CFileTexture);
+    f_template.idx=t->tile_idx;
+    if(ThingHasClass(t->floor_texture,"CFrogImg"))
+      if(name=AsString(t->floor_texture->name)){
+        StrCpy(f_template.blob_name,name);
+        Free(name);
+      }
+    if(ThingHasClass(t->wall_texture,"CFrogImg"))
+      if(name=AsString(t->wall_texture->name)){
+        StrCpy(f_template.wall_blob_name,name);
+        Free(name);
+      }
+    if(ThingHasClass(t->ceil_texture,"CFrogImg"))
+      if(name=AsString(t->ceil_texture->name)){
+        StrCpy(f_template.ceil_blob_name,name);
+        Free(name);
+      }
+    f_template.light_level=BlockLightLevel(t->tile_idx);
+    f_template.health=100;
+    f_template.is_solid=IsSolidTile(t->tile_idx);
+    name=MStrPrint(BLOB_TILES_ROOT"/%d",t->tile_idx);
+    BlobFileAddLump(,name,&f_template,sizeof(CFileTexture));
+    Free(name);
+  }
+  return FROG_SMALL_NIL;
+}
+AddMethod("CTileTemplate","save",&TileTemplateSave);
+
+
+Bool IsSolidTile(I64 t) {
+  if(t<0) return TRUE;
+  return w->solids[t&0xff];
+}
+I8 BlockLightLevel(I64 t) {
+  return w->light_levels[t&0xff];
+}
+
 
 // 
 // Generate with builtins

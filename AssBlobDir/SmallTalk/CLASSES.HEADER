@@ -239,6 +239,9 @@ class CTileTemplate:CFrogThing {
   CFrogImg *floor_texture;
   CFrogImg *wall_texture;
   CFrogImg *ceil_texture;
+  I64 light_level;
+  I64 health;
+  I64 is_solid;
 };
 class C2DPoint:CFrogThing {
   I64 x,y;
@@ -317,7 +320,7 @@ class CLevel:CFrogThing {
 
 
 class CLight:CFrogThing {
-  F64 x,y,z;
+  F64 x,y,z;
   F64 level,display_level;
   F64 start_tS;
 };
