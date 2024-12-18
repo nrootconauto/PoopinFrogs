@@ -1,7 +1,4 @@
 lighting ->* 
 |
 |
-  lights do:[:l=CLight|
-    l update .
-  ] .
   self skylight: sky_light .

@@ -1,0 +1,13 @@
+to: limit=CFrogNum by: b=CFrogNum do: block=CFrogBlock ->* | idx=CFrogNum |
+  idx _ self .
+  idx < limit ifTrue: [
+    [idx < limit ] whileTrue: [
+      block value: idx .
+      idx _ idx + b
+    ] .
+  ] ifFalse: [
+    [idx > limit ] whileTrue: [
+      block value: idx .
+      idx _ idx + b
+    ] .
+  ] .

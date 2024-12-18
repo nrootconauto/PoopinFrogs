@@ -18,3 +18,8 @@ animate ->*
   doors do:[:d=CDoor|
     d update .
   ] .
+
+'Dynamic lights'.
+  lights do:[:l=CLight|
+    l update .
+  ] .

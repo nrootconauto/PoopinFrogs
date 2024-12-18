@@ -317,8 +317,8 @@ class CLevel:CFrogThing {
 
 
 class CLight:CFrogThing {
-  I64 x,y,z;
-  I64 level,display_level;
+  F64 x,y,z;
+  F64 level,display_level;
   F64 start_tS;
 };
 
@@ -381,7 +381,7 @@ class CHandItem:CFrogThing {
 class CDoorItem:CHandItem {
   I64 height;
   I64 tag;
-  I64 act_as_wall;
+  I64 act_as_wall;
   F64 speed;
   F64 open_duration;
   Bool side_door,small_key,big_key;

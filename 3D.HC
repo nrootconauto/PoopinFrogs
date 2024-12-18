@@ -604,7 +604,6 @@ U0 RemoveLight(I64 x,I64 y,I64 z,I64 level) {
   U8 *blocks=w->world_blocks;
   I64 ox,oy,oz,ww=w->world_width,wh=w->world_height,t,t2,l,c;
   CI64Set *llist;
-  CLight **lights2,*light;
   for(ox=-level;ox<=level;ox++)
     for(oz=-level;oz<=level;oz++)
       for(oy=-level;oy<=level;oy++) {
@@ -632,16 +631,6 @@ U0 RemoveLight(I64 x,I64 y,I64 z,I64 level) {
     if(l>=Sqrt(Sqr(ox-x)+Sqr(oy-y)+Sqr(oz-z))) {
       LightingLight(x,y,z,l);
     }
-  }
-
-  t=man->lights->items->cnt;
-  lights2=man->lights->items->body;
-  while(--t>=0) {
-    light=lights2[t];
-    l=light->level;
-    if(l>=
-	Sqrt(Sqr(light->x-ox)+Sqr(light->y-oy)+Sqr(light->z-oz)))
-      LightingLight(light->x,light->y,light->z,light->display_level);
   }
 }
 
@@ -676,15 +665,6 @@ CFrogThing *WorldLightingSky(C3DWorldManager *man,I64 *argv,I64 argc) {
     LightingLight(ix,iy,z,level);
   }
 
-  CLight **lights2,*light;
-  tp=man->lights->items->cnt;
-  lights2=man->lights->items->body;
-  while(--tp>=0) {
-    light=lights2[tp];
-    if(VIEW_DIST*VIEW_DIST>=
-	DistSqrI64(light->x,light->y,x,y))
-      LightingLight(light->x,light->y,light->z,light->display_level);
-  }
   return FROG_SMALL_NIL;
 }
 AddMethod("C3DWorldManager","skylight:",&WorldLightingSky);
@@ -1974,6 +1954,13 @@ I64 DoorBlockHitColor(CD3 *at,CD3 *ray,CDoor *door,I64 x,I64 y,I64 z,I64 *sidex,
   }
   return color;
 }
+Bool CheckIfHitSolid(U8 *aux,I64 x,I64 y,I64 z) {
+  if(IsSolidTile(BlockAtXYZ(x,y,z))) {
+    *aux=TRUE;
+    return FALSE;
+  }
+  return TRUE;
+}
 I64 GetColorForRay(C3DWorldManager *man,CD3 *origin,CD3 *ray,F64 dist,F64 *hit_at,CD3 *hit_cords,I64 depth=0,I64 last_block=0,I64 fog_color=BLACK,Bool record_tile=FALSE) { 
   CFrogArray *grid=man->grid;
   C3DWorld *w=man->world_handle;
@@ -2012,9 +1999,10 @@ I64 GetColorForRay(C3DWorldManager *man,CD3 *origin,CD3 *ray,F64 dist,F64 *hit_a
   I64 wall_side;
   I64 stain_x,stain_y;
   I64 color;
-  I64 relx,rely;
+  I64 relx,rely,light_cnt;
+  CLight **lights,*light;
   F64 rel_percent;
-  F64 lighting;
+  F64 lighting,intensity;
   CD2 xyhit,origin_d_128;
   I64 side;
   CD2I64 texture_cords;
@@ -2166,6 +2154,27 @@ valid_color:
 	    } else {
 	      v0=texture_cords.y/127.;
 	      v1=1.-texture_cords.y/127.;
+	    }
+//Do dynamic lights
+//TODO cache lights around camera
+	    lights=man->lights->items;
+	    light_cnt=lights(CI64Set*)->cnt;
+	    lights=lights(CI64Set*)->body;
+	    while(--light_cnt>=0) {
+	      light=lights[light_cnt];
+	      if(light->display_level>=
+		(intensity=Sqrt(Sqr(light->x-o128.x)+Sqr(light->y-o128.y)+Sqr(light->z-o128.z)))
+		) {
+		Bool hit_light=FALSE;
+		Line(
+		  &hit_light,
+		  o128.x,o128.y,o128.z,
+		  light->x,light->y,light->z,
+		  &CheckIfHitSolid
+		);
+		if(!hit_light)
+		  lighting+=light->display_level-intensity;
+	      }
 	    }
 //Bilnear
 	    ao=.5;
@@ -2868,18 +2877,6 @@ U0 Draw3DWorld(CTask *,CDC *dc) {
   w->y=player->y;
   w->cam_height=player->z+.6;
   DCFill(dc,man->day_night->sky_color);
-
-  CLight **lights2=man->lights->items->body,*light;
-  while(--c>=0) {
-    light=lights2[c];
-    l=light->level;
-    if(l>=
-	Sqrt(Sqr(light->x-w->x/128)+Sqr(light->y-w->y/128)+Sqr(light->z-w->cam_height)))
- //Remove light will re-light close lights
-//+1 for previous(?) light level
-      RemoveLight(light->x,light->y,light->z,light->display_level+1);
-  }
-
 
   stars=man->day_night->stars->items->body;
   c=man->day_night->stars->items->cnt;

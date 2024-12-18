@@ -5,8 +5,8 @@ update->*
   w=C3DWorldManager
 |
   w _ #world .
-  decay_rate _  4  .
-  offset _ ((CFrogTime now asSeconds - start_tS) * decay_rate) floor.
+  decay_rate _  6  .
+  offset _ (CFrogTime now asSeconds - start_tS) * decay_rate.
   offset >= level ifTrue: [
     w->lights remove: self .
   ]. 
