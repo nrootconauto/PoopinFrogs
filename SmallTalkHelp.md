@@ -420,6 +420,7 @@
 	 - [rem:](AssBlobDir/SmallTalk/CFrogNum/REM1.SCRIPT)
 	 - [\\](AssBlobDir/SmallTalk/CFrogNum/REM2.SCRIPT)
 	 - [to:do:](AssBlobDir/SmallTalk/CFrogNum/TODO.SCRIPT)
+	 - [to:by:do:](AssBlobDir/SmallTalk/CFrogNum/Todoby.SCRIPT)
 	 - [and:](AssBlobDir/SmallTalk/CFrogNum/and.SCRIPT)
 	 - [arg:](AssBlobDir/SmallTalk/CFrogNum/arg.SCRIPT)
 	 - [asInteger](AssBlobDir/SmallTalk/CFrogNum/asInteger.SCRIPT)

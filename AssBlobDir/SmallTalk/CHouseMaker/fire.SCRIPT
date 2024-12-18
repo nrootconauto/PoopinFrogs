@@ -43,8 +43,21 @@ fire->*
   ceil_interp=CFrogBlock
 
   first_run=CFrogNum
+
+  roots=CFrogArray 
+  alt_root=CFrogArray
+  alt_root_direction=CFrogNum
+
+  ceil_coin=CFrogNum
+
+  make_windows=CFrogNum
 |
+  make_windows _ 0 .
+ 
   first_run _ 1 . 
+  cur_tS _ CFrogTime now asSeconds .
+  rand _ CFrogRandom new: cur_tS * 123 .
+
 'Makes a triangle sort of'.
   ceil_interp _ [:percent=CFrogNum :width=CFrogNum|
     percent <= .5 ifTrue: [
@@ -54,8 +67,16 @@ fire->*
     ] .
     tmp
   ].
+
+  ceil_coin _ rand next .
+
   make_ceil _ [
-    rand next < .5 ifTrue: [
+    :base_x=CFrogNum
+    :base_y=CFrogNum
+    :width=CFrogNum
+    :height=CFrogNum
+    |
+    ceil_coin < .5 ifTrue: [
       0 to: width + 3  do: [:x=CFrogNum|
         ceil_interp value: x /(width+3)  value: width + 3 .
         base_y to: base_y + height + 1 do:[:y=CFrogNum|
@@ -76,7 +97,6 @@ fire->*
     ].
   ] .
 
-  cur_tS _ CFrogTime now asSeconds .
   timeout < cur_tS ifFalse: [
     ^ 0
   ] .
@@ -85,12 +105,11 @@ fire->*
 
 
   wall_types _ #(1 4 12) . 
-  floor_types _ #(2 11) .
+  floor_types _ #(2 11 7 ) .
   ceil_types _ #(9) .
 
   wall_height _ 4 .
 
-  rand _ CFrogRandom new: cur_tS * 123 .
 
 
   floor _ floor_types at: rand next * floor_types size .
@@ -99,16 +118,20 @@ fire->*
 
   wall_occupied _ [:sc=CFrogArray :ec=CFrogArray|
     tmp _ 0 .
-'start+1 end-1 to ignore corners '.
     first_run  ifTrue: [
       tmp _ 0 .
     ] ifFalse: [
-      (sc at:0 ) + 1 to: (ec at:0) - 1 do:[:x=CFrogNum|
-        (sc at:1 ) + 1 to: (ec at:1) - 1 do:[:y=CFrogNum|
-          base_z + 1 to: base_z + wall_height do:[:z=CFrogNum|
-            (#world getTileAtX: x atY: y atZ: z) ifTrue: [
-              tmp _ 1.
-            ] .
+      (sc at:0 ) to: (ec at:0) do:[:x=CFrogNum|
+        (sc at:1 ) to: (ec at:1) do:[:y=CFrogNum|
+          (
+            ((sc first = x or: ec first = x) and: (ec first - sc first > 1.1 )) or: 
+            ((sc last = y or: ec last = y) and: (ec last - sc last > 1.1 )) 
+          ) ifFalse: [
+            base_z + 1 to: base_z + wall_height do:[:z=CFrogNum|
+              (#world getTileAtX: x atY: y atZ: z) ifTrue: [
+                tmp _ 1.
+              ] .
+            ]
           ]
         ]
       ].
@@ -125,7 +148,8 @@ fire->*
           doors_grid _ (#world->doors_grid at: x / 16) at: y /16 .
 'Remove any placed doors'.
           doors_grid do:[:d=CDoor|
-            (d->x floor = x floor and: d->y floor = y floor) ifTrue: [
+            ((d->x floor = x floor and: d->y floor = y floor) and:
+              (base_z + 1) floor = d->z floor) ifTrue: [
               #world removeDoor: d
             ].
           ] .
@@ -145,6 +169,31 @@ fire->*
           #world setTile: 0 atX: door->x atY: door->y atZ: z .
         ].
         #world addDoor: door .
+      ].
+
+      make_windows ifTrue: [
+        (sc at:0 ) to: (ec at:0)  by: 2 do:[:x=CFrogNum|
+          (sc at:1 )  to: (ec at:1) by: 2 do:[:y=CFrogNum|
+            ec first - sc first > 1.1 ifTrue: [
+              x _ x + 1 . 'Ignore corners' .
+              ((#world getTileAtX: x - 1 atY: y atZ: base_z + 2) and: (#world getTileAtX: x + 1 atY: y atZ: base_z + 2)) ifTrue: [
+                base_z + 2 to: base_z + 4  do:[:z=CFrogNum|
+                  #world setTile: 0 atX: x atY: y atZ: z .
+                ].
+              ]
+            ] .
+            'top/bottom'.
+            ec last - sc last > 1.1 ifTrue: [
+              y _ y + 1 . 'Ignore corners' .
+              ((#world getTileAtX: x atY: y - 1 atZ: base_z + 2) and: (#world getTileAtX: x atY: y + 1 atZ: base_z + 2)) ifTrue: [
+                base_z + 2 to: base_z + 4  do:[:z=CFrogNum|
+                  #world setTile: 0 atX: x atY: y atZ: z .
+                ].
+              ]
+              
+            ] .
+          ]
+        ].
       ].
     ].
     tmp 
@@ -168,37 +217,99 @@ fire->*
   
   floor_cnt _ 1 .
 
-  width _ rand next * 8 + 4 . 
-  height _ rand next * 8 + 4 . 
+  width _ rand next * 7 + 4 . 
+  height _ rand next * 7 + 4 . 
   width _ width ceil .
   height _ height ceil .
 
+  roots _ #(
+    #(
+        #((base_x) (base_y) )
+        #((base_x+width ) (base_y+height ))
+    )
+  ) .
+
+'Make a multi retangle house to make things more intresting'.
+  rand next < .65 ifTrue: [
+     alt_root _ #(
+       #(
+           #((base_x+width - 4) (base_y))
+           #((base_x+width) (base_y + 4))
+           3
+       )
+      #(
+           #((base_x) (base_y+height))
+           #((base_x+4) (base_y+height+4))
+           0
+       )
+       #(
+           #((base_x- 4) (base_y))
+           #((base_x) (base_y+4))
+           2
+       )
+       #(
+           #((base_x) (base_y - 4))
+           #((base_x+4) (base_y))
+           1
+       )
+     ) .
+     alt_root _ alt_root at: rand next * alt_root size .
+     alt_root_direction _ alt_root last .
+     alt_root remove: alt_root_direction .
+     roots add: alt_root.
+     ceil_coin _ #(1 1 0 0 ) at: alt_root_direction .
+     roots _ #( alt_root  (roots first)) .
+  ] .
+
+  floor_cnt _ (1.3 + rand next - .5 ) ceil .
+
   0 to: floor_cnt do: [:f=CFrogNum|
-    make_floor
-      value: #(base_x base_y (f*wall_height + base_z) )
-      value: #((base_x+width) (base_y+height) (f*wall_height + base_z) ).
+    roots do: [:r=CFrogArray|
+       make_floor value: r first value: r last 
+    ].
 
     make_room _ [:sc=CFrogArray :ec=CFrogArray |
+'If we are on an upper floor,dont make doors to the ourside' .
+'top is current partition'.
+      (f and: first_run) ifTrue: [
+        make_door _ top = alt_root and: alt_root_direction = 0 .
+        make_wall
+          value: #((sc at:0) (sc at:1)) 
+          value: #((ec at:0) ((sc at:1) + 1)) .
+        make_door _ top = alt_root and: alt_root_direction = 1 .
+        make_wall
+          value: #((sc at:0) (ec at: 1) ) 
+          value: #((ec at:0) ((ec at:1) + 1)) .
+        make_door _ top = alt_root and: alt_root_direction = 2 .
+        make_wall
+          value: #((ec at:0) (sc at:1)) 
+          value: #(((ec at:0) + 1) ((ec at:1)+1)) .
+        make_door _ top = alt_root and: alt_root_direction = 3 .
+        make_wall
+          value: #((sc at:0) (sc at:1)) 
+          value: #(((sc at:0)+1) (ec at:1)) .
+      ] ifFalse: [
      'top' .
-      make_door _ rand next * 2 floor .
-      make_wall
-        value: #((sc at:0) (sc at:1)) 
-        value: #((ec at:0) ((sc at:1) + 1)) .
+        make_door _ rand next * 2 floor or: (sc = alt_root first and: alt_root_direction = 0 ).
+        make_wall
+          value: #((sc at:0) (sc at:1)) 
+          value: #((ec at:0) ((sc at:1) + 1)) .
      'bottom' .
-      make_door _ rand next * 2 floor .
-      make_wall
+        make_door _ rand next * 2 floor or: (sc = alt_root first and: alt_root_direction = 1 ).
+        make_wall
         value: #((sc at:0) (ec at: 1) ) 
         value: #((ec at:0) ((ec at:1) + 1)) .
      'right'.
-      make_door _ rand next * 2 floor .
-      make_wall
+        make_door _ rand next * 2 floor or: (sc = alt_root first and: alt_root_direction = 2 ).
+        make_wall
         value: #((ec at:0) (sc at:1)) 
         value: #(((ec at:0) + 1) ((ec at:1)+1)) .
      'left'.
-      make_door _ rand next * 2 floor .
-      make_wall
-        value: #((sc at:0) (sc at:1)) 
-        value: #(((sc at:0)+1) (ec at:1)) .
+        make_door _ rand next * 2 floor or: (sc = alt_root first and: alt_root_direction = 3 ).
+        make_wall
+          value: #((sc at:0) (sc at:1)) 
+          value: #(((sc at:0)+1) (ec at:1)) .
+     ].
 
       'Make floor lights in corner of room'.
       #world setTile: 13 atX: (sc at:0) + 1 atY: (sc at:1) + 1 atZ: base_z .
@@ -207,12 +318,7 @@ fire->*
       #world setTile: 13 atX: (ec at:0) - 1 atY: (ec at:1) - 1 atZ: base_z .
     ].
 
-    stack  _ #(
-      #(
-        #((base_x) (base_y) )
-        #((base_x+width ) (base_y+height ))
-      ) 
-    ) .
+    stack  _ roots copy .
     [ stack size ] whileTrue: [
        top _ stack last .
        stack remove: top .
@@ -227,20 +333,25 @@ fire->*
          h _ h floor .
          ((w between: 3 and: width) and:(h between: 3 and: height)) ifTrue: [
            make_door _ 1 .
+           (roots has: top) ifTrue: [
+             make_windows _ 1 .
+             first_run _ 1 .
+           ] ifFalse: [
+             make_windows _ 0 .
+             first_run _ 0 .
+           ].
            make_room
              value: top first 
              value: top last .
 
-           first_run _ 0 .
-
            rand next < .5 ifTrue: [
-             partition _  #((x + (w /2 )) (y+h)).
+             partition _  #((x + (w /2 ) floor) (y+h)).
              stack add: #(
                 #(x y)
                 partition
               ) .
            ] ifFalse: [
-             partition _  #((x + w) (y +(h /2 )) ).
+             partition _  #((x + w) (y +(h /2 ) floor) ).
              stack add: #(
                 #(x y )
                 partition
@@ -257,4 +368,7 @@ fire->*
     base_z _ base_z + wall_height .
   ].
 
-  make_ceil value .
+  make_ceil value: base_x value: base_y value: width value: height .
+  (alt_root hasClass: CFrogArray ) ifTrue: [
+    make_ceil value: alt_root first first value: alt_root first last value: 4 value: 4 .
+  ].
