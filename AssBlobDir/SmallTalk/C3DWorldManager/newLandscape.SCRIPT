@@ -26,8 +26,8 @@ newLandscapeWithWidth: w=CFrogNum withHeight: h=CFrogNum
   #world _ ret .
   ret emptyWorldWithWidth: w withHeight: h .
   player _ CPlayer new .
-  player -> x _ w * 128 / 2 + 64 . 
-  player -> y _ h * 128 / 2 + 64 . 
+  player -> x _ w / 2 + .5 . 
+  player -> y _ h / 2 + .5 . 
 
   grid_sz _ 10 .
 

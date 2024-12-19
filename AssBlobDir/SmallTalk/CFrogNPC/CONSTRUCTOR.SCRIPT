@@ -1,6 +1,6 @@
 init ->CFrogNPC | |
   #world addThing: self .
-  speed _ 64 / 30 * 3.5 .
+  speed _ 5 / 30 * 3.5 .
   health _ 100 .
   random_generator _ CFrogRandom new .
   template _ #world getThingTemplate: 'CFrogNPC' .

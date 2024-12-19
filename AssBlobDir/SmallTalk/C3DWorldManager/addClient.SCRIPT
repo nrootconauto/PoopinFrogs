@@ -11,14 +11,14 @@ addClient: sock=CNetStream ->C3DWorldClient
   c -> player _ CPlayer new .
   'TODO place the player in a good spawn zone' .
   p _ c->player .
-  p->x _ self width / 2 * 128 + 64 . 
-  p->y _ self height / 2 * 128 + 64 .
+  p->x _ self width / 2 + .5 . 
+  p->y _ self height / 2 + .5 .
   p->z _ 128 .
   best _ -127 .
   -127 to: 127 by: 1 do: [:h=CFrogNum |
-    (self getTileAtX: p->x / 128 atY: p->y / 128 atZ: h) ifFalse: [
+    (self getTileAtX: p->x atY: p->y atZ: h) ifFalse: [
 'Check for ground ' .
-      (self getTileAtX: p->x / 128 atY: p->y / 128 atZ: h - 1 ) ifTrue: [
+      (self getTileAtX: p->x atY: p->y  atZ: h - 1 ) ifTrue: [
         p->z _ h .
         best _ p->z max: best .
       ] .

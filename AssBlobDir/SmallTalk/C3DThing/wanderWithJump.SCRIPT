@@ -16,7 +16,7 @@ wander: dist=CFrogNum
     hit_wall _ self move: dist atAngle: angle .
     (hit_wall and: self isOnGround ) ifTrue: [
       'Check if 1 block jump'.
-      (#world getTileAtX: (x + (128 * angle cos ))/ 128 atY: (y + (128 * angle sin))/ 128 atZ: z + 1) = 0 ifTrue: [
+      (#world getTileAtX: (x + angle cos) atY: (y + angle sin) atZ: z + 1) = 0 ifTrue: [
         momz _ jmp_velo .
         ^ 1 .
       ] .
@@ -27,7 +27,7 @@ wander: dist=CFrogNum
 ^ 0 .
     self isOnGround ifTrue: [
       'Check if 1 block depress' .
-      (#world getTileAtX: (x + (128 * angle cos ))/ 128 atY: (y + (128 * angle sin))/ 128  atZ: z - 1) = 0 ifTrue: [
+      (#world getTileAtX: x + angle cos atY: y + angle sin  atZ: z - 1) = 0 ifTrue: [
         'Just jump into pit'.
         momz _ jmp_velo .
         ^ 1 .

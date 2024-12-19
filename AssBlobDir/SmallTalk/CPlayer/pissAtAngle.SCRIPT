@@ -14,17 +14,17 @@ piss ->* |
   rand _ CFrogRandom new .
   piss_stream _ self getPissStream .
 
-  force _ 80 . 
+  force _ 80/128 . 
  
   a _ angle + (3.14 / 100 * rand next )  .
   piss _ CPissLink new .
-  piss -> x _  x + (16 * a cos ) .
-  piss -> y _  y + (16 * a sin ) .
+  piss -> x _  x + (1/8 * a cos ) .
+  piss -> y _  y + (1/8 * a sin ) .
   piss -> z _  z + .3 .
   a2 _ angle2 negated .
   piss -> momx _  (force * a cos * a2 cos ).
   piss -> momy _  (force * a sin * a2 cos ).
   'Its inverse(angle2)' .
-  piss -> momz _  force * a2 sin / 128 .
+  piss -> momz _  force * a2 sin .
   piss -> from _ self .
   piss_stream addLink: piss .

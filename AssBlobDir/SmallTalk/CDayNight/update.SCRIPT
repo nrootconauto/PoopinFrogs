@@ -44,7 +44,7 @@ update->*
     z _ z * 100 .
 
    'Place star relative to player position' .
-    s->screen_x _ #world pointToScreenXAtX: x * 128 + p->x atY: y * 128 + p->y atZ: z + p->z +.6 .
-    s->screen_y _ #world pointToScreenYAtX: x * 128 + p->x atY: y * 128 + p->y atZ: z + p->z +.6 .
+    s->screen_x _ #world pointToScreenXAtX: x+ p->x atY: y + p->y atZ: z + p->z +.6 .
+    s->screen_y _ #world pointToScreenYAtX: x + p->x atY: y + p->y atZ: z + p->z +.6 .
 
   ] . 

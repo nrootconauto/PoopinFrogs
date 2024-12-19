@@ -42,9 +42,9 @@ update ->*
     'Only walk around if target is defined'.
     (target hasClass: C3DThing) ifTrue: [
       dist _ ((target->x - x) squared + (target->y - y) squared ) sqrt .
-      self wander: 16. withJumpVelocity: .60 withTarget: target .
+      self wander: 1/4 withJumpVelocity: .60 withTarget: target .
       ((r < ( 2 / 10 ) and: (self canSeeThing: target)) 
-        and: dist < (16 * 128) ) ifTrue: [
+        and: dist < 16 ) ifTrue: [
         licked _ 0 .
         state _ 'Lick' .
         template _ w getThingTemplate: 'CPorky/Lick' .
@@ -69,8 +69,8 @@ update ->*
       tongue->y _ y .
       tongue->z _ z + .5 .
       tongue->start_tS _ tS .
-      tongue->target_x _ x + (angle cos * (dist + 64)) .
-      tongue->target_y _ y + (angle sin * (dist + 64)).
+      tongue->target_x _ x + (angle cos * (dist + .5)) .
+      tongue->target_y _ y + (angle sin * (dist + .5)).
       tongue->target_z _ target ->z + .5 .
       licked _ 1 .
     ] .

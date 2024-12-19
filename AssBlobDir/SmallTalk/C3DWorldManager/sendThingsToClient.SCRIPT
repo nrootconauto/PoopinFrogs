@@ -7,7 +7,7 @@ sendThingsToClient: c=C3DWorldClient ->*
 |
   now _ CFrogTime now asSeconds.
   p _ c->player .
-  to_send _ #world getThingsInRadiusFromX: p->x fromY: p->y  withRadius: 32 * 128 .
+  to_send _ #world getThingsInRadiusFromX: p->x fromY: p->y  withRadius: 32 .
   struct _ #() .
   to_send do:[:t=C3DThing |
     (t ~= p ) ifTrue: [

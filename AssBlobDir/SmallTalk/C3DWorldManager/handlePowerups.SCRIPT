@@ -5,7 +5,7 @@ handlePowerups ->* |
   client=C3DWorldClient
 |
   do_it _ [:p=CPlayer|
-    things _ self getThingsInRadiusFromX: p->x fromY: p->y withRadius: 64 .
+    things _ self getThingsInRadiusFromX: p->x fromY: p->y withRadius: .5 .
     things do: [:pu=CPickup |
       (pu hasClass: CPickup ) ifTrue: [
         'canSeeThing doesnt acount for angles tahnkfully(we are alreadt in radius)' .

@@ -32,7 +32,7 @@ update ->* |
   ]  ifFalse: [
     state = 'Angry' ifTrue: [
       'Try to eat the player' .
-      speed _ 128 / 30 * 3.5 .
+      speed _ 1 / 30 * 3.5 .
       (random_generator next  < ( 2 / 10 ) and: (self canSeeThing: target)) ifTrue: [
         tongue _ CFrogTongue new .
         tongue eatTarget: target fromFrog: self .
@@ -47,11 +47,11 @@ update ->* |
   ] .
 
   state = 'Normal' ifTrue: [
-     speed _ 128 / 30  * 2 . 
+     speed _ 1 / 30  * 2 . 
   ] .  
 
   state = 'Flee' ifTrue: [
-    speed _ 64 / 30 * 5 .
+    speed _ .5 / 30 * 5 .
     'Run away from target or in random direction'.
     (random_generator next < (1.5 / 10) ) ifTrue: [
        random_generator next < .5 ifTrue: [

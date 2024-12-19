@@ -31,14 +31,14 @@ t show .
     ].
   ].
   step _ 0 .
-  [ step < (dist + ( 128 * 4 * 1.4 ))] whileTrue: [
+  [ step < (dist + (4 * 1.4 ))] whileTrue: [
     gx _ x + (step * cos) .
     gy _ y + (step * sin) .
     -1 to: 2 do: [:xo=CFrogNum |
       -1 to: 2 do: [:yo=CFrogNum |
-      add_thing value: gx / 128 / 4 + xo value: gy / 128 / 4 + yo .
+      add_thing value: gx  / 4 + xo value: gy  / 4 + yo .
       ] .
     ] .
-    step _ step +  ( 128 * 4 ) .
+    step _ step +  6 .
   ] .
   ^ ret 

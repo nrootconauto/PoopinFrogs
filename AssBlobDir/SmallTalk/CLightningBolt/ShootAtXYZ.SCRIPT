@@ -11,7 +11,7 @@ shootAtX: x=CFrogNum atY: y=CFrogNum atZ: z=CFrogNum ->*
   tz=CFrogNum
 |
   links _ #() .
-  wiggle _ 64 .
+  wiggle _ .5 .
   dist _ ((x - from->x) squared + (y - from->y) squared) sqrt .
   angle _ x - from->x arg: y - from->y .
   normal _ angle + (3.14 / 2).

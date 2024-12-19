@@ -3,20 +3,20 @@ explode ->CFrogNum
   dist=CFrogNum 
   things=CFrogArray
 |
-  things _ #world getThingsInRadiusFromX: x fromY: y withRadius: 2 * 128 .
+  things _ #world getThingsInRadiusFromX: x fromY: y withRadius: 2  .
   things do:[:t*|
     dist _ ((t ->x - x) squared + (t ->y - y ) squared) sqrt .
 'Dont damage through walls(Cant see)' .
     (t->z - z) abs < 2 ifTrue: [
       (self canSeeThing:  t) ifTrue: [
-        t damage: (2 * 128 - dist) / ( 2 * 128 ) * 50  from: from . 
+        t damage: (2 - dist) / ( 2  ) * 50  from: from . 
       ] .
     ]
   ] .
 'TODOexplosion' .
   0 to: 20 do: [
-    #world newParticleAtX: x atY: y atZ: z + .5 withSpread: 3 * 128 withColor: #color_LTGRAY
+    #world newParticleAtX: x atY: y atZ: z + .5 withSpread: 3  withColor: #color_LTGRAY
   ] .
   #world removeThing: self .
-  #world newExplosionLightAtX: x / 128 atY: y / 128 atZ: z withLevel: 13 .
+  #world newExplosionLightAtX: x  atY: y  atZ: z withLevel: 13 .
   ^ 1 

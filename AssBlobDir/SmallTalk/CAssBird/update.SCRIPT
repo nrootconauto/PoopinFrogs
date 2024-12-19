@@ -43,14 +43,14 @@ update->*
         w sweepSoundForTime: 1500 withMin: 30 withMax: 70 .
      ] .
      now < (state_start_tS + 5) ifTrue: [
-       speed _ 50 .
+       speed _ 50/128 .
        'rise above target  before attack' .
        self wanderFly: speed withTarget: target .
        momz _ (target->z + 1.5 - z) * .1 .
        'Wait at least 2 seconds before attempting attack'.
        (state_start_tS + 2) < now ifTrue:  [
          dist _ (target->x - x ) squared + (target->y - y ) squared  .
-         dist < (2.5 * 128 ) squared ifTrue: [
+         dist < 2.5 squared ifTrue: [
            w sweepSoundForTime: 500 withMin: 30 withMax: 70 .
            lightning_bolt shootAtX: target->x atY: target->y atZ: target->z + .1 .
            state _ 'Wander' .
@@ -58,7 +58,7 @@ update->*
            target damage: random_generator next * 30 + 20  from: self .
            ^ 1 .
          ] .
-         dist < (32  *128) squared ifTrue: [
+         dist < 32 squared ifTrue: [
            (steps_to_walk <= 0) ifTrue: [
              steps_to_walk _ 10 * .25 .
              'TODO angry graphics'.
@@ -107,10 +107,10 @@ update->*
       rocket->y _ y .
       rocket->z _ z +.5 .
       rocket -> angle _ angle + ((random_generator next - .5) * (3.14 / 2) ) .
-      rocket->momx _ rocket->angle cos * 16 .
-      rocket->momy _ rocket->angle sin * 16 .
+      rocket->momx _ rocket->angle cos * 16/128 .
+      rocket->momy _ rocket->angle sin * 16/128 .
       dist _ ((target->x - rocket->x) squared +(target->y - rocket->y)) sqrt .
-      rocket->momz _ (target->z + .5 - rocket->z) / dist * 16 .
+      rocket->momz _ (target->z + .5 - rocket->z) / dist * (16/128) .
     ] .
     self isOnGround ifTrue: [
       state _ 'Wander' .
@@ -120,9 +120,9 @@ update->*
   ] .
 
   (state = 'Wander' ) ifTrue:[
-    speed _ 25 .
+    speed _ 25/128 .
     'Look for dead things to ressurect '.
-    things _ w getThingsInRadiusFromX: x fromY: y withRadius: 10 * 128 .
+    things _ w getThingsInRadiusFromX: x fromY: y withRadius: 10 .
     things _ things select: [:t=C3DThing| t ->health <= 0 and: (t hasClass: CPickup) not ] .
     best_dist _ 16000 * 16000 .
     things do: [:t=C3DThing|
@@ -147,11 +147,11 @@ update->*
 
   'Get close to entity to heal it'.
   state = 'Heal0' ifTrue: [
-    speed _ 25 .
+    speed _ 25/128 .
     self wanderFly: speed withTarget: target .
     dist _ (target->x - x ) squared + (target->y - y) squared .
     dist sqrt show .
-    dist < (6 * 128) squared ifTrue: [
+    dist < 6 squared ifTrue: [
       state _ 'Heal1' .
       made_sound _ 0 .
       state_start_tS _ now .
@@ -164,7 +164,7 @@ update->*
    self wanderFly: speed withTarget: target .
    (now > (state_start_tS + 1.5 ) and: (self canSeeThing: target)) ifTrue: [
      1 to: 15 do:[ 
-       w newParticleAtX: x atY: y atZ: z +.5 withSpread: 128 withColor: #color_YELLOW .
+       w newParticleAtX: x atY: y atZ: z +.5 withSpread: 1 withColor: #color_YELLOW .
      ] .
      'Bring back to life(remove/init)' .
      w sweepSoundForTime: 500 withMin: 30 withMax: 70 .

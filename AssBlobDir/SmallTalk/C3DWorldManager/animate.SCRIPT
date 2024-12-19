@@ -9,7 +9,7 @@ animate ->*
  
   p _ self getPlayer .
  
-  (self getThingsInRadiusFromX: p->x fromY: p->y withRadius: 32 * 128) do: [:t*|
+  (self getThingsInRadiusFromX: p->x fromY: p->y withRadius: 32) do: [:t*|
     t animate .
   ] .
   self updateParticles .

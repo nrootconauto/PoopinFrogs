@@ -5,9 +5,6 @@ doorInRadius: r=CFrogNum
     ->CDoor
 |
 |
-  r _ r / 128 .
-  x _ x / 128 .
-  y _ y / 128 .
   -1 to: 2 do:[:xoff=CFrogNum|
     -1 to: 2 do:[:yoff=CFrogNum|
       ((grid at: x / 16 + xoff)

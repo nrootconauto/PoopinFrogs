@@ -15,11 +15,11 @@ withRadius: within=CFrogNum
     ((a at:1) * (b at: 1 ))
   ] .
   'https://gdbooks.gitbooks.io/3dcollisions/content/Chapter1/closest_point_on_ray.html' .
-  ab _ #( (x -x0) (y - y0) (z - z0 *128)) .
+  ab _ #( (x -x0) (y - y0) (z - z0 )) .
   d _ (dot value: ab value: ab) sqrt .
   ab _ ab collect: [:n=CFrogNum| n /d] .
 
-  ac _ #( (t->x -x0) (t->y - y0)  (t->z - z0 * 128) ) .
+  ac _ #( (t->x -x0) (t->y - y0)  (t->z - z0) ) .
 
   tt _(dot value: ac value: ab)/(dot value: ab value: ab ).
 

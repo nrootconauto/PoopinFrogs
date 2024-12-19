@@ -37,7 +37,7 @@ fire ->* |
       player rangeAttackAtAngle: player->angle withDamage: dmg .
 
       CWallStain newStainAtX: w screenCoordToX atY: w screenCoordToY atZ: w screenCoordToZ
-        withGraphicsLump: 'GR/GUN1/BULLET_HOLE' withSpread: 16 .
+        withGraphicsLump: 'GR/GUN1/BULLET_HOLE' withSpread: 1/8 .
 
     ] .
   ] .

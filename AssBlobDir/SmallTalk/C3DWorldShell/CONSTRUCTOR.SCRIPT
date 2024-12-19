@@ -342,40 +342,40 @@ init ->* |
        player->momx2 _ 0 .
        player->momy2 _ 0 .
        player->momz2 _ 0 .
-       ((#world tileIsLiquidAtX: player->x /128 atY: player->y /128  atZ: player->z) or: player->floating ) ifTrue: [
+       ((#world tileIsLiquidAtX: player->x atY: player->y  atZ: player->z) or: player->floating ) ifTrue: [
          shift ifTrue: [
-           player swim: 128 /4 atAngle: player->angle atAngle2: -3.14 / 2 .
+           player swim: 1 /4 atAngle: player->angle atAngle2: -3.14 / 2 .
          ].
          jump ifTrue: [
-           player swim: 128 /4 atAngle: player->angle atAngle2: 3.14 / 2  .
+           player swim: 1 /4 atAngle: player->angle atAngle2: 3.14 / 2  .
          ].
          up ifTrue: [
-           player swim: 128 /4 atAngle: player->angle atAngle2: player->angle2 negated .
+           player swim: 1 /4 atAngle: player->angle atAngle2: player->angle2 negated .
          ] .
          down ifTrue: [
-           player swim: 128 /4 atAngle: player->angle atAngle2: player->angle2  negated + 3.14 .
+           player swim: 1 /4 atAngle: player->angle atAngle2: player->angle2  negated + 3.14 .
          ] .
          left ifTrue: [
-           player swim: 128 /4 atAngle: player->angle - (3.14 / 2) atAngle2: player->angle2 negated.
+           player swim: 1 /4 atAngle: player->angle - (3.14 / 2) atAngle2: player->angle2 negated.
          ] .
          right ifTrue: [
-           player swim: 128 /4 atAngle: player->angle + (3.14 / 2) atAngle2: player->angle2 negated.
+           player swim: 1 /4 atAngle: player->angle + (3.14 / 2) atAngle2: player->angle2 negated.
          ] .
        ] ifFalse: [
          jump ifTrue: [
            player jump .
          ] .
          up ifTrue: [
-           player move: 128 / 4 atAngle: player->angle .
+           player move: 1 / 4 atAngle: player->angle .
          ] .
          down ifTrue: [
-           player move: 128 / 4 atAngle: player->angle  +  3.14  .
+           player move: 1 / 4 atAngle: player->angle  +  3.14  .
          ] .
          left ifTrue: [
-           player move: 128 / 4 atAngle: player->angle  - (3.14 / 2 ) .
+           player move: 1 / 4 atAngle: player->angle  - (3.14 / 2 ) .
          ] .
          right ifTrue: [
-           player move: 128 / 4 atAngle: player->angle  + (3.14 / 2 ) .
+           player move: 1 / 4 atAngle: player->angle  + (3.14 / 2 ) .
          ] .
        ].
        #world animate. 

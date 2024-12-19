@@ -3,11 +3,11 @@ animate->*
   in_rad=CFrogArray
 |
   state = 'Jump' ifTrue: [
-    in_rad _ #world getThingsInRadiusFromX: x fromY: y withRadius: 1.5* 128 .
+    in_rad _ #world getThingsInRadiusFromX: x fromY: y withRadius: 1.5 .
     in_rad do:[:t=C3DThing|
       'Dont damage other pigs' .
       (t hasClass: CSmallPig) ifFalse: [
-        (t ~= self and:t->health > 0) ifTrue: [
+        (t ~= self and: t->health > 0) ifTrue: [
           state _ 'Normal' .
           t damage: 10 + (random_generator next * 15) from: self .
         ].

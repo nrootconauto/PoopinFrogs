@@ -211,8 +211,8 @@ fire->*
   ] .
 
 
-  base_x _ (#world screenCoordToX /128) floor .
-  base_y _ (#world screenCoordToY/128) floor .
+  base_x _ (#world screenCoordToX) floor .
+  base_y _ (#world screenCoordToY) floor .
   base_z _ #world screenCoordToZ floor .
   
   floor_cnt _ 1 .

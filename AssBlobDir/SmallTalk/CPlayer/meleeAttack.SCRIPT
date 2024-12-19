@@ -7,7 +7,7 @@ meleeAttackWithDamage: damage=CFrogNum ->*
   rotate_weight=CFrogNum
 |
   'Todo smooth face target' .
-  targets _ #world getThingsInRadiusFromX: x fromY: y withRadius: 128 * 2 .
+  targets _ #world getThingsInRadiusFromX: x fromY: y withRadius: 2 .
   best_angle _ 3.14 / 4  .
   targets do: [:target=C3DThing |
     tmp _ self angleBetween: target .

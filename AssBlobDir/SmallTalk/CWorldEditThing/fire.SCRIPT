@@ -18,9 +18,9 @@ fire ->* |
     wy _ w screenCoordToY .
 'move 32 unit backwards to set closer block' .
     player _ w getPlayer .
-    dist _ ((wx - player->x) squared + (wy - player->y) squared) sqrt - 32 max: 0 .
+    dist _ ((wx - player->x) squared + (wy - player->y) squared) sqrt - (1/4) max: 0 .
 
-    dist > (7 * 128) ifTrue: [
+    dist > 7 ifTrue: [
       ^ 0 .
     ]
     (wz - player->z) abs > 7 ifTrue: [

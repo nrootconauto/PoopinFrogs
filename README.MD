@@ -243,7 +243,7 @@ animate->*
   in_rad=CFrogArray
 |
   state = 'Jump' ifTrue: [
-    in_rad _ #world getThingsInRadiusFromX: x fromY: y withRadius: 1.5 * 128 .
+    in_rad _ #world getThingsInRadiusFromX: x fromY: y withRadius: 1.5 .
     in_rad do:[:t=C3DThing|
       'Dont damage other pigs' .
       (t hasClass: CSmallPig) ifFalse: [
@@ -318,14 +318,14 @@ update->* |
     ((target hasClass:C3DThing) and: target->health >0) ifTrue: [
       self wander: speed withJumpVelocity: .55 withTarget: target .
       dist _ ((target->x - x) squared + (target->y - y) squared ) sqrt .
-      (10*128) >= dist  ifTrue: [
+      10 >= dist  ifTrue: [
         ((steps_to_walk <= 0 or: random_generator next < .45 ) and: (self canSeeThing: target)) ifTrue: [
           state _ 'Jump' .
           w sweepSoundForTime: 500 withMin: 50 withMax: 70 .
           template _ w getThingTemplate: 'CSmallPig/Jump' .
           angle _ (target->x - x) arg: (target->y - y) .
-          force _ 3 * 128 / 30  .
-          angle2 _ dist arg: 128 * (target->z - z + .5 ).
+          force _ 3 * 30  .
+          angle2 _ dist arg: target->z - z + .5 .
           
           momx _ force * angle cos * angle2 cos .
           momy _ force * angle sin * angle2 cos .

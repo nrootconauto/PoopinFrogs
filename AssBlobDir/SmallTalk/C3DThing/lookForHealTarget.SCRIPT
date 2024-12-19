@@ -4,7 +4,7 @@ lookForHealTarget ->C3DThing
   p=CPlayer
 |
   p _ #world getPlayer .
-  things _ #world getThingsInRadiusFromX: x fromY: y withRadius: 16 * 128 .
+  things _ #world getThingsInRadiusFromX: x fromY: y withRadius: 16 .
   things do: [:t=C3DThing |
     'Make sure not a door'.
     ((t hasClass: C3DThing) and: p ~= t) ifTrue: [

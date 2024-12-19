@@ -22,8 +22,8 @@ pissTowardsThing: who=C3DThing ->*
 
   approx _ [ :percent=CFrogNum|
     piss _ CPissLink new .
-    piss ->x _  x + (16 * a cos ) .
-    piss ->y _  y + (16 * a sin ) .
+    piss ->x _  x + (1/8 * a cos ) .
+    piss ->y _  y + (1/8 * a sin ) .
     piss ->z _  z + .3 .
     piss ->momx _ (force * percent * a cos).
     piss ->momy _ (force * percent * a sin).
@@ -50,9 +50,9 @@ pissTowardsThing: who=C3DThing ->*
     'https://en.wikipedia.org/wiki/Trajectory' .
     launch_angle _ .35 arctan .
     targetd _  ((who ->x -  x ) squared + (who ->y -  y ) squared ) sqrt . 
-    targetd _ targetd - 8 max: 0 .
-    force _ targetd / 5 min: 24 .
-    best_force _ force .
+    targetd _ targetd * .6	 max: 0 .
+    force _ targetd  /3 min: 2/30 .
+    best_force _ force   .
     best_force_d _ 10000. .
 
     base_a _ (who ->x -  x) arg: (who ->y -  y ) .
@@ -64,12 +64,12 @@ pissTowardsThing: who=C3DThing ->*
 
 'Graduall piss towards target  ' .
     force _ (((cur_ts - state_start_tS) * 3.14 / 1.5  min: 3.14) sin + .2 min: 1)
-       * best_force min: 24 .
+       * best_force min: 2/30 .
 
     0 to: 3 do: [:v=CFrogNum |
         piss _ CPissLink new .
-        piss ->x _  x + (16 * a cos ) .
-        piss ->y _  y + (16 * a sin ) .
+        piss ->x _  x + (1/4 * a cos ) .
+        piss ->y _  y + (1/4 * a sin ) .
         piss ->z _  z + .3 .
         piss ->momx _ (force * a cos).
         piss ->momy _ (force * a sin).

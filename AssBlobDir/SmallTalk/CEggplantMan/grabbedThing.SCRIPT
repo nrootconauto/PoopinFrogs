@@ -14,15 +14,15 @@ grabbedThing ->C3DThing
     ^ 0 .
   ] .
   d _ ((left_arm->x - x ) squared +  (left_arm->y - y) squared ) sqrt .
-  things _ #world getThingsInRadiusFromX: x fromY: y withRadius: d + 128 .
+  things _ #world getThingsInRadiusFromX: x fromY: y withRadius: d + 1 .
   things _ things select:[:t=C3DThing|
-    ((left_arm hitsThing: t withRadius: 190 ) and: t ~= self) and: t->health > 0
+    ((left_arm hitsThing: t withRadius: 190/128 ) and: t ~= self) and: t->health > 0
   ] .
 
   best_thing _ 0 .
-  best_dist _ d * 2 + 256 .
+  best_dist _ d * 2 + 2 .
   things do: [:t=C3DThing|
-    d _ ((t->x - x ) squared +  (t->y - y) squared + (t->z - z * 128)squared ) sqrt .
+    d _ ((t->x - x ) squared +  (t->y - y) squared + (t->z - z ) squared ) sqrt .
     best_dist > d ifTrue: [
       best_thing _ t .
       best_dist _ d .

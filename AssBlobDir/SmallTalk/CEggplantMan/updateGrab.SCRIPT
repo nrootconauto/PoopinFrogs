@@ -28,10 +28,10 @@ updateGrab->CFrogNum
     target damage: 25 from:self .
     'Thrust target towards self' .
     a _ a + 3.14 .
-    thrust_speed _ random_generator next * 5 * 128 + 256 / 15  .
+    thrust_speed _ random_generator next * 5  + 2 / 15  .
     target->momx _ target->momx + (thrust_speed * a2 cos abs * a cos ) . 
     target->momy _ target->momy + (thrust_speed * a2 cos abs * a sin ) . 
-    target->momz _ target->momz + (thrust_speed * a2 sin / 128) + .6 . 
+    target->momz _ target->momz + (thrust_speed * a2 sin ) + .6 . 
   ] .
   final _ [
     normal _ angle + (3.14 / 2) .
@@ -40,11 +40,11 @@ updateGrab->CFrogNum
     left_arm->thick _ 8 .
     left_arm->color _ #color_PURPLE .
 
-    left_arm->x0 _ x + (32 * normal cos) .
-    left_arm->y0 _ y + (32 * normal sin) .
+    left_arm->x0 _ x + (1/4 * normal cos) .
+    left_arm->y0 _ y + (1/4 * normal sin) .
     left_arm->z0 _ z + .5 . 
-    left_arm->x _ tx + (32*normal cos ) .
-    left_arm->y _ ty + (32*normal sin ) .
+    left_arm->x _ tx + (1/4*normal cos ) .
+    left_arm->y _ ty + (1/4*normal sin ) .
     left_arm->z _ tz .
 
     normal _ angle - (3.14 / 2) .
@@ -53,11 +53,11 @@ updateGrab->CFrogNum
     right_arm->thick _ 8 .
     right_arm->color _ #color_PURPLE .
 
-    right_arm->x0 _ x + (32 * normal cos) .
-    right_arm->y0 _ y + (32 * normal sin) .
+    right_arm->x0 _ x + (1/4 * normal cos) .
+    right_arm->y0 _ y + (1/4 * normal sin) .
     right_arm->z0 _ z + .5 . 
-    right_arm->x _ tx + (32*normal cos ) .
-    right_arm->y _ ty + (32*normal sin ) .
+    right_arm->x _ tx + (1/4*normal cos ) .
+    right_arm->y _ ty + (1/4*normal sin ) .
     right_arm->z _ tz .
 
     right_hand _ C3DThing new.
@@ -83,12 +83,12 @@ updateGrab->CFrogNum
   rel_tS _ CFrogTime now asSeconds  - state_start_tS .
 
   state = 'Grab' ifTrue: [
-    target_d _ ((target->x - x / 128 ) squared + (target->y - y / 128 ) squared) sqrt.
+    target_d _ ((target->x - x  ) squared + (target->y - y ) squared) sqrt.
     d _ target_d min: rel_tS * 6  .
     a _ target->x - x arg: target->y - y .
     a2 _ target_d arg: (target->z - z). 
-    tx _ d * a cos * 128 + x .
-    ty _ d * a sin * 128 + y .
+    tx _ d * a cos  + x .
+    ty _ d * a sin + y .
     tz _ d / target_d * (target->z - z ) + z + .5 .
     angle _ a .
 
@@ -114,7 +114,7 @@ updateGrab->CFrogNum
       state_start_tS _ CFrogTime now asSeconds .
     ] .
 
-    (w getTileAtX: tx / 128 atY: ty / 128 atZ: tz ) ifTrue: [
+    (w getTileAtX: tx atY: ty  atZ: tz ) ifTrue: [
       'Hit a wall ' .
       state _ 'Grab3' .
       state_start_tS _ CFrogTime now asSeconds .
@@ -131,7 +131,7 @@ updateGrab->CFrogNum
     tz _ left_arm->z + right_arm->z / 2 . 
     angle _ tx - x arg: ty - y .
 
-    target_d _ ((tx - x / 128) squared + (ty - y /128) squared + (tz - z - .5 ) squared ) sqrt .
+    target_d _ ((tx - x)  squared + (ty - y) squared + (tz - z - .5 ) squared ) sqrt .
 
     d _ target_d - (10 / 30 ) max: 0.1 .
 

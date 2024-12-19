@@ -9,9 +9,9 @@ moveGoesOverEdge: dist=CFrogNum atAngle: a=CFrogNum ->CFrogNum
   xx _ x + (dist * a cos) .
   yy _ y + (dist * a sin) .
 
-  tile _ #world getTileAtX: xx / 128  atY: yy / 128 atZ: z - 1 .
+  tile _ #world getTileAtX: xx   atY: yy  atZ: z - 1 .
   tile ~= 0 ifTrue: [
-    tile _ #world getTileAtX: xx / 128  atY: yy / 128 atZ: z - 2 .
+    tile _ #world getTileAtX: xx   atY: yy  atZ: z - 2 .
 'Hole in ground ' .
     ^ tile = 0 .
   ] .

@@ -3,7 +3,7 @@ damage: d=CFrgoNum from: f=C3DThing
 |
 |
   1 to: d / 6 + 4 do:[ 
-    #world newParticleAtX: x atY: y atZ: z + .5 withSpread: 64 withColor: #color_RED 
+    #world newParticleAtX: x atY: y atZ: z + .5 withSpread: .5 withColor: #color_RED 
   ] .
 
   health _ health - d .

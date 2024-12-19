@@ -20,10 +20,10 @@ handleMessage: m=CFrogStr forClient: c=C3DWorldClient
 
 'Closest item with ID to point'.
   closest _ [:x=CFrogNum :y=CFrogNum :z=CFrogNum :id=CFrogNum |
-    things _ self getThingsInRadiusFromX: x fromY: y withRadius: 8 * 64 .
+    things _ self getThingsInRadiusFromX: x fromY: y withRadius: .5 .
     best_thing _ things first .
     things do:[:t=C3DThing|
-      ((t->x - x) squared + (t->y - y) squared + ((t->z - z) *128) squared ) <
+      ((t->x - x) squared + (t->y - y) squared + (t->z - z) squared ) <
       best_dist 
         ifTrue: [
          t ->server_id = id ifTrue: [

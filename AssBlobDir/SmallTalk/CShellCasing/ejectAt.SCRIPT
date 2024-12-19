@@ -3,7 +3,7 @@ ejectAtX: xx=CFrogNum atY: yy=CFrogNum ->* | rand=CFrogRandom |
   x _ xx. 
   y _ yy. 
   'shell cordnates y moves down' .
-  momx _ (rand next * 16 ) + 6 .
-  momy _ (rand next * -128 ) - 8 .
+  momx _ (rand next * 16 + 6) / 127  .
+  momy _ (rand next negated - 8) / 127  .
 
   gravity _ 16 .

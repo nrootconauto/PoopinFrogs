@@ -4,7 +4,7 @@ update->* |
   tS=CFrogNum 
   speed=CFrogNum
 |
-  speed _ 16 .
+  speed _ 16/128 .
 
 
   tS _ CFrogTime now asSeconds.

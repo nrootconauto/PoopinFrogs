@@ -2,7 +2,7 @@ isOverEdge ->CFrogNum
 |
 |
   1 to: 3 do: [:d=CFrogNum|
-    (#world getTileAtX: x / 128 atY: y / 128 atZ: z - d) ~= 0 ifTrue: [
+    (#world getTileAtX: x atY: y atZ: z - d) ~= 0 ifTrue: [
       ^ 0.
     ].
   ] .

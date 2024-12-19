@@ -34,7 +34,7 @@ fire ->CFrogNum |
       self setGraphics: 'GR/Shootgun/fire' .
       ammo _ ammo - 2 max: 0 .
       inventory_item setCount: ammo .
-      canidates _ w thingsInDist: 128 * 64 atAngle: player getAngle fromThing: player .
+      canidates _ w thingsInDist: 64 atAngle: player getAngle fromThing: player .
       w noiseSoundForTime: 200 withMin: 20 withMax: 30 .
       
       dist _ w screenCoordToDist .

@@ -50,9 +50,9 @@ update ->*
         rocket->y _ y .
         rocket->z _ z + .5 .
         rocket->angle _ angle + (o * 3.14 / 3) .
-        rocket->momx _ 20 * rocket->angle cos .
-        rocket->momy _ 20 * rocket->angle sin .
-        rocket->momz _ (target->z +.5 - rocket->z ) / dist * 20 . 
+        rocket->momx _ 20 * rocket->angle cos / 128 .
+        rocket->momy _ 20 * rocket->angle sin / 128 .
+        rocket->momz _ (target->z +.5 - rocket->z ) / dist * (20/ 128) . 
       ] .
       r _ random_generator next .  
       ((self canSeeThing: target) and: (r > .333))  ifTrue: [
@@ -97,5 +97,5 @@ update ->*
       ^ 1 .
     ] .
   
-    self wander: 10 withJumpVelocity: .60 withTarget: target .
+    self wander: 10/128 withJumpVelocity: .60 withTarget: target .
   ] .

@@ -24,7 +24,7 @@ update ->* |
   ( last_update + 1 / 10. ) > now ifTrue: [
     ^ 0
   ] .
-  simulation_dist _ 24 * 128 .
+  simulation_dist _ 24 .
   clients do: [:c=C3DWorldClient |
     self sendThingsToClient: c .
   ].
@@ -34,6 +34,9 @@ update ->* |
     t->server_old_x _ t->x .
     t->server_old_y _ t->y .
     t->server_old_z _ t->z .
+    'poopass' show.
+    t show .
+    t->no_update show.
     t->no_update ifFalse: [
       t->momx2 _ 0 .
       t->momy2 _ 0 .

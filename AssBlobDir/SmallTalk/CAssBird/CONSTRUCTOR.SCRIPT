@@ -4,7 +4,7 @@ init ->CAssBird | |
   random_generator _ CFrogRandom new .
   template _ #world getThingTemplate: 'CAssBird' .
   health _ 60 .
-  speed _ 5 .
+  speed _ 5/128 .
   lightning_bolt _ CLightningBolt new.
   lightning_bolt -> from _ self .
   ^ self

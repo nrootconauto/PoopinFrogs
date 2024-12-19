@@ -16,7 +16,7 @@ fire ->* |
       ammo _ ammo - 1 max: 0 .
       inventory_item setCount: ammo .
     
-      player fireProjectile: CEnergyBall withSpeed: 25 .
+      player fireProjectile: CEnergyBall withSpeed: 25/128 .
     ] .
   ] .
 

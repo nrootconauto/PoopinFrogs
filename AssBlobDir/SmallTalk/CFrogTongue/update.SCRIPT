@@ -35,7 +35,7 @@ update ->CFrogNum |
   y _ (dist * angle sin ) + fy .
 
   z _ lerp value: from ->z + .5  value: target_z .
-  hit_block _ #world getTileAtX: x / 128 atY: y / 128 atZ: z .
+  hit_block _ #world getTileAtX: x atY: y atZ: z .
   (hit_block and: going_back not) ifTrue: [
      start_tS _ CFrogTime now asSeconds .
      going_back _ 1 .
@@ -45,15 +45,15 @@ update ->CFrogNum |
      ^ 0 .
   ] .
 
-  things _ #world thingsInDist: dist + 64 atAngle: angle fromThing: from .
+  things _ #world thingsInDist: dist + .5 atAngle: angle fromThing: from .
 
   things do: [:t=C3DThing | 
     (t ~= from and: (hit has: t) not ) ifTrue: [
       dist2 _ ((t ->x - fx) squared + (t ->y - fy) squared ) sqrt .
-      (dist + 64) > dist2 ifTrue:[
+      (dist + .5) > dist2 ifTrue:[
         from_tongue _ ((angle cos * dist2 - x + fx ) squared +
           (angle sin * dist2 - y + fy ) squared ) sqrt .
-        from_tongue <= 64  ifTrue: [
+        from_tongue <= .5 ifTrue: [
           hit add: t .
           going_back ifFalse: [
           going_back _ 1 .

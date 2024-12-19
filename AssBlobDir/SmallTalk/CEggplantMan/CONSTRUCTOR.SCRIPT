@@ -2,7 +2,7 @@ init-> CEggplantMan | |
   #world addThing: self .
   random_generator _ CFrogRandom new .
   template _ #world getThingTemplate: 'CEggplantMan/Normal' .
-  template->radius _ 128 .
+  template->radius _ 1 .
   health _ 200 .
   state _ 'Normal' .
   ^ self

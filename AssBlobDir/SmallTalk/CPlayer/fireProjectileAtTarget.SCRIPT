@@ -11,7 +11,7 @@ fireProjectile: type* withSpeed: speed=CFrogNum
   targetz=CFrogNum
   angle2=CFrogNum
 |
-  canidates _ #world thingsInDist: 128 * 32 atAngle: angle fromThing: self .
+  canidates _ #world thingsInDist: 32 atAngle: angle fromThing: self .
   best_angle _ 3.14 / 6 .
   best _ 0 .
   canidates do: [:t=C3DThing |
@@ -35,8 +35,8 @@ fireProjectile: type* withSpeed: speed=CFrogNum
 
   rocket _ type new .
   rocket ->from _ self .
-  rocket ->x _ x + (32 * angle2 cos).
-  rocket ->y _ y + (32 * angle2 sin).
+  rocket ->x _ x + (1/4 * angle2 cos).
+  rocket ->y _ y + (1/4 * angle2 sin).
   rocket ->z _ z + .5  .
   rocket ->angle _ angle2 .
   rocket->momx _ speed * angle2 cos .

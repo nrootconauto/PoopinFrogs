@@ -1,4 +1,6 @@
 putAtX:xx=CFrogNum atY: yy=CFrogNum -> * | |
+  xx _ xx * 128 .
+  y _ yy * 128 .
   x _ xx rem: 128 .
   y _ yy rem: 128 .
   tile_x _ xx / 128 .

@@ -29,7 +29,7 @@ update -> * |
 'Check if close enough to bite'.
   state = 'Chase' ifTrue: [
     dist _ ((target ->x - x ) squared + (target ->y - y) squared ) sqrt .
-    dist < (1.5 * 128) ifTrue: [
+    dist < 1.5 ifTrue: [
       w noiseSoundForTime: 300 withMin:30 withMax: 40 .
       state _ 'Bite' .
       state_start_tS _ cur_tS .
@@ -85,12 +85,12 @@ update -> * |
   ] .  
 
   state = 'Chase' ifTrue: [   
-    speed _ 64 / 30 * 3 .
+    speed _ .5 / 30 * 3 .
   ] .
 
 
   state = 'Normal' ifTrue: [
-     speed _ 64 / 30  * 1.5 . 
+     speed _ .5 / 30  * 1.5 . 
   ] .  
 
 

@@ -1,5 +1,5 @@
 removeDoor:d=CDoor ->*
 |
 |
-  ((doors_grid at: d->x /128 ) at: d->y/16) remove: d .
+  ((doors_grid at: d->x /16 ) at: d->y/16) remove: d .
   doors remove: d.
