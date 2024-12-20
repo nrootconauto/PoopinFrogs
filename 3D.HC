@@ -558,7 +558,8 @@ n:;
   }
   I64SetDel(stack);
 }
-U0 LightingSky(I64 x,I64 y,I64 sky_light=15,CI64Set *lights=NULL) {
+//Retursn ground level
+I64 LightingSky(I64 x,I64 y,I64 sky_light=15,CI64Set *lights=NULL) {
   sky_light=ClampI64(sky_light,0,15);
   I64 z=I8_MAX,b;
   U8 *col;
@@ -566,6 +567,7 @@ U0 LightingSky(I64 x,I64 y,I64 sky_light=15,CI64Set *lights=NULL) {
   Bool sky=TRUE;
   F64 level=sky_light;
   I64 tp=x+y*w->world_width;
+  I64 hit_at=I8_MAX;
   if(0<=x<w->world_width)
     if(0<=y<w->world_height) {
       col=&w->world_blocks[tp*128];
@@ -574,7 +576,7 @@ U0 LightingSky(I64 x,I64 y,I64 sky_light=15,CI64Set *lights=NULL) {
         b=col[z];
         if(sky&&IsSolidTile(b)) {
 	  sky=FALSE;
-	  LightingLight(x,y,z+1,sky_light,TRUE);
+          hit_at=z;
 	  level=0;
         } else if(sky) {
            lcol[z]=sky_light<<4;
@@ -584,6 +586,7 @@ U0 LightingSky(I64 x,I64 y,I64 sky_light=15,CI64Set *lights=NULL) {
         --z;
       }
     }
+  return hit_at;
 }
 U0 RemoveLight(I64 x,I64 y,I64 z,I64 level) {
   C3DWorldManager *man=FrogSymbol("world")->value;
@@ -633,13 +636,41 @@ CFrogThing *WorldLightingSky(C3DWorldManager *man,I64 *argv,I64 argc) {
   I64 y=w->y,iy;
   I64 sky_light=AsF64(argv[0]),z;
   I64 level,tp;
+//Scatter is light that will scatter around the ground it hits
+//Compute it after we to have skylight already present
+  I8 scatter[2*VIEW_DIST+15+15+1][2*VIEW_DIST+15+15+1];
   CI64Set *lights=man->_lights_cache;
-//Zero lights
-  MemSet(w->world_lighting,0,w->world_width*w->world_height*128);
 //Sky light
   for(ix=-VIEW_DIST-15;ix<VIEW_DIST+15;ix++) {
     for(iy=-VIEW_DIST-15;iy<VIEW_DIST+15;iy++) {
-      LightingSky(ix+x,iy+y,sky_light,lights);
+      scatter
+	[ix+VIEW_DIST+15][iy+VIEW_DIST+15]
+	=LightingSky(ix+x,iy+y,sky_light,lights);
+    }
+  }
+//Do "scatter" light
+//$SP,"<1>",BI=1$;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  for(ix=-VIEW_DIST-15;ix<VIEW_DIST+15;ix++) {
+    for(iy=-VIEW_DIST-15;iy<VIEW_DIST+15;iy++) {
+      LightingLight(ix+x,iy+y,
+	scatter[ix+VIEW_DIST+15][iy+VIEW_DIST+15]+1,
+	sky_light,TRUE);
     }
   }
 
@@ -2276,7 +2307,7 @@ U0 MPCastCol(C3DWorldManager *wm) {
   cap=ToF64(Gs->num+1)/ToF64(mp_cnt)*GR_WIDTH;
   for(x=idx;x<cap;x+=w->step_width) {
 // divide by cos2_lookup_table to get 32 blocks from the camera
-    $SP,"<1>",BI=1$;
+    $SP,"<2>",BI=2$;
 
 
 
@@ -3491,8 +3522,8 @@ CallScript("init",shell);
 UIShellRun(shell,NULL,0);
 #endif
 
-#endif               
+#endif               
    
 *   ]   g   3   
 )   _   l   ‚   #   '   i   '   !   ‰   k   ‹   '   _   j   [         32 Away from camera    ^      
-m   ”   j   "    
+m   ”   j   "                 	       y   W      E   p   €            :      :   F   4   E   ùÿÿÿD   0   C      /   =   G   e   1   >   C   o   H    
