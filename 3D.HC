@@ -1949,10 +1949,11 @@ I64 DoorBlockHitColor(CD3 *at,CD3 *ray,CDoor *door,I64 x,I64 y,I64 z,I64 *sidex,
   if(sidex) *sidex=ox;
   if(sidey) *sidey=oy;
   if(sidez) *sidez=oz;
-  if(!hit_at) hit_at=&poo;
+  if(!hit_at) hit_at=&poo;z_offset=0;
+
   if(!texture_cords) texture_cords=&poo2;
   if(!oz)
-    z_offset=-door->height*(1.-door->percent);
+    z_offset=door->height*(1.-door->percent)*128;
   else
     z_offset=0;
   color=BlockHitColor(at,ray,b,x,y,z,ox,oy,oz,hit_at,hit_d,texture_cords,percent,z_offset);
@@ -1966,12 +1967,12 @@ I64 DoorBlockHitColor(CD3 *at,CD3 *ray,CDoor *door,I64 x,I64 y,I64 z,I64 *sidex,
     stain=stains->items->body[run];
     if(stain->sidex==ox&&stain->sidey==oy&&
 	  stain->sidez==oz) {
-      if(stain->dc&&0) {
-        z_offset=(Abs(hit_at->z)%1.);
+      if(stain->dc) {
+        z_offset=(Abs(hit_at->z)%1.-1.)*128;
         color2=GrPeek(stain->dc,
 	      ToI64(128*texture_cords->x)&127,
 //Ask God
-	      ((stain->tile_z-door->z)-tz-door->height*(1-door->percent))-z_offset);
+	      ((stain->tile_z-door->z)-tz-door->height*(1-door->percent))*128-z_offset);
         if(0<=color2<=COLORS_NUM) {
 	  color=color2;
 	  break;
@@ -2204,7 +2205,7 @@ skip_sexy:;
 		Line(
 		  &hit_light,
 		  o128.x,o128.y,o128.z,
-		  hit_cords->x,hit_cords->y,hit_cords->z,
+		  hit_cords->x,hit_cords->y,hit_cords->z,
 		  &CheckIfHitSolid
 		);
 		if(!hit_light)
@@ -2458,7 +2459,11 @@ U0 C3DWorldCastRays(C3DWorld *w) {
   MPCastCol(man);
   for(c=1;c<mp_cnt;++c) {
     while(!Bt(&mp_done,c))
-      __Sleep(2);
+#ifdef TARGET_X86
+     PAUSE;
+#else
+     __SleepHP(500);
+#endif
   }
 }
 Bool CanSee2DThing(C3DWorld *w,C3DThing *t) {
