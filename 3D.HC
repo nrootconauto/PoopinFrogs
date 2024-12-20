@@ -2160,10 +2160,10 @@ valid_color:
 	    if(hit_cords) {
 	      D3Copy(hit_cords,&new_origin);
 	    }
-	    hit=TRUE;
 	    if(hit_at) *hit_at=hit_dist;
 	    lighting=LightAtXYZ(tx+sidex,ty+sidey,tz+sidez);
 	    hit=TRUE;
+goto skip_sexy;
 	    F64 ao_nodes[4];
 	    F64 adj_lights[4];
 	    F64 ao;
@@ -2171,6 +2171,7 @@ valid_color:
 	      ao_nodes[idx]=BlockAO(idx,tx,ty,tz,sidex,sidey,sidez);
 	    for(idx=0;idx!=4;idx++)
 	      adj_lights[idx]=CornerLight(idx,tx,ty,tz,sidex,sidey,sidez);
+//Bilnear
 	    F64 u0=texture_cords.x%1.;
 	    F64 u1=1.-texture_cords.x%1.;
 	    F64 v0,v1;
@@ -2181,28 +2182,6 @@ valid_color:
 	      v0=texture_cords.y%1.;
 	      v1=1.-texture_cords.y%1.;
 	    }
-//Do dynamic lights
-//TODO cache lights around camera
-	    lights=man->lights->items;
-	    light_cnt=lights(CI64Set*)->cnt;
-	    lights=lights(CI64Set*)->body;
-	    while(--light_cnt>=0) {
-	      light=lights[light_cnt];
-	      if(light->display_level>=
-		(intensity=Sqrt(Sqr(light->x-o128.x)+Sqr(light->y-o128.y)+Sqr(light->z-o128.z)))
-		) {
-		Bool hit_light=FALSE;
-		Line(
-		  &hit_light,
-		  o128.x,o128.y,o128.z,
-		  light->x,light->y,light->z,
-		  &CheckIfHitSolid
-		);
-		if(!hit_light)
-		  lighting+=light->display_level-intensity;
-	      }
-	    }
-//Bilnear
 	    ao=.5;
 	    ao+=ao_nodes[3]*v1*u1;
 	    ao+=ao_nodes[2]*u0*v1;
@@ -2210,6 +2189,28 @@ valid_color:
 	    ao+=ao_nodes[1]*u0*v0;
 	    lighting-=3-ao;
 	    lighting=(Lerp(u0,adj_lights[0],adj_lights[2])+Lerp(v0,adj_lights[1],adj_lights[3])+lighting)/3.;
+//Do dynamic lights
+//TODO cache lights around camera
+skip_sexy:;
+	    lights=man->lights->items;
+	    light_cnt=lights(CI64Set*)->cnt;
+	    lights=lights(CI64Set*)->body;
+	    while(--light_cnt>=0) {
+	      light=lights[light_cnt];
+	      if(light->display_level>=
+		(intensity=Sqrt(Sqr(light->x-hit_cords->x)+Sqr(light->y-hit_cords->y)+Sqr(light->z-hit_cords->z)))
+		) {
+		Bool hit_light=FALSE;
+		Line(
+		  &hit_light,
+		  o128.x,o128.y,o128.z,
+		  hit_cords->x,hit_cords->y,hit_cords->z,
+		  &CheckIfHitSolid
+		);
+		if(!hit_light)
+		  lighting+=light->display_level-intensity;
+	      }
+	    }
 	    hit_color=Fog(color,hit_dist+1+depth*FOG_DIST*4+MaxI64((15-lighting)*FOG_DIST,0),fog_color);
 	  }
 	  goto pass;
