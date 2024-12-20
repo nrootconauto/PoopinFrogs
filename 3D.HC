@@ -2,7 +2,6 @@ Option(OPTf_WARN_UNUSED_VAR,0);
 #include "AnimDC.HC"
 #include "BlobFile.HC"
 #include "SmallTalk/Load.HC"
-#include "Intersect.HC"
 #include "QuestEditor.HC";
 #include "PathFinder.HC";
 #ifndef ENGINE_3D
@@ -10,6 +9,17 @@ Option(OPTf_WARN_UNUSED_VAR,0);
 
 extern Bool IsSolidTile(I64 t);
 extern I8 BlockLightLevel(I64 t);
+extern Bool SegmentSegmentIntersect(CD2 *hit_at,CD2 *a,CD2 *b,CD2 *a2,CD2 *b2,F64 *t,F64 *u);
+
+F64 SaneRound(F64 x,F64 margin=1/255.) {
+  F64 c=Ceil(x);
+  F64 f=Floor(x);
+  if(c-x<=margin)
+    return c;
+  if(x-f<=margin)
+    return f;
+  return x;
+}
 
 
 #define VIEW_DIST 32
@@ -1323,9 +1333,8 @@ Bool PointToScrn(C3DWorld *w,F64 x,F64 y,F64 z,CD3 *p) {
 
 
   //Begind camera
-PrintF("o",o);
   if(p->x<.01/128) {
-    D3MulEqu(p,1./Max(.01,p->x+.001)); //Hueristic not exact
+    D3MulEqu(p,1./Max(.01/128,p->x+.001/128)); //Hueristic not exact
     D3Equ(p,
 	  (p->y/2+.5)*GR_WIDTH,
 	  (p->z/-2+.5)*GR_HEIGHT,
@@ -1444,10 +1453,14 @@ Bool ClipLineToCamera(C3DWorld *w,CD3 *a,CD3 *b) {
   CD2 cam,left,right;
   CD2 dst;
   CD3 oa,ob;
+  CD3 vec_ab;
+  CD3 vec_ba;
+  D3Sub(&vec_ab,a,b);
+  D3Sub(&vec_ba,b,a);
+  F64 d;
   F64 a_angle=Arg(a->x-w->x,a->y-w->y);
   F64 b_angle=Arg(b->x-w->x,b->y-w->y);
-  F64 dist=Sqrt(Sqr(b->x-a->x)+Sqr(b->y-a->y));
-  Bool in_view=FALSE;
+  I8 in_view=0;
   oa.x=a->x;
   oa.y=a->y;
   oa.z=a->z;
@@ -1460,33 +1473,41 @@ Bool ClipLineToCamera(C3DWorld *w,CD3 *a,CD3 *b) {
   left.y=cam.y+I16_MAX*Sin(pi/2.5+w->angle);
   right.x=cam.x+I16_MAX*Cos(-pi/2.5+w->angle);
   right.y=cam.y+I16_MAX*Sin(-pi/2.5+w->angle);
-  if(PlaneIntersect(&dst,a,b,&cam,&left)) {
+  if(SegmentSegmentIntersect(&dst,a,b,&cam,&left,NULL,NULL)) {
     if(IsLeftSide(&cam,&left,a)) {
-      a->z=Lerp(Sqrt(Sqr(dst.x-oa.x)+Sqr(dst.y-oa.y))/dist,oa.z,ob.z);
       a->x=dst.x;
       a->y=dst.y;
-    }
-    if(IsLeftSide(&cam,&left,b)){
+      d=Max(dst.x-b->x,dst.y-b->y);
+      a->z=d*vec_ba.z+b->z;
+      in_view++;
+    } else if(IsLeftSide(&cam,&left,b)){
       b->x=dst.x;
       b->y=dst.y;
-      b->z=Lerp(Sqrt(Sqr(dst.x-oa.x)+Sqr(dst.y-oa.y))/dist,oa.z,ob.z);
+      d=Max(dst.x-a->x,dst.y-a->y);
+      b->z=d*vec_ab.z+a->z;
+      in_view++;
     }
-    in_view=TRUE;
+    D3Sub(&vec_ab,a,b);
+    D3Sub(&vec_ba,b,a);
   }
-  if(PlaneIntersect(&dst,a,b,&cam,&right)) {
+  if(SegmentSegmentIntersect(&dst,a,b,&cam,&right,NULL,NULL)) {
     if(!IsLeftSide(&cam,&right,a)) {
       a->x=dst.x;
       a->y=dst.y;
-      a->z=Lerp(Sqrt(Sqr(dst.x-oa.x)+Sqr(dst.y-oa.y))/dist,oa.z,ob.z);
+      d=Max(dst.x-b->x,dst.y-b->y);
+      a->z=d*vec_ba.z+b->z;
+      in_view++;
     }
-    if(!IsLeftSide(&cam,&right,b)){
+    else if(!IsLeftSide(&cam,&right,b)){
       b->x=dst.x;
       b->y=dst.y;
-      b->z=Lerp(Sqrt(Sqr(dst.x-oa.x)+Sqr(dst.y-oa.y))/dist,oa.z,ob.z);
+      d=Max(dst.x-a->x,dst.y-a->y);
+      b->z=d*vec_ab.z+a->z;
+      in_view++;
     }
-    in_view=TRUE;
   }
-  if(in_view) return TRUE;
+  if(in_view==1) return TRUE;
+  else if(in_view>1) return FALSE;
   if(Cos(a_angle-w->angle)<0&&Cos(b_angle-w->angle)<0)
     return FALSE;
   return TRUE;
@@ -1520,7 +1541,6 @@ U0 PrepareThingsForDraw(C3DWorldManager *wm,F64 thing_scale=.6) {
   U32 dist;
   w->things_around_camera_origin_x=Floor(w->x)-VIEW_DIST;
   w->things_around_camera_origin_y=Floor(w->y)-VIEW_DIST;
-PrintI("ppc",cnt);
   while(--cnt>=0) {
     thing=things[cnt];
     if(thing->no_draw)
@@ -2477,7 +2497,7 @@ U0 DrawParticle(C3DWorld *w,C3DParticle *p) {
   w->to_dc->thick=(DIST_SCALE/ToF64(1+dist))/64.*p->size;
   if(PointToScrn(w,p->x,p->y,p->z,&res))
     if(w->to_dc->thick>0)
-      GrPlot3(w->to_dc,res.x,res.y,dist+1);
+      GrPlot3(w->to_dc,res.x,res.y,dist*128+1);
 }
 
 U0 Line3D(C3DWorld *w,CDC *dc,CD3 *st,CD3 *en) {
@@ -2492,7 +2512,8 @@ U0 Line3D(C3DWorld *w,CDC *dc,CD3 *st,CD3 *en) {
   clip2.y=en->y;
   clip2.z=en->z;
 
-  ClipLineToCamera(w,&clip,&clip2);
+  if(!ClipLineToCamera(w,&clip,&clip2))
+    return;
 
 
   if(1.>Sqr(clip.x-w->x)+Sqr(clip.y-w->y)) {
@@ -2781,9 +2802,11 @@ CFrogThing *UpdateParticles(C3DWorldManager *man,I64 *argv,I64 argc) {
 	  Sqrt(p->momx*p->momx+p->momy*p->momy), 
 	  &p->x,
 	  &p->y,
-	  FALSE,
+	  TRUE,
 	  p->z
-	  )) {         
+	  )) {  
+	p->x=SaneRound(p->x,THING_RADIUS*1.1);
+	p->y=SaneRound(p->y,THING_RADIUS*1.1);
       goto hit;
     }
     if(C3DWorldMoveZWithCollision(w,p->momz,p->x,p->y,&p->z)) {
@@ -2800,17 +2823,17 @@ hit:
         p->z=Floor(p->z)+.001; //Sit on floors
         p->hit=1;
         p->momz=0;
+      }
 stain:
-        if(p->splat_lump_name[0]) {
-	  CallScript("newStainAtX:atY:atZ:withGraphicsLump:withSpread:",ws_class,
-	        FrogNumNew(p->x),
-	        FrogNumNew(p->y),
-	        FrogNumNew(p->z),
-	        FrogStrNew(p->splat_lump_name),
-	        FrogNumNew(32.)
-	  );
-	  p->splat_lump_name[0]=0;
-        }
+      if(p->splat_lump_name[0]) {
+        CallScript("newStainAtX:atY:atZ:withGraphicsLump:withSpread:",ws_class,
+	      FrogNumNew(p->x),
+	      FrogNumNew(p->y),
+	      FrogNumNew(p->z),
+	      FrogStrNew(p->splat_lump_name),
+	      FrogNumNew(32.)
+        );
+        p->splat_lump_name[0]=0;
       }
     }
     if(Frog_tS>1+p->born_at) {
@@ -2970,7 +2993,7 @@ CFrogThing *WorldPhysics(C3DWorldManager *wm,I64 *argv,I64 argc) {
   for(idx=0;idx<c;idx++) {
     thing=body[idx];
 //Only update when in view
-    if(VIEW_DIST*VIEW_DIST
+    if(VIEW_DIST*VIEW_DIST
 	  >Sqr(thing->y-player->y)+Sqr(thing->x-player->x)) {
       PhysicsOnThing(w,thing,wm,0.);
       if(body[idx]==player) {
@@ -3063,15 +3086,6 @@ CFrogNum *WallStainPlaceAtXYZ0(CWallStain *ws,I64 *argv,I64 argc) {
 
 }
 AddMethod("CWallStain","placeAtX:atY:atZ:atSideX:atSideY:atSideZ:withXOffset:withYOffset:",&WallStainPlaceAtXYZ0);
-F64 SaneRound(F64 x,F64 margin=1/255.) {
-  F64 c=Ceil(x);
-  F64 f=Floor(x);
-  if(c-x<=margin)
-    return c;
-  if(x-f<=margin)
-    return f;
-  return x;
-}
 CFrogNum *WallStainPlaceAtXYZ(CWallStain *ws,I64 *argv,I64 argc) {
   CDoor *door=NULL;
   C3DWorldManager *man=FrogSymbol("world")->value;
