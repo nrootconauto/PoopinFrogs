@@ -2458,12 +2458,8 @@ U0 C3DWorldCastRays(C3DWorld *w) {
   }
   MPCastCol(man);
   for(c=1;c<mp_cnt;++c) {
-    while(!Bt(&mp_done,c))
-#ifdef TARGET_X86
-     PAUSE;
-#else
+    while(!Bt(&mp_done,c))
      __SleepHP(500);
-#endif
   }
 }
 Bool CanSee2DThing(C3DWorld *w,C3DThing *t) {
