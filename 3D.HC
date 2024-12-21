@@ -762,11 +762,15 @@ C3DThing *BumpsIntoThing(C3DThing *self,I64 *argv,I64 argc) {
   return FrogNumNew(0);
 } 
 AddMethod("C3DThing","hitsThing:",&BumpsIntoThing);
+Bool CanMoveToBlock(I64 x,I64 y,I64 z) {
+  return BlockAtXYZ(x,y,z)==0&&BlockAtXYZ(x,y,z+1)==0&&BlockAtXYZ(x,y,z-1)!=0;
+}
 CFrogNum *C3DThingPathFindWalkTowardsThing(C3DThing *self,I64 *argv,I64 argc) {
   CPFPoint pt;
+  I64 adj;
   C3DThing *thing=argv[0];
   if(!ThingHasClass(thing,"C3DThing")) return FROG_SMALL_NIL;
-  CI64Set *path=PathFinder(self->x,self->y,Floor(self->z),thing->x,thing->y,Floor(thing->z),&BlockAtXYZ,AsF64(argv[1]));
+  CI64Set *path=PathFinder(self->x,self->y,Floor(self->z),thing->x,thing->y,Floor(thing->z),&CanMoveToBlock,AsF64(argv[1]));
   if(path->cnt<2) {
     I64SetDel(path);
     return FrogNumNew(Arg(thing->x-self->x,thing->y-self->y));
@@ -2683,8 +2687,8 @@ CFrogThing *C3DThingMoveAtAngle(C3DThing *self,I64 *argv,I64 argc) {
   hit_wall=C3DWorldMoveWithCollision(w,AsF64(angle),AsF64(dist),&self->x,&self->y,TRUE,self->z);
   self->x=old_x;
   self->y=old_y;
-  self->momx2+=AsF64(dist)*Cos(AsF64(angle)); 
-  self->momy2+=AsF64(dist)*Sin(AsF64(angle)); 
+  self->momx2+=AsF64(dist)/2*Cos(AsF64(angle)); 
+  self->momy2+=AsF64(dist)/2*Sin(AsF64(angle)); 
   return FrogNumNew(hit_wall);
 }
 AddMethod("C3DThing","move:atAngle:",&C3DThingMoveAtAngle);

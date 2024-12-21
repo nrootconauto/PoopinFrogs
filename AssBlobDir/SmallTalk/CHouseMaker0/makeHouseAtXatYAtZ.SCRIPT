@@ -3,11 +3,10 @@ makeHouseAtX: base_x=CFrogNum
   atZ: base_z=CFrogNum
   ->*
 |
-
   make_wall=CFrogBlock
   make_floor=CFrogBlock
   make_room=CFrogBlock
-
+  make_stairs=CFrogBlock
 
   floor=CFrogNum
   wall=CFrogNum
@@ -24,6 +23,7 @@ makeHouseAtX: base_x=CFrogNum
 
   wall_occupied=CFrogBlock
   tmp=CFrogNum
+  tmp2=CFrogNum
   make_door=CFrogNum
   door=CDoor
 
@@ -40,7 +40,54 @@ makeHouseAtX: base_x=CFrogNum
   ceil_coin=CFrogNum
 
   make_windows=CFrogNum
+
+  cur_height=CFrogNum
+
+  room_center_x=CFrogNum
+  room_center_y=CFrogNum
+
+  want_stairs=CFrogNum
+  stairs_start_x=CFrogNum  
+  stairs_start_y=CFrogNum  
+  stairs_end_x=CFrogNum  
+  stairs_end_y=CFrogNum  
+
+  stair_canidates=CFrogArray
 |
+  make_stairs _ [:x=CFrogNum :y=CFrogNum :dx=CFrogNum :dy=CFrogNum|
+    cur_height _ 0 .
+    'mstairs' show.
+    x show.
+    y show.
+    dx show.
+    dy show.
+    dx ifTrue: [
+      x to: dx sign * wall_height + x do:[:x=CFrogNum|
+        base_z + 1 to: base_z + wall_height + 1 do: [:z=CFrogNum|
+          #world setTile: 0 atX: x atY: y atZ: z .
+        ] .
+        'TODO stair type'. 
+        base_z + 1 to:  base_z + 1 + cur_height do: [:z=CFrogNum|
+          #world setTile: 7 atX: x atY: y atZ: z .
+        ] .
+        cur_height _ cur_height + 1 .
+      ]. 
+    ] .
+    dy ifTrue: [
+      y to: dy sign * wall_height + y do:[:y=CFrogNum|
+        base_z + 1 to: base_z + wall_height + 1 do: [:z=CFrogNum|
+          #world setTile: 0 atX: x atY: y atZ: z .
+        ] .
+        'TODO stair type'. 
+        base_z + 1 to:  base_z + 1 + cur_height do: [:z=CFrogNum|
+          #world setTile: 7 atX: x atY: y atZ: z .
+        ] .
+        cur_height _ cur_height + 1 .
+      ]. 
+
+    ] .
+  ].
+
   make_windows _ 0 .
  
   first_run _ 1 . 
@@ -113,6 +160,44 @@ makeHouseAtX: base_x=CFrogNum
     wall_occupied value: sc value:ec .
 'tmp is set if wall is occupied' .
     tmp ifFalse: [
+      want_stairs ifTrue: [
+        stairs_start_x _ (sc first min: ec first) .
+        stairs_end_x _ (sc first max: ec first ) .
+        stairs_start_y _ (sc last min: ec last) .
+        stairs_end_y _ (sc last max: ec last)  .
+
+'Face center of room' show .
+        stairs_start_x < room_center_x ifTrue: [
+          stairs_start_x _ stairs_start_x + 1 
+        ] ifFalse: [ stairs_start_x _ stairs_start_x - 1].
+        stairs_start_y < room_center_y ifTrue: [
+          stairs_start_y _ stairs_start_y + 1 
+        ]   ifFalse: [ stairs_start_y _ stairs_start_y - 1].
+
+        stairs_end_x < room_center_x ifTrue: [
+          stairs_end_x _ stairs_end_x + 1 
+        ] ifFalse: [ stairs_end_x _ stairs_end_x - 1].
+        stairs_end_y < room_center_y ifTrue: [
+          stairs_end_y _ stairs_end_y + 1 
+        ] ifFalse: [ stairs_end_y _ stairs_end_y - 1].
+
+'TODOrandom direction'  show .
+        (stairs_end_x - stairs_start_x) > (stairs_end_y - stairs_start_y) ifTrue: [
+          stair_canidates last add: #(
+            stairs_start_x
+            stairs_start_y
+            1
+            0 
+          ). 
+        ] ifFalse: [
+          stair_canidates last add: #(
+            stairs_start_x
+            stairs_start_y
+            0
+            1 
+          ). 
+        ] .
+      ].
       (sc at:0 ) to: (ec at:0) do:[:x=CFrogNum|
         (sc at:1 ) to: (ec at:1) do:[:y=CFrogNum|
           doors_grid _ (#world->doors_grid at: x / 16) at: y /16 .
@@ -166,6 +251,7 @@ makeHouseAtX: base_x=CFrogNum
         ].
       ].
     ].
+
     tmp 
   ] .
 
@@ -229,12 +315,18 @@ makeHouseAtX: base_x=CFrogNum
   ] .
 
 
+  stair_canidates _ #().
+
   0 to: floors do: [:f=CFrogNum|
+    want_stairs _ f < (floors - 1) .
+    stair_canidates add: #().
     roots do: [:r=CFrogArray|
        make_floor value: r first value: r last 
     ].
 
     make_room _ [:sc=CFrogArray :ec=CFrogArray |
+      room_center_x _ sc first + ec first / 2 .
+      room_center_y _ sc last + ec last / 2 .
 'If we are on an upper floor,dont make doors to the ourside' .
 'top is current partition'.
       (f and: first_run) ifTrue: [
@@ -334,7 +426,21 @@ makeHouseAtX: base_x=CFrogNum
     base_z _ base_z + wall_height .
   ].
 
+
   make_ceil value: base_x value: base_y value: width value: height .
   (alt_root hasClass: CFrogArray ) ifTrue: [
     make_ceil value: alt_root first first value: alt_root first last value: 4 value: 4 .
   ].
+
+  base_z _ base_z - (floors * wall_height) .
+  stair_canidates do: [:floor_cans=CFrogArray|
+    floor_cans size ifTrue:[
+      floor_cans _ floor_cans at: floor_cans size * rand next .
+      make_stairs value: (floor_cans at:0)
+        value: (floor_cans at: 1)
+        value: (floor_cans at: 2)
+        value: (floor_cans at: 3).
+    ] .
+    base_z _ base_z + wall_height.
+  ] .
+

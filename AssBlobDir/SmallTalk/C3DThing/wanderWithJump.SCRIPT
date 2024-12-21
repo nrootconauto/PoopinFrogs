@@ -5,6 +5,7 @@ wander: dist=CFrogNum
   rand=CFrogRandom
   hit_wall=CFrogNum
 |
+  self newChaseDirection: dist withTarget: target .
   momx2 _ 0 .
   momy2 _ 0 .
   hit_thing ifTrue: [
@@ -17,25 +18,11 @@ wander: dist=CFrogNum
     (hit_wall and: self isOnGround ) ifTrue: [
       'Check if 1 block jump'.
       (#world getTileAtX: (x + angle cos) atY: (y + angle sin) atZ: z + 1) = 0 ifTrue: [
+        self newChaseDirection: dist withTarget: target .
         momz _ jmp_velo .
         ^ 1 .
       ] .
-      ^ 0 .
     ] . 
-    self newChaseDirection: dist withTarget: target .
-  ] ifFalse: [
-^ 0 .
-    self isOnGround ifTrue: [
-      'Check if 1 block depress' .
-      (#world getTileAtX: x + angle cos atY: y + angle sin  atZ: z - 1) = 0 ifTrue: [
-        'Just jump into pit'.
-        momz _ jmp_velo .
-        ^ 1 .
-      ] .
-    ] .
-    self newChaseDirection: dist withTarget: target .
-    ^ 0.
-  ] .
-  
+  ] .  
 
-  ^ 1 . 
+  ^ (self move: dist atAngle: angle) not .
