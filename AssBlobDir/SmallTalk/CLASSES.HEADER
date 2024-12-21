@@ -287,6 +287,7 @@ class C3DThing:CFrogThing {
   Bool no_update;
   Bool invisible;
   Bool pad[8-2];
+  CFrogArray *path_finder_data;
 };
 class CDayNightStar:CFrogThing {
   I64 color;

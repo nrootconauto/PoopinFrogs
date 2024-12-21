@@ -8,7 +8,7 @@ I64 class CPFPoint {
   I16 z;
   I16 wave;
 };
-F64 Hueristic(CPFPoint a,CPFPoint b) {
+F64 PFHueristic(CPFPoint a,CPFPoint b) {
   return Sqr(a.x-b.x)+Sqr(a.y-b.y)+Sqr(a.z-b.z);
 }
 U0 AddPoint(CPFPoint p,CPFPoint from,I64 score) {
@@ -26,7 +26,7 @@ U0 AddPoint(CPFPoint p,CPFPoint from,I64 score) {
   HashGenericAdd(buf,HTT_FRAME_PTR,from,0,score);
 }
 //Returns CI64Set of CPFPoint
-CI64Set *PathFinder(I64 x,I64 y,I64 z,I64 to_x,I64 to_y,I64 to_z,I64(*valid_tile)(I64,I64,I64),I64 jump=1.1,I64 max=10) {
+CI64Set *PathFinder(I64 x,I64 y,I64 z,I64 to_x,I64 to_y,I64 to_z,I64(*valid_tile)(I64,I64,I64),I64 jump=1.1,I64 max=14) {
   max=max*max;
   U8 buf[STR_LEN];
   CHashTable *t=HashTableNew(0x10),*old=Fs->hash_table;
@@ -44,7 +44,7 @@ CI64Set *PathFinder(I64 x,I64 y,I64 z,I64 to_x,I64 to_y,I64 to_z,I64(*valid_tile
   pt.wave=0;
   pt_dst.x=to_x,pt_dst.y=to_y,pt_dst.z=to_z;
   pt_dst.wave=0;
-  AddPoint(pt,INVALID_PTR,Hueristic(pt,pt_dst));
+  AddPoint(pt,INVALID_PTR,PFHueristic(pt,pt_dst));
   I64SetAdd(frontier,pt);
   wave=0;
   if(pt_dst==pt)
@@ -55,7 +55,7 @@ CI64Set *PathFinder(I64 x,I64 y,I64 z,I64 to_x,I64 to_y,I64 to_z,I64(*valid_tile
       best_val=I64_MAX;
       for(iter=0;iter!=frontier->cnt;iter++) {
         pt=frontier->body[iter];
-        off=Hueristic(pt,pt_dst);
+        off=PFHueristic(pt,pt_dst);
         if(off<best_val) {
 	  best_val=off;
 	  best_pt=pt;

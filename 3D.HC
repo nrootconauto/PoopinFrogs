@@ -767,17 +767,23 @@ Bool CanMoveToBlock(I64 x,I64 y,I64 z) {
 }
 CFrogNum *C3DThingPathFindWalkTowardsThing(C3DThing *self,I64 *argv,I64 argc) {
   CPFPoint pt;
-  I64 adj;
+  I64 i;
   C3DThing *thing=argv[0];
   if(!ThingHasClass(thing,"C3DThing")) return FROG_SMALL_NIL;
-  CI64Set *path=PathFinder(self->x,self->y,Floor(self->z),thing->x,thing->y,Floor(thing->z),&CanMoveToBlock,AsF64(argv[1]));
+  CI64Set *path=PathFinder(self->x,self->y,Floor(self->z),thing->x,thing->y,Floor(thing->z),&CanMoveToBlock,AsF64(argv[1])),*dummy;
   if(path->cnt<2) {
     I64SetDel(path);
     return FrogNumNew(Arg(thing->x-self->x,thing->y-self->y));
   }
 //TODO account for large same directionz
+  self->path_finder_data=FrogArrayNew;
+  dummy=self->path_finder_data->items;
+  for(i=0;i!=path->cnt;i++) {
+    I64SetAdd(dummy,path->body[i]<<16|FROG_SMALL_NIL);
+  }
   pt=path->body[1];
   I64SetDel(path);
+  
   return FrogNumNew(Arg(pt.x+.5-self->x,pt.y+.5-self->y));
 }
 AddMethod("C3DThing","pathFinderAngleTowardsThing:withJump:",&C3DThingPathFindWalkTowardsThing);
@@ -1074,14 +1080,15 @@ U0 PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm,F64 last_tS) {
     return;
 //Iget about 20 fps on my aspire 5920(add 5 fps)
   F64 weight=1.;
-  F64 angle,dist,ox,oy;
-  I64 tile=wx+wy*w->world_width;
+  F64 angle,dist,ox,oy,best_dist;
+  I64 tile=wx+wy*w->world_width,i,best_i;
   Bool i_am_moving=FALSE,on_ground;
   CRocket *rocket=NULL;
   CFrogArray *in_radius;
   CDoor *to_open;
   C3DThing *other;
   CI64Set *set;
+  CPFPoint pf,at_pf,best_pf;
   C3DWorldManager *man=FrogSymbol("world")->value;
   if(ThingHasClass(t,"CRocket"))
     rocket=t;
@@ -1097,6 +1104,37 @@ U0 PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm,F64 last_tS) {
   }
   ox=t->x;
   oy=t->y;
+//Moving(towards path?)
+  if(t->momy2>1/128.||t->momx2>1/128.) {
+    if(ThingHasClass(t->path_finder_data,"CFrogArray")) {
+      set=t->path_finder_data->items;
+      at_pf.x=t->x;
+      at_pf.y=t->y;
+      at_pf.z=t->z;
+      best_pf=at_pf;
+      if(set->cnt>1) {
+        best_dist=I32_MAX;
+        for(i=0;i!=set->cnt;i++) {
+	  pf=set->body[i]>>16;
+	  dist=Sqr(t->x-pf.x)+Sqr(t->y-pf.y)+Sqr(t->z-pf.z);
+	  if((best_pf&POINT_MASK!=pf&POINT_MASK)&&dist<best_dist) {
+	    best_i=i;
+	    best_pf=pf;
+	    best_dist=dist;
+	  }
+        }
+      }
+      if(best_pf&POINT_MASK!=at_pf&POINT_MASK) {
+	MemCpy(set->body,set->body+best_i,(set->cnt-best_i)*8);
+	set->cnt-=best_i;
+        PrintI("best_",best_pf&POINT_MASK);
+        dist=Sqrt(Sqr(t->momx2)+Sqr(t->momy2));
+        t->angle=Arg(best_pf.x+.5-t->x,best_pf.y+.5-t->y);
+        t->momx2=dist*Cos(t->angle);
+        t->momy2=dist*Sin(t->angle);
+      }
+    }
+  }
   if(t->momy+t->momy2||t->momx+t->momx2) {
     if(!rocket) {
       t->momx*=29/30.*weight;
@@ -2687,8 +2725,8 @@ CFrogThing *C3DThingMoveAtAngle(C3DThing *self,I64 *argv,I64 argc) {
   hit_wall=C3DWorldMoveWithCollision(w,AsF64(angle),AsF64(dist),&self->x,&self->y,TRUE,self->z);
   self->x=old_x;
   self->y=old_y;
-  self->momx2+=AsF64(dist)/2*Cos(AsF64(angle)); 
-  self->momy2+=AsF64(dist)/2*Sin(AsF64(angle)); 
+  self->momx2+=AsF64(dist)*Cos(AsF64(angle)); 
+  self->momy2+=AsF64(dist)*Sin(AsF64(angle)); 
   return FrogNumNew(hit_wall);
 }
 AddMethod("C3DThing","move:atAngle:",&C3DThingMoveAtAngle);
