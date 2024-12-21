@@ -1,0 +1,24 @@
+init->*
+|
+  wall_types=CFrogArray 
+  floor_types=CFrogArray 
+  ceil_types=CFrogArray 
+|
+  rand _ CFrogRandom new.
+
+  wall_types _ #(1 4 12) . 
+  floor_types _ #(2 11 7 ) .
+  ceil_types _ #(9) .
+
+  wall_height _ 4 .
+  floor_type _ floor_types at: rand next * floor_types size .
+  ceil_type _ ceil_types at: rand next * ceil_types size .
+  wall_type _ wall_types at: rand next * wall_types size .
+
+
+  width _ rand next * 7 + 4 .
+  height _ rand next * 7 + 4  .
+  floors _ 1 .
+  wall_height _ 4 .
+  decorations _ #().
+  ^ self

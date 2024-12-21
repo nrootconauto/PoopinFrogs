@@ -162,12 +162,6 @@ extern I64 *GetTilesInPath(U8 *w,F64 angle,F64 dist);
 #define ENGINE_3D 1
 #define SCRN_TURN_MARGIN 100
 #define SCRN_TURN_RATE (pi/30./7)
-//This will delegate calls to other cores
-class CCSPair {
-  U8 *name;
-  CFrogThing *thing;
-  CHashTable *ht;
-};
 //
 // From LevelEditor.HC
 //
@@ -580,7 +574,8 @@ I64 LightingSky(I64 x,I64 y,I64 sky_light=15,CI64Set *lights=NULL) {
 	  level=0;
         } else if(sky) {
            lcol[z]=sky_light<<4;
-        }
+        } else
+	   lcol[z]&=0xf;
 	if(lights&&1<=BlockLightLevel(b))
 	  I64SetAdd(lights,tp*128+z);
         --z;
@@ -637,19 +632,23 @@ CFrogThing *WorldLightingSky(C3DWorldManager *man,I64 *argv,I64 argc) {
   I64 sky_light=AsF64(argv[0]),z;
   I64 level,tp;
 //Scatter is light that will scatter around the ground it hits
-//Compute it after we to have skylight already present
+  //Compute it after we to have skylight already present
   I8 scatter[2*VIEW_DIST+15+15+1][2*VIEW_DIST+15+15+1];
   CI64Set *lights=man->_lights_cache;
 //Sky light
   for(ix=-VIEW_DIST-15;ix<VIEW_DIST+15;ix++) {
     for(iy=-VIEW_DIST-15;iy<VIEW_DIST+15;iy++) {
-      scatter
-	[ix+VIEW_DIST+15][iy+VIEW_DIST+15]
-	=LightingSky(ix+x,iy+y,sky_light,lights);
+      if(0<=x+ix<w->world_width)
+        if(0<=y+iy<w->world_height) {
+	  MemSet(&w->world_lighting[(x+ix+(y+iy)*w->world_width)*128],0,128);
+	  scatter
+	        [ix+VIEW_DIST+15][iy+VIEW_DIST+15]
+	        =LightingSky(ix+x,iy+y,sky_light,lights);
+        }
     }
   }
 //Do "scatter" light
-//$SP,"<1>",BI=1$;
+  //$SP,"<1>",BI=1$;
 
 
 
@@ -669,8 +668,8 @@ CFrogThing *WorldLightingSky(C3DWorldManager *man,I64 *argv,I64 argc) {
   for(ix=-VIEW_DIST-15;ix<VIEW_DIST+15;ix++) {
     for(iy=-VIEW_DIST-15;iy<VIEW_DIST+15;iy++) {
       LightingLight(ix+x,iy+y,
-	scatter[ix+VIEW_DIST+15][iy+VIEW_DIST+15]+1,
-	sky_light,TRUE);
+	    scatter[ix+VIEW_DIST+15][iy+VIEW_DIST+15]+1,
+	    sky_light,TRUE);
     }
   }
 

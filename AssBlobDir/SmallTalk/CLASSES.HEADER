@@ -241,7 +241,7 @@ class CTileTemplate:CFrogThing {
   CFrogImg *ceil_texture;
   I64 light_level;
   I64 health;
-  I64 is_solid;
+  I64 is_solid;
 };
 class C2DPoint:CFrogThing {
   I64 x,y;
@@ -390,6 +390,14 @@ class CDoorItem:CHandItem {
   Bool side_door,small_key,big_key;
 };
 
+class CHouseMaker0:CFrogThing {
+  CFrogRandom *rand;
+  I64 wall_type,ceil_type,floor_type;
+  I64 width,height;
+  I64 door_type;
+  I64 floors,wall_height;
+  CFrogArray *decorations;
+};
 class CHouseMaker:CHandItem {
 };
 
