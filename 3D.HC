@@ -1896,32 +1896,45 @@ I64 DoorBlockHitColor(CD3 *at,CD3 *ray,CDoor *door,I64 x,I64 y,I64 z,I64 *sidex,
     switch(run) {
       case 0:
         ox=1;
+	if(!(at->x>=x+1)||ray->x>0.)
+	  goto next;
         break;
       case :
         ox=-1;
+	if(!(at->x<=x)||ray->x<0.)
+	  goto next;
         break;
       case :
         oy=1;
+	if(!(at->y>=y+1)||ray->y>0.)
+	  goto next;
         break;
       case :
         oy=-1;
+	if(!(at->y<=y)||ray->y<0.)
+	  goto next;
         break;
       case :
         oz=1;
+	if(!(at->z>=z+percent)||ray->z>0.)
+	  goto next;
         break;
       case :
         oz=-1;
+	if(!(at->z<=z)||ray->z<0.)
+	  goto next;
         break;
     }
     if(-1!=BlockHitColor(at,ray,b,x,y,z,ox,oy,oz,&poo,&d,,percent))
       if(x-.001<=poo.x<=x+1.001)
         if(y-.001<=poo.y<=y+1.001) {
-	  if(z-.001<=poo.z<=z+percent+.001)
+	  if(z<=poo.z<=z+percent+.001)
 	    if(d<best_dist) {
 	      best_dist=d;
 	      best_run=run;
 	    }
         }
+next:;
   }
   if(best_run==-1)
     return -1;
@@ -2458,7 +2471,7 @@ U0 C3DWorldCastRays(C3DWorld *w) {
   }
   MPCastCol(man);
   for(c=1;c<mp_cnt;++c) {
-    while(!Bt(&mp_done,c))
+    while(!Bt(&mp_done,c))
      __SleepHP(500);
   }
 }
