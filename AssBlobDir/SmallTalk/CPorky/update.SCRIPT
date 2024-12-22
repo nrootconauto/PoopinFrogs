@@ -12,11 +12,11 @@ update ->*
   health <= 0 ifTrue: [
     state ~= 'Dead' ifTrue: [
       w sweepSoundForTime: 500 withMin: 50 withMax: 30 .
+      animation_no_repeat _ 1 .
+      animation_start_tS _ tS .
       template _ w getThingTemplate: 'CPorky/Dead' .
       state _ 'Dead' .
       self die .
-      animation_no_repeat _ 1 .
-      animation_start_tS _ tS .
     ] .
     ^ 1 .
   ] .
