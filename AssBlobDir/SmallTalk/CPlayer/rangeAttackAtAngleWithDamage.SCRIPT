@@ -2,14 +2,17 @@ rangeAttackAtAngle: a=CFrogNum withDamage: d=CFrogNum
 ->*
 |
   best_thing=C3DThing
+  hit_tile=C3DPoint
 |
-'attack' show .
   best_thing _ self  bestTargetAtAngle: a .
   (best_thing hasClass: C3DThing) ifTrue: [
-    best_thing show .
     #world->is_client ifTrue: [
       #client sendAttackOfThing: best_thing withDamage: d . 
     ] ifFalse: [
        best_thing damage: d from: self
     ]
-  ] .
+  ] ifFalse: [
+'TODO somtnhing sexier'.
+    hit_tile _ #world screenTile .
+    #world damageTile: d atX: hit_tile->x atY: hit_tile->y atZ: hit_tile->z .
+  ].

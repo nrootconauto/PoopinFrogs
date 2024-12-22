@@ -81,7 +81,7 @@ init ->* |
         ui_roots add: group .
         #ui_root _ group .
         group-> bg_color _ #color_DKGRAY .
-        group setHeight: 350 .
+        group setHeight: 400 .
         group setWidth: 200 .
         group->x _ 640 / 2 - (group->sz_x / 2) .
         group->y _ 480 / 2 - (group->sz_y / 2) .
@@ -186,6 +186,23 @@ init ->* |
         ] .
         button-> x _ 50 .
         button-> y _ 300 .
+        button->sz_y _ 40 .
+        button->sz_x _ 200 .
+        group addChild: button .
+
+        button _ CUIButton new .
+        button->fg_color _ #color_LTRED .
+        button->bg_color _ #color_YELLOW .
+        button setLabel: 'Edit Health(',tile->health printString,')' .
+        button onLeftUp: [:elem* |
+          ask_num value: [:n=CFrogNum|
+            tile->health _ n .
+            tile updateTextures.
+            tainted _ 1 .
+          ].
+        ] .
+        button-> x _ 50 .
+        button-> y _ 350 .
         button->sz_y _ 40 .
         button->sz_x _ 200 .
         group addChild: button .

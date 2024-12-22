@@ -9,6 +9,8 @@ fire ->* |
  best_thing*
  w=C3DWorldManager
  dmg=CFrogNum
+ tile=CFrogAray
+ side=CFrogArray
  |
   w _ #world .
   player _ w getPlayer .
@@ -34,7 +36,6 @@ fire ->* |
 
       CWallStain newStainAtX: w screenCoordToX atY: w screenCoordToY atZ: w screenCoordToZ
         withGraphicsLump: 'GR/GUN1/BULLET_HOLE' .
-
     ] .
   ] .
 

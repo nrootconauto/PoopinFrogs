@@ -226,17 +226,20 @@ I64 class CWallCommand {
 #define DIST_SCALE (GR_HEIGHT)
 #define EMPTY_SPACE 0
 class C3DWorld {
+  CDC *damage_texture;
   F64 fov,x,y,h,angle;
   F64 angle2;
   I64 step_width,step_width_y;
   I64 world_width;
   I64 world_height;
-  U8 *world_blocks; //x*y*128+z
-  U8 *world_lighting; //x*y*128+z
+  U8 *block_health; //x*y*128
+  U8 *world_blocks; //x*y*128
+  U8 *world_lighting; //x*y*128
   CDC *wall_textures[0x100],*to_dc;
   CDC *floor_textures[0x100];
   CDC *floor_textures1616[0x100];
   CDC *ceil_textures[0x100];
+  U8 healths[0x100]; //For tiles
   Bool light_levels[0x100];
   Bool solids[0x100];
   C3DThingTemplate *thing_templates[0x10000];
@@ -334,11 +337,16 @@ C3DWorld *InitWorld(F64 fov=pi/2) {
   C3DWorldSetFov(ret,fov);
   CTileTemplate *tile_template;
   CDoor *door;
+  if(tmp=BlobFileGetLump(,"TEXTURES/Damage")) {
+    ret->damage_texture=AnimDCLoad(tmp,,frog_mem_task);
+    Free(tmp);
+  }
   QueInit(&ret->particles);
   ret->step_width=4; 
   ret->step_width_y=4;
   ret->world_width=64;
   ret->world_height=64;
+  ret->block_health=CAlloc(ret->world_width*ret->world_height*128);
   ret->world_blocks=CAlloc(ret->world_width*ret->world_height*128);
   ret->world_lighting=CAlloc(ret->world_width*ret->world_height*128);
   w=ret;
@@ -399,6 +407,8 @@ C3DWorld *InitWorld(F64 fov=pi/2) {
         CallScript("addTileTemplate:",man,tile_template);
 	ret->solids[tile]=ftxtr->is_solid;
 	ret->light_levels[tile]=ftxtr->light_level;
+	ret->healths[tile]=ftxtr->health;
+PrintF("ass",ret->healths[tile]);
 	if(tile==0) ret->solids[0]=0;
       }
     }
@@ -2092,6 +2102,7 @@ I64 GetColorForRay(C3DWorldManager *man,CD3 *origin,CD3 *ray,F64 dist,F64 *hit_a
   CD3 o128,rp;
   CD3 new_origin;
   CD3 new_ray;
+  I64 template_health;
   rp.x=ray->z;
   rp.y=-ray->x;
   rp.z=-ray->y;
@@ -2173,6 +2184,25 @@ try_stains:;
 		  }
 
 	        }
+	    }
+try_damage:;
+	    if(w->damage_texture&&(template_health=w->healths[w->world_blocks[idx]])) {
+	      I64 damage_cnt=AnimDCCnt(w->damage_texture);
+	      idx=(ty*w->world_width+tx)*128+tz;
+	      rel_percent=1.-w->block_health[idx]/ToF64(template_health);
+	      rel_percent=rel_percent*(1+damage_cnt);
+	      if(ToI64(rel_percent-1)>=0) {
+		  if(0<=GrPeek(w->damage_texture+ToI64(rel_percent-1),
+		        (texture_cords.x*127),
+		        (texture_cords.y*127)
+		        )<TRANSPARENT) {
+		    color=GrPeek(w->damage_texture+ToI64(rel_percent-1),
+		          (texture_cords.x*127),
+		          (texture_cords.y*127)
+		        );
+		    goto valid_color;
+		  }
+	      }
 	    }
 try_block:;
 //For-recursive
@@ -2743,10 +2773,11 @@ AddMethod("C3DWorldManager","height",&WorldManagerHeight);
 CFrogThing *WorldManagerSetTileAtXAtY(C3DWorldManager *self,I64 *argv,I64 argc) {
   if(!self->_lights_cache) 
     self->_lights_cache=I64SetNew(frog_mem_task);
-  I8 tile=AsF64(argv[0]);
+  U8 tile=AsF64(argv[0]);
   I64 x=AsF64(argv[1]);
   I64 y=AsF64(argv[2]);
   I64 z=AsF64(argv[3]),tt,l;
+  CTileTemplate *t_temlate;
   if(0<=x<w->world_width)
     if(0<=y<w->world_height) {
       if(0<=z<=I8_MAX) {
@@ -2764,6 +2795,10 @@ CFrogThing *WorldManagerSetTileAtXAtY(C3DWorldManager *self,I64 *argv,I64 argc) 
 	}
 //Re-assign sky light
         LightingSky(x,y,self->sky_light,NULL);
+	if(!tile)
+	  w->block_health[tt]=0;
+	else
+          w->block_health[tt]=w->healths[tile];
 	return FrogNumNew(1);
       }
     }
@@ -2828,6 +2863,27 @@ C3DPoint *TileSideAtScreen(C3DWorldManager *man,I64 *argv,I64 argc) {
   return r;
 }
 AddMethod("C3DWorldManager","screenTileSide",&TileSideAtScreen);
+CFrogThing *WorldDamageTileAt(C3DWorldManager *man,I64 *argv,I64 argc) {
+  F64 d=AsF64(argv[0]);
+  I64 x=SaneRound(AsF64(argv[1]));
+  I64 y=SaneRound(AsF64(argv[2]));
+  I64 z=SaneRound(AsF64(argv[3]));
+  I64 tt,tile,h;
+  if(0<=x<=w->world_width)
+    if(0<=y=w->world_height) 
+      if(0<=z<=I8_MAX) {
+        tt=(x+y*w->world_width)*128+z;
+	h=w->block_health[tt];
+	if(d>=h) {
+	  w->block_health[tt]=0;
+	  w->world_blocks[tt]=0;
+	  return FrogNumNew(1);
+	}
+	w->block_health[tt]=Floor(h-d);
+      }
+  return FrogNumNew(0);
+}
+AddMethod("C3DWorldManager","damageTile:atX:atY:atZ:",&WorldDamageTileAt);
 //
 // World Edit section
 //
@@ -3037,8 +3093,10 @@ CFrogThing *WorldManagerEmptyWithDim(C3DWorldManager *man,I64 *argv,I64 argc) {
   w->world_height=AsF64(argv[1]);
   Free(w->world_blocks);
   Free(w->world_lighting);
+  Free(w->block_health);
   w->world_lighting=CAlloc(128*(w->world_width*w->world_height),frog_mem_task);
   w->world_blocks=CAlloc(128*(w->world_width*w->world_height),frog_mem_task);
+  w->block_health=CAlloc(w->world_width*w->world_height*128,frog_mem_task);
   CFrogDictionary *old_templates=man->thing_templates,*ot2=man->tile_templates;
   CallScript("initGrid",man);
   man->thing_templates=old_templates;
@@ -3120,8 +3178,10 @@ CFrogThing *TileTemplateUpdate(CTileTemplate *tile,I64 *argv,I64 argc) {
     w->ceil_textures[idx]=ScaleDC(tile->ceil_texture->dc,128,128,frog_mem_task);
   } else
     w->ceil_textures[idx]=NULL;
+  w->healths[idx]=tile->health;
   w->solids[idx]=tile->is_solid;
   w->light_levels[idx]=tile->light_level;
+  CallScript("save",tile);
   return FROG_SMALL_NIL;
 }
 AddMethod("CTileTemplate","updateTextures",&TileTemplateUpdate);
@@ -3541,7 +3601,7 @@ CFrogThing *TileTemplateSave(CTileTemplate *t,I64 *argv,I64 argc) {
         Free(name);
       }
     f_template.light_level=BlockLightLevel(t->tile_idx);
-    f_template.health=100;
+    f_template.health=t->health;
     f_template.is_solid=IsSolidTile(t->tile_idx);
     name=MStrPrint(BLOB_TILES_ROOT"/%d",t->tile_idx);
     BlobFileAddLump(,name,&f_template,sizeof(CFileTexture));

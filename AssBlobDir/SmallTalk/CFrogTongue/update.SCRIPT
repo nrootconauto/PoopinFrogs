@@ -49,31 +49,27 @@ update ->CFrogNum |
 
   things do: [:t=C3DThing | 
     (t ~= from and: (hit has: t) not ) ifTrue: [
-      dist2 _ ((t ->x - fx) squared + (t ->y - fy) squared ) sqrt .
-      (dist + .5) > dist2 ifTrue:[
-        from_tongue _ ((angle cos * dist2 - x + fx ) squared +
-          (angle sin * dist2 - y + fy ) squared ) sqrt .
-        from_tongue <= .5 ifTrue: [
-          hit add: t .
-          going_back ifFalse: [
-          going_back _ 1 .
-            target_x _ t->x .
-            target_y _ t->y .
-            target_z _ z .
-            start_tS _ CFrogTime now asSeconds .
-          ] .
-          angle _ from->x -  t->x arg: from->y - t->y .
-          r _ CFrogRandom new .
+      (self hitsThing: t withRadius: .75 ) ifTrue: [
+        dist2 _ ((t->x -x) squared + (t->y - y) squared )sqrt .
+        hit add: t .
+        going_back ifFalse: [
+        going_back _ 1 .
+          target_x _ t->x .
+          target_y _ t->y .
+          target_z _ z .
+          start_tS _ CFrogTime now asSeconds .
+        ] .
+        angle _ from->x -  t->x arg: from->y - t->y .
+        r _ CFrogRandom new .
 'Throw the target towards the frog' .
-          t damage: 10 + (r next * 7 ) from: from .
-          force _ r next * 10 + dist2 / 30 .
-          t addMomX: force * angle cos. 
-          t addMomY: force * angle sin. 
-          t addMomZ: .45 . 
-          ^0 .
-        ]
-      ] .
-    ]
+        t damage: 10 + (r next * 7 ) from: from .
+        force _ r next * 10 + dist2 / 30 .
+        t addMomX: force * angle cos. 
+        t addMomY: force * angle sin. 
+        t addMomZ: .45 . 
+        ^0 .
+      ]
+    ] .
   ].
 
   ^ 1

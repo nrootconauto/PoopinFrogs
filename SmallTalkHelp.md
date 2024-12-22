@@ -87,6 +87,7 @@
 	 - **restoreBlocksFromString:withWidth:withHeight:**(builtin)
 	 - **emptyWorldWithWidth:withHeight:**(builtin)
 	 - **getTileAtX:atY:atZ:**(builtin)
+	 - **damageTile:atX:atY:atZ:**(builtin)
 	 - **setTile:atX:atY:atZ:**(builtin)
 	 - **tileIsLiquidAtX:atY:atZ:**(builtin)
 	 - **pointToScreenZAtX:atY:atZ:**(builtin)

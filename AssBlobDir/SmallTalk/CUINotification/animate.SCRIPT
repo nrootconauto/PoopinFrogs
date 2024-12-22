@@ -30,8 +30,6 @@ animate ->*
     y _ anim_start_y - (480 * t) max: base_y . 
   ].
 
-  y show .
-
   i = 0 ifTrue: [
     t > 2 ifTrue: [
       #ui_root2 removeChild: self .
