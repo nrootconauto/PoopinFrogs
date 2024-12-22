@@ -11,6 +11,8 @@
 	 - [hitsThing:withRadius:](AssBlobDir/SmallTalk/C3DLine/hitsThing.SCRIPT)
  - C3DPoint
 	 - [init](AssBlobDir/SmallTalk/C3DPoint/CONSTRUCTOR.SCRIPT)
+ - C3DProp
+	 - [init](AssBlobDir/SmallTalk/C3DProp/CONSTRUCTOR.SCRIPT)
  - C3DThing
 	 - **hitsThing:**(builtin)
 	 - **pathFinderAngleTowardsThing:withJump:**(builtin)
@@ -818,6 +820,8 @@
 	 - [new](AssBlobDir/STClsRoot/C3DLine/NEW.SCRIPT)
  - C3DPoint
 	 - [new](AssBlobDir/STClsRoot/C3DPoint/NEW.SCRIPT)
+ - C3DProp
+	 - [new](AssBlobDir/STClsRoot/C3DProp/NEW.SCRIPT)
  - C3DThing
 	 - [new](AssBlobDir/STClsRoot/C3DThing/NEW.SCRIPT)
  - C3DThingTemplate

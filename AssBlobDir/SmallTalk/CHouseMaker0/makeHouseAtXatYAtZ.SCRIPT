@@ -53,15 +53,75 @@ makeHouseAtX: base_x=CFrogNum
   stairs_end_y=CFrogNum  
 
   stair_canidates=CFrogArray
+
+  decoration_thing=C3DThing
+  decoration_wall=CFrogNum
+  decorate_room=CFrogBlock
+  decoration_cnt=CFrogNum
+  decor_tmp* 
+  decor_add_thing=CFrogBlock
+  things=CFrogArray
+  added_decorations=CFrogArray
+
+  clear_decor_in_area=CFrogBlock
 |
+  added_decorations _ #() .
+  clear_decor_in_area _ [:x=CFrogNum :y=CFrogNum :x2=CFrogNum :y2=CFrogNum |
+    added_decorations do:[:d=C3DProp|
+      ((d->x between: (x min: x2)- .1 and: (x max: x2)+ .1) and:
+        (d->y between: (y min: y2)- .1 and: (y max: y2)+.1 )) ifTrue: [
+        (d->z - base_z) abs <=1 ifTrue: [
+'REMOVE' show .
+          #world removeThing: d .
+          added_decorations remove: d .
+        ]
+      ]
+    ].
+  ].
+  decorate_room _ [:x=CFrogNum :y=CFrogNum :w=CFrogNum :h=CFrogNum|
+    clear_decor_in_area value: x value: y value: x+w value: y+h .
+    decoration_cnt _ w * h / 16 * ( rand next * 4 + .5 ).
+    0 to: decoration_cnt floor do:[:d=CFrogNum |
+      decor_tmp _ decorations at: decorations size * rand next .
+'Is a set of decorations?'.
+      (decor_tmp first hasClass: CFrogArray) ifTrue: [
+        decor_tmp _ decor_tmp at: decor_tmp size * rand next .
+      ].
+      (decor_tmp first hasClass: CFrogStr) ifTrue: [
+       (decor_tmp size = 2 and: decor_tmp last = 1) ifTrue: [
+          'Go along perimiter of wall'.
+        ] ifFalse:[
+          'Place in center of room'.
+          x _ x + 1 .
+          y _ y + 1 .
+          w _ w - 1 max: 0 .
+          h _ h - 1 max: 0 .
+          decoration_thing _ C3DProp new .
+          decoration_thing->template _ #world getThingTemplate: decor_tmp first .
+          decoration_thing->x _  rand next * w + x +.5 .
+          decoration_thing->y _  rand next * h + y +.5 .
+          decoration_thing->z _ base_z .
+          things _ #world getThingsInRadiusFromX: decoration_thing->x 
+            fromY: decoration_thing->y withRadius 1 /3 .
+
+          tmp _ 0 .
+          things do:[:t=C3DThing|
+            t->z = decoration_thing->z ifTrue: [
+              tmp _ 1 
+            ]
+          ].
+          tmp ifFalse: [
+            #world addThing: decoration_thing .
+            added_decorations add:  decoration_thing .
+          ] .
+        ].
+      ] .
+    ] .
+  ].
   make_stairs _ [:x=CFrogNum :y=CFrogNum :dx=CFrogNum :dy=CFrogNum|
     cur_height _ 0 .
-    'mstairs' show.
-    x show.
-    y show.
-    dx show.
-    dy show.
     dx ifTrue: [
+      clear_decor_in_area value: x value: y value: dx sign * wall_height + x value: y+1 .
       x to: dx sign * wall_height + x do:[:x=CFrogNum|
         base_z + 1 to: base_z + wall_height + 1 do: [:z=CFrogNum|
           #world setTile: 0 atX: x atY: y atZ: z .
@@ -74,6 +134,7 @@ makeHouseAtX: base_x=CFrogNum
       ]. 
     ] .
     dy ifTrue: [
+      clear_decor_in_area value: x value: y value: x + 1 value: dy sign * wall_height + y .
       y to: dy sign * wall_height + y do:[:y=CFrogNum|
         base_z + 1 to: base_z + wall_height + 1 do: [:z=CFrogNum|
           #world setTile: 0 atX: x atY: y atZ: z .
@@ -157,6 +218,7 @@ makeHouseAtX: base_x=CFrogNum
   ] .
 
   make_wall _ [:sc=CFrogArray :ec=CFrogArray  |
+    clear_decor_in_area value: sc first value:sc last value: ec first value: ec last . 
     wall_occupied value: sc value:ec .
 'tmp is set if wall is occupied' .
     tmp ifFalse: [
@@ -166,7 +228,7 @@ makeHouseAtX: base_x=CFrogNum
         stairs_start_y _ (sc last min: ec last) .
         stairs_end_y _ (sc last max: ec last)  .
 
-'Face center of room' show .
+'Face center of room'.
         stairs_start_x < room_center_x ifTrue: [
           stairs_start_x _ stairs_start_x + 1 
         ] ifFalse: [ stairs_start_x _ stairs_start_x - 1].
@@ -181,7 +243,7 @@ makeHouseAtX: base_x=CFrogNum
           stairs_end_y _ stairs_end_y + 1 
         ] ifFalse: [ stairs_end_y _ stairs_end_y - 1].
 
-'TODOrandom direction'  show .
+'TODOrandom direction'.
         (stairs_end_x - stairs_start_x) > (stairs_end_y - stairs_start_y) ifTrue: [
           stair_canidates last add: #(
             stairs_start_x
@@ -325,6 +387,9 @@ makeHouseAtX: base_x=CFrogNum
     ].
 
     make_room _ [:sc=CFrogArray :ec=CFrogArray |
+      decorate_room value: (sc first min: ec first) +1 value: (sc last min: ec last) + 1 
+        value: (sc first - ec first ) abs - 2 value: (sc last - ec last) abs - 2 .
+
       room_center_x _ sc first + ec first / 2 .
       room_center_y _ sc last + ec last / 2 .
 'If we are on an upper floor,dont make doors to the ourside' .
@@ -374,6 +439,7 @@ makeHouseAtX: base_x=CFrogNum
       #world setTile: 13 atX: (sc at:0) + 1 atY: (ec at:1) - 1 atZ: base_z .
       #world setTile: 13 atX: (ec at:0) - 1 atY: (sc at:1) + 1 atZ: base_z .
       #world setTile: 13 atX: (ec at:0) - 1 atY: (ec at:1) - 1 atZ: base_z .
+
     ].
 
     stack  _ roots copy .

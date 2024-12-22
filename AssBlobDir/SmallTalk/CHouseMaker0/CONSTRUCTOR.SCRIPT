@@ -20,5 +20,10 @@ init->*
   height _ rand next * 7 + 4  .
   floors _ (1.3 + rand next)  floor .
   wall_height _ 4 .
-  decorations _ #().
+  decorations _ #(
+    #(
+      #('Props/Table')
+      #('Props/Lamp')
+    )
+  ) .
   ^ self

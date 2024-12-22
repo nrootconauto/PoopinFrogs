@@ -287,8 +287,9 @@ class C3DThing:CFrogThing {
   Bool no_update;
   Bool invisible;
   Bool pad[8-2];
-  CFrogArray *path_finder_data;
+  CFrogArray *path_finder_data;
 };
+class C3DProp:C3DThing {};
 class CDayNightStar:CFrogThing {
   I64 color;
   I64 radius;
@@ -397,6 +398,7 @@ class CHouseMaker0:CFrogThing {
   I64 width,height;
   I64 door_type;
   I64 floors,wall_height;
+//Array for array for different types of decorations.
   CFrogArray *decorations;
 };
 class CHouseMaker:CHandItem {

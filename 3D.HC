@@ -408,7 +408,6 @@ C3DWorld *InitWorld(F64 fov=pi/2) {
 	ret->solids[tile]=ftxtr->is_solid;
 	ret->light_levels[tile]=ftxtr->light_level;
 	ret->healths[tile]=ftxtr->health;
-PrintF("ass",ret->healths[tile]);
 	if(tile==0) ret->solids[0]=0;
       }
     }
@@ -1137,7 +1136,6 @@ U0 PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm,F64 last_tS) {
       if(best_pf&POINT_MASK!=at_pf&POINT_MASK) {
 	MemCpy(set->body,set->body+best_i,(set->cnt-best_i)*8);
 	set->cnt-=best_i;
-        PrintI("best_",best_pf&POINT_MASK);
         dist=Sqrt(Sqr(t->momx2)+Sqr(t->momy2));
         t->angle=Arg(best_pf.x+.5-t->x,best_pf.y+.5-t->y);
         t->momx2=dist*Cos(t->angle);
@@ -2186,9 +2184,9 @@ try_stains:;
 	        }
 	    }
 try_damage:;
+            idx=(ty*w->world_width+tx)*128+tz;
 	    if(w->damage_texture&&(template_health=w->healths[w->world_blocks[idx]])) {
 	      I64 damage_cnt=AnimDCCnt(w->damage_texture);
-	      idx=(ty*w->world_width+tx)*128+tz;
 	      rel_percent=1.-w->block_health[idx]/ToF64(template_health);
 	      rel_percent=rel_percent*(1+damage_cnt);
 	      if(ToI64(rel_percent-1)>=0) {
