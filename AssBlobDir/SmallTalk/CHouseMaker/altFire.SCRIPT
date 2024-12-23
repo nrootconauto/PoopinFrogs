@@ -1,0 +1,17 @@
+altFire->*
+
+|
+  cur_tS=CFrogNum
+  hm=CHouseMaker0
+|
+  cur_tS _ CFrogTime now asSeconds .
+  timeout < cur_tS ifFalse: [
+    ^ 0
+  ] .
+  timeout _ cur_tS + .2 .
+
+  hm _ CHouseMaker0 new .
+  hm makeTreeAtX: #world screenCoordToX 
+    atY: #world screenCoordToY
+    atZ: #world screenCoordToZ 
+    withRadius: hm->rand next *4 + 3 .

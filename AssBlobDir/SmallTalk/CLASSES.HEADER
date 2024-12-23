@@ -289,7 +289,7 @@ class C3DThing:CFrogThing {
   Bool pad[8-2];
   CFrogArray *path_finder_data;
 };
-class C3DProp:C3DThing {};
+class C3DProp:C3DThing {};
 class CDayNightStar:CFrogThing {
   I64 color;
   I64 radius;

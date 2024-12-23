@@ -1,0 +1,30 @@
+makeTreeAtX: x=CFrogNum atY: y=CFrogNum atZ: z=CFrogNum withRadius: r=CFrogNum
+ ->*
+  |
+  h=CFrogNum
+  slope=CFrogNum
+  ox=CFrogNum
+  oy=CFrogNum
+  oz=CFrogNum
+  dist=CFrogNum
+  |
+'7 is wood'.
+'8 is bush'.
+  h _ rand next * 2.5 + 4 .
+  slope _ rand next * 2.5 + 1 .
+  z to: z + h floor do:[:z=CFrogNum|
+   #world setTile: 7 atX: x atY: y atZ: z .
+  ] . 
+  ox _ x .
+  oy _ y .
+  oz _ z .
+  x - r to: x + r + 1 do:[:x=CFrogNum|
+    y - r to: y + r + 1 do:[:y=CFrogNum|
+      'Make a cone shape sort of(think linear line)'.
+      dist _ r - ((x - ox ) squared + (y - oy) squared) sqrt.
+      dist _ dist max: 0 .
+      z + h to: (dist *  slope) round + z + h do:[:z=CFrogNum|
+        #world setTile: 8 atX: x atY: y atZ: z .
+      ]
+    ]
+  ].

@@ -16,14 +16,14 @@ init->*
   wall_type _ wall_types at: rand next * wall_types size .
 
 
-  width _ rand next * 7 + 4 .
-  height _ rand next * 7 + 4  .
-  floors _ (1.3 + rand next)  floor .
+  width _ rand next * 14 + 4 .
+  height _ rand next * 14 + 4  .
+  floors _ (1.5 + rand next)  floor .
   wall_height _ 4 .
   decorations _ #(
     #(
-      #('Props/Table')
-      #('Props/Lamp')
+      #('Props/Table' 0)
+      #('Props/Lamp' 1)
     )
   ) .
   ^ self

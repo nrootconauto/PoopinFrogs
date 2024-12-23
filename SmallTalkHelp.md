@@ -507,9 +507,11 @@
 	 - [init](AssBlobDir/SmallTalk/CHealthPickup/CONSTRUCTOR.SCRIPT)
  - CHouseMaker
 	 - [init](AssBlobDir/SmallTalk/CHouseMaker/CONSTRUCTOR.SCRIPT)
+	 - [altFire](AssBlobDir/SmallTalk/CHouseMaker/altFire.SCRIPT)
 	 - [fire](AssBlobDir/SmallTalk/CHouseMaker/fire.SCRIPT)
  - CHouseMaker0
 	 - [init](AssBlobDir/SmallTalk/CHouseMaker0/CONSTRUCTOR.SCRIPT)
+	 - [makeTreeAtX:atY:atZ:withRadius:](AssBlobDir/SmallTalk/CHouseMaker0/makeFreeAtXAtYAtZ.SCRIPT)
 	 - [makeHouseAtX:atY:atZ:](AssBlobDir/SmallTalk/CHouseMaker0/makeHouseAtXatYAtZ.SCRIPT)
  - CKnife
 	 - [init](AssBlobDir/SmallTalk/CKnife/CONSTRUCTOR.SCRIPT)

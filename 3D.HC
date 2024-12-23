@@ -996,7 +996,7 @@ again:
 	  TRUE, //Slide along wall
 	  self->z,
 	  self);
-    if(++attempt<15) goto again;
+    if(++attempt<16) goto again;
   }
   return ret;
 }
@@ -1087,9 +1087,9 @@ U0 PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm,F64 last_tS) {
     return;
   if(!(0<=wy<w->world_height))
     return;
-//Iget about 20 fps on my aspire 5920(add 5 fps)
   F64 weight=1.;
   F64 angle,dist,ox,oy,best_dist;
+  F64 omx,omy;
   I64 tile=wx+wy*w->world_width,i,best_i;
   Bool i_am_moving=FALSE,on_ground;
   CRocket *rocket=NULL;
@@ -1143,7 +1143,9 @@ U0 PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm,F64 last_tS) {
       }
     }
   }
-  if(t->momy+t->momy2||t->momx+t->momx2) {
+  omy=t->momy+t->momy2;
+  omx=t->momx+t->momx2;
+  if(omy||omx) {
     if(!rocket) {
       t->momx*=29/30.*weight;
       t->momy*=29/30.*weight;
@@ -1151,8 +1153,8 @@ U0 PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm,F64 last_tS) {
         t->momx+=t->momx2*weight;
       if(Sign(t->momy)==-Sign(t->momy2))
         t->momy+=t->momy2*weight;
-      if(Abs(t->momx)<2/128.) t->momx=0;
-      if(Abs(t->momy)<2/128.) t->momy=0;
+      if(Abs(t->momx)<2/320.) t->momx=0;
+      if(Abs(t->momy)<2/320.) t->momy=0;
     }
 //Handle slow
     if(ThingHasClass(t,"CPlayer")) {
@@ -1163,9 +1165,9 @@ U0 PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm,F64 last_tS) {
         t->friction=.5;
       } 
     }
-    angle=Arg(t->momx+t->momx2,t->momy+t->momy2);
+    angle=Arg(omx,omy);
     i_am_moving=TRUE;
-    dist=Sqrt(Sqr(t->momx+t->momx2)+Sqr(t->momy+t->momy2))*(1.-t->friction);
+    dist=Sqrt(Sqr(omx)+Sqr(omy))*(1.-t->friction);
     on_ground=AsF64(CallScript("isOnGround",t));
     if(C3DWorldMoveWithCollision(w,angle,dist*weight,
 	  &t->x,
@@ -1213,8 +1215,18 @@ explode:
     for(idx=0;idx!=set->cnt;idx++) {
       other=set->body[idx];
       if(other!=t&&Max(other->z,t->z)<=Min(other->z+THING_HEIGHT,t->z+THING_HEIGHT))
-        if(AdjustRadiusThing(w,t,other,angle))
-	  t->hit_thing=TRUE;
+	if(!ThingHasClass(t,"C3DProp"))
+          if(AdjustRadiusThing(w,t,other,angle)) {
+	    t->hit_thing=TRUE;
+	    if(ThingHasClass(other,"C3DProp")) {
+	      angle=t->angle;
+	      dist=Sqrt(Sqr(t->momx2+t->momx)+Sqr(t->momy2+t->momy));
+	      other->momx+=.05*Cos(angle)*dist;
+	      other->momy+=.05*Sin(angle)*dist;
+	      other->momx=Clamp(other->momx,-1./32,1./32);
+	      other->momy=Clamp(other->momy,-1./32,1./32);
+            }
+          }
     }  
   }
   if(rocket) {
