@@ -513,6 +513,7 @@
 	 - [init](AssBlobDir/SmallTalk/CHouseMaker0/CONSTRUCTOR.SCRIPT)
 	 - [makeTreeAtX:atY:atZ:withRadius:](AssBlobDir/SmallTalk/CHouseMaker0/makeFreeAtXAtYAtZ.SCRIPT)
 	 - [makeHouseAtX:atY:atZ:](AssBlobDir/SmallTalk/CHouseMaker0/makeHouseAtXatYAtZ.SCRIPT)
+	 - [spawnRandomWeaponAtX:atY:atZ:](AssBlobDir/SmallTalk/CHouseMaker0/spawnRandomWeaponAtXYZ.SCRIPT)
  - CKnife
 	 - [init](AssBlobDir/SmallTalk/CKnife/CONSTRUCTOR.SCRIPT)
 	 - [animate](AssBlobDir/SmallTalk/CKnife/animate.SCRIPT)

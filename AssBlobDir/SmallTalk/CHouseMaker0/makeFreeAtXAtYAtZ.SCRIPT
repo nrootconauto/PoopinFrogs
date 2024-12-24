@@ -7,9 +7,17 @@ makeTreeAtX: x=CFrogNum atY: y=CFrogNum atZ: z=CFrogNum withRadius: r=CFrogNum
   oy=CFrogNum
   oz=CFrogNum
   dist=CFrogNum
+  light_prob=CFrogNum
+  perimeter=CFrogNum
+  to=CFrogNum
+  sa=CFrogNum
+  presents=CFrogArray
+  ground=CFrogNum
   |
 '7 is wood'.
 '8 is bush'.
+'13 is light'.
+'11 is red carpet(present)'.
   h _ rand next * 2.5 + 4 .
   slope _ rand next * 2.5 + 1 .
   z to: z + h floor do:[:z=CFrogNum|
@@ -23,8 +31,65 @@ makeTreeAtX: x=CFrogNum atY: y=CFrogNum atZ: z=CFrogNum withRadius: r=CFrogNum
       'Make a cone shape sort of(think linear line)'.
       dist _ r - ((x - ox ) squared + (y - oy) squared) sqrt.
       dist _ dist max: 0 .
-      z + h to: (dist *  slope) round + z + h do:[:z=CFrogNum|
+      to _ ((dist *  slope) round + z + h) floor + 1 .
+      z + h to: to do:[:z=CFrogNum|
         #world setTile: 8 atX: x atY: y atZ: z .
+      ]
+    ]
+  ].
+
+   light_prob _ 1 / 10 . 
+
+'Do same as above but'.
+'Check for exposed blocks and make the exposed blcks chirstmas lighrts'.
+  x - r to: x + r + 1 do:[:x=CFrogNum|
+    y - r to: y + r + 1 do:[:y=CFrogNum|
+      dist _ r - ((x - ox ) squared + (y - oy) squared) sqrt.
+      dist _ dist max: 0 .
+      to _ ((dist *  slope) round + z + h) floor + 1 .
+      z + h to: to do:[:z=CFrogNum|
+        rand next < light_prob ifTrue: [
+          perimeter _ 0 .
+          -1 to: 2 do: [:offx=CFrogNum|
+            -1 to: 2 do: [:offy=CFrogNum|
+               (#world getTileAtX: x +offx atY: y+offy atZ: z + 1)=0 ifTrue: [
+                  perimeter _ 1 .
+               ].
+            ].
+          ] .
+          perimeter ifTrue: [
+            #world setTile: 13 atX: x atY: y atZ: z + 1 .
+          ] .
+        ] . 
+      ].
+    ]
+  ].
+
+  'Star at top of tree'.
+  z _ oz + (r * slope) round + h .
+  #world setTile: 13 atX: x atY: y atZ: z .
+  #world setTile: 13 atX: x atY: y atZ: z + 1 .
+
+  #world setTile: 13 atX: x atY: y + 1 atZ: z + 1 .
+  #world setTile: 13 atX: x + 1 atY: y atZ: z + 1 .
+  #world setTile: 13 atX: x atY: y - 1 atZ: z + 1 .
+  #world setTile: 13 atX: x - 1 atY: y atZ: z + 1 .
+
+  #world setTile: 13 atX: x atY: y atZ: z + 2 .
+
+  'Presents'.
+  x - r to: x + r + 1 do:[:x=CFrogNum|
+    y - r to: y + r + 1 do:[:y=CFrogNum|
+      rand next < (1 / r) ifTrue: [
+        ground _ oz + h  floor - 1 .
+        [
+          ground > 0 and: (#world getTileAtX: x atY: y atZ: ground - 1 ) = 0
+        ] whileTrue: [
+          ground _ ground - 1 .
+        ].
+
+        self spawnRandomWeaponAtX: x atY: y atZ: ground + 1 .
+        #world setTile: 11 atX: x atY: y atZ: ground .
       ]
     ]
   ].

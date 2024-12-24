@@ -1,0 +1,32 @@
+spawnRandomWeaponAtX: x=CFrogNum atY: y=CFrogNum
+ atZ: z=CFrogNum
+  ->CPickup
+|
+  presents=CFrogArray
+  item=CPickup
+|
+  'Presents'.
+  presents _ #().
+  7 timesRepeat: [
+    presents add: CGun1Pickup 
+  ].
+  7 timesRepeat: [
+    presents add: CShootgunPickup
+  ].
+  5 timesRepeat: [
+    presents add: CUziPickup
+  ].
+  2 timesRepeat: [
+    presents add: CRocketLauncherPickup
+  ].
+  4 timesRepeat: [
+    presents add: CEnergyGunPickup
+  ] .
+
+  item _ (presents at: presents size * rand next) new  .
+  item->x _ x .
+  item->y _ y .
+  item->z _ z .
+  #world updateThingPos: item .
+  ^ item .
+  
