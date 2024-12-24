@@ -631,6 +631,7 @@
 	 - [damage:from:](AssBlobDir/SmallTalk/CPorky/damageFrom.SCRIPT)
 	 - [update](AssBlobDir/SmallTalk/CPorky/update.SCRIPT)
  - CRocket
+	 - **basicExplodeWithDamage:withRadius:**(builtin)
 	 - [init](AssBlobDir/SmallTalk/CRocket/CONSTRUCTOR.SCRIPT)
 	 - [checkExplode](AssBlobDir/SmallTalk/CRocket/checkExplode.SCRIPT)
 	 - [explode](AssBlobDir/SmallTalk/CRocket/explode.SCRIPT)

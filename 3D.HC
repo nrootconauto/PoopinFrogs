@@ -10,7 +10,6 @@ Option(OPTf_WARN_UNUSED_VAR,0);
 extern Bool IsSolidTile(I64 t);
 extern I8 BlockLightLevel(I64 t);
 extern Bool SegmentSegmentIntersect(CD2 *hit_at,CD2 *a,CD2 *b,CD2 *a2,CD2 *b2,F64 *t,F64 *u);
-
 F64 SaneRound(F64 x,F64 margin=1/255.) {
   F64 c=Ceil(x);
   F64 f=Floor(x);
@@ -1081,6 +1080,104 @@ next:;
   return ret;
 }
 AddMethod("C3DWorldManager","getThingsInRadiusFromX:fromY:withRadius:",&WorldManagerThingsInRadius);
+class CExplodeThingData {
+  F64 x,y,z;
+  CI64Set *checked;
+  Bool hit_solid;
+  C3DWorld *w;
+  F64 damage;
+  F64 radius;
+}; 
+Bool ExplodeDamage(CExplodeThingData *data,I64 x,I64 y,I64 z) {
+  C3DWorld *w=data->w;
+  Bool ret=FALSE;
+  I64 splash;
+  if(0<=x<=w->world_width)
+    if(0<=y<=w->world_height)
+      if(0<=z<=I8_MAX) {
+        I64 tp=(x+y*w->world_width)*128+z;
+	if(!IsSolidTile(w->world_blocks[tp]))
+	  return TRUE;
+	splash=Max(0,Ceil((data->radius-Sqrt(Sqr(x+.5-data->x)
+		+Sqr(y+.5-data->y)
+		+Sqr(z+.5-data->z)))/data->radius*data->damage));
+	if(w->block_health[tp]<=splash&&!I64SetHas(data->checked,tp)) {
+	  CallScript("setTile:atX:atY:atZ:",
+		FrogSymbol("world")->value,
+		FrogNumNew(0),
+		FrogNumNew(x),
+		FrogNumNew(y),
+		FrogNumNew(z));
+	  return TRUE;
+	} else  {
+	  I64SetAdd(data->checked,tp);
+	  w->block_health[tp]-=splash;
+	  return FALSE;
+	}
+      }
+  return TRUE;
+}
+CFrogThing *WorldExplode(CRocket *rocket,I64 *argv,I64 argc) {
+  CExplodeThingData data;
+  CI64Set *set;
+  C3DThing *t;
+  F64 d=AsF64(argv[0]),dist;
+  F64 r=AsF64(argv[1]);
+  I64 fx=Floor(rocket->x-r);
+  I64 fy=Floor(rocket->y-r);
+  I64 fz=Floor(rocket->z-r);
+  I64 tx=Ceil(rocket->x+r);
+  I64 ty=Ceil(rocket->y+r);
+  I64 tz=Ceil(rocket->z+r);
+  I64 x,y,z;
+  Bool hit;
+  data.checked=I64SetNew;
+  data.w=w;
+  data.x=rocket->x;
+  data.y=rocket->y;
+  data.z=rocket->z;
+  data.damage=d;
+  data.radius=r;
+  for(x=fx;x<=tx;x++)
+    for(y=fy;y<=ty;y++)
+      for(z=fz;z<=tz;z++) {
+	data.hit_solid=FALSE;
+	Line(&data,rocket->x,rocket->y,rocket->z,x,y,z,&ExplodeDamage);
+      }
+  I64SetDel(data.checked);
+
+  CFrogArray *arr=CallScript("getThingsInRadiusFromX:fromY:withRadius:",
+	FrogSymbol("world")->value,
+	FrogNumNew(rocket->x),
+	FrogNumNew(rocket->y),
+	FrogNumNew(r)
+	);
+  set=arr->items;
+PrintF("r",r);
+PrintF("x",rocket->x);
+PrintF("y",rocket->y);
+  for(x=0;x!=set->cnt;x++) {
+    t=set->body[x];
+    dist=Sqrt(Sqr(t->x-rocket->x)+Sqr(t->y-rocket->y)+Sqr(t->z-rocket->z));
+CallScript("show",t);
+PrintF("r-dist",r-dist);
+    if(dist<r) {
+      if(t!=rocket->from) {
+damage:;
+	if(AsF64(CallScript("canSeeThing:",rocket,t))>0.) {
+	  CallScript("damage:from:",
+	    t,
+	    FrogNumNew((r-dist)*d),
+	    rocket->from
+	  );
+	}
+      } else if(ThingHasClass(t,"CPlayer")) { //Players can damage themself
+	goto damage;
+      }
+    }
+  }
+}
+AddMethod("CRocket","basicExplodeWithDamage:withRadius:",&WorldExplode);
 U0 PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm,F64 last_tS) {
   I64 wx=t->x,wy=t->y,idx;
   if(!(0<=wx<w->world_width))
@@ -2177,7 +2274,7 @@ tile:;
 	      if(0<=rely<2*VIEW_DIST)
 	        if(cnt=(do_things=w->stains_around_camera[relx][rely])->cnt)
 		  goto try_stains;
-	    goto try_block;
+	    goto try_damage;
 try_stains:;
 	    wall_stains=do_things->body;
 	    wall_stain_cnt=cnt;

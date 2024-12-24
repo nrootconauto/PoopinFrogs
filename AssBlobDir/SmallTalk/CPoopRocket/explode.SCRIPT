@@ -8,15 +8,7 @@ explode ->CFrogNum
   floorh=CFrogNum 
 |
   #world removeThing: self .
-  things _ #world getThingsInRadiusFromX: x fromY: y withRadius:  1 .
-  things do:[:t*|
-    (t->z - z ) abs < 1.5 ifTrue: [
-      t ~= from ifTrue: [
-        dist _ ((t ->x - x) squared + (t ->y - y ) squared) sqrt .
-        t damage: (1 - dist) * 15 from: from  . 
-      ] 
-    ]
-  ] .
+  self basicExplodeWithDamage:15 withRadius: 1 .
   0 to: 10 do: [
     #world newParticleAtX: x atY: y atZ: z + .5 withSpread: 1 withColor: #color_BROWN withSplatLump: 'GR/PoopRocket/Splat'.
   ] .
