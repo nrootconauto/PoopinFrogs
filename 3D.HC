@@ -783,7 +783,6 @@ CFrogNum *C3DThingPathFindWalkTowardsThing(C3DThing *self,I64 *argv,I64 argc) {
     I64SetDel(path);
     return FrogNumNew(Arg(thing->x-self->x,thing->y-self->y));
   }
-//TODO account for large same directionz
   self->path_finder_data=FrogArrayNew;
   dummy=self->path_finder_data->items;
   for(i=0;i!=path->cnt;i++) {
@@ -978,22 +977,22 @@ fin:
   w->x=old_x,w->y=old_y;
   return hit_wall;
 }
-Bool AdjustRadiusThing(C3DWorld *w,C3DThing *self,C3DThing *other,F64 angle) {
+Bool AdjustRadiusThing(C3DWorld *w,C3DThing *self,CD3 *pos,C3DThing *other,F64 angle) {
   F64 sr=THING_RADIUS;
   F64 or=THING_RADIUS;
   F64 dist,push_back;
   I64 attempt=0;
   Bool ret=FALSE;
 again:
-  dist=Sqrt(Sqr(other->x-self->x)+Sqr(other->y-self->y));
+  dist=Sqrt(Sqr(other->x-pos->x)+Sqr(other->y-pos->y));
   if(dist<or+sr) {
     ret=TRUE;
     push_back=(sr+or-dist)*.1*1.4;
     C3DWorldMoveWithCollision(w,angle+pi,push_back,
-	  &self->x,
-	  &self->y,
+	  &pos->x,
+	  &pos->y,
 	  TRUE, //Slide along wall
-	  self->z,
+	  pos->z,
 	  self);
     if(++attempt<16) goto again;
   }
@@ -1153,14 +1152,9 @@ CFrogThing *WorldExplode(CRocket *rocket,I64 *argv,I64 argc) {
 	FrogNumNew(r)
 	);
   set=arr->items;
-PrintF("r",r);
-PrintF("x",rocket->x);
-PrintF("y",rocket->y);
   for(x=0;x!=set->cnt;x++) {
     t=set->body[x];
     dist=Sqrt(Sqr(t->x-rocket->x)+Sqr(t->y-rocket->y)+Sqr(t->z-rocket->z));
-CallScript("show",t);
-PrintF("r-dist",r-dist);
     if(dist<r) {
       if(t!=rocket->from) {
 damage:;
@@ -1178,14 +1172,17 @@ damage:;
   }
 }
 AddMethod("CRocket","basicExplodeWithDamage:withRadius:",&WorldExplode);
-U0 PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm,F64 last_tS) {
+Bool PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm,F64 last_tS) {
   I64 wx=t->x,wy=t->y,idx;
+  t->next_x=t->x;
+  t->next_y=t->y;
+  t->next_z=t->z;
   if(!(0<=wx<w->world_width))
-    return;
+    return TRUE;
   if(!(0<=wy<w->world_height))
-    return;
+    return TRUE;
   F64 weight=1.;
-  F64 angle,dist,ox,oy,best_dist;
+  F64 angle=t->angle,dist,ox,oy,best_dist;
   F64 omx,omy;
   I64 tile=wx+wy*w->world_width,i,best_i;
   Bool i_am_moving=FALSE,on_ground;
@@ -1198,31 +1195,30 @@ U0 PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm,F64 last_tS) {
   C3DWorldManager *man=FrogSymbol("world")->value;
   if(ThingHasClass(t,"CRocket"))
     rocket=t;
-  WorldManagerRemoveFromGrid(wm,&t,1);
-  if(C3DWorldMoveZWithCollision(w,t->momz*weight+t->momz2*weight,t->x,t->y,&t->z)) {
+  if(C3DWorldMoveZWithCollision(w,t->momz*weight+t->momz2*weight,t->next_x,t->next_y,&t->next_z)) {
     if(!rocket)  //Explode later(computer hitting floor after we move x/y)
       t->momz=0;
   } else if(!rocket&&!t->floating) {
-    if(IsLiquidTile(BlockAtXYZ(t->x,t->y,t->z))) {
+    if(IsLiquidTile(BlockAtXYZ(t->next_x,t->next_y,t->next_z))) {
       t->momz=t->momz2-wm->gravity/3*weight;
     } else 
       t->momz-=wm->gravity*weight;
   }
-  ox=t->x;
-  oy=t->y;
+  ox=t->next_x;
+  oy=t->next_y;
 //Moving(towards path?)
   if(t->momy2>1/128.||t->momx2>1/128.) {
     if(ThingHasClass(t->path_finder_data,"CFrogArray")) {
       set=t->path_finder_data->items;
-      at_pf.x=t->x;
-      at_pf.y=t->y;
-      at_pf.z=t->z;
+      at_pf.x=t->next_x;
+      at_pf.y=t->next_y;
+      at_pf.z=t->next_z;
       best_pf=at_pf;
       if(set->cnt>1) {
         best_dist=I32_MAX;
         for(i=0;i!=set->cnt;i++) {
 	  pf=set->body[i]>>16;
-	  dist=Sqr(t->x-pf.x)+Sqr(t->y-pf.y)+Sqr(t->z-pf.z);
+	  dist=Sqr(t->next_x-pf.x)+Sqr(t->next_y-pf.y)+Sqr(t->next_z-pf.z);
 	  if((best_pf&POINT_MASK!=pf&POINT_MASK)&&dist<best_dist) {
 	    best_i=i;
 	    best_pf=pf;
@@ -1234,7 +1230,7 @@ U0 PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm,F64 last_tS) {
 	MemCpy(set->body,set->body+best_i,(set->cnt-best_i)*8);
 	set->cnt-=best_i;
         dist=Sqrt(Sqr(t->momx2)+Sqr(t->momy2));
-        t->angle=Arg(best_pf.x+.5-t->x,best_pf.y+.5-t->y);
+        t->angle=Arg(best_pf.x+.5-t->next_x,best_pf.y+.5-t->next_y);
         t->momx2=dist*Cos(t->angle);
         t->momy2=dist*Sin(t->angle);
       }
@@ -1267,8 +1263,8 @@ U0 PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm,F64 last_tS) {
     dist=Sqrt(Sqr(omx)+Sqr(omy))*(1.-t->friction);
     on_ground=AsF64(CallScript("isOnGround",t));
     if(C3DWorldMoveWithCollision(w,angle,dist*weight,
-	  &t->x,
-	  &t->y,
+	  &t->next_x,
+	  &t->next_y,
 	  TRUE,
 	  t->z,
 	  t)) {
@@ -1278,42 +1274,41 @@ U0 PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm,F64 last_tS) {
       t->momy=0.;
       if(rocket) {
 explode:
-        CallScript("explode",rocket);
-        return;
+        MPPromiseCallScript("explode",rocket);
+        return FALSE;
       } else if(!ThingHasClass(t,"CPickup")) {
         to_open=CallScript("doorInRadius:atX:atY:atAngle:",
-	      wm,FrogNumNew(THING_RADIUS),FrogNumNew(t->x),FrogNumNew(t->y),FrogNumNew(t->angle));
+	      wm,FrogNumNew(THING_RADIUS),FrogNumNew(t->next_x),FrogNumNew(t->next_y),FrogNumNew(t->angle));
         if(ThingHasClass(to_open,"CDoor")) {
-	  CallScript("activateBy:",to_open,t);
+          MPPromiseCallScript("activateBy:",to_open,t);
         }
       }
     }
     if(t->no_fall_off_edge&&on_ground) {
       if(AsF64(CallScript("isOverEdge",t))) {
-        t->x=ox;
-        t->y=oy;
-        CallScript("update",t); //New Chase Dir
+        t->next_x=ox;
+        t->next_y=oy;
+        MPPromiseCallScript("update",t); //New direction
       }
     }
-  } else if(RadiusHitsWall(man,angle,&t->x,&t->y,t->z,THING_RADIUS,TRUE,,RADF_CEIL|RADF_FLOOR|RADF_DOOR))
+  } else if(RadiusHitsWall(man,angle,&t->next_x,&t->next_y,t->next_z,THING_RADIUS,TRUE,,RADF_CEIL|RADF_FLOOR|RADF_DOOR))
     goto hit;
   if(rocket) {
-    if(!(0.<=t->x<w->world_width))
+    if(!(0.<=t->next_x<w->world_width))
       goto explode;
-    if(!(0.<=t->y<w->world_height))
+    if(!(0.<=t->next_y<w->world_height))
       goto explode;
-    if(AsF64(CallScript("checkExplode",rocket)))
-      return;
+    MPPromiseCallScript("checkExplode",rocket);
   }
 //Only check for thing collision if we are the ones movin
   if(i_am_moving&&!rocket) {
-    in_radius=CallScript("getObstaclesInRadiusForThing:inRadius:",wm,t,FrogNumNew(2*THING_RADIUS));
+    in_radius=CallScript("getObstaclesInRadiusForThing:inRadius:",wm,t,FrogNumNew(3*THING_RADIUS));
     set=in_radius->items;
     for(idx=0;idx!=set->cnt;idx++) {
       other=set->body[idx];
-      if(other!=t&&Max(other->z,t->z)<=Min(other->z+THING_HEIGHT,t->z+THING_HEIGHT))
+      if(other!=t&&Max(other->z,t->next_z)<=Min(other->z+THING_HEIGHT,t->next_z+THING_HEIGHT))
 	if(!ThingHasClass(t,"C3DProp"))
-          if(AdjustRadiusThing(w,t,other,angle)) {
+          if(AdjustRadiusThing(w,t,&t->next_x,other,angle)) {
 	    t->hit_thing=TRUE;
 	    if(ThingHasClass(other,"C3DProp")) {
 	      angle=t->angle;
@@ -1327,10 +1322,10 @@ explode:
     }  
   }
   if(rocket) {
-    if(HeightImpossible(man,t->x,t->y,t->z,TRUE,1.))
+    if(HeightImpossible(man,t->next_x,t->next_y,t->next_z,TRUE,1.))
       goto explode;
   }
-  WorldManagerUpdateThingPos(wm,&t,1);
+  return TRUE;
 }
 
 
@@ -2650,7 +2645,7 @@ U0 C3DWorldCastRays(C3DWorld *w) {
   MPCastCol(man);
   for(c=1;c<mp_cnt;++c) {
     while(!Bt(&mp_done,c))
-     __SleepHP(500);
+      __SleepHP(500);
   }
 }
 Bool CanSee2DThing(C3DWorld *w,C3DThing *t) {
@@ -3214,11 +3209,41 @@ CFrogThing *WorldManagerEmptyWithDim(C3DWorldManager *man,I64 *argv,I64 argc) {
   return man;
 }
 AddMethod("C3DWorldManager","emptyWorldWithWidth:withHeight:",&WorldManagerEmptyWithDim);
+class CMPPhysics {
+  C3DThing **body;
+  U8 *keep;
+  I64 body_len;
+  C3DWorldManager *man;
+  I64 done;
+};
+U0 MPPhysics(CMPPhysics *data) {
+  I64 cnt=data->body_len;
+  C3DThing *t,**body=data->body;
+  U8 *keep=data->keep;
+  while(--cnt>=0) {
+    if(cnt/16%mp_cnt==Gs->num) {
+      t=body[cnt];
+      keep[cnt]=PhysicsOnThing(w,t,data->man,0.);
+      if(ThingHasClass(t,"CPlayer")) {
+        t->momx2=0;
+        t->momy2=0;
+        t->momz2=0;
+      }
+    }
+  }
+  LBts(&data->done,Gs->num);
+}
 CFrogThing *WorldPhysics(C3DWorldManager *wm,I64 *argv,I64 argc) {
-  C3DThing **body=MAllocIdent(wm->things->items->body),*thing,*player;
-  player=CallScript("getPlayer",wm);
-  I64 c=wm->things->items->cnt,idx;
   F64 t,now=AsF64(FrogTimeNow(FROG_SMALL_NIL,NULL,0)->ts);
+  CMPPhysics data;
+  C3DThing **body=MAllocIdent(wm->things->items->body),*thing,*player;
+  I64 c=wm->things->items->cnt,idx;
+  data.body=body;
+  data.body_len=c;
+  data.man=wm;
+  data.done=0;
+  data.keep=MAlloc(c);
+  player=CallScript("getPlayer",wm);
 //Heres the deal.
   //If we are a client,we will let the server do the physics on everyting except the player
   if(wm->is_client) {
@@ -3242,19 +3267,28 @@ CFrogThing *WorldPhysics(C3DWorldManager *wm,I64 *argv,I64 argc) {
     Free(body);
     return FROG_SMALL_NIL;
   }
-  for(idx=0;idx<c;idx++) {
-    thing=body[idx];
-//Only update when in view
-    if(VIEW_DIST*VIEW_DIST
-	  >Sqr(thing->y-player->y)+Sqr(thing->x-player->x)) {
-      PhysicsOnThing(w,thing,wm,0.);
-      if(body[idx]==player) {
-        player->momx2=0;
-        player->momy2=0;
-        player->momz2=0;
-      }
-    }
+  FrogGarbageCollectLock;
+  for(idx=1;idx<MinI64(CeilI64(c,16)/16,mp_cnt);idx++) {
+    JobQue(&MPPhysics,&data,idx);
   }
+  MPPhysics(&data);
+  idx=MinI64(CeilI64(c,16)/16,mp_cnt);
+  while(--idx>=1) {
+    while(!Bt(&data.done,idx))
+      __SleepHP(500);
+  }
+  FrogGarbageCollectUnlock;
+  for(idx=0;idx!=c;idx++) {
+    WorldManagerRemoveFromGrid(wm,&body[idx],1);
+    thing=body[idx];
+    thing->x=thing->next_x;
+    thing->y=thing->next_y;
+    thing->z=thing->next_z;
+    if(data.keep[idx])
+      WorldManagerUpdateThingPos(wm,&thing,1);
+  }
+  RunPromises;
+  Free(data.keep);
   Free(body);
   return FROG_SMALL_NIL;
 }
@@ -3739,7 +3773,7 @@ DocDel(d);
 //
 
 #if __CMD_LINE__
-CallScript("newLandscapeWithWidth:withHeight:",FrogSymbol("world")->value,FrogNumNew(128),FrogNumNew(128));
+CallScript("newLandscapeWithWidth:withHeight:",FrogSymbol("world")->value,FrogNumNew(64),FrogNumNew(64));
 C3DWorldShell *shell=ConstructThing("C3DWorldShell");
 CallScript("init",shell);
 UIShellRun(shell,NULL,0);

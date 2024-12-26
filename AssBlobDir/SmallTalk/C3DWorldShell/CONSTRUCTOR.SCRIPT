@@ -85,6 +85,7 @@ init ->* |
           #('Yes,fuck this poopy garbage' [
             #ui_root removeChild: e .
             exited _ 1 .
+100 timesRepeat: ['EXITED' show ].
             #world unpause
           ]) 
           #('No,I like this shit(correct aswer)' [

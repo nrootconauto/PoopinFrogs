@@ -16,6 +16,7 @@ init ->CPlayer | |
   CFrogDick new .
   CEnemyEdit new.
   CHouseMaker new .
+  CTownMaker new .
   CKnife new .
   CTalker  new .
   CMarkerDrugItem new .

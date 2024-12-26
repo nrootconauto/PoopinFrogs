@@ -1,0 +1,247 @@
+makeTownAtX: xx=CFrogNum atY: yy=CFrogNum withWidth: ww=CFrogNum withHeight: hh=CFrogNum
+|
+  w=C3DWorldManager
+  fractal_rand=CFrogBlock
+  rand=CFrogRandom
+  make_strip=CFrogBlock
+  tmp=CFrogNum
+  tmp2=CFrogNum
+  fill_yard=CFrogNum
+  yard_w=CFrogNum
+  yard_h=CFrogNum
+  make_fence=CFrogBlock
+  make_trees=CFrogBlock
+  ground_level=CFrogNum
+  house_w=CFrogNum
+  house_h=CFrogNum
+  make_road=CFrogBlock
+  partitions=CFrogArray  
+  parta=CFrogArray
+  partb=CFrogArray
+
+  xx1=CFrogNum
+  yy1=CFrogNum
+  xx2=CFrogNum
+  yy2=CFrogNum
+  zone=CFrogArray
+
+  final_strips=CFrogArray
+
+  use=CFrogBlock
+  used=CFrogNum
+  tree_x=CFrogNum
+  tree_y=CFrogNum
+  tree_r=CFrogNum
+
+  tree_positions=CFrogArray
+
+  ground_levels=CFrogArray
+|
+  rand _ CFrogRandom new .
+
+  xx < 0 ifTrue: [ xx _ 0 .]. 
+  yy < 0 ifTrue: [ yy _ 0 .].
+  ww + xx > w width ifTrue: [ ww _ w width - xx .]. 
+  hh + yy > w height ifTrue: [ hh _ w height - yy .]. 
+
+  xx _xx floor.
+  yy _ yy floor.
+
+  x _ xx .
+  y _ yy .
+  w _ ww .
+  h _ hh .
+
+  use _ [:x=CFrogNum :y=CFrogNum|
+    used _ (occupied at: x - xx) at: y - yy .
+    (occupied at: x - xx) at: y - yy put: 1 .
+    used
+  ] .
+
+
+
+  tree_positions _ #() .
+  make_houses_at _ #() .
+  roads _ #().
+
+'Make occupied and ground_levels at once'.
+  occupied _ #() .
+  ground_levels _ #().
+  w timesRepeat: [:x=CFrogNum|
+    ground_levels add: #().
+    occupied add: #().
+    h timesRepeat: [:y=CFrogNum |
+      ground_levels last add: (self groundLevelAtX: x + xx atY: y + yy).
+      occupied last add: 0
+    ].
+  ] .
+
+  fractal_rand _ [
+    #(.2 .4 .6 .8 ) at: rand next * 4
+  ].
+
+
+  fill_yard _ [:x=CFrogNum :y=CFrogNum :w=CFrogNum :h=CFrogNum|
+
+    house_w _ w - 4 * rand next + 4 .
+    house_h _ h - 4 * rand next + 4 .
+    make_houses_at add: #(
+      (x + 4)
+      (y + 4) 
+      (house_w floor)
+      (house_h floor)
+    ) .
+
+    x + 4 to: house_w + x + 4 do:[:x=CFrogNum|
+      y + 4 to: house_h + y + 4 do:[:y=CFrogNum|
+        use value: x value: y 
+      ]
+    ] .
+
+    0 to: (rand next * 4) floor do: [
+     tree_x _ w - 2 * rand next + 1 + x .
+     tree_y _ h - 2 * rand next + 1 + y .
+     (use value: tree_x value: tree_y) ifFalse: [
+'Mark area as used' .
+       tree_r _ (4.5 * rand next) floor + 1 .
+       tree_x - tree_r to: tree_x + tree_r + 1 do:[:x=CFrogNum|
+         tree_y - tree_r to: tree_y + tree_r + 1 do:[:y=CFrogNum|
+           use value: x value: y .
+         ]
+       ].
+       tree_positions add: #(tree_x tree_y tree_r) .
+      ].
+    ] .
+'Fence' .
+    rand next < 0 ifTrue:[
+      x to: x + w do:[:x=CFrogNum|
+        ground_level _ ((ground_levels at:x - xx) at:y - yy) .
+        ground_level to: ground_level + 4 do:[:z=CFrogNum|
+          #world setTile: 12 atX: x atY: y atZ: z .
+        ].
+      ] .
+      x to: x + w do:[:x=CFrogNum|
+        ground_level _ ((ground_levels at:x - xx) at:y + h - yy ) .
+        ground_level to: ground_level + 4 do:[:z=CFrogNum|
+          #world setTile: 12 atX: x atY: y + h atZ: z .
+        ].
+      ] .
+      y to: y + h do:[:y=CFrogNum|
+        ground_level _ ((ground_levels at:x - xx) at: y -yy) .
+        ground_level to: ground_level +4 do:[:z=CFrogNum|
+          #world setTile: 12 atX: x atY: y atZ: z .
+        ].
+      ] .
+      y to: y + h do:[:y=CFrogNum|
+        ground_level _ ((ground_levels at:x + w - xx) at: y - yy ).
+        ground_level to: ground_level +4 do:[:z=CFrogNum|
+          #world setTile: 12 atX: x + w atY: y atZ: z .
+        ].
+      ] .
+    ].
+
+  ] .
+
+  make_strip _ [:x=CFrogNum :y=CFrogNum :w=CFrogNum :h=CFrogNum|
+    (w >= 10 and: h >= 10) ifTrue: [
+    w > h ifTrue: [
+      yard_h _ h .
+      yard_w _ 4 .
+      tmp _ 0 .
+      [tmp < w] whileTrue: [
+        tmp2 _ yard_w  * ( rand next * 2.5 + 1).
+        fill_yard value: x + tmp value: y value: tmp2 value: yard_h .
+        tmp _ tmp + tmp2  + 8  .
+      ] .
+    ] ifFalse:[
+      yard_h _ 8 .
+      yard_w _ w .
+      tmp _ 0 .
+      [tmp < h] whileTrue: [
+        tmp2 _ yard_h  * ( rand next * 2.5 + 1).
+        fill_yard value: x value: y + tmp value: yard_w value: tmp2 .
+        tmp _ tmp + tmp2  + 8  .
+      ] .
+    ].
+    ].
+  ] .
+
+  make_road _ [:x=CFrogNum :y=CFrogNum :x2=CFrogNum :y2=CFrogNum|
+    x to: x2 do:[:x=CFrogNum|
+      y to: y2 do:[:y=CFrogNum|
+((ground_levels at:x - xx) at: y - yy) show .
+        #world setTile: 14 atX: x atY: y atZ: ((ground_levels at:x - xx) at: y - yy)  .
+      ]
+    ]
+  ].
+
+  partitions _ #(
+    #( x y (x+w) (y+h) )
+  ) .
+  final_strips  _ #() .
+  [partitions size] whileTrue: [
+    zone _ partitions last .
+    partitions removeAt: partitions size - 1 .
+    xx1 _ zone at: 0 .
+    yy1 _ zone at: 1 .
+    xx2 _ zone at: 2 .
+    yy2 _ zone at: 3 .
+    ((xx2 - xx1 > 15 ) and: (yy2 - yy1 > 15)) ifTrue: [
+      tmp _ fractal_rand value .
+      rand next < .5 ifTrue:[
+        parta _ #(xx1 yy1 (xx2 - xx1 * tmp - 1 + xx1) yy2).
+        partb _ #((xx2 - xx1 * tmp + 1 + xx1) yy1 xx2 yy2).
+      ] ifFalse: [
+        parta _ #(xx1 yy1 xx2 (yy2 - yy1 * tmp - 1  + yy1)).
+        partb _ #(xx1 (yy2 - yy1 * tmp + 1 + yy1) xx2 yy2).
+      ].
+      partitions add: parta .
+      partitions add: partb .
+
+'Make "box" around partition'.
+      make_road value: xx1 value: yy1 
+        value: xx2 value: yy1 + 2 .
+      make_road value: xx2 value: yy1 
+        value: xx2 + 2 value: yy2.
+      make_road value: xx1 value: yy1 
+        value: xx1 + 2  value: yy2.
+      make_road value: xx1 value: yy2 
+        value: xx2 value: yy2 +2 .
+
+
+    ] ifFalse: [
+      final_strips add: zone .
+    ]
+  ].
+
+
+
+
+  final_strips do: [:f=CFrogArray|
+    xx1 _ f at: 0 .
+    yy1 _ f at: 1 .
+    xx2 _ f at: 2 .
+    yy2 _ f at: 3 .
+    make_strip value: xx1 value: yy1 value: xx2 - xx1 value:yy2-yy1 .
+  ] .
+
+  tree_positions do:[:t=CFrogArray|
+    tree_x _ t first .
+    tree_y _ t at: 1 .
+    tree_r _ t last .
+    house_maker makeTreeAtX: tree_x
+         atY: tree_y 
+         atZ: ((ground_levels at:tree_x-xx) at:tree_y -yy)
+         withRadius: tree_r .
+  ] .
+
+  make_houses_at do:[:arr=CFrogArray|
+   x _ arr at: 0 .
+   y _arr at: 1 .
+   house_maker _ CHouseMaker0 new .
+   house_maker->width _ arr at: 2 .
+   house_maker->height _ arr at: 3 .
+   house_maker makeHouseAtX: x
+     atY: y
+     atZ: ((ground_levels at:x-xx)at: y-yy)
+  ].

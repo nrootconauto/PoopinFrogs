@@ -22,8 +22,13 @@ class CFrogThing:CQue {
   I32 lock_cnt,universe_class_idx;
 //Used for garbage collector
   CFrogThing *_heap_hash_next;
+  CI64Set *promises; //May be NULL
 };
-
+class CPromise {
+  I64 method_id;
+  CFrogThing *args[4];
+  I64 argc;
+};
 class CFrogFrame {
   CQue *pad,*pad;
   I32 thing_flags,pad;

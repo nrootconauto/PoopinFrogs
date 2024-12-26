@@ -813,6 +813,48 @@ fin:
 CFrogThing *CallScriptUniverse(I64 who,CFrogThing *self,...) {
   return CallScriptUniverse0(who,self,argv,argc);
 }
+CI64Set *promised_things[mp_cnt];
+I64 promised_things_mtx=0;
+U0 MPPromiseCallScript(U8 *name,CFrogThing *self,...) {
+  if(self&1) return ;
+  if(argc>4) throw('Arity');
+  LBts(&promised_things_mtx,Gs->num);
+  if(!promised_things[Gs->num])
+    promised_things[Gs->num]=I64SetNew(frog_mem_task);
+  CPromise *prom=CAlloc(sizeof(CPromise),frog_mem_task);
+  prom->method_id=NameToUniverseNumber(name);
+  prom->argc=argc;
+  MemCpy(prom->args,argv,8*argc);
+  if(!self->promises)
+    self->promises=I64SetNew(frog_mem_task);
+  I64SetAdd(self->promises,prom);
+  if(!I64SetHas(promised_things[Gs->num],self))
+    I64SetAdd(promised_things[Gs->num],self);
+  LBtr(&promised_things_mtx,Gs->num);
+}
+U0 RunPromises() {
+  I64 c=mp_cnt,idx;
+  CI64Set *proms,*things;
+  CPromise *promise;
+  CFrogThing *self;
+  while(--c>=0) {
+    while(LBts(&promised_things_mtx,c))
+      Yield;
+    if(things=promised_things[c]) {
+      while(things->cnt>0) {
+	self=things->body[--things->cnt];
+        proms=self->promises;
+        if(proms)
+	  while(proms->cnt>=1) {
+	    promise=proms->body[--proms->cnt];
+	    CallScriptUniverse0(promise->method_id,self,promise->args,promise->argc);
+	    Free(promise);
+	  }
+      }
+    }
+    LBtr(&promised_things_mtx,c);
+  }
+}
 
 CFrogClass *FrogClassNew(I64 cls_idx) {
   return FROG_SMALL_CLASS|cls_idx<<16;
@@ -1386,7 +1428,7 @@ CFrogThing *FrogIfTrueIfFalse(CFrogNum *self,I64 *argv,I64 argc) {
 AddMethod("CFrogNum","ifTrue:ifFalse:",&FrogIfTrueIfFalse);
 
 CFrogThing *FrogThingShow(CFrogStr *self,I64 *argv,I64 argc) {
-//  return FROG_SMALL_NIL;
+ return FROG_SMALL_NIL;
   I64 attempt;
   I64 idx,ch;
   static I64 err_msg=NameToUniverseNumber("error_msg");
@@ -1432,13 +1474,14 @@ AddMethod("CFrogThing","show",&FrogThingShow);
 
 CFrogThing *FrogNumTimesRepeat(CFrogNum *self,I64 *argv,I64 argc) {
   CFrogBlock *block=argv[0],*ret=FROG_SMALL_NIL;
-  I64 cnt;
+  I64 cnt,i;
   if(!ThingHasClass(self,"CFrogNum")||!ThingHasClass(block,"CFrogBlock")) {
     return FROG_SMALL_NIL;
   }
   cnt=AsF64(self);
+  i=0;
   while(--cnt>=0) {
-    ret=FrogBlockValue(block);
+    ret=FrogBlockValue(block,FrogNumNew(i++));
     if(block->frame->return_flag)
       break;
   }
@@ -1511,6 +1554,7 @@ extern U0 FrogGarbageCollect(CFrogThing *root,Bool debug=FALSE);
 U0 ThingDel(CFrogThing *thing,Bool recurse=TRUE) {
   U8 *del;
   I64 idx;
+  CI64Set *promises;
   CLocalsGeneric *g,*parent;
   CFrogThing **f,dummy;
 //This has the destroy in it
@@ -1549,20 +1593,27 @@ U0 ThingDel(CFrogThing *thing,Bool recurse=TRUE) {
       return;
     }
     QueRem(thing);
+    if(promises=thing->promises) {
+      idx=promises->cnt;
+      while(--idx>=0)
+	Free(promises->body[idx]);
+      I64SetDel(promises);
+    }
     UniverseDestroyThing(thing);
   }
 }
 CFrogUndefined *FrogNil() {
   return FROG_SMALL_NIL;
 }
-
 U0 FrogGarbageCollectThing(CFrogThing *root,Bool debug=FALSE) {
   if(!root||root&1) return; //bit 0 is set for special "small" values
   if(ChkOnStk(root)) return;
   static I64 depth=0;
   I64 idx;
+  CPromise *prom;
   CLocalsGeneric *g,*p;
   CFrogThing **body,dummy;
+  CI64Set *promises;
   MemSet(&dummy,0,sizeof(CFrogThing));
   CHashClass *cls,*cls2;
   CMemberLst *mlst;
@@ -1571,6 +1622,18 @@ U0 FrogGarbageCollectThing(CFrogThing *root,Bool debug=FALSE) {
   if(LBts(&root->thing_flags,THINGf_GC_LOCK))
     goto fin;
   LBtr(&root->thing_flags,THINGf_TO_DELETE);
+  if(promises=root->promises) {
+      idx=promises->cnt;
+      while(--idx>=0) {
+        prom=promises->body[idx];
+	if(prom) {
+	  FrogGarbageCollectThing(prom->args[0]);
+	  FrogGarbageCollectThing(prom->args[1]);
+	  FrogGarbageCollectThing(prom->args[2]);
+	  FrogGarbageCollectThing(prom->args[3]);
+	}
+      }
+  }
   if(ThingHasClass(root,"CInterpFrame")) {
     body=root(CFrogArray*)->items->body;
     idx=root(CFrogArray*)->items->cnt;

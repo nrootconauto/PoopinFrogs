@@ -80,7 +80,7 @@ makeTreeAtX: x=CFrogNum atY: y=CFrogNum atZ: z=CFrogNum withRadius: r=CFrogNum
   'Presents'.
   x - r to: x + r + 1 do:[:x=CFrogNum|
     y - r to: y + r + 1 do:[:y=CFrogNum|
-      rand next < (1 / r) ifTrue: [
+      rand next < (.75 / r) ifTrue: [
         ground _ oz + h  floor - 1 .
         [
           ground > 0 and: (#world getTileAtX: x atY: y atZ: ground - 1 ) = 0
@@ -88,7 +88,11 @@ makeTreeAtX: x=CFrogNum atY: y=CFrogNum atZ: z=CFrogNum withRadius: r=CFrogNum
           ground _ ground - 1 .
         ].
 
-        self spawnRandomWeaponAtX: x atY: y atZ: ground + 1 .
+        rand next < .25 ifTrue: [
+          self spawnRandomHealthPickupAtX: x atY: y atZ: ground + 1 .
+        ] ifFalse: [
+          self spawnRandomWeaponAtX: x atY: y atZ: ground + 1 .
+        ].
         #world setTile: 11 atX: x atY: y atZ: ground .
       ]
     ]

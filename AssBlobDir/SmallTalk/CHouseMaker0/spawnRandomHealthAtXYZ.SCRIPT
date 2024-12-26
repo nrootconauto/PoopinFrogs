@@ -1,0 +1,19 @@
+spawnRandomHealPickupAtX: x=CFrogNum atY: y=CFrogNum
+ atZ: z=CFrogNum
+  ->CPickup
+|
+  presents=CFrogArray
+  item=CPickup
+|
+  'Presents'.
+  presents _ #().
+  1 timesRepeat: [
+    presents add: CMarkerDrugPickup
+  ] .
+
+  item _ (presents at: presents size * rand next) new  .
+  item->x _ x .
+  item->y _ y .
+  item->z _ z .
+  #world updateThingPos: item .
+  ^ item .

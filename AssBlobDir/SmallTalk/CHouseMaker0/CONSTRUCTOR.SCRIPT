@@ -11,9 +11,9 @@ init->*
   ceil_types _ #(9) .
 
   wall_height _ 4 .
-  floor_type _ floor_types at: rand next * floor_types size .
-  ceil_type _ ceil_types at: rand next * ceil_types size .
-  wall_type _ wall_types at: rand next * wall_types size .
+  floor_type _ floor_types at: rand next * (floor_types size *.99).
+  ceil_type _ ceil_types at: rand next * (ceil_types size *.99) .
+  wall_type _ wall_types at: rand next * (wall_types size *.99) .
 
 
   width _ rand next * 14 + 4 .

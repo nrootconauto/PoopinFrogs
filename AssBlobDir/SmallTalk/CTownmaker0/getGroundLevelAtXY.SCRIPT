@@ -1,0 +1,10 @@
+groundLevelAtX: x=CFrogNum 
+  atY: y=CFrogNum
+|
+|
+  126 to: 0 do:[:z=CFrogNum|
+   (#world getTileAtX: x atY: y atZ: z) ~= 0 ifTrue: [
+    ^ z
+   ]
+  ] 
+  ^ -1 .

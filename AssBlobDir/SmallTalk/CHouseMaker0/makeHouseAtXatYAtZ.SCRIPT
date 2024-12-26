@@ -21,7 +21,6 @@ makeHouseAtX: base_x=CFrogNum
   h=CFrogNum
   partition=CFrogArray
 
-  wall_occupied=CFrogBlock
   tmp=CFrogNum
   tmp2=CFrogNum
   make_door=CFrogNum
@@ -209,34 +208,10 @@ makeHouseAtX: base_x=CFrogNum
 
 
 
-  wall_occupied _ [:sc=CFrogArray :ec=CFrogArray|
-    tmp _ 0 .
-    first_run  ifTrue: [
-      tmp _ 0 .
-    ] ifFalse: [
-      (sc at:0 ) to: (ec at:0) do:[:x=CFrogNum|
-        (sc at:1 ) to: (ec at:1) do:[:y=CFrogNum|
-          (
-            ((sc first = x or: ec first = x) and: (ec first - sc first > 1.1 )) or: 
-            ((sc last = y or: ec last = y) and: (ec last - sc last > 1.1 )) 
-          ) ifFalse: [
-            base_z + 1 to: base_z + wall_height do:[:z=CFrogNum|
-              (#world getTileAtX: x atY: y atZ: z) ifTrue: [
-                tmp _ 1.
-              ] .
-            ]
-          ]
-        ]
-      ].
-    ] .
-    tmp
-  ] .
-
   make_wall _ [:sc=CFrogArray :ec=CFrogArray  |
     clear_decor_in_area value: sc first value:sc last value: ec first value: ec last . 
-    wall_occupied value: sc value:ec .
 'tmp is set if wall is occupied' .
-    tmp ifFalse: [
+    0 ifFalse: [
       want_stairs ifTrue: [
         stairs_start_x _ (sc first min: ec first) .
         stairs_end_x _ (sc first max: ec first ) .

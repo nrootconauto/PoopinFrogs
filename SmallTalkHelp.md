@@ -513,6 +513,7 @@
 	 - [init](AssBlobDir/SmallTalk/CHouseMaker0/CONSTRUCTOR.SCRIPT)
 	 - [makeTreeAtX:atY:atZ:withRadius:](AssBlobDir/SmallTalk/CHouseMaker0/makeFreeAtXAtYAtZ.SCRIPT)
 	 - [makeHouseAtX:atY:atZ:](AssBlobDir/SmallTalk/CHouseMaker0/makeHouseAtXatYAtZ.SCRIPT)
+	 - [spawnRandomHealPickupAtX:atY:atZ:](AssBlobDir/SmallTalk/CHouseMaker0/spawnRandomHealthAtXYZ.SCRIPT)
 	 - [spawnRandomWeaponAtX:atY:atZ:](AssBlobDir/SmallTalk/CHouseMaker0/spawnRandomWeaponAtXYZ.SCRIPT)
  - CKnife
 	 - [init](AssBlobDir/SmallTalk/CKnife/CONSTRUCTOR.SCRIPT)
@@ -630,6 +631,8 @@
 	 - [animate](AssBlobDir/SmallTalk/CPorky/animate.SCRIPT)
 	 - [damage:from:](AssBlobDir/SmallTalk/CPorky/damageFrom.SCRIPT)
 	 - [update](AssBlobDir/SmallTalk/CPorky/update.SCRIPT)
+ - CPromise
+	 - [init](AssBlobDir/SmallTalk/CPromise/CONSTRUCTOR.SCRIPT)
  - CRocket
 	 - **basicExplodeWithDamage:withRadius:**(builtin)
 	 - [init](AssBlobDir/SmallTalk/CRocket/CONSTRUCTOR.SCRIPT)
@@ -682,6 +685,13 @@
 	 - [setWall:](AssBlobDir/SmallTalk/CTileTemplate/SetFront.SCRIPT)
 	 - [setCeil:](AssBlobDir/SmallTalk/CTileTemplate/setCeil.SCRIPT)
 	 - [setFloor:](AssBlobDir/SmallTalk/CTileTemplate/setfloor.SCRIPT)
+ - CTownMaker
+	 - [init](AssBlobDir/SmallTalk/CTownMaker/CONSTRUCTOR.SCRIPT)
+	 - [fire](AssBlobDir/SmallTalk/CTownMaker/fire.SCRIPT)
+ - CTownmaker0
+	 - [init](AssBlobDir/SmallTalk/CTownmaker0/CONSTRUCTOR.SCRIPT)
+	 - [groundLevelAtX:atY:](AssBlobDir/SmallTalk/CTownmaker0/getGroundLevelAtXY.SCRIPT)
+	 - [makeTownAtX:atY:withWidth:withHeight:](AssBlobDir/SmallTalk/CTownmaker0/makeTownAtXYZ.SCRIPT)
  - CUIBackground
 	 - [init](AssBlobDir/SmallTalk/CUIBackground/CONSTRUCTOR.SCRIPT)
  - CUIButton
@@ -1003,6 +1013,8 @@
 	 - [new](AssBlobDir/STClsRoot/CPoopidexShell/NEW.SCRIPT)
  - CPorky
 	 - [new](AssBlobDir/STClsRoot/CPorky/NEW.SCRIPT)
+ - CPromise
+	 - [new](AssBlobDir/STClsRoot/CPromise/NEW.SCRIPT)
  - CRocket
 	 - [new](AssBlobDir/STClsRoot/CRocket/NEW.SCRIPT)
  - CRocketLauncher
@@ -1033,6 +1045,10 @@
 	 - [new:](AssBlobDir/STClsRoot/CThingEditShell/NEW.SCRIPT)
  - CTileTemplate
 	 - [new](AssBlobDir/STClsRoot/CTileTemplate/NEW.SCRIPT)
+ - CTownMaker
+	 - [new](AssBlobDir/STClsRoot/CTownMaker/NEW.SCRIPT)
+ - CTownmaker0
+	 - [new](AssBlobDir/STClsRoot/CTownmaker0/NEW.SCRIPT)
  - CUIBackground
 	 - [new](AssBlobDir/STClsRoot/CUIBackground/NEW.SCRIPT)
  - CUIButton

@@ -1,0 +1,3 @@
+init->CTownmaker0 | |
+  house_maker _ CHouseMaker0 new .
+ ^ self

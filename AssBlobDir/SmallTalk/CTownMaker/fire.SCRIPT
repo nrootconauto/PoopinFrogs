@@ -1,0 +1,17 @@
+fire->*
+|
+  cur_tS=CFrogNum
+  hm=CTownmaker0
+|
+  cur_tS _ CFrogTime now asSeconds .
+  timeout < cur_tS ifFalse: [
+    ^ 0
+  ] .
+  timeout _ cur_tS + .2 .
+
+  hm _ CTownmaker0 new .
+
+  hm makeTownAtX: #world screenCoordToX 
+    atY: #world screenCoordToY
+    withWidth: 64
+    withHeight: 64 . 

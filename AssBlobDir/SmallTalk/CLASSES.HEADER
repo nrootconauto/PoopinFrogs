@@ -15,6 +15,7 @@ class CFrogThing:CQue {
   I32 lock_cnt,universe_class_idx;
 //Used for garbage collection
   CFrogThing **_heap_hash_next;
+  CI64Set *promises;
 };
 class CNetStream:CFrogThing {
   I64 sock;
@@ -35,6 +36,13 @@ class CAsyncStream:CFrogThing {
 class CFrogNum:CFrogThing {
   F64 num;
 };
+class CPromise {
+  I64 method_id;
+  CFrogThing *args[4];
+  I64 argc;
+};
+
+
 class CFrogUndefined:CFrogThing {
 };
 class CFrogClass:CFrogThing {
@@ -260,6 +268,7 @@ class C3DThing:CFrogThing {
   CFrogClass *drop_thing; //CFrogClass
   C3DThingTemplate *template;
   F64 x,y,z,angle,health;
+  F64 next_x,next_y,next_z;
 //Used for interoplation between server frames
   F64 server_old_x,server_old_y,server_old_z;
   F64 server_new_x,server_new_y,server_new_z;
@@ -392,7 +401,7 @@ class CDoorItem:CHandItem {
   Bool side_door,small_key,big_key;
 };
 
-class CHouseMaker0:CFrogThing {
+class CHouseMaker0:CFrogThing {
   CFrogRandom *rand;
   I64 wall_type,ceil_type,floor_type;
   I64 width,height;
@@ -402,6 +411,8 @@ class CHouseMaker0:CFrogThing {
   CFrogArray *decorations;
 };
 class CHouseMaker:CHandItem {
+};
+class CTownMaker:CHandItem {
 };
 
 class CWorldEditBlock:CHandItem {
@@ -822,3 +833,11 @@ class CUINotification:CUIElem {
 class CTalkShell:CUIShell {
 };
 
+class CTownmaker0:CFrogThing {
+  CHouseMaker0 *house_maker;
+  I64 x,y,w,h;
+  CFrogArray *make_houses_at;
+  CFrogArray *roads;
+//(x,y) 1 if occupied,else 0
+  CFrogArray *occupied;
+};
