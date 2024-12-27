@@ -1698,18 +1698,10 @@ U0 FrogNullifySymbols() {
 I64 gc_lock_cnt=0;
 U0 FrogGarbageCollectLock() {
 //See MultThreaded.HC
-  if(!FramePtr("ThreadSelf")) return;
-  if(FramePtr("ThreadGCLock"))
-    return;
-  FramePtrAdd("ThreadGCLock",1);
   ++gc_lock_cnt;
 }
 U0 FrogGarbageCollectUnlock() {
 //See MultThreaded.HC
-  if(!FramePtr("ThreadSelf")) return;
-  if(!FramePtr("ThreadGCLock"))
-     return;
-  FramePtrDel("ThreadGCLock");
   --gc_lock_cnt;
 }
 
@@ -1719,10 +1711,10 @@ U0 FrogGarbageCollectUnlock() {
 //Run this on core 0,it will wait for cores to be done
 U0 FrogGarbageCollect(CFrogThing *root=FROG_SMALL_NIL,Bool debug=FALSE) {
   CTask *task;
+  if(gc_lock_cnt)
+    return;
   try {
 //Force No-registers.I will scan the system except blocks
-    if(gc_lock_cnt)
-      return;
     U64 bucket,i;
     CFrogThing **stacks,**stacke;
     CFrogThing **heap_hash=CAlloc(sizeof(CFrogThing*)*0x200);

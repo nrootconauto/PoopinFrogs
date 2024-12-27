@@ -366,6 +366,19 @@ makeHouseAtX: base_x=CFrogNum
      roots _ #( alt_root  (roots first)) .
   ] .
 
+  'Fill area until house roots with dirt'.
+  roots do:[:root=CFrogArray|
+    root first first - 1 to: root last first + 1 do:[:x=CFrogNum|
+      root first last - 1 to: root last last + 1 do:[:y=CFrogNum|
+        tmp _ base_z - 1 .
+        [(#world getTileAtX: x atY: y atZ: tmp) = 0 and:tmp>0] whileTrue: [
+'3 is dirt'.
+          #world setTile: 3 atX: x atY: y atZ: tmp .
+          tmp _ tmp - 1 .
+        ]
+      ].
+    ].
+  ].
 
   stair_canidates _ #().
 

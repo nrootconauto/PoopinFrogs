@@ -39,7 +39,7 @@ class CFrogNum:CFrogThing {
 class CPromise {
   I64 method_id;
   CFrogThing *args[4];
-  I64 argc;
+  I64 argc;
 };
 
 

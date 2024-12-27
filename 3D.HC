@@ -930,8 +930,8 @@ fix:;
 Bool C3DWorldMoveWithCollision(C3DWorld *w,F64 angle,F64 dist,F64 *x,F64 *y,Bool adjust_smart=TRUE,F64 height=0,C3DThing *who=NULL) {
   F64 dist2=0,boundary;
   Bool hit_wall=FALSE,force;
-  F64 old_x=w->x,old_y=w->y,deflect_angle;
-  w->x=*x,w->y=*y;
+  F64 deflect_angle;
+  F64 wx=*x,wy=*y;
   I64 at_tile;
   if(dist<0.) angle+=pi,dist=-dist;
   I64 idx,idx2;
@@ -946,8 +946,8 @@ Bool C3DWorldMoveWithCollision(C3DWorld *w,F64 angle,F64 dist,F64 *x,F64 *y,Bool
       for(idx=0;idx!=5;idx++) {
         dist2+=1./5.;
         if(dist2>=dist) dist2=dist;
-        *x=w->x+Cos(angle)*dist2;
-        *y=w->y+Sin(angle)*dist2;
+        *x=wx+Cos(angle)*dist2;
+        *y=wy+Sin(angle)*dist2;
         if(RadiusHitsWall(man,angle,x,y,height,THING_RADIUS,TRUE,,RADF_CEIL|RADF_FLOOR|RADF_DOOR,who)) {
 	  hit_wall=TRUE;
 	  goto fin;
@@ -955,8 +955,8 @@ Bool C3DWorldMoveWithCollision(C3DWorld *w,F64 angle,F64 dist,F64 *x,F64 *y,Bool
         if(HeightImpossible(man,*x,*y,height,TRUE,,.2)) {//.2 wiggle room for stepping over partly open doors
 //Totally reject move,something when wrong
 	  //     (would be placed on top of unreachable wall)
-	  *x=w->x;
-	  *y=w->y;
+	  *x=wx;
+	  *y=wy;
 	  hit_wall=TRUE;
 	  goto fin;
         }
@@ -965,36 +965,35 @@ Bool C3DWorldMoveWithCollision(C3DWorld *w,F64 angle,F64 dist,F64 *x,F64 *y,Bool
       }
     }
 fin:
-  if(!(0<=w->x<w->world_width)||
-        !(0<=w->y<w->world_height)
+  if(!(0<=wx<w->world_width)||
+        !(0<=wy<w->world_height)
   ) {
     if(x)
-      *x=Clamp(w->x,0.,w->world_width);
+      *x=Clamp(wx,0.,w->world_width);
     if(y)
-      *y=Clamp(w->y,0.,w->world_height);
+      *y=Clamp(wy,0.,w->world_height);
     hit_wall=TRUE;
   }
-  w->x=old_x,w->y=old_y;
   return hit_wall;
 }
-Bool AdjustRadiusThing(C3DWorld *w,C3DThing *self,CD3 *pos,C3DThing *other,F64 angle) {
+Bool AdjustRadiusThing(C3DWorld *w,C3DThing *self,C3DThing *other,F64 angle) {
   F64 sr=THING_RADIUS;
   F64 or=THING_RADIUS;
   F64 dist,push_back;
   I64 attempt=0;
   Bool ret=FALSE;
 again:
-  dist=Sqrt(Sqr(other->x-pos->x)+Sqr(other->y-pos->y));
+  dist=Sqrt(Sqr(other->x-self->next_x)+Sqr(other->y-self->next_y));
   if(dist<or+sr) {
     ret=TRUE;
-    push_back=(sr+or-dist)*.1*1.4;
+    push_back=(sr+or-dist)/18.;
     C3DWorldMoveWithCollision(w,angle+pi,push_back,
-	  &pos->x,
-	  &pos->y,
+	  &self->next_x,
+	  &self->next_y,
 	  TRUE, //Slide along wall
-	  pos->z,
+	  self->next_z,
 	  self);
-    if(++attempt<16) goto again;
+    if(++attempt<20) goto again;
   }
   return ret;
 }
@@ -1238,7 +1237,7 @@ Bool PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm,F64 last_tS) {
   }
   omy=t->momy+t->momy2;
   omx=t->momx+t->momx2;
-  if(omy||omx) {
+  if(Abs(omx)>1/320.||Abs(omy)>1/320.) {
     if(!rocket) {
       t->momx*=29/30.*weight;
       t->momy*=29/30.*weight;
@@ -1246,8 +1245,6 @@ Bool PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm,F64 last_tS) {
         t->momx+=t->momx2*weight;
       if(Sign(t->momy)==-Sign(t->momy2))
         t->momy+=t->momy2*weight;
-      if(Abs(t->momx)<2/320.) t->momx=0;
-      if(Abs(t->momy)<2/320.) t->momy=0;
     }
 //Handle slow
     if(ThingHasClass(t,"CPlayer")) {
@@ -1266,7 +1263,7 @@ Bool PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm,F64 last_tS) {
 	  &t->next_x,
 	  &t->next_y,
 	  TRUE,
-	  t->z,
+	  t->next_z,
 	  t)) {
 
       hit:
@@ -1302,16 +1299,17 @@ explode:
   }
 //Only check for thing collision if we are the ones movin
   if(i_am_moving&&!rocket) {
-    in_radius=CallScript("getObstaclesInRadiusForThing:inRadius:",wm,t,FrogNumNew(3*THING_RADIUS));
+    in_radius=CallScript("getObstaclesInRadiusForThing:inRadius:",wm,t,FrogNumNew(2*THING_RADIUS));
     set=in_radius->items;
     for(idx=0;idx!=set->cnt;idx++) {
       other=set->body[idx];
       if(other!=t&&Max(other->z,t->next_z)<=Min(other->z+THING_HEIGHT,t->next_z+THING_HEIGHT))
-	if(!ThingHasClass(t,"C3DProp"))
-          if(AdjustRadiusThing(w,t,&t->next_x,other,angle)) {
+	if(!ThingHasClass(t,"C3DProp")) {
+          if(AdjustRadiusThing(w,t,other,angle)) {
 	    t->hit_thing=TRUE;
 	    if(ThingHasClass(other,"C3DProp")) {
 	      angle=t->angle;
+	      other->angle=t->angle;
 	      dist=Sqrt(Sqr(t->momx2+t->momx)+Sqr(t->momy2+t->momy));
 	      other->momx+=.05*Cos(angle)*dist;
 	      other->momy+=.05*Sin(angle)*dist;
@@ -1319,8 +1317,9 @@ explode:
 	      other->momy=Clamp(other->momy,-1./32,1./32);
             }
           }
+	}
     }  
-  }
+	  }
   if(rocket) {
     if(HeightImpossible(man,t->next_x,t->next_y,t->next_z,TRUE,1.))
       goto explode;
@@ -3279,8 +3278,8 @@ CFrogThing *WorldPhysics(C3DWorldManager *wm,I64 *argv,I64 argc) {
   }
   FrogGarbageCollectUnlock;
   for(idx=0;idx!=c;idx++) {
-    WorldManagerRemoveFromGrid(wm,&body[idx],1);
     thing=body[idx];
+    WorldManagerRemoveFromGrid(wm,&thing,1);
     thing->x=thing->next_x;
     thing->y=thing->next_y;
     thing->z=thing->next_z;
