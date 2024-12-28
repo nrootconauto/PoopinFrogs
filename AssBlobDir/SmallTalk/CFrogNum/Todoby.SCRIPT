@@ -8,6 +8,6 @@ to: limit=CFrogNum by: b=CFrogNum do: block=CFrogBlock ->* | idx=CFrogNum |
   ] ifFalse: [
     [idx > limit ] whileTrue: [
       block value: idx .
-      idx _ idx + b
+      idx _ idx - b
     ] .
   ] .

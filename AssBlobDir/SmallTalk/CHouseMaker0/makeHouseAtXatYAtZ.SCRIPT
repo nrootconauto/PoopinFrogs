@@ -31,6 +31,7 @@ makeHouseAtX: base_x=CFrogNum
   ceil_interp=CFrogBlock
 
   first_run=CFrogNum
+  first_floor=CFrogNum
 
   roots=CFrogArray 
   alt_root=CFrogArray
@@ -64,7 +65,29 @@ makeHouseAtX: base_x=CFrogNum
   clear_decor_in_area=CFrogBlock
 
   rand_fractal=CFrogBlock
+
+  is_outside_wall=CFrogBlock
+  tmpo=CFrogNum
+  tmpo2=CFrogNum
+
+  corner_x=CFrogNum
+  corner_y=CFrogNum
+  corner_x2=CFrogNum
+  corner_y2=CFrogNum
+
+  wallx=CFrogNum
+  wally=CFrogNum
+
+  remove_door_at=CFrogBlock
 |
+  remove_door_at _ [:x=CFrogNum :y=CFrogNum :z=CFrogNum|
+    doors_grid _ (#world->doors_grid at: x / 16) at: y /16 .
+    doors_grid do:[:d=CDoor|
+      ((d->x floor = x floor and:d->y floor  = y floor)and: d->z floor = z floor) ifTrue: [
+        #world removeDoor: d 
+      ].
+    ]
+  ].
   rand_fractal _ [
     #(0 .25 .55 .75 1 ) at: rand next * 5
   ] .
@@ -137,7 +160,10 @@ makeHouseAtX: base_x=CFrogNum
     dx ifTrue: [
       clear_decor_in_area value: x value: y value: dx sign * wall_height + x value: y+1 .
       x to: dx sign * wall_height + x do:[:x=CFrogNum|
-        base_z + 1 to: base_z + wall_height + 1 do: [:z=CFrogNum|
+        remove_door_at value: x value: y value: base_z + 1 .
+        remove_door_at value: x value: y value: base_z + 1 + wall_height .
+'Double wall height to remove walls in the wall' .
+        base_z + 1 to: base_z + (2 * wall_height) + 1 do: [:z=CFrogNum|
           #world setTile: 0 atX: x atY: y atZ: z .
         ] .
         'TODO stair type'. 
@@ -146,11 +172,14 @@ makeHouseAtX: base_x=CFrogNum
         ] .
         cur_height _ cur_height + 1 .
       ]. 
-    ] .
+    ].
     dy ifTrue: [
       clear_decor_in_area value: x value: y value: x + 1 value: dy sign * wall_height + y .
       y to: dy sign * wall_height + y do:[:y=CFrogNum|
-        base_z + 1 to: base_z + wall_height + 1 do: [:z=CFrogNum|
+        remove_door_at value: x value: y value: base_z + 1 .
+        remove_door_at value: x value: y value: base_z + 1 + wall_height .
+'Double wall height to remove walls in the wall' .
+        base_z + 1 to: base_z + (2 * wall_height) + 1 do: [:z=CFrogNum|
           #world setTile: 0 atX: x atY: y atZ: z .
         ] .
         'TODO stair type'. 
@@ -207,8 +236,21 @@ makeHouseAtX: base_x=CFrogNum
   ] .
 
 
-
   make_wall _ [:sc=CFrogArray :ec=CFrogArray  |
+'sort them by order'.
+    tmpo _ #(
+      (ec first min: sc first)
+      (ec last min: sc last)
+    ).
+    tmpo2 _ #(
+      (ec first max: sc first)
+      (ec last max: sc last)
+    ) .
+    sc _ tmpo.
+    ec _ tmpo2.
+
+    make_windows _ (is_outside_wall value: sc value: ec).
+    make_door _ make_windows = 0 or: first_floor .
     clear_decor_in_area value: sc first value:sc last value: ec first value: ec last . 
 'tmp is set if wall is occupied' .
     0 ifFalse: [
@@ -250,19 +292,21 @@ makeHouseAtX: base_x=CFrogNum
           ). 
         ] .
       ].
-      (sc at:0 ) to: (ec at:0) do:[:x=CFrogNum|
-        (sc at:1 ) to: (ec at:1) do:[:y=CFrogNum|
-          doors_grid _ (#world->doors_grid at: x / 16) at: y /16 .
-'Remove any placed doors'.
-          doors_grid do:[:d=CDoor|
-            ((d->x floor = x floor and: d->y floor = y floor) and:
-              (base_z + 1) floor = d->z floor) ifTrue: [
-              #world removeDoor: d
-            ].
-          ] .
+'MAke +.001 smaller so not equal for to:do: '.
+      (sc at:0) = (ec at:0) ifTrue: [
+        ec _ ec copy .
+        ec at:0 put: ec first + .001  .
+      ].
+      (sc at:1) = (ec at:1) ifTrue: [
+        ec _ ec copy .
+        ec at:1 put: (ec at:1) + .001 .
+      ].
+      (sc at:0) to: (ec at:0) do:[:x=CFrogNum|
+        (sc at:1) to: (ec at:1) do:[:y=CFrogNum|
+          remove_door_at value: x value: y value: base_z + 1 .
           base_z to: base_z + wall_height do:[:z=CFrogNum|
             #world setTile: wall_type atX: x atY: y atZ: z.
-          ]
+          ].
         ].
       ]. 
       make_door ifTrue: [
@@ -335,7 +379,7 @@ makeHouseAtX: base_x=CFrogNum
   ) .
 
 'Make a multi retangle house to make things more intresting'.
-  rand next < .65 ifTrue: [
+  rand next < .5 ifTrue: [
      alt_root _ #(
        #(
            #((base_x+width - 4) (base_y))
@@ -366,6 +410,32 @@ makeHouseAtX: base_x=CFrogNum
      roots _ #( alt_root  (roots first)) .
   ] .
 
+  is_outside_wall _[:sc=CFrogArray :ec=CFrogArray|
+'In make wall I add .001 for to:do:'.
+    sc _ sc collect: [:x=CFrogNum| x floor ].
+    ec _ ec collect: [:x=CFrogNum| x floor ].
+    tmpo _ 0 .
+    roots do:[:r=CFrogArray|
+      tmpo2 _ 0 .
+      tmpo ifFalse:[
+        corner_x _ (r at:0) first min: (r at: 1) first .
+        corner_y _ (r at:0) last min: (r at: 1) last .
+        corner_x2 _ (r at:0) first max: (r at: 1) first .
+        corner_y2 _ (r at:0) last max: (r at: 1) last .
+        sc first  = ec first ifTrue: [
+          tmpo _ #(corner_x corner_x2) has: sc first.
+        ] ifFalse: [
+          sc last = ec last ifTrue: [
+            tmpo _ #(corner_y corner_y2) has: sc last .
+          ].
+        ].
+      ].
+    ] .
+    tmpo
+  ].
+
+
+
   'Fill area until house roots with dirt'.
   roots do:[:root=CFrogArray|
     root first first - 1 to: root last first + 1 do:[:x=CFrogNum|
@@ -383,10 +453,11 @@ makeHouseAtX: base_x=CFrogNum
   stair_canidates _ #().
 
   0 to: floors do: [:f=CFrogNum|
+    first_floor _ f=0 .
     want_stairs _ f < (floors - 1) .
     stair_canidates add: #().
     roots do: [:r=CFrogArray|
-       make_floor value: r first value: r last 
+      make_floor value: r first value: r last 
     ].
 
     make_room _ [:sc=CFrogArray :ec=CFrogArray |
@@ -397,52 +468,28 @@ makeHouseAtX: base_x=CFrogNum
       room_center_y _ sc last + ec last / 2 .
 'If we are on an upper floor,dont make doors to the ourside' .
 'top is current partition'.
-      (f and: first_run) ifTrue: [
-        make_door _ top = alt_root and: alt_root_direction = 0 .
-        make_wall
-          value: #((sc at:0) (sc at:1)) 
-          value: #((ec at:0) ((sc at:1) + 1)) .
-        make_door _ top = alt_root and: alt_root_direction = 1 .
-        make_wall
-          value: #((sc at:0) (ec at: 1) ) 
-          value: #((ec at:0) ((ec at:1) + 1)) .
-        make_door _ top = alt_root and: alt_root_direction = 2 .
-        make_wall
-          value: #((ec at:0) (sc at:1)) 
-          value: #(((ec at:0) + 1) ((ec at:1)+1)) .
-        make_door _ top = alt_root and: alt_root_direction = 3 .
-        make_wall
-          value: #((sc at:0) (sc at:1)) 
-          value: #(((sc at:0)+1) (ec at:1)) .
-      ] ifFalse: [
      'top' .
-        make_door _ rand next * 2 floor or: (sc = alt_root first and: alt_root_direction = 0 ).
         make_wall
           value: #((sc at:0) (sc at:1)) 
-          value: #((ec at:0) ((sc at:1) + 1)) .
+          value: #((ec at:0) (sc at:1)) .
      'bottom' .
-        make_door _ rand next * 2 floor or: (sc = alt_root first and: alt_root_direction = 1 ).
         make_wall
-        value: #((sc at:0) (ec at: 1) ) 
-        value: #((ec at:0) ((ec at:1) + 1)) .
+        value: #((sc at:0) (ec at: 1)) 
+        value: #((ec at:0) (ec at:1)) .
      'right'.
-        make_door _ rand next * 2 floor or: (sc = alt_root first and: alt_root_direction = 2 ).
         make_wall
         value: #((ec at:0) (sc at:1)) 
-        value: #(((ec at:0) + 1) ((ec at:1)+1)) .
+        value: #((ec at:0) (ec at:1)) .
      'left'.
-        make_door _ rand next * 2 floor or: (sc = alt_root first and: alt_root_direction = 3 ).
         make_wall
           value: #((sc at:0) (sc at:1)) 
-          value: #(((sc at:0)+1) (ec at:1)) .
-     ].
+          value: #((sc at:0) (ec at:1)) .
 
       'Make floor lights in corner of room'.
       #world setTile: 13 atX: (sc at:0) + 1 atY: (sc at:1) + 1 atZ: base_z .
       #world setTile: 13 atX: (sc at:0) + 1 atY: (ec at:1) - 1 atZ: base_z .
       #world setTile: 13 atX: (ec at:0) - 1 atY: (sc at:1) + 1 atZ: base_z .
       #world setTile: 13 atX: (ec at:0) - 1 atY: (ec at:1) - 1 atZ: base_z .
-
     ].
 
     stack  _ roots copy .
@@ -461,10 +508,8 @@ makeHouseAtX: base_x=CFrogNum
          ((w between: 3 and: width) and:(h between: 3 and: height)) ifTrue: [
            make_door _ 1 .
            (roots has: top) ifTrue: [
-             make_windows _ 1 .
              first_run _ 1 .
            ] ifFalse: [
-             make_windows _ 0 .
              first_run _ 0 .
            ].
            make_room
