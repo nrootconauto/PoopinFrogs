@@ -295,7 +295,8 @@ class C3DThing:CFrogThing {
   Bool draw_flip;
   Bool no_update;
   Bool invisible;
-  Bool pad[8-2];
+  Bool was_in_water;
+  Bool pad;
   CFrogArray *path_finder_data;
 };
 class C3DProp:C3DThing {};

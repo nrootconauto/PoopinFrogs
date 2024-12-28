@@ -34,14 +34,15 @@ newLandscapeWithWidth: w=CFrogNum withHeight: h=CFrogNum
   sand_threshold=CFrogNum
 |
   get_ground_at _ [:x=CFrogNum :y=CFrogNum|
-    ground _ 126 .
-    [(ground>0 and:
-      (self getTileAtX: x atY: y atZ: ground)=0)
-      or: (self tileIsLiquidAtX: x atY: y atZ: ground)
+'Start from bottom,most of top is air'.
+    ground _ 1 .
+    [(ground<127 and:
+      (self getTileAtX: x atY: y atZ: ground)~=0)
+      and: (self tileIsLiquidAtX: x atY: y atZ: ground)=0
     ] whileTrue: [
-      ground _ ground - 1 .
+      ground _ ground + 1 .
     ].
-    ground.
+    ground - 1 .
   ].
 
   r _ CFrogRandom new .
@@ -74,8 +75,8 @@ newLandscapeWithWidth: w=CFrogNum withHeight: h=CFrogNum
      a + ((b - a )*v)
   ].
 
-  smooth _ [:x|
-    (3*(x raisedTo: 2)) - (2 * (x raisedTo:3))
+  smooth _ [:x=CFrogNum|
+    (3 * (x raisedTo: 2)) - (2* (x raisedTo: 3))
   ].
 
   value_at _ [:x=CFrogNum :y=CFrogNum|
@@ -102,7 +103,7 @@ newLandscapeWithWidth: w=CFrogNum withHeight: h=CFrogNum
     x1 _ lerp value: g1 value: g2 value: (smooth value: gx / grid_sz) .
     x2 _ lerp value: g3 value: g4 value: (smooth value: gx / grid_sz) .
 
-    x1 _ lerp value: x1 value: x2 value: (smooth value:gy / grid_sz) .
+    x1 _ lerp value: x1 value: x2 value: (smooth value: gy / grid_sz) .
     x1
   ].
 
@@ -125,8 +126,8 @@ newLandscapeWithWidth: w=CFrogNum withHeight: h=CFrogNum
   'Do water then sand'.
   fill_with _ 6 . 'water'.
   water_depth _ 1.5 .
-  water_threshold _ .25 .
-  sand_threshold _ .25 .
+  water_threshold _ .15 .
+  sand_threshold _ water_threshold .
   0 to: w  do: [:x=CFrogNum|
     0 to: h do: [:y=CFrogNum|
       final _ (value_at value: x value: y) * 2 + .5 .

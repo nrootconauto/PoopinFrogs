@@ -1196,9 +1196,15 @@ Bool PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm,F64 last_tS) {
       t->momz=0;
   } else if(!rocket&&!t->floating) {
     if(IsLiquidTile(BlockAtXYZ(t->next_x,t->next_y,t->next_z))) {
-      t->momz=t->momz2-wm->gravity/3*weight;
-    } else 
+//Simulate diving into water
+      t->momz=-wm->gravity/4*weight;
+      t->was_in_water=TRUE;
+    } else { 
+      if(t->was_in_water)
+	t->momz+=.4; //"Bouce on top of water"
       t->momz-=wm->gravity*weight;
+      t->was_in_water=FALSE;
+    }
   }
   ox=t->next_x;
   oy=t->next_y;
@@ -3785,7 +3791,7 @@ DocDel(d);
 //
 
 #if __CMD_LINE__
-CallScript("newLandscapeWithWidth:withHeight:",FrogSymbol("world")->value,FrogNumNew(64),FrogNumNew(64));
+CallScript("newLandscapeWithWidth:withHeight:",FrogSymbol("world")->value,FrogNumNew(128),FrogNumNew(128));
 C3DWorldShell *shell=ConstructThing("C3DWorldShell");
 CallScript("init",shell);
 UIShellRun(shell,NULL,0);

@@ -1,4 +1,23 @@
-jump ->* ||
+jump ->*
+|
+  is_land=CFrogNum
+  lx=CFrogNum
+  ly=CFrogNum
+|
+'Jump out of water(block to jump onto)'.
+  lx _ x + angle cos .
+  ly _ y + angle sin .
+
+  is_land _ (#world tileIsLiquidAtX:lx atY: ly atZ: z - .1 ) not and:
+    (#world getTileAtX: lx atY: ly atZ: z - .1).
+
+  ((#world tileIsLiquidAtX:x atY: y atZ: z - .1 ) and: is_land) ifTrue: [
+'In PhysicsOnThing in HolyC,we water bounce if was_in_water is set'
+'Turn off to prevent "double jump"'.
+    was_in_water _ 0 .
+    momz _ .55 .
+    ^ 0 
+  ].
   self isOnGround ifTrue: [
     momz _ .55 .
   ]
