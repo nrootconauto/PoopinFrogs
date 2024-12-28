@@ -30,6 +30,7 @@ newLandscapeWithWidth: w=CFrogNum withHeight: h=CFrogNum
   dirt_vectors=CFrogBlock
   get_ground_at=CFrogBlock
   ground=CFrogNum
+  adj_ground=CFrogNum
   sand_threshold=CFrogNum
 |
   get_ground_at _ [:x=CFrogNum :y=CFrogNum|
@@ -152,6 +153,20 @@ newLandscapeWithWidth: w=CFrogNum withHeight: h=CFrogNum
         '15 is sand'.
         -2 to: 1 do:[:zoff=CFrogNum|
           #world setTile: 15 atX: x atY: y atZ: ground +zoff . 
+        ].
+        'Make adjacent non-water blocks made of sand'.
+        -1 to: 1.1 by:2 do:[:xoff=CFrogNum|
+          -1 to: 1.1 by:2 do:[:yoff=CFrogNum|
+            final _ (value_at value: x+xoff value: y+yoff) * 2 + .5 .
+            final > sand_threshold ifTrue:[
+              adj_ground _ (get_ground_at value: x+xoff value: y+yoff) .
+              adj_ground - 3  to: adj_ground do:[:z=CFrogNum|
+                #world setTile: 15 atX: x+xoff atY: y+yoff atZ: z .
+              ].
+              'Make adjacent block lower,so you an get out of the water easy'.
+              #world setTile: 0 atX: x+xoff atY: y+yoff atZ: adj_ground.
+            ].
+          ]
         ].
       ].
     ]

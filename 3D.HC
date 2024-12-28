@@ -149,14 +149,6 @@ U64 Fog(I64 color,U64 dist,U8 fcolor=BLACK) {
   }
   return fcolor;
 }
-Bool IsLiquidTile(I64 t) {
-  switch(t) {
-    case 6: //water
-    case 10: //lava
-      return TRUE;
-  }
-  return FALSE;
-}
 extern I64 *GetTilesInPath(U8 *w,F64 angle,F64 dist);
 #define ENGINE_3D 1
 #define SCRN_TURN_MARGIN 100
@@ -1171,6 +1163,11 @@ damage:;
   }
 }
 AddMethod("CRocket","basicExplodeWithDamage:withRadius:",&WorldExplode);
+Bool IsLiquidTile(I64 t) {
+  if(1<=t<=U8_MAX)
+    return !w->solids[t];
+  return FALSE;
+}
 Bool PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm,F64 last_tS) {
   I64 wx=t->x,wy=t->y,idx;
   t->next_x=t->x;
@@ -2430,6 +2427,8 @@ pass:;
   }
 fin:
   if(depth&&!hit) {
+//Have a default far distance(in water we might have a distance)
+    if(hit_at) *hit_at=I32_MAX;
     return gr.to_8_colors[fog_color&0xff];
   }
   return hit_color;
@@ -2559,8 +2558,17 @@ U0 MPCastCol(C3DWorldManager *wm) {
 
       if(in_water) {
         color=GetColorForRay(wm,&origin,&ray,32,&dist,p,1*in_water,BlockAtXYZ(w->x,w->y,Floor(w->cam_height)),fogc,record_tile);
-      } else
+      } else {
         color=GetColorForRay(wm,&origin,&ray,32,&dist,p,,,,record_tile);
+	if(dist*128.>I32_MAX) {
+	  //We are not in water and we didnt hit a near thing(probably nothing)
+	  //Just use sky color
+          ptr(U8*)+=to_dc->width_internal*w->step_width;
+          depth_ptr(I32*)+=to_dc->width_internal*w->step_width;
+          goto fin;
+	}
+      }
+      
       dist*=128;
       idist=dist;
       idist|=idist<<32;
@@ -2656,7 +2664,7 @@ Bool CanSee2DThing(C3DWorld *w,C3DThing *t) {
   I64 *ti=GetTilesInPath(w,angle,dist),idx;
   I64 at_tile=ToI64(w->x)+ToI64(w->y)*w->world_width;
   I64 t_at_tile=ToI64(t->x)+ToI64(t->y)*w->world_width;
-  I64 x,y,z;
+  I64 x,y,z,b;
   I64 cnt=0;
   for(idx=0;ti[idx]!=-1;idx++)
     ++cnt;
@@ -2664,7 +2672,9 @@ Bool CanSee2DThing(C3DWorld *w,C3DThing *t) {
     x=ti[idx]%w->world_width;
     y=ti[idx]/w->world_width;
     interp=Lerp(ToF64(idx)/ToF64(cnt),w->cam_height,t->z+1.);
-    if(BlockAtXYZ(x,y,ToI64(interp))) {
+    if(b=BlockAtXYZ(x,y,ToI64(interp))) {
+      if(IsLiquidTile(b))
+	goto next;
       //Check if we are 1 block within result "good enough"
       if(Abs(x+.5-t->x)<.5||Abs(y+.5-t->y)<.5
 	||Abs(z-t->z)<.5)
@@ -2672,6 +2682,7 @@ Bool CanSee2DThing(C3DWorld *w,C3DThing *t) {
       ret=FALSE;
       break;
     }
+next:;
   }
   Free(ti);
   return ret;
