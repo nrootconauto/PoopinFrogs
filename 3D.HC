@@ -1962,7 +1962,7 @@ Bool SegmentSegmentIntersect(CD2 *hit_at,CD2 *a,CD2 *b,CD2 *a2,CD2 *b2,F64 *t,F6
 I64 BlockHitColor(CD3 *at,CD3 *ray,I64 b,I64 x,I64 y,I64 z,I64 sidex,I64 sidey,I64 sidez,CD3 *hit_at=NULL,F64 *hit_d=NULL,CD2 *texture_cords=NULL,F64 percent=1.,I64 z_offset=0) {
   CD3 pos,dst;
   CDC *texture=NULL;
-  F64 tx,ty;
+  F64 tx,ty,d;
   pos.x=x;
   pos.y=y;
   pos.z=z;
@@ -1986,7 +1986,6 @@ I64 BlockHitColor(CD3 *at,CD3 *ray,I64 b,I64 x,I64 y,I64 z,I64 sidex,I64 sidey,I
     pos.z=z;
   } else
     return LTPURPLE;
-  F64 d;
   if(sidez>0) {
     texture=w->floor_textures[b];
 zstyle:
@@ -2025,7 +2024,9 @@ zstyle:
       texture_cords->y=1.-ty%1.;
   }
   if(texture) {
-    return GrPeek(texture,ToI64(128*tx)&127,ToI64(128*ty+z_offset)&127);
+    d=AnimDCDelay(texture);
+    I64 f=ToI64(tS/d)%AnimDCCnt(texture);
+    return GrPeek(texture+f,ToI64(128*tx)&127,ToI64(128*ty+z_offset)&127);
   }
   return BLACK;
 }
@@ -2196,7 +2197,7 @@ I64 GetColorForRay(C3DWorldManager *man,CD3 *origin,CD3 *ray,F64 dist,F64 *hit_a
   CLight **lights,*light;
   F64 rel_percent;
   F64 lighting,intensity;
-  CD2 xyhit,origin_d_128;
+  CD2 origin_d_128;
   I64 side;
   CD3 texture_cords;
   I64 sidex=0,sidey=0,sidez=0;
@@ -2264,6 +2265,8 @@ tile:;
 	      man->cur_tile_side_z=sidez;
 	    }
 	    color=BlockHitColor(&o128,&rp,BlockAtXYZ(tx,ty,tz),tx,ty,tz,sidex,sidey,sidez,&new_origin,&hit_dist,&texture_cords);
+	    if(IsLiquidTile(idx)&&depth<RAY_TRACE_MAX_DEPTH)
+	      goto liquid;
 	    if(0<=relx<2*VIEW_DIST)
 	      if(0<=rely<2*VIEW_DIST)
 	        if(cnt=(do_things=w->stains_around_camera[relx][rely])->cnt)
@@ -2307,35 +2310,34 @@ try_damage:;
 	    }
 try_block:;
 //For-recursive
-	    if(0&&IsLiquidTile(idx)&&depth<RAY_TRACE_MAX_DEPTH) {
+	    if(0) {
+liquid:
 	      F64 angle=Arg(ray->z,-ray->x);
 	      F64 cos=Cos(angle),sin=Sin(angle);
 	      F64 slope=-ray->y/Sqrt(Sqr(ray->z)+Sqr(ray->x)); //???
-//TODO displace ray based on "wavew"
 	      fog_color=color&0xff;
 	      depth++;
 	      last_block=idx;
-//Weird issues  with exact values
 	      //Snells law
 	      F64 snell_a,snell_a2,normal;
 	      F64 t=Frog_tS/30.;
 	      F64 rand_refrac=1.1+.1*(Abs(Sin((t/4.)*200))-Abs(Cos(t*125)))+.1*(Rand-.5)*2;
-	      if(!sidez) {
-	        normal=(1+side)*pi/2;
-	        snell_a=Arg(origin->x-xyhit.x,origin->y-xyhit.y)-normal;
+	      if(sidex||sidey) {
+		normal=Arg(-sidex,-sidey);
+		snell_a=normal-angle;
 	        snell_a=ASin(Sin(snell_a)/rand_refrac);
-	        snell_a=normal-snell_a+pi;
-	        new_ray.x=Sin(snell_a);
-	        new_ray.y=ray->y*ASin(Sin((pi/2-ATan(slope)))/(rand_refrac+.2));
-	        new_ray.z=-Cos(snell_a);
-	      } else {
+		snell_a=normal-snell_a;
+	        new_ray.x=-Sin(snell_a);
+	        new_ray.y=ray->y;
+	        new_ray.z=Cos(snell_a);
+	      } else if(sidez) {
 	        if(slope<0.)
-		  normal=pi/2;
-	        else
 		  normal=-pi/2;
-	        snell_a=ATan(slope)-normal;
+	        else
+		  normal=pi/2;
+	        snell_a=normal-ATan(slope);
 	        snell_a=ASin(Sin(snell_a)/rand_refrac);
-	        snell_a=normal-snell_a+pi;
+	        snell_a=normal-snell_a;
 	        new_ray.x=ray->x;
 	        new_ray.y=-Sin(snell_a);
 	        new_ray.z=ray->z;
@@ -2833,7 +2835,7 @@ CFrogNum *WorldManagerIsLiquid(C3DWorldManager *man,I64 *argv,I64 argc) {
   I64 y=AsF64(argv[1]);
   I64 z=Floor(AsF64(argv[2]));
   I64 tile=(x+y*w->world_width)*128+z;
-  if(0<=tile<w->world_width*w->world_height) {
+  if(0<=tile<w->world_width*w->world_height*128) {
     return FrogNumNew(IsLiquidTile(w->world_blocks[tile]));
   }
   return FrogNumNew(0);
