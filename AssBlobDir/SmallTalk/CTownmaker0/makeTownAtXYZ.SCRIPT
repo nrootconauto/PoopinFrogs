@@ -36,6 +36,8 @@ makeTownAtX: xx=CFrogNum atY: yy=CFrogNum withWidth: ww=CFrogNum withHeight: hh=
   tree_positions=CFrogArray
 
   ground_levels=CFrogArray
+  heights=CFrogArray
+  last_height=CFrogNum
 |
   rand _ CFrogRandom new .
 
@@ -167,12 +169,44 @@ makeTownAtX: xx=CFrogNum atY: yy=CFrogNum withWidth: ww=CFrogNum withHeight: hh=
   ] .
 
   make_road _ [:x=CFrogNum :y=CFrogNum :x2=CFrogNum :y2=CFrogNum|
-    x to: x2 do:[:x=CFrogNum|
+    'Keep tack of heights,we will "smooth" them'.
+    heights _ #().
+    (x - x2)abs > (y-y2) abs ifTrue: [
+      x to: x2 do:[:x=CFrogNum|
+        heights add: (((ground_levels at:x - xx) at: y - yy) max: ((ground_levels at:x - xx) at: y + 1 - yy))
+      ].
+    ] ifFalse: [
       y to: y2 do:[:y=CFrogNum|
-((ground_levels at:x - xx) at: y - yy) show .
-        #world setTile: 14 atX: x atY: y atZ: ((ground_levels at:x - xx) at: y - yy)  .
-      ]
-    ]
+        heights add: (((ground_levels at:x - xx) at: y - yy) max: ((ground_levels at:x + 1  - xx) at: y - yy))
+      ].
+    ].
+'Smooth the heights'.
+    last_height _heights first .
+    1 to: heights size do:[:step=CFrogNum|
+      last_height > (heights at: step) ifTrue: [
+        last_height _ last_height - 1  .
+      ] .
+      last_height < (heights at: step) ifTrue: [
+        last_height _ last_height + 1 .
+      ].
+      heights at: step put: last_height.
+    ].
+
+    (x - x2)abs > (y-y2) abs ifTrue: [
+      x to: x2 do:[:x=CFrogNum|
+        y to: y2 do:[:y=CFrogNum|
+          #world setTile: 14 atX: x atY: y atZ: (heights at: 0).
+        ].
+        heights removeAt: 0 .
+      ].
+    ] ifFalse: [
+      y to: y2 do:[:y=CFrogNum|
+        x to: x2 do:[:x=CFrogNum|
+          #world setTile: 14 atX: x atY: y atZ: (heights at: 0).
+        ].
+        heights removeAt: 0 .
+      ].
+    ].
   ].
 
   partitions _ #(
