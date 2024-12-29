@@ -249,6 +249,7 @@ class C3DWorld {
   I64 things_around_camera_origin_y;
   CI64Set *stains_around_camera[VIEW_DIST*2][VIEW_DIST*2];
   CI64Set *doors_around_camera[VIEW_DIST*2][VIEW_DIST*2];
+  CI64Set *things_around_camera[VIEW_DIST*2][VIEW_DIST*2];
 };
 C3DWorld *w;
 #define MAX_PARTICLES 128
@@ -1724,7 +1725,18 @@ U0 PrepareThingsForDraw(C3DWorldManager *wm,F64 thing_scale=.6) {
   F64 width;
   F64 st,en;
   F64 stz,enz;
+  F64 radius;
   U32 dist;
+  for(ox=0;ox!=2*VIEW_DIST;ox++)
+    for(oy=0;oy!=2*VIEW_DIST;oy++) {
+      if(!w->stains_around_camera[ox][oy]) {
+        w->stains_around_camera[ox][oy]=I64SetNew;
+        w->things_around_camera[ox][oy]=I64SetNew;
+      }else {
+        w->stains_around_camera[ox][oy]->cnt=0;
+        w->things_around_camera[ox][oy]->cnt=0;
+      }
+    }
   w->things_around_camera_origin_x=Floor(w->x)-VIEW_DIST;
   w->things_around_camera_origin_y=Floor(w->y)-VIEW_DIST;
   while(--cnt>=0) {
@@ -1734,106 +1746,30 @@ U0 PrepareThingsForDraw(C3DWorldManager *wm,F64 thing_scale=.6) {
     hit_texture=ThingFace(wm->world_handle,thing,&thing->draw_flip);
     if(!hit_texture)
       goto skip;
-    thing->draw_face=hit_texture;
-    normal=Arg(w->x-thing->x,w->y-thing->y)-pi/2;
-    scrn_st.x=thing->x-hit_texture->width/128./2.*Cos(normal)*thing_scale;
-    scrn_st.y=thing->y-hit_texture->width/128./2.*Sin(normal)*thing_scale;
-    scrn_en.x=scrn_st.x+hit_texture->width/128.*Cos(normal)*thing_scale;
-    scrn_en.y=scrn_st.y+hit_texture->width/128.*Sin(normal)*thing_scale;
-    scrn_st.z=0;
-    scrn_en.z=0;
-
-    D3Copy(&clip_st,&scrn_st);
-    D3Copy(&clip_en,&scrn_en);
-    if(!ClipLineToCamera(w,&clip_st,&clip_en)) {
-      goto skip;
-    }
-
-    visible=FALSE;
-    visible|=PointToScrn(w,clip_st.x,clip_st.y,thing->z+hit_texture->height/128.*thing_scale,&scrn_corners[0]);
-    visible|=PointToScrn(w,clip_st.x,clip_st.y,thing->z,&scrn_corners[1]);
-    visible|=PointToScrn(w,clip_en.x,clip_en.y,thing->z,&scrn_corners[2]);
-    visible|=PointToScrn(w,clip_en.x,clip_en.y,thing->z+hit_texture->height/128.*thing_scale,&scrn_corners[3]);
-
-    if(visible) {
-      st=0;
-      en=1.;
-
-      //If we clipped the line,compute the new start and end
-      st=Sqrt(Sqr(scrn_st.y-clip_st.y)+Sqr(scrn_st.x-clip_st.x))/(hit_texture->width*thing_scale/128.);
-      en=Sqrt(Sqr(scrn_st.y-clip_en.y)+Sqr(scrn_st.x-clip_en.x))/(hit_texture->width*thing_scale/128.);
-
-      stz=Sqrt(Sqr(w->x-clip_st.x)+Sqr(w->y-clip_st.y))*128;
-      enz=Sqrt(Sqr(w->x-clip_en.x)+Sqr(w->y-clip_en.y))*128;
-
-      PointsToMat(scrn_corners,matrix);      
-      MemCpy(matrix2,matrix,8*9);
-      Mat3x3Inv(matrix);
-      mnx=GR_WIDTH;
-      mxx=0;
-      mny=GR_HEIGHT;
-      mxy=0;
-      for(idx=0;idx!=4;idx++) {
-        mnx=MinI64(mnx,scrn_corners[idx].x);
-        mxx=MaxI64(mxx,scrn_corners[idx].x);
-        mny=MinI64(mny,scrn_corners[idx].y);
-        mxy=MaxI64(mxy,scrn_corners[idx].y);
+    ix=thing->x-w->things_around_camera_origin_x;
+    iy=thing->y-w->things_around_camera_origin_y;
+    if(0<=ix<2*VIEW_DIST)
+      if(0<=iy<2*VIEW_DIST) {
+        thing->draw_face=hit_texture;
+        normal=Arg(w->x-thing->x,w->y-thing->y)-pi/2;
+        scrn_st.x=thing->x-hit_texture->width/128./2.*Cos(normal)*thing_scale;
+        scrn_st.y=thing->y-hit_texture->width/128./2.*Sin(normal)*thing_scale;
+        scrn_en.x=scrn_st.x+hit_texture->width/128.*Cos(normal)*thing_scale;
+        scrn_en.y=scrn_st.y+hit_texture->width/128.*Sin(normal)*thing_scale;
+        scrn_st.z=thing->z;
+        scrn_en.z=thing->z;
+        D3Copy(&thing->scrn_st,&scrn_st);
+        D3Copy(&thing->scrn_en,&scrn_en);
+	radius=hit_texture->width/128.*thing_scale;
+	for(ox=-Ceil(radius);ox<=Ceil(radius);ox++)
+  	  for(oy=-Ceil(radius);oy<=Ceil(radius);oy++)
+	    if(0<=ix+ox<2*VIEW_DIST)
+	      if(0<=ix+oy<2*VIEW_DIST)
+		I64SetAdd(w->things_around_camera[ix+ox][iy+oy],thing);
       }
-      mnx=ClampI64(mnx,0,GR_WIDTH)&~3;
-      mxx=ClampI64(mxx,0,GR_WIDTH)&~3;
-      mny=ClampI64(mny,0,GR_HEIGHT)&~3;
-      mxy=ClampI64(mxy,0,GR_HEIGHT)&~3;
-      for(ix=mnx;ix<mxx;ix+=4) {
-        dst_ptr=&to_dc->body[ix+mny*to_dc->width_internal];
-        dst_db_ptr=&to_dc->depth_buf[ix+mny*to_dc->width_internal];
-        for(iy=mny;iy<mxy;iy+=4) {
-	  xx=matrix[0]*ix+matrix[1]*iy+matrix[2];
-	  yy=matrix[3+0]*ix+matrix[3+1]*iy+matrix[3+2];
-	  zz=matrix[6+0]*ix+matrix[6+1]*iy+matrix[6+2];
-	  xx/=zz;
-	  yy/=zz;
-	  if(0.<=xx<1.)
-	    if(0.<=yy<1.) {
-//Account for "clipped" start/end
-	      if(thing->draw_flip) {
-	        xx=Lerp(xx,1-st,1-en);
-	        dist=Lerp(xx,enz,stz);
-	      } else {
-	        xx=Lerp(xx,st,en);
-	        dist=Lerp(xx,stz,enz);
-	      }
-	      to_dc->color=GrPeek(hit_texture,xx*(hit_texture->width-1),(hit_texture->height-1)*yy);
-	      if(TRANSPARENT>to_dc->color>=0) {
-	        for(idx=0;idx!=4;idx++) {
-		  if(dst_db_ptr->i32[0]>dist) {
-		    *dst_ptr=gr.to_8_colors[to_dc->color];
-		    *dst_db_ptr=dist|dist<<32;
-		    dst_db_ptr[1]=dist|dist<<32;
-		  }
-		  dst_ptr(U8*)+=to_dc->width_internal;
-		  dst_db_ptr(I32*)+=to_dc->width_internal;
-	        }
-
-	        goto pass;
-	      }
-	    }
-	  dst_ptr(U8*)+=4*to_dc->width_internal;
-	  dst_db_ptr(I32*)+=4*to_dc->width_internal;
-pass:;
-        }
-      }
-    }
 skip:;
   }
-
-  //Stains
-  for(ox=0;ox!=2*VIEW_DIST;ox++)
-    for(oy=0;oy!=2*VIEW_DIST;oy++) {
-      if(!w->stains_around_camera[ox][oy])
-        w->stains_around_camera[ox][oy]=I64SetNew;
-      else
-        w->stains_around_camera[ox][oy]->cnt=0;
-    }
+//Stains
 
   stains=wm->wall_stains->items->body;
   cnt=wm->wall_stains->items->cnt;
@@ -2166,8 +2102,9 @@ I64 GetColorForRay(C3DWorldManager *man,CD3 *origin,CD3 *ray,F64 dist,F64 *hit_a
   Bool hit=FALSE;
   F64 hit_dist=1e100;
   CWallStain **wall_stains,*wall_stain;
+  C3DThing **tbody,*thing;
   CDoor **doors,*door;
-  I64 wall_stain_cnt,door_cnt;
+  I64 wall_stain_cnt,door_cnt,thing_cnt;
   I64 hit_color=-1;
   I64 tx=x,ty=y,idx,tz;
   I64 cnt=dist;  
@@ -2255,7 +2192,9 @@ I64 GetColorForRay(C3DWorldManager *man,CD3 *origin,CD3 *ray,F64 dist,F64 *hit_a
 
 	  idx=(ty*w->world_width+tx)*128+tz;
 	  if(w->world_blocks[idx]) {
-	    if(w->world_blocks[idx]==last_block) goto pass;
+	    if(w->world_blocks[idx]==last_block) {
+	      goto try_things;
+	    }
 tile:;
 	    idx=(ty*w->world_width+tx)*128+tz;
 	    idx=w->world_blocks[idx];
@@ -2293,22 +2232,22 @@ try_stains:;
 	        }
 	    }
 try_damage:;
-            idx=(ty*w->world_width+tx)*128+tz;
+	    idx=(ty*w->world_width+tx)*128+tz;
 	    if(w->damage_texture&&(template_health=w->healths[w->world_blocks[idx]])) {
 	      I64 damage_cnt=AnimDCCnt(w->damage_texture);
 	      rel_percent=1.-w->block_health[idx]/ToF64(template_health);
 	      rel_percent=rel_percent*(1+damage_cnt);
 	      if(ToI64(rel_percent-1)>=0) {
-		  if(0<=GrPeek(w->damage_texture+ToI64(rel_percent-1),
+	        if(0<=GrPeek(w->damage_texture+ToI64(rel_percent-1),
+		      (texture_cords.x*127),
+		      (texture_cords.y*127)
+		      )<TRANSPARENT) {
+		  color=GrPeek(w->damage_texture+ToI64(rel_percent-1),
 		        (texture_cords.x*127),
 		        (texture_cords.y*127)
-		        )<TRANSPARENT) {
-		    color=GrPeek(w->damage_texture+ToI64(rel_percent-1),
-		          (texture_cords.x*127),
-		          (texture_cords.y*127)
-		        );
-		    goto valid_color;
-		  }
+		  );
+		  goto valid_color;
+	        }
 	      }
 	    }
 try_block:;
@@ -2321,15 +2260,15 @@ liquid:
 	      fog_color=color&0xff;
 	      depth++;
 	      last_block=idx;
-	      //Snells law
+//Snells law
 	      F64 snell_a,snell_a2,normal;
 	      F64 t=Frog_tS/30.;
 	      F64 rand_refrac=1.1+.1*(Abs(Sin((t/4.)*200))-Abs(Cos(t*125)))+.1*(Rand-.5)*2;
 	      if(sidex||sidey) {
-		normal=Arg(-sidex,-sidey);
-		snell_a=normal-angle;
+	        normal=Arg(-sidex,-sidey);
+	        snell_a=normal-angle;
 	        snell_a=ASin(Sin(snell_a)/rand_refrac);
-		snell_a=normal-snell_a;
+	        snell_a=normal-snell_a;
 	        new_ray.x=-Sin(snell_a);
 	        new_ray.y=ray->y;
 	        new_ray.z=Cos(snell_a);
@@ -2354,7 +2293,7 @@ valid_color:
 	    if(hit_at) *hit_at=hit_dist;
 	    lighting=LightAtXYZ(tx+sidex,ty+sidey,tz+sidez);
 	    hit=TRUE;
-goto skip_sexy;
+	    goto skip_sexy;
 	    F64 ao_nodes[4];
 	    F64 adj_lights[4];
 	    F64 ao;
@@ -2381,33 +2320,83 @@ goto skip_sexy;
 	    lighting-=3-ao;
 	    lighting=(Lerp(u0,adj_lights[0],adj_lights[2])+Lerp(v0,adj_lights[1],adj_lights[3])+lighting)/3.;
 //Do dynamic lights
-//TODO cache lights around camera
-skip_sexy:;
+	    //TODO cache lights around camera
+	    skip_sexy:;
 	    lights=man->lights->items;
 	    light_cnt=lights(CI64Set*)->cnt;
 	    lights=lights(CI64Set*)->body;
 	    while(--light_cnt>=0) {
 	      light=lights[light_cnt];
 	      if(light->display_level>=
-		(intensity=Sqrt(Sqr(light->x-hit_cords->x)+Sqr(light->y-hit_cords->y)+Sqr(light->z-hit_cords->z)))
-		) {
-		Bool hit_light=FALSE;
-		Line(
-		  &hit_light,
-		  o128.x,o128.y,o128.z,
-		  hit_cords->x,hit_cords->y,hit_cords->z,
-		  &CheckIfHitSolid
-		);
-		if(!hit_light)
+		    (intensity=Sqrt(Sqr(light->x-hit_cords->x)+Sqr(light->y-hit_cords->y)+Sqr(light->z-hit_cords->z)))
+	      ) {
+	        Bool hit_light=FALSE;
+	        Line(
+		      &hit_light,
+		      o128.x,o128.y,o128.z,
+		      hit_cords->x,hit_cords->y,hit_cords->z,
+		      &CheckIfHitSolid
+		      );
+	        if(!hit_light)
 		  lighting+=light->display_level-intensity;
 	      }
 	    }
 	    hit_color=Fog(color,hit_dist+1+depth*FOG_DIST*4+MaxI64((15-lighting)*FOG_DIST,0),fog_color);
+	    goto pass;
 	  }
-	  goto pass;
+	  goto try_things;
         }
     break;
-pass:;
+try_things:
+//Check things,we found nothing interesting
+    relx=tx-w->things_around_camera_origin_x;
+    rely=ty-w->things_around_camera_origin_y;
+    if(0<=relx<2*VIEW_DIST)
+      if(0<=rely<2*VIEW_DIST) {
+        do_things=w->things_around_camera[relx][rely];
+        thing_cnt=do_things->cnt;
+        tbody=do_things->body;
+        hit_dist=I32_MAX;
+        lighting=LightAtXYZ(tx+sidex,ty+sidey,tz+sidez);
+        while(--thing_cnt>=0) {
+	  thing=tbody[thing_cnt];
+	  CD3 _2d_hit,sprite_hit_xyz,look_towards;
+	  F64 hx,mul,hy,thing_dist;
+	  D3Mul(&look_towards,I16_MAX,&rp);
+	  D3AddEqu(&look_towards,&o128);
+	  if(SegmentSegmentIntersect(&_2d_hit,&thing->scrn_st,&thing->scrn_en,&o128,&look_towards,&hx,NULL))
+	    if(0.<=hx<=1.) {
+	      if(thing->draw_flip)
+	        hx=1.-hx;
+	      if(_2d_hit.x-o128.x>_2d_hit.y-o128.y) {
+	        mul=(_2d_hit.x-o128.x)/rp.x;
+	      } else
+	        mul=(_2d_hit.y-o128.y)/rp.y;
+	      D3Mul(&sprite_hit_xyz,mul,&rp);
+	      D3AddEqu(&sprite_hit_xyz,&o128);
+	      if(ToI64(sprite_hit_xyz.x)!=tx||
+		    ToI64(sprite_hit_xyz.y)!=ty||
+		    ToI64(sprite_hit_xyz.z)!=tz)
+	        goto skip_thing;
+	      if(hit_texture=thing->draw_face) {
+	        hy=hit_texture->height/128.*.6;
+	        if(0<=sprite_hit_xyz.z-thing->z<hy) {
+		  hx*=hit_texture->width;
+		  hy=(1.-(sprite_hit_xyz.z-thing->z)/hy)*hit_texture->height;
+		  if(0<=(color=GrPeek(hit_texture,hx,hy))<=COLORS_NUM) {
+		    hit_dist=D3Dist(&sprite_hit_xyz,&o128);
+		    if(hit_at) *hit_at=hit_dist;
+		    hit_color=Fog(color,hit_dist+1+depth*FOG_DIST*4+MaxI64((15-lighting)*FOG_DIST,0),fog_color);
+		    hit=TRUE;
+		  }
+	        }
+	      } 
+skip_thing:;
+	    }
+        }
+      }
+
+      pass:;
     sidex=sidey=sidez=0;
     if(tMaxX<tMaxY) {
       if(tMaxX<tMaxZ) {
@@ -2440,27 +2429,27 @@ fin:
   return hit_color;
 }
 
-I64 mp_done=0;
+  I64 mp_done=0;
 
-//https://blog.scottlogic.com/2020/03/10/raytracer-how-to.html
-//ca==Cos(-w->angle)
-//sa==Sin(-w->angle)
-//ca2==Cos(-w->angle2)
-//sa2==Sin(-w->angle2)
-U0 GenerateRay(C3DWorld *world,CD2 *ray_look,F64 i,F64 j,F64 width,F64 height,F64 ca,F64 sa,F64 ca2,F64 sa2) {
-  CD3 m,tmpy,tmpx;
-  D3Equ(&m,(i/width-.5)*-2,(j/height-.5)*2,1);
-  D3Equ(&tmpy,
-        m.x,
-        m.y*ca2-m.z*sa2,
-        m.y*sa2+m.z*ca2
-        );
-  D3Equ(ray_look,
-        tmpy.x*ca+tmpy.z*sa,
-        tmpy.y,
-        -tmpy.x*sa+tmpy.z*ca,
-        );
-  D3Norm(ray_look);
+  //https://blog.scottlogic.com/2020/03/10/raytracer-how-to.html
+  //ca==Cos(-w->angle)
+  //sa==Sin(-w->angle)
+  //ca2==Cos(-w->angle2)
+  //sa2==Sin(-w->angle2)
+  U0 GenerateRay(C3DWorld *world,CD2 *ray_look,F64 i,F64 j,F64 width,F64 height,F64 ca,F64 sa,F64 ca2,F64 sa2) {
+    CD3 m,tmpy,tmpx;
+    D3Equ(&m,(i/width-.5)*-2,(j/height-.5)*2,1);
+    D3Equ(&tmpy,
+                m.x,
+                m.y*ca2-m.z*sa2,
+                m.y*sa2+m.z*ca2
+                );
+    D3Equ(ray_look,
+                tmpy.x*ca+tmpy.z*sa,
+                tmpy.y,
+                -tmpy.x*sa+tmpy.z*ca,
+                );
+    D3Norm(ray_look);
 }
 
 

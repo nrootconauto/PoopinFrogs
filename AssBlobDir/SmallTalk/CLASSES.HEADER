@@ -287,7 +287,7 @@ class C3DThing:CFrogThing {
   I64 activate_tag;
 //Private,See GetColorForRay/PrepareThingsForDraw
   CDC *draw_face no_serialize 1 ; //Private
-  CD2 scrn_st,scrn_en; //Private
+  CD3 scrn_st,scrn_en; //Private
   CD3 draw_normal; //Private
   Bool no_fall_off_edge;
   Bool floating;
@@ -295,7 +295,7 @@ class C3DThing:CFrogThing {
   Bool draw_flip;
   Bool no_update;
   Bool invisible;
-  Bool was_in_water;
+  Bool was_in_water;
   Bool pad;
   CFrogArray *path_finder_data;
 };
