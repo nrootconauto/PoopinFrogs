@@ -3103,7 +3103,62 @@ stain:
   return FROG_SMALL_NIL;
 }
 AddMethod("C3DWorldManager","updateParticles",&UpdateParticles);
+U0 RenderMiniMap(CDC *dc,F64 x0,F64 y0,F64 angle,F64 zoom=16) {
+  F64 sin=Sin(angle);
+  F64 cos=Cos(angle);
+  zoom=Max(zoom,.001);
+  I64 dia=MaxI64(dc->width,dc->height);
+  I64 lowx=Floor(x0-dia/zoom/2);
+  I64 lowy=Floor(y0-dia/zoom/2);
+  I64 hix=Ceil(x0+dia/zoom/2);
+  I64 hiy=Ceil(y0+dia/zoom/2);
+  I64 w0=hix-lowx+1,h0=hiy-lowy+1,x,y,z,b;
+  F64 x2,y2,tmp;
+  CDC **textures=CAlloc(w0*h0*8),*tp;
+  lowx=ClampI64(lowx,0,w->world_width);
+  lowy=ClampI64(lowy,0,w->world_height);
+  hix=ClampI64(hix,0,w->world_width);
+  hiy=ClampI64(hiy,0,w->world_height);
+  for(x=lowx;x<hix;x++)
+    for(y=lowy;y<hiy;y++) {
+      z=127;
+      while(z>0&&!(b=BlockAtXYZ(x,y,z))) {
+        --z;
+      }
+      if(b>0) {
+        tp=w->floor_textures[b];
+        if(tp) {
+	  textures[x-lowx+(y-lowy)*w0]=tp+ToI64(tS/AnimDCDelay(tp))%AnimDCCnt(tp);
+	}
+      }
+    }
+  for(x=0;x!=dc->width;x++)
+    for(y=0;y!=dc->height;y++) {
+//Origin x zoom
+      x2=(x-dc->width/2)/zoom;
+      y2=(y-dc->height/2)/zoom;
+      if(x2*x2+y2*y2>=Sqr(dia/2/zoom)) goto skip;
+//Rotate math
+      tmp=x2*cos-y2*sin;
+      y2=x2*sin+y2*cos;
+      x2=tmp;
+
+      x2+=x0;
+      y2+=y0;
+
+      if(lowx<=x2<hix)
+        if(lowy<=y2<hiy) {
+	  if(tp=textures[ToI64(x2)-lowx+(ToI64(y2)-lowy)*w0]) {
+	    dc->color=GrPeek(tp,ToI64(x2*128)&127,ToI64(y2*128)&127);
+	    GrPlot(dc,x,y);
+	  }
+        }
+skip:;
+    }
+  Free(textures);
+}
 U0 Draw3DWorld(CTask *,CDC *dc) {
+  CDC *minimap;
   C3DWorldManager *man=FrogSymbol("world")->value;
   static CFrogClass *ws_class=FrogClassNew(UniverseAddClass("CWallStain"));
   man->world_handle=w;
@@ -3117,7 +3172,7 @@ U0 Draw3DWorld(CTask *,CDC *dc) {
   if(player==FROG_SMALL_NIL) {
     return;
   }
-  CFrogImg *hand_gr,*minimap;
+  CFrogImg *hand_gr;
   C3DLine *line;
   I32 *odepth_buf;
   I64 tx,ty,c,f,l;
@@ -3198,6 +3253,11 @@ U0 Draw3DWorld(CTask *,CDC *dc) {
       GrBlot(dc,hand->x+hand->xoff-hand_gr->dc->width/2,hand->y+hand->yoff-hand_gr->dc->height/2,hand_gr->dc+f);
     }
   }
+  minimap=DCNew(200,200);
+  DCFill(minimap,TRANSPARENT);
+  RenderMiniMap(minimap,player->x,player->y,player->angle+pi/2,10.);
+  GrBlot(dc,0,0,minimap);
+  DCDel(minimap);
 fin:
   dc->depth_buf=odepth_buf;
   w->to_dc=NULL;
@@ -3773,8 +3833,6 @@ Bool IsSolidTile(I64 t) {
 I8 BlockLightLevel(I64 t) {
   return w->light_levels[t&0xff];
 }
-
-
 // 
 // Generate with builtins
 //
