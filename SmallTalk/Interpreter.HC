@@ -24,41 +24,56 @@
 #define BC_JUMP_IF_NOT 21
 #define BC_JUMP_IF 22
 #define BC_JUMP 23
-CFrogThing *InterpFrameGet(CFrogThing *self,CInterpFrame *f,I64 un) {
-  I64 key=un<<16|FROG_SMALL_NUM;
-enter:;
-  I64 have=f->items->cnt,i=0;
-  I64 *body=f->items->body;
-  for(i=0;i<have;i+=2) {
-    if(body[i]==key)
-	return body[i+1];
-  }
-  if(f=f->next_frame)
-    if(f!=FROG_SMALL_NIL)
-      goto enter;
-  if(have=GetClassMemberVal(self,UniverseNumberToName(un))) {
-    return have;
-  }
-  return FROG_SMALL_NIL;
+
+U0 AddToScope(U8 *name,I64 idx,I64 scope) {
+  U8 buf[STR_LEN];
+  StrPrint(buf,"S.%s",name);
+  HashGenericAdd(buf,HTT_FRAME_PTR,idx,scope,0);
+}
+U0 RemFromScope(U8 *name) {
+  U8 buf[STR_LEN];
+  StrPrint(buf,"S.%s",name);
+  FramePtrDel(buf);
 }
 
-U0 InterpFrameSet(CFrogThing *self,CInterpFrame *f,I64 un,CFrogThing *t) {
-  I64 key=un<<16|FROG_SMALL_NUM;
-enter:;
-  I64 have=f->items->cnt,i=0;
-  I64 *body=f->items->body;
-  U8 *str;
-  for(i=0;i<have;i+=2) {
-    if(body[i]==key) {
-	body[i+1]=t;
-	return;
-     }
+
+
+I64 VarToFrameIdentifier(U8 *f) {
+  U8 buf[STR_LEN];
+  StrPrint(buf,"S.%s",f);
+  CHashGeneric *g=HashFind(buf,Fs->hash_table,HTT_FRAME_PTR);
+  if(!g) {
+    return UniverseAddClass(f)|U16_MAX<<16;
   }
-  if(f=f->next_frame)
-    if(f!=FROG_SMALL_NIL)
-      goto enter;
-  str=UniverseNumberToName(un);
-  SetClassMemberVal(self,str,t);
+  I64 cur_depth=FramePtr("ScopeDepth");
+  if(cur_depth<g->user_data1) {
+    throw('Fuc');
+  }
+  return g->user_data0|(cur_depth-g->user_data1)<<16;
+}
+CFrogThing *InterpFrameGet(CFrogThing *self,CInterpFrame *f,I64 want) {
+  I64 idx=want&U16_MAX;
+  I64 above=want>>16;
+  if(above&U16_MAX==U16_MAX) {
+    idx=GetClassMemberVal(self,UniverseNumberToName(idx));
+    if(!idx) idx=FROG_SMALL_NIL;
+    return idx;
+  }
+  while(--above>=0) 
+    f=f->next_frame;
+  return f->items->body[idx*2+1];
+}
+
+U0 InterpFrameSet(CFrogThing *self,CInterpFrame *f,I64 want,CFrogThing *t) {
+  I64 idx=want&U16_MAX;
+  I64 above=want>>16;
+  if(above&U16_MAX==U16_MAX) {
+    SetClassMemberVal(self,UniverseNumberToName(idx),t);
+    return ;
+  }
+  while(--above>=0) 
+    f=f->next_frame;
+  f->items->body[idx*2+1]=t;
 }
 
 CFrogThing *I64SetPop(CI64Set *s) {
@@ -259,13 +274,6 @@ dft:
         break;
       case BC_NVAR_NIL:
 //Check for existing var of same name
-	body=fr->items->body;
-	for(i=fr->items->cnt-2;i>=0;i-=2){
-	  if(body[i]==arg1<<16|FROG_SMALL_NUM) {
-	    body[i+1]=FrogNumNew(0.);
-	    goto next;
-	  }
-        }
         I64SetAdd(fr->items,arg1<<16|FROG_SMALL_NUM);
         I64SetAdd(fr->items,FrogNumNew(0.));
         break;
@@ -365,6 +373,8 @@ final:
 extern U0 CompileAST(CI64Set *to,CAST *ast,Bool cascade=FALSE);
 U0 UnrollBlock(CI64Set *to,CAST *ast,I64 arity=0) {
   if(ast->type!=AST_BLOCK) {
+defacto:
+    CompileAST(to,ast);
     switch(arity) {
       case 0:
         I64SetAdd(to,BC_RUN_UNIVERSE);
@@ -376,20 +386,12 @@ U0 UnrollBlock(CI64Set *to,CAST *ast,I64 arity=0) {
     }
     return;
   }
+  if(QueCnt(&ast->args))
+    goto defacto;
   I64 depth=FramePtr("UnrollDepth")+1,idx;
   U8 buf[STR_LEN];
   FramePtrSet("UnrollDepth",depth);
   CAST *arg,*head;
-  head=&ast->args;
-  for(arg=head->last;arg!=head;arg=arg->last) {
-    idx=NameToUniverseNumber(arg->name)|depth<<32;
-    I64SetAdd(to,BC_NVAR_NIL); //BC_NVAR_NIL will automaticalyl reuse vars
-    I64SetAdd(to,idx);
-    StrPrint(buf,"VAR.%s",arg->name);
-    FramePtrAdd(buf,idx);
-    I64SetAdd(to,BC_ASSIGN_VAR);
-    I64SetAdd(to,idx);
-  } 
   head=&ast->body;
   for(arg=head->next;arg!=head;arg=arg->next) {
     CompileAST(to,arg);
@@ -406,18 +408,13 @@ U0 UnrollBlock(CI64Set *to,CAST *ast,I64 arity=0) {
       }
     }
   }
-  head=&ast->args;
-  for(arg=head->next;arg!=head;arg=arg->next) {
-    StrPrint(buf,"VAR.%s",arg->name);
-    FramePtrDel(buf);
-  }
   FramePtrSet("UnrollDepth",depth-1);
 }
 U0 CompileAST(CI64Set *to,CAST *ast,Bool cascade=FALSE) {
   I64 argc,u;
   I64 bc,arg1,arg2,ptr,ptr2;
   Bool first;
-  I64 old_sz;
+  I64 old_sz,var_idx;
   U8 buf[STR_LEN];
   CAST *arg;
   CI64Set *tmp;
@@ -458,11 +455,14 @@ U0 CompileAST(CI64Set *to,CAST *ast,Bool cascade=FALSE) {
       I64SetAdd(to,FrogNumNew(ast->num));
       return;
     case AST_BLOCK:
-      arg=ast->args.last;
       tmp=I64SetNew;
+      FramePtrSet("ScopeDepth",1+FramePtr("ScopeDepth"));
+      var_idx=0;
+      arg=ast->args.last;
       while(arg!=&ast->args) {
         I64SetAdd(tmp,BC_NVAR);
-	I64SetAdd(tmp,NameToUniverseNumber(arg->name));
+	I64SetAdd(tmp,UniverseAddClass(arg->name));
+	AddToScope(arg->name,var_idx++,FramePtr("ScopeDepth"));
         arg=arg->last;
       }
       arg=ast->body.next;
@@ -476,9 +476,14 @@ U0 CompileAST(CI64Set *to,CAST *ast,Bool cascade=FALSE) {
 	}
         arg=arg->next;
       }
-
+      arg=ast->args.last;
+      while(arg!=&ast->args) {
+	RemFromScope(arg->name);
+	arg=arg->last;
+      }
       bc=BC_BLOCK;
       arg1=tmp;
+      FramePtrSet("ScopeDepth",FramePtr("ScopeDepth")-1);
       I64SetAdd(to,bc);
       I64SetAdd(to,arg1);
       break;
@@ -590,7 +595,7 @@ U0 CompileAST(CI64Set *to,CAST *ast,Bool cascade=FALSE) {
 	break;
       }
       argc=QueCnt(&ast->args);
-      u=NameToUniverseNumber(ast->name);
+      u=UniverseAddClass(ast->name);
       bc=BC_RUN_UNIVERSE;
       arg1.i32[1]=argc-1;
       arg1.u32[0]=u;
@@ -604,22 +609,18 @@ U0 CompileAST(CI64Set *to,CAST *ast,Bool cascade=FALSE) {
       break;
     case AST_SYMBOL:
       bc=BC_SYMBOL;
-      arg1=NameToUniverseNumber(ast->name);
+      arg1=UniverseAddClass(ast->name);
       I64SetAdd(to,bc);
       I64SetAdd(to,arg1);
       break;
     case AST_VAR:
-//See UnrollBlock
-      StrPrint(buf,"VAR.%s",ast->name);
-      if(!FramePtr(buf))
-        arg1=NameToUniverseNumber(ast->name);
-      else
-        arg1=FramePtr(buf);
       if(HashFind(ast->name,frog_mem_task->hash_table,HTT_CLASS)) {
 	bc=BC_VALUE;
-	arg1=FrogClassNew(arg1);
-      } else
+	arg1=FrogClassNew(UniverseAddClass(ast->name));
+      } else {
         bc=BC_VAR;
+        arg1=VarToFrameIdentifier(ast->name);
+      }
       I64SetAdd(to,bc);
       I64SetAdd(to,arg1);
       break;
@@ -627,14 +628,14 @@ U0 CompileAST(CI64Set *to,CAST *ast,Bool cascade=FALSE) {
       arg=ast->args.last;
       if(arg->type==AST_VAR) {
         I64SetAdd(to,BC_VAR_MEMBER);
-        I64SetAdd(to,NameToUniverseNumber(ast->name)<<32|NameToUniverseNumber(arg->name));
+        I64SetAdd(to,UniverseAddClass(ast->name)<<32|VarToFrameIdentifier(arg->name));
       } else if(arg->type==AST_SYMBOL) {
         I64SetAdd(to,BC_SYMBOL_MEMBER);
-        I64SetAdd(to,NameToUniverseNumber(ast->name)<<32|NameToUniverseNumber(arg->name));
+        I64SetAdd(to,UniverseAddClass(ast->name)<<32|UniverseAddClass(arg->name));
       } else {
         CompileAST(to,arg);
         I64SetAdd(to,BC_MEMBER);
-        I64SetAdd(to,NameToUniverseNumber(ast->name));
+        I64SetAdd(to,UniverseAddClass(ast->name));
       }
       break;
     case AST_SELF:
@@ -647,17 +648,16 @@ U0 CompileAST(CI64Set *to,CAST *ast,Bool cascade=FALSE) {
       arg=ast->args.next;
       if(arg->type==AST_VAR) {
         bc=BC_ASSIGN_VAR;
-        arg1=NameToUniverseNumber(arg->name);
-
+        arg1=VarToFrameIdentifier(arg->name);
         I64SetAdd(to,bc);
         I64SetAdd(to,arg1);
       } else if(arg->type==AST_SYMBOL) {
         bc=BC_ASSIGN_SYMBOL;
-        arg1=NameToUniverseNumber(arg->name);
+        arg1=UniverseAddClass(arg->name);
         I64SetAdd(to,bc);
         I64SetAdd(to,arg1);
       } else if(arg->type==AST_MEMBER) {
-        arg1=NameToUniverseNumber(arg->name);
+        arg1=UniverseAddClass(arg->name);
         arg=arg->args.next;
 	CompileAST(to,arg);
         bc=BC_ASSIGN_MEMBER;
@@ -674,6 +674,7 @@ throw('Unimp');
 
 
 U0 STRepl(U8 *dft="",Bool interactive=TRUE) {
+  FramePtrAdd("ScopeDepth",0);
   Bool br;
   U8 *str;
   CLexer *lex; //TODO feed into lexer
@@ -711,33 +712,40 @@ U0 STRepl(U8 *dft="",Bool interactive=TRUE) {
 skip:;
   }
   FramePtrDel("Escapes");
+  FramePtrDel("ScopeDepth",0);
 }
 
 
 U0 CompileToHolyC(U8 *src,U8 *class_name,U8 *src_path=NULL,Bool class_method=FALSE,Bool register_method=FALSE) {
   FramePtrAdd("MethodClass",class_name);
   FramePtrAdd("UnrollDepth",0);
+  FramePtrAdd("ScopeDepth",0);
   try {
     CDoc *dumb=DocNew;
-    I64 idx;
+    I64 idx,vp,var_idx;
     CI64Set *to=I64SetNew;
     CAST *var,*head;
     CLexer *lex=LexerNew(src,src_path);
     Lex(lex);
-    CMethod *m=ParseMethod(lex,HashFind(class_name,frog_mem_task->hash_table,HTT_CLASS));
+    CMethod *m=NULL;
+    m=ParseMethod(lex,HashFind(class_name,frog_mem_task->hash_table,HTT_CLASS));
     LexerDel(lex);
+    var_idx=0;
     var=m->args.last;
     while(var!=&m->args) {
-      idx=NameToUniverseNumber(var->name);
+      idx=UniverseAddClass(var->name);
       I64SetAdd(to,BC_NVAR);
-      I64SetAdd(to,idx);
+      I64SetAdd(to,idx);   
+      AddToScope(var->name,var_idx++,FramePtr("ScopeDepth"));
       var=var->last;
+
     }
     var=m->temps.last;
     while(var!=&m->temps) {
-      idx=NameToUniverseNumber(var->name);
+      idx=UniverseAddClass(var->name);
       I64SetAdd(to,BC_NVAR_NIL);
       I64SetAdd(to,idx);
+      AddToScope(var->name,var_idx++,FramePtr("ScopeDepth"));
       var=var->last;
     }
     var=m->body.next;
@@ -757,13 +765,26 @@ U0 CompileToHolyC(U8 *src,U8 *class_name,U8 *src_path=NULL,Bool class_method=FAL
     ExeDoc(dumb);
     DocDel(dumb);
 fin:
-    FramePtrDel("MethodClass");
-    FramePtrDel("UnrollDepth");
-    MethodDel(m);
   } catch {
+    PutExcept;
+    Fs->catch_except=1;
+  }
+  if(m) {
+    var=m->temps.last;
+    while(var!=&m->temps) {
+      RemFromScope(var->name);
+      var=var->last;
+    }
+    var=m->args.last;
+    while(var!=&m->args) {
+      RemFromScope(var->name);
+      var=var->last;
+    }
+    MethodDel(m);
+  }
     FramePtrDel("UnrollDepth");
     FramePtrDel("MethodClass");
-  }
+    FramePtrDel("ScopeDepth");
 }
 
 F64 t=tS;

@@ -54,10 +54,24 @@ extern CAST *ParseAst(CLexer *l);
 extern CAST *ParseCascade(CLexer *l);
 extern Bool IsSmalltalkMember(CHashClass *cls);
 U0 AddToScope(U8 *name,U8 *typename) {
-  FramePtrAdd(name,typename);
+  U8 buf[STR_LEN];
+  StrPrint(buf,"V.%s",name);
+  FramePtrAdd(buf,typename);
 }
 U0 RemFromScope(U8 *name) {
-  FramePtrDel(name);
+  U8 buf[STR_LEN];
+  StrPrint(buf,"V.%s",name);
+  FramePtrDel(buf);
+}
+Bool IsVar(U8 *name) {
+  U8 buf[STR_LEN];
+  StrPrint(buf,"V.%s",name);
+  return ToBool(HashFind(buf,Fs->hash_table,HTT_FRAME_PTR));
+}
+U8 *VarClass(U8 *name) {
+  U8 buf[STR_LEN];
+  StrPrint(buf,"V.%s",name);
+  return FramePtr(buf);
 }
 CAST *ParseVarWithType(CLexer *l,Bool warn=FALSE) {
   CAST *ret=NULL;
@@ -87,6 +101,7 @@ CAST *ParseVarWithType(CLexer *l,Bool warn=FALSE) {
 CAST *ParseLiteral(CLexer *l) {
   CAST *ret=NULL,*item;
   CHashClass *cls;
+  U8 buf[STR_LEN];
   if(l->tok=='(') {
     Lex(l);
     ret=ParseCascade(l);
@@ -180,10 +195,12 @@ CAST *ParseLiteral(CLexer *l) {
     }*/
     item->type=AST_VAR;
     StrCpy(item->name,l->str);
-    if(!FramePtr(item->name)&&!HashFind(item->name,Fs->hash_table,HTT_CLASS)) {
+    if(!IsVar(item->name)&&!HashFind(item->name,Fs->hash_table,HTT_CLASS)) {
       LexExcept(l,"Use of undefined var '%s'\n",item->name);
-    } else if(FramePtr(item->name))
-      StrCpy(item->var_class_name,FramePtr(item->name));
+    } else if(IsVar(item->name)) {
+      if(VarClass(item->name))
+        StrCpy(item->var_class_name,VarClass(item->name));
+    }
 np:
     QueInit(&item->args);
     QueInit(item);
@@ -436,8 +453,8 @@ CAST *ParseAst(CLexer *l) {
       var->type=AST_SYMBOL;
     else {
       var->type=AST_VAR;
-      if(FramePtr(var->name)) {
-	StrCpy(var->var_class_name,FramePtr(var->name));
+      if(IsVar(var->name)) {
+	StrCpy(var->var_class_name,VarClass(var->name));
       } else if(StrCmp(var->name,"self")&&!HashFind(var->name,Fs->hash_table,HTT_CLASS)) {
         LexExcept(l,"I need a valid ass variable(got %s).",var->name);
       }
