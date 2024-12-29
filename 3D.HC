@@ -147,7 +147,7 @@ U64 Fog(I64 color,U64 dist,U8 fcolor=BLACK) {
   if(dist<FOG_DIVISIONS) {
     return fog_table[dist][color][fcolor];
   }
-  return fcolor;
+  return fog_table[0xf][color][fcolor&0b111]; //In TempleOS,0b1000 are "bright" colors,get rid of upper 0b1000 bit
 }
 extern I64 *GetTilesInPath(U8 *w,F64 angle,F64 dist);
 #define ENGINE_3D 1
@@ -2424,7 +2424,8 @@ fin:
   if(depth&&!hit) {
 //Have a default far distance(in water we might have a distance)
     if(hit_at) *hit_at=I32_MAX;
-    return gr.to_8_colors[fog_color&0xff];
+    hit_color=Fog(fog_color,0,fog_color);
+    return hit_color;
   }
   return hit_color;
 }
@@ -2562,6 +2563,11 @@ U0 MPCastCol(C3DWorldManager *wm) {
           depth_ptr(I32*)+=to_dc->width_internal*w->step_width;
           goto fin;
 	}
+      }
+      if(color<0) {
+          ptr(U8*)+=to_dc->width_internal*w->step_width;
+          depth_ptr(I32*)+=to_dc->width_internal*w->step_width;
+	goto fin;
       }
       
       dist*=128;

@@ -38,6 +38,11 @@ makeTownAtX: xx=CFrogNum atY: yy=CFrogNum withWidth: ww=CFrogNum withHeight: hh=
   ground_levels=CFrogArray
   heights=CFrogArray
   last_height=CFrogNum
+
+  make_bridge=CFrogBlock
+  is_above_water=CFrogBlock
+  midpoint=CFrogNum
+  is_bridge=CFrogNum
 |
   rand _ CFrogRandom new .
 
@@ -168,41 +173,126 @@ makeTownAtX: xx=CFrogNum atY: yy=CFrogNum withWidth: ww=CFrogNum withHeight: hh=
     ].
   ] .
 
+  is_above_water _ [:x=CFrogNum :y=CFrogNum|
+    #world tileIsLiquidAtX: x + xx atY: y + yy atZ: ((ground_levels at:x) at: y) + 1
+  ].
+
   make_road _ [:x=CFrogNum :y=CFrogNum :x2=CFrogNum :y2=CFrogNum|
     'Keep tack of heights,we will "smooth" them'.
+   'hegihts are negative if bridge'.
     heights _ #().
     (x - x2)abs > (y-y2) abs ifTrue: [
       x to: x2 do:[:x=CFrogNum|
-        heights add: (((ground_levels at:x - xx) at: y - yy) max: ((ground_levels at:x - xx) at: y + 1 - yy))
+        (heights size and:(is_above_water value: x - xx value: y - yy)) ifTrue: [
+          heights add: -1 .
+        ] ifFalse: [
+          heights add: (((ground_levels at:x - xx) at: y - yy) max: ((ground_levels at:x - xx) at: y + 1 - yy))
+        ]
       ].
     ] ifFalse: [
       y to: y2 do:[:y=CFrogNum|
-        heights add: (((ground_levels at:x - xx) at: y - yy) max: ((ground_levels at:x + 1  - xx) at: y - yy))
+        (heights size and: (is_above_water value: x - xx value: y - yy)) ifTrue: [
+          heights add: -1 .
+        ] ifFalse: [
+          heights add: (((ground_levels at:x - xx) at: y - yy) max: ((ground_levels at:x + 1 - xx) at: y - yy))
+        ]
       ].
     ].
+    'Fill in bridge midpoints'.
+    '-1 is up'.
+    '-2 is down'.    
+    tmp _ 1 .
+    [tmp < heights size] whileTrue: [
+     tmp show .
+      (heights at: tmp)~= -1  ifTrue: [
+        last_height _ heights  at: tmp .
+        tmp _ tmp + 1 .
+      ] ifFalse: [
+        tmp2 _ tmp.
+        tmp _ tmp + 1 .
+        [tmp < heights size and: (heights at: tmp)= -1 ] whileTrue: [
+          tmp _ tmp + 1 .
+        ].
+        (tmp - tmp2 /2) floor  + tmp2 to: (tmp min: heights size ) do: [:down=CFrogNum|
+          heights at: down put: -2 .
+        ].
+      ].
+    ].    
+    
 'Smooth the heights'.
     last_height _heights first .
     1 to: heights size do:[:step=CFrogNum|
-      last_height > (heights at: step) ifTrue: [
-        last_height _ last_height - 1  .
-      ] .
-      last_height < (heights at: step) ifTrue: [
-        last_height _ last_height + 1 .
+       (heights at: step) > 0 ifTrue:[
+        last_height > (heights at: step) ifTrue: [
+          last_height _ last_height - 1  .
+        ] .
+        last_height < (heights at: step) ifTrue: [
+          last_height _ last_height + 1 .
+        ].
+        heights at: step put: last_height.
+      ] ifFalse: [
+        (heights at: step) = -1 ifTrue:[
+          last_height _ last_height + 1 .
+        ] ifFalse: [
+          last_height _ last_height - 1 .
+        ].
+        heights at: step put: last_height negated.
       ].
-      heights at: step put: last_height.
     ].
 
     (x - x2)abs > (y-y2) abs ifTrue: [
       x to: x2 do:[:x=CFrogNum|
+        is_bridge _ heights first < 0 .
         y to: y2 do:[:y=CFrogNum|
-          #world setTile: 14 atX: x atY: y atZ: (heights at: 0).
+          is_bridge ifTrue: [
+            #world setTile: 7 atX: x atY: y atZ: (heights at: 0) abs .
+          ] ifFalse:[
+            #world setTile: 14 atX: x atY: y atZ: (heights at: 0) abs.
+          ].
+        ].
+'Outside railing on wall'.
+        is_bridge ifTrue: [
+         -1 to: 2 do: [:zoff=CFrogNum|
+            zoff _ zoff + heights first abs.
+            #world setTile: 4 
+              atX: x 
+              atY: y - 1
+              atZ: zoff .
+
+            #world setTile: 4 
+              atX: x 
+              atY: y2
+              atZ: zoff .
+
+          ].
         ].
         heights removeAt: 0 .
       ].
     ] ifFalse: [
       y to: y2 do:[:y=CFrogNum|
+        is_bridge _ heights first < 0 .
         x to: x2 do:[:x=CFrogNum|
-          #world setTile: 14 atX: x atY: y atZ: (heights at: 0).
+          is_bridge ifTrue: [
+            #world setTile: 7 atX: x atY: y atZ: (heights at: 0) abs.
+          ] ifFalse:[
+            #world setTile: 14 atX: x atY: y atZ: (heights at: 0) abs.
+          ].
+        ].
+'Outside railing on wall'.
+        is_bridge ifTrue: [
+         -1 to: 2 do: [:zoff=CFrogNum|
+            zoff _ zoff + heights first abs .
+            #world setTile: 4 
+              atX: x - 1
+              atY: y
+              atZ: zoff .
+
+            #world setTile: 4 
+              atX: x2
+              atY: y
+              atZ: zoff .
+
+          ].
         ].
         heights removeAt: 0 .
       ].

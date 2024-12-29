@@ -1428,7 +1428,7 @@ CFrogThing *FrogIfTrueIfFalse(CFrogNum *self,I64 *argv,I64 argc) {
 AddMethod("CFrogNum","ifTrue:ifFalse:",&FrogIfTrueIfFalse);
 
 CFrogThing *FrogThingShow(CFrogStr *self,I64 *argv,I64 argc) {
-  return FROG_SMALL_NIL;
+//  return FROG_SMALL_NIL;
   I64 attempt;
   I64 idx,ch;
   static I64 err_msg=NameToUniverseNumber("error_msg");
