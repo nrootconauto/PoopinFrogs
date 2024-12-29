@@ -43,6 +43,11 @@ makeTownAtX: xx=CFrogNum atY: yy=CFrogNum withWidth: ww=CFrogNum withHeight: hh=
   is_above_water=CFrogBlock
   midpoint=CFrogNum
   is_bridge=CFrogNum
+  bridge_start_height=CFrogNum
+  bridge_end_height=CFrogNum
+  bridge_length=CFrogNum
+  step=CFrogNum
+  make_rail=CFrogNum
 |
   rand _ CFrogRandom new .
 
@@ -198,30 +203,10 @@ makeTownAtX: xx=CFrogNum atY: yy=CFrogNum withWidth: ww=CFrogNum withHeight: hh=
         ]
       ].
     ].
-    'Fill in bridge midpoints'.
-    '-1 is up'.
-    '-2 is down'.    
-    tmp _ 1 .
-    [tmp < heights size] whileTrue: [
-     tmp show .
-      (heights at: tmp)~= -1  ifTrue: [
-        last_height _ heights  at: tmp .
-        tmp _ tmp + 1 .
-      ] ifFalse: [
-        tmp2 _ tmp.
-        tmp _ tmp + 1 .
-        [tmp < heights size and: (heights at: tmp)= -1 ] whileTrue: [
-          tmp _ tmp + 1 .
-        ].
-        (tmp - tmp2 /2) floor  + tmp2 to: (tmp min: heights size ) do: [:down=CFrogNum|
-          heights at: down put: -2 .
-        ].
-      ].
-    ].    
-    
 'Smooth the heights'.
     last_height _heights first .
-    1 to: heights size do:[:step=CFrogNum|
+    step _ 1 .
+    [step < heights size] whileTrue: [
        (heights at: step) > 0 ifTrue:[
         last_height > (heights at: step) ifTrue: [
           last_height _ last_height - 1  .
@@ -230,28 +215,58 @@ makeTownAtX: xx=CFrogNum atY: yy=CFrogNum withWidth: ww=CFrogNum withHeight: hh=
           last_height _ last_height + 1 .
         ].
         heights at: step put: last_height.
+        step _ step + 1 .
       ] ifFalse: [
-        (heights at: step) = -1 ifTrue:[
-          last_height _ last_height + 1 .
-        ] ifFalse: [
-          last_height _ last_height - 1 .
+        bridge_start_height _ (heights at: step - 1) abs .
+        bridge_end_height _ bridge_start_height .
+        tmp _ step + 1 .
+        [tmp < (heights size - 1) and: (heights at:tmp)<0 ] whileTrue:
+          [ tmp _ tmp + 1 .].
+        bridge_end_height _ heights at: tmp.
+        bridge_end_height < 0 ifTrue: [
+          bridge_end_height _ bridge_start_height .
         ].
-        heights at: step put: last_height negated.
+
+        bridge_length _ tmp - step .
+
+        midpoint _ bridge_length / 2 + (bridge_end_height - bridge_start_height) .
+        midpoint < 0 ifTrue: [
+          midpoint _ 0 .
+        ].
+        midpoint > bridge_length ifTrue:[
+          midpoint _ bridge_length.
+        ].
+
+
+        0 to: midpoint ceil do:[:up=CFrogNum|
+          last_height _ last_height + 1 .
+          heights at: step + up put: last_height negated.
+        ].
+        midpoint ceil to: bridge_length do:[:down=CFrogNum|
+          last_height _ last_height - 1 .
+          heights at: step + down put: last_height negated.
+        ].
+
+        step _ tmp .
       ].
     ].
 
     (x - x2)abs > (y-y2) abs ifTrue: [
       x to: x2 do:[:x=CFrogNum|
         is_bridge _ heights first < 0 .
+        make_rail _ 0 .
         y to: y2 do:[:y=CFrogNum|
-          is_bridge ifTrue: [
-            #world setTile: 7 atX: x atY: y atZ: (heights at: 0) abs .
-          ] ifFalse:[
-            #world setTile: 14 atX: x atY: y atZ: (heights at: 0) abs.
+          (use value: x  value: y) ifFalse: [
+            make_rail _ 1 .
+            is_bridge ifTrue: [
+              #world setTile: 7 atX: x atY: y atZ: (heights at: 0) abs .
+            ] ifFalse:[
+              #world setTile: 14 atX: x atY: y atZ: (heights at: 0) abs.
+            ].
           ].
         ].
 'Outside railing on wall'.
-        is_bridge ifTrue: [
+        (make_rail and: is_bridge) ifTrue: [
          -1 to: 2 do: [:zoff=CFrogNum|
             zoff _ zoff + heights first abs.
             #world setTile: 4 
@@ -263,7 +278,6 @@ makeTownAtX: xx=CFrogNum atY: yy=CFrogNum withWidth: ww=CFrogNum withHeight: hh=
               atX: x 
               atY: y2
               atZ: zoff .
-
           ].
         ].
         heights removeAt: 0 .
@@ -271,15 +285,19 @@ makeTownAtX: xx=CFrogNum atY: yy=CFrogNum withWidth: ww=CFrogNum withHeight: hh=
     ] ifFalse: [
       y to: y2 do:[:y=CFrogNum|
         is_bridge _ heights first < 0 .
+        make_rail _ 0 .
         x to: x2 do:[:x=CFrogNum|
-          is_bridge ifTrue: [
-            #world setTile: 7 atX: x atY: y atZ: (heights at: 0) abs.
-          ] ifFalse:[
-            #world setTile: 14 atX: x atY: y atZ: (heights at: 0) abs.
-          ].
+          (use value: x  value: y) ifFalse: [
+           make_rail _ 1 .
+            is_bridge ifTrue: [
+              #world setTile: 7 atX: x atY: y atZ: (heights at: 0) abs.
+            ] ifFalse:[
+              #world setTile: 14 atX: x atY: y atZ: (heights at: 0) abs.
+            ].
+          ]
         ].
 'Outside railing on wall'.
-        is_bridge ifTrue: [
+        (make_rail and: is_bridge) ifTrue: [
          -1 to: 2 do: [:zoff=CFrogNum|
             zoff _ zoff + heights first abs .
             #world setTile: 4 
