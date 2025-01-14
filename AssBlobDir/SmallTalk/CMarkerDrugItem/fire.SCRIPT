@@ -10,8 +10,8 @@ fire ->* |
   player _ #world getPlayer .
 
   ammo ifTrue: [
+    active _ 1 .
     cur_ts _ CFrogTime now asSeconds .
-    last_fire _ cur_ts .
     (timeout < cur_ts and: state = 'Idle') ifTrue: [
       state _ 'Prepare' .
       anim_start_tS _ cur_ts .

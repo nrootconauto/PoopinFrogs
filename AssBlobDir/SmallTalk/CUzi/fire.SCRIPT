@@ -14,9 +14,11 @@ fire ->* |
   player _ w getPlayer .
   ammo ifTrue: [
    
+    active _ 1 .
+
     cur_ts _ CFrogTime now asSeconds .
 
-    ((state = 'Normal' or: state = 'Fire' ) and: timeout < cur_ts) ifTrue: [
+    (state = 'Normal' or: state = 'Fire' ) ifTrue: [
       state = 'Normal' ifTrue: [
         anim_no_repeat_ 0 .
         anim_start_tS _ cur_ts .

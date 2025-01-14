@@ -4,7 +4,7 @@ animate ->* | cur_ts=CFrogNum |
   timeout < cur_ts ifTrue: [
 
     state = 'Fire' ifTrue: [
-      timeout + .2 < cur_ts ifTrue: [
+      active = 0 ifTrue: [
         state _ 'Reload' .
         timeout _ cur_ts + .75 .
       ] ifFalse: [
@@ -25,4 +25,4 @@ animate ->* | cur_ts=CFrogNum |
       anim_no_repeat _ 0 .
       self setGraphics: 'GR/Uzi/Idle' .
     ].
-  ] 
+  ]  

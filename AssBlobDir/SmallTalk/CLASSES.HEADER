@@ -386,7 +386,7 @@ class CHandItem:CFrogThing {
   CFrogImg *gr;
   I64 x,y;
   I64 xoff,yoff;
-  I64 xoff2,yoff2; //Used for weapon sway
+  I64 xoff2,yoff2; //Used for weapon sway
   I64 ammo,max_ammo;
   F64 timeout;
   F64 anim_start_tS;
@@ -573,6 +573,7 @@ class CGun1:CHandItem {
 };
 class CUzi:CHandItem {
   CFrogStr *state;
+  Bool active;
 };
 class CUziPickup:CPickup {
 };
@@ -751,7 +752,7 @@ class CKnife:CHandItem {
 
 class CMarkerDrugItem:CHandItem {
   CFrogStr *state;
-  F64 last_fire;
+  Bool active;
 };
 class CMarkerDrugPickup:CPickup {
 };

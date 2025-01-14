@@ -32,6 +32,7 @@ newLandscapeWithWidth: w=CFrogNum withHeight: h=CFrogNum
   ground=CFrogNum
   adj_ground=CFrogNum
   sand_threshold=CFrogNum
+  pre=CFrogNum
 |
   get_ground_at _ [:x=CFrogNum :y=CFrogNum|
 'Start from bottom,most of top is air'.
@@ -107,32 +108,29 @@ newLandscapeWithWidth: w=CFrogNum withHeight: h=CFrogNum
     x1
   ].
 
+  water_depth _ 1.5 .
+  water_threshold _ .15 .
+  sand_threshold _ water_threshold .
 
-  'Dirt' .
-  fill_with _ 3 . 
 
   0 to: w  do: [:x=CFrogNum|
     0 to: h do: [:y=CFrogNum|
       final _ (value_at value: x value: y) * 6 .
+      pre _ final .
       'Heres the deal,sample noise on top of eachother to make sexy landscape'.
       final _ (value_at value: x /2 +(w/2)value: y / 2 + (h /2)) * 17 + final .
 
+      'Dirt' .
+      fill_with _ 3 . 
       0 to: final + 30 do: [:z=CFrogNum |
         #world setTile: fill_with atX: x atY: y atZ: z .
       ] .
-    ].
-  ] .
 
-  'Do water then sand'.
-  fill_with _ 6 . 'water'.
-  water_depth _ 1.5 .
-  water_threshold _ .15 .
-  sand_threshold _ water_threshold .
-  0 to: w  do: [:x=CFrogNum|
-    0 to: h do: [:y=CFrogNum|
-      final _ (value_at value: x value: y) * 2 + .5 .
-      final < water_threshold ifTrue: [
-        final _  ((water_threshold - final) /water_threshold) * water_depth.
+
+      'Makr anges from 0->1'.
+      pre _ pre / 6 * 2 + .5 .
+      pre < water_threshold ifTrue: [
+        pre _  ((water_threshold - pre) /water_threshold) * water_depth.
 
         ground _ get_ground_at value: x value: y .
         ground - final - 1 to: ground + 1 do: [:z=CFrogNum|
@@ -143,12 +141,17 @@ newLandscapeWithWidth: w=CFrogNum withHeight: h=CFrogNum
           #world setTile: 6 atX: x atY: y atZ: z 
         ].
       ].
-    ]
-  ].
-  'Make sand at bottom of water'.
+
+
+    ].
+'Dont freeze'.
+    CFrogThread yield .
+  ] .
+
+
   0 to: w  do: [:x=CFrogNum|
     0 to: h do: [:y=CFrogNum|
-      final _ (value_at value: x value: y) * 2 + .5 .
+      final _ (value_at value: x value: y) * 2 + .5  .
       final < sand_threshold ifTrue: [
         ground _ (get_ground_at value: x value: y) .
         '15 is sand'.
@@ -170,6 +173,9 @@ newLandscapeWithWidth: w=CFrogNum withHeight: h=CFrogNum
           ]
         ].
       ].
-    ]
+    ].
+    'Dont freeze'.
+    CFrogThread yield .
   ].
+
   ^ ret .

@@ -46,7 +46,7 @@ CFrogThread *ThreadYield(CFrogThread *t,I64 *argv,I64 argc) {
   FrogGarbageCollectLock;
   return FROG_SMALL_NIL;
 }
-AddClassMethod("CFrogThread","yield",&ThreadYield);
+AddClassMethod("CFrogThread","yield",&ThreadYield);
 CFrogThread *ThreadSleep(CFrogThread *t,I64 *argv,I64 argc) {
   FrogGarbageCollectUnlock;
   Sleep(1000*AsF64(argv[0]));

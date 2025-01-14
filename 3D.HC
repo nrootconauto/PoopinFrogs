@@ -1735,8 +1735,77 @@ Bool ClipLineToCamera(C3DWorld *w,CD3 *a,CD3 *b) {
   //	||IsLeftSide(&cam,&right,a)||IsLeftSide(&cam,&right,b);
 }
 
-
+//https://en.wikipedia.org/wiki/Cohen%E2%80%93Sutherland_algorithm
+#define CS_INSIDE 0
+#define CS_LEFT 1
+#define CS_RIGHT 2
+#define CS_BOTTOM 4
+#define CS_TOP 8
+I64 CSOutcode(F64 x,F64 y,F64 tx,F64 ty) {
+  I64 r=CS_INSIDE;
+  if(Abs(x-tx)<.0001)
+    if(Abs(y-ty)<.0001)
+      return r;
+  if(x<tx)
+    r|=CS_LEFT;
+  else if(x>tx+1.)
+    r|=CS_RIGHT;
+  if(y<ty)
+    r|=CS_BOTTOM;
+  else if(y>ty+1.)
+    r|=CS_TOP;
+  return r;
+}
+I64 PassesThroughTile(F64 tx,F64 ty,F64 x0,F64 y0,F64 x1,F64 y1) {
+  Bool accept=FALSE;
+  I64 oc1=CSOutcode(x0,y0,tx,ty),oc2=CSOutcode(x1,y1,tx,ty);
+  I64 oc_max;
+  F64 x,y;
+  if(tx<=x0<=tx+1)
+    if(ty<=y0<=ty+1)
+      return TRUE;
+  if(tx<=x1<=tx+1)
+    if(ty<=y1<=ty+1)
+      return TRUE;
+ 
+  while(1) {
+    if(!oc1&&!oc2) {
+      accept=TRUE;
+      break;
+    } else if(oc1&oc2){
+      break;
+    } else {
+      oc_max=MaxI64(oc1,oc2);
+      if(oc_max&CS_TOP) {
+	y=ty+1;
+xstyle:
+	x=x0+(x1-x0)*(y-y0)/(y1-y0);
+      } else if(oc_max&CS_BOTTOM) {
+	y=ty;
+	goto xstyle;
+      } else if(oc_max&CS_RIGHT) {
+	x=tx+1;
+ystyle:
+	y=y0+(y1-y0)*(x-x0)/(x1-x0);
+      } else if(oc_max&CS_LEFT) {
+	x=tx;
+	goto ystyle;
+      }
+      if(oc_max==oc1) {
+	x0=x;
+	y0=y;
+	oc1=CSOutcode(x0,y0,tx,ty);
+      } else {
+	x1=x;
+	y1=y;
+	oc2=CSOutcode(x1,y1,tx,ty);
+      }
+    }
+  }
+  return accept;
+}
 //Also prepares CWallStain's
+
 U0 PrepareThingsForDraw(C3DWorldManager *wm,F64 thing_scale=.6) {
   I64 args[3];
   args[0]=FrogNumNew(w->x),args[1]=FrogNumNew(w->y),args[2]=FrogNumNew(VIEW_DIST);
@@ -1798,7 +1867,15 @@ U0 PrepareThingsForDraw(C3DWorldManager *wm,F64 thing_scale=.6) {
   	  for(oy=-Ceil(radius);oy<=Ceil(radius);oy++)
 	    if(0<=ix+ox<2*VIEW_DIST)
 	      if(0<=ix+oy<2*VIEW_DIST)
-		I64SetAdd(w->things_around_camera[ix+ox][iy+oy],thing);
+		if(PassesThroughTile(
+		  w->things_around_camera_origin_x+ox+ix,
+		  w->things_around_camera_origin_y+oy+iy,
+		  scrn_st.x,
+		  scrn_st.y,
+		  scrn_en.x,
+		  scrn_en.y
+		))
+		  I64SetAdd(w->things_around_camera[ix+ox][iy+oy],thing);
       }
 skip:;
   }
@@ -3846,7 +3923,7 @@ CFrogStr *WorldSaveBlocksToString(C3DWorldManager *man,I64 argc,I64 *argv) {
   return ret;
 }
 AddMethod("C3DWorldManager","saveBlocksToString",&WorldSaveBlocksToString);
-CFrogStr *WorldRestoreBlocksFromString(C3DWorldManager *man,I64 *argv,I64 argc) {
+CFrogStr *WorldRestoreBlocksFromString(C3DWorldManager *man,I64 *argv,I64 argc) {
   CFrogStr *str=argv[0];
   CU8Set *set=str->items;
   U8 *to,*from;

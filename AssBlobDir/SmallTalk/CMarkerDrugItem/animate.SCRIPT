@@ -1,7 +1,7 @@
 animate ->* | cur_ts=CFrogNum |
   cur_ts _ CFrogTime now asSeconds .
   inventory_item setCount: ammo  .
-  (last_fire + .5 ) < cur_ts ifTrue: [
+  active ifFalse: [
     anim_no_repeat _ 0 .
     state _ 'Idle' .
     self setGraphics: 'GR/MarkerDrug/Idle'

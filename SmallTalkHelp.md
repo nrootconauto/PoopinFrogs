@@ -544,6 +544,7 @@
 	 - [init](AssBlobDir/SmallTalk/CMarkerDrugItem/CONSTRUCTOR.SCRIPT)
 	 - [animate](AssBlobDir/SmallTalk/CMarkerDrugItem/animate.SCRIPT)
 	 - [fire](AssBlobDir/SmallTalk/CMarkerDrugItem/fire.SCRIPT)
+	 - [releaseFire](AssBlobDir/SmallTalk/CMarkerDrugItem/releaseFire.SCRIPT)
  - CMarkerDrugPickup
 	 - [init](AssBlobDir/SmallTalk/CMarkerDrugPickup/CONSTRUCTOR.SCRIPT)
  - CNetStream
@@ -828,6 +829,7 @@
 	 - [init](AssBlobDir/SmallTalk/CUzi/CONSTRUCTOR.SCRIPT)
 	 - [animate](AssBlobDir/SmallTalk/CUzi/animate.SCRIPT)
 	 - [fire](AssBlobDir/SmallTalk/CUzi/fire.SCRIPT)
+	 - [releaseFire](AssBlobDir/SmallTalk/CUzi/releaseFire.SCRIPT)
  - CUziPickup
 	 - [init](AssBlobDir/SmallTalk/CUziPickup/CONSTRUCTOR.SCRIPT)
  - CWallStain

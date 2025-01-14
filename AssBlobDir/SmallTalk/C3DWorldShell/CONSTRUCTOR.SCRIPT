@@ -31,6 +31,9 @@ init ->* |
   want_item=CHandItem
 
   trained=CFrogArray
+
+  old_ldown=CFrogNum
+  old_rdown=CFrogNum
 |
   draw_it_name _ 'Draw3DWorld' .
 
@@ -405,10 +408,14 @@ init ->* |
        #ms_grabbed ifTrue: [
          ldown ifTrue: [
            #hand_item fire .
-         ] .
+         ] ifFalse:[
+           #hand_item releaseFire
+         ].
          rdown ifTrue: [
            #hand_item altFire .
          ] .
+         old_ldown _ ldown .
+         old_rdown _ rdown .
        ] .
        #hand_item animate .
        #world physics .
