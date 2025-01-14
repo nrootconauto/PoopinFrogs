@@ -1,0 +1,102 @@
+updateAIWeights:score=CFrogNum ->* 
+|
+  pair=CFrogArray
+  name=CFrogStr
+  weight=CFrogNum
+  weight2=CFrogNum
+  merged=CFrogArray
+  row=CFrogArray
+  nn_weights2=CFrogArray
+  rand=CFrogRandom
+  inputs=CFrogArray
+  pair2=CFrogArray
+  h=CFrogNum
+  i=CFrogNum
+  j=CFrogNum
+  max=CFrogNum
+
+  population=CFrogArray
+  population_scores=CFrogArray
+  indices=CFrogArray
+  popi=CFrogNum
+  who=CFrogArray
+  err=CFrogNum
+  have=CFrogArray
+  best_err=CFrogNum
+  expected=CFrogArray
+  scores=CFrogNum
+
+  new_nn=CFrogBlock
+  probs=CFrogArray
+  layers=CFrogNum
+  hidden_cnt=CFrogNum
+  tmp=CFrogArray
+
+  nn_weights=CFrogArray
+  cur_tS=CFrogNum
+|
+  cur_tS _ CFrogTime now asSeconds .
+  layers _ 4 .
+  hidden_cnt _ 48 .
+
+
+  new_nn _ [
+    probs _ #() .
+    0 to: layers  do: [:n=CFrogNum|
+      probs add: #().
+      n _ hidden_cnt .
+      n timesRepeat: [
+        tmp _ #().
+        probs last add: tmp .
+        hidden_cnt timesRepeat: [
+          tmp add: rand next - .5 * 2
+        ] .
+      ].
+    ].
+    probs
+  ].
+
+
+  indices _ #(
+       'Hide'
+       'Projectile'
+       'Range'
+       'Melee' 
+       'Chase'
+  ).
+  rand _ CFrogRandom new.
+'Score/weights/situations'.
+  name _ ('SmartEnemyData_',self class asString).
+  pair _  #ai_params at: self class asString.
+  (pair hasClass: CFrogArray) ifFalse: [
+    pair _ name restoreThingFromSaveFile .
+    pair at: 0 put: cur_tS + 1 .
+    (pair hasClass: CFrogArray) ifFalse: [
+      pair _ #((cur_tS + 1) (new_nn value) #()).
+      pair saveThingToSaveFile: name .
+      #ai_params at: self class asString put: pair.
+    ].
+    #ai_params at: self class asString put: pair .
+     ^ 1 .
+  ].
+  nn_weights _ pair at: 1 .
+  1 ifTrue:[
+    'SCORE'show.
+    score show.
+    inputs _ pair at:2 .
+    i _ inputs detect: [:ip=CFrogArray|
+      ip first = nn_inputs
+    ].
+    i >=0 ifTrue: [
+      pair2 _ inputs at: i .
+      scores _ pair2 at: 1 .
+      j _ indices indexOf: next_action.
+      scores printString show.
+      scores at: j put: ((scores at: j)+score).
+      scores printString show.
+    ] ifFalse:[
+      inputs add: #(nn_inputs (indices collect: [:s=CFrogStr| (s = next_action)*score]))
+    ].
+    nn_weights2 _  pair at: 1 .
+    #ai_params at: self class asString put: #(score nn_weights2 (pair at: 2)).
+ ].

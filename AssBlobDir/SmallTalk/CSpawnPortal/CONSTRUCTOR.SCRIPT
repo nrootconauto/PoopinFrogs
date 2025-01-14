@@ -1,0 +1,7 @@
+init | |
+  template _ #world getThingTemplate: 'CSpawnPortal'.
+  #world addThing: self .
+  rand _ CFrogRandom new .
+  capacity _ 8 .
+  spawned _ #(). 
+  ^ self

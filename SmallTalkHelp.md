@@ -155,6 +155,7 @@
 	 - [recv3DThing:](AssBlobDir/SmallTalk/C3DWorldManager/recv3DThing.SCRIPT)
 	 - [recv3DThingTemplate:](AssBlobDir/SmallTalk/C3DWorldManager/recv3DThingTemplate.SCRIPT)
 	 - [recvBlockEdit:](AssBlobDir/SmallTalk/C3DWorldManager/recvBlockEdit.SCRIPT)
+	 - [removeAllThings](AssBlobDir/SmallTalk/C3DWorldManager/removeAllThings.SCRIPT)
 	 - [removeDoor:](AssBlobDir/SmallTalk/C3DWorldManager/removeDoor.SCRIPT)
 	 - [removeThing:](AssBlobDir/SmallTalk/C3DWorldManager/removeThing.SCRIPT)
 	 - [restoreBlocksFromString](AssBlobDir/SmallTalk/C3DWorldManager/restoreBlocksFromString.SCRIPT)
@@ -283,8 +284,10 @@
 	 - **size**(builtin)
 	 - **~=**(builtin)
 	 - **remove:**(builtin)
+	 - **mutateNN**(builtin)
 	 - **=**(builtin)
 	 - **copy**(builtin)
+	 - **runNN:**(builtin)
 	 - **at:**(builtin)
 	 - **copyFrom:to:**(builtin)
 	 - **removeAt:**(builtin)
@@ -307,6 +310,7 @@
 	 - [reject:](AssBlobDir/SmallTalk/CFrogArray/REJECT.SCRIPT)
 	 - [removeAll:](AssBlobDir/SmallTalk/CFrogArray/REMOVEALL.SCRIPT)
 	 - [select:](AssBlobDir/SmallTalk/CFrogArray/SELECT.SCRIPT)
+	 - [breedNN:](AssBlobDir/SmallTalk/CFrogArray/breedNN.SCRIPT)
 	 - [has:](AssBlobDir/SmallTalk/CFrogArray/has.SCRIPT)
 	 - [sort:](AssBlobDir/SmallTalk/CFrogArray/sort.SCRIPT)
  - CFrogBin
@@ -375,6 +379,7 @@
 	 - [setChatBot:](AssBlobDir/SmallTalk/CFrogNPC/setChatBot.SCRIPT)
  - CFrogNum
 	 - **asCharactor**(builtin)
+	 - **printString**(builtin)
 	 - **bitAt:**(builtin)
 	 - **negated**(builtin)
 	 - **basicRem:**(builtin)
@@ -419,7 +424,7 @@
 	 - [DIVIDE](AssBlobDir/SmallTalk/CFrogNum/DIVIDE.SCRIPT)
 	 - [max:](AssBlobDir/SmallTalk/CFrogNum/MAX.SCRIPT)
 	 - [min:](AssBlobDir/SmallTalk/CFrogNum/MIN.SCRIPT)
-	 - [printString](AssBlobDir/SmallTalk/CFrogNum/PRINTSTRING.SCRIPT)
+	 - [PRINTSTRING](AssBlobDir/SmallTalk/CFrogNum/PRINTSTRING.SCRIPT)
 	 - [rem:](AssBlobDir/SmallTalk/CFrogNum/REM1.SCRIPT)
 	 - [\\](AssBlobDir/SmallTalk/CFrogNum/REM2.SCRIPT)
 	 - [to:do:](AssBlobDir/SmallTalk/CFrogNum/TODO.SCRIPT)
@@ -671,6 +676,41 @@
 	 - [animate](AssBlobDir/SmallTalk/CSmallPig/animate.SCRIPT)
 	 - [damage:from:](AssBlobDir/SmallTalk/CSmallPig/damagefrom.SCRIPT)
 	 - [update](AssBlobDir/SmallTalk/CSmallPig/update.SCRIPT)
+ - CSmartAlien
+	 - [init](AssBlobDir/SmallTalk/CSmartAlien/CONSTRUCTOR.SCRIPT)
+ - CSmartAssBird
+	 - [init](AssBlobDir/SmallTalk/CSmartAssBird/CONSTRUCTOR.SCRIPT)
+ - CSmartCyberPoop
+	 - [init](AssBlobDir/SmallTalk/CSmartCyberPoop/CONSTRUCTOR.SCRIPT)
+ - CSmartEggplantMan
+	 - [init](AssBlobDir/SmallTalk/CSmartEggplantMan/CONSTRUCTOR.SCRIPT)
+ - CSmartEnemy
+	 - [runNN](AssBlobDir/SmallTalk/CSmartEnemy/AI.SCRIPT)
+	 - [init](AssBlobDir/SmallTalk/CSmartEnemy/CONSTRUCTOR.SCRIPT)
+	 - [animate](AssBlobDir/SmallTalk/CSmartEnemy/animate.SCRIPT)
+	 - [damage:from:](AssBlobDir/SmallTalk/CSmartEnemy/damageFrom.SCRIPT)
+	 - [fireProjectile:withSpeed:](AssBlobDir/SmallTalk/CSmartEnemy/fireProjectile.SCRIPT)
+	 - [pissTowardsThing:](AssBlobDir/SmallTalk/CSmartEnemy/pissTowardsThing.SCRIPT)
+	 - [rangeAttackAtAngle:withDamage:](AssBlobDir/SmallTalk/CSmartEnemy/rangeAttack.SCRIPT)
+	 - [seekCoverFrom:](AssBlobDir/SmallTalk/CSmartEnemy/seekCover.SCRIPT)
+	 - [trainAI:](AssBlobDir/SmallTalk/CSmartEnemy/trainAI.SCRIPT)
+	 - [update](AssBlobDir/SmallTalk/CSmartEnemy/update.SCRIPT)
+	 - [updateAIWeights:](AssBlobDir/SmallTalk/CSmartEnemy/updateAIWeights.SCRIPT)
+ - CSmartFrogNPC
+	 - [init](AssBlobDir/SmallTalk/CSmartFrogNPC/CONSTRUCTOR.SCRIPT)
+ - CSmartPooka
+	 - [init](AssBlobDir/SmallTalk/CSmartPooka/CONSTRUCTOR.SCRIPT)
+ - CSmartPoopMan
+	 - [init](AssBlobDir/SmallTalk/CSmartPoopMan/CONSTRUCTOR.SCRIPT)
+ - CSmartPorky
+	 - [init](AssBlobDir/SmallTalk/CSmartPorky/CONSTRUCTOR.SCRIPT)
+ - CSmartSmallPig
+	 - [init](AssBlobDir/SmallTalk/CSmartSmallPig/CONSTRUCTOR.SCRIPT)
+ - CSmartZombie
+	 - [init](AssBlobDir/SmallTalk/CSmartZombie/CONSTRUCTOR.SCRIPT)
+ - CSpawnPortal
+	 - [init](AssBlobDir/SmallTalk/CSpawnPortal/CONSTRUCTOR.SCRIPT)
+	 - [update](AssBlobDir/SmallTalk/CSpawnPortal/update.SCRIPT)
  - CTalkShell
 	 - [init](AssBlobDir/SmallTalk/CTalkShell/CONSTRUCTOR.SCRIPT)
  - CTalker
@@ -1037,6 +1077,30 @@
 	 - [new](AssBlobDir/STClsRoot/CSmallKeyPickup/NEW.SCRIPT)
  - CSmallPig
 	 - [new](AssBlobDir/STClsRoot/CSmallPig/NEW.SCRIPT)
+ - CSmartAlien
+	 - [new](AssBlobDir/STClsRoot/CSmartAlien/NEW.SCRIPT)
+ - CSmartAssBird
+	 - [new](AssBlobDir/STClsRoot/CSmartAssBird/NEW.SCRIPT)
+ - CSmartCyberPoop
+	 - [new](AssBlobDir/STClsRoot/CSmartCyberPoop/NEW.SCRIPT)
+ - CSmartEggplantMan
+	 - [new](AssBlobDir/STClsRoot/CSmartEggplantMan/NEW.SCRIPT)
+ - CSmartEnemy
+	 - [new](AssBlobDir/STClsRoot/CSmartEnemy/NEW.SCRIPT)
+ - CSmartFrogNPC
+	 - [new](AssBlobDir/STClsRoot/CSmartFrogNPC/NEW.SCRIPT)
+ - CSmartPooka
+	 - [new](AssBlobDir/STClsRoot/CSmartPooka/NEW.SCRIPT)
+ - CSmartPoopMan
+	 - [new](AssBlobDir/STClsRoot/CSmartPoopMan/NEW.SCRIPT)
+ - CSmartPorky
+	 - [new](AssBlobDir/STClsRoot/CSmartPorky/NEW.SCRIPT)
+ - CSmartSmallPig
+	 - [new](AssBlobDir/STClsRoot/CSmartSmallPig/NEW.SCRIPT)
+ - CSmartZombie
+	 - [new](AssBlobDir/STClsRoot/CSmartZombie/NEW.SCRIPT)
+ - CSpawnPortal
+	 - [new](AssBlobDir/STClsRoot/CSpawnPortal/NEW.SCRIPT)
  - CTalkShell
 	 - [new](AssBlobDir/STClsRoot/CTalkShell/NEW.SCRIPT)
  - CTalker

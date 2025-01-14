@@ -4,24 +4,30 @@ bestTargetAtAngle: angle=CFrogNum ->C3DThing |
   canidates=CFrogArray
   line=C3DLine
   dist=CFrogNum
+  a2=CFrogNum
 |
   line _ C3DLine new .
   line->x0 _ x .
   line->y0 _ y .
   line->z0 _ z .
-  line->x _ 65000 * angle cos .
-  line->y _ 65000 * angle sin .
   canidates _ #world thingsInDist: 32 atAngle: angle fromThing: self .
-  best_dist _ 65000 .
+  best_dist _ 65 .
   best_thing _ 0 .
   canidates do: [:t=C3DThing |
     ((self canSeeThing: t) and: (self ~= t and: t->health > 0. )) ifTrue: [
-      line->z _ t->z.
-      (line hitsThing: t withRadius: 1)  ifTrue: [
-        dist _ ((t->x - x)squared +(t->y - y) squared) sqrt .
+      dist _ ((t->x - x)squared +(t->y - y) squared) sqrt .
+      a2 _ dist arg: t->z - z .
+      line->x _ 65 * a2 cos * angle cos  + x .
+      line->y _ 65 * a2 cos * angle sin + y .
+      line->z _ z + (a2 sin * 65) .
+'tar' show.
+      t show.
+      (line hitsThing: t withRadius: 1.5)  ifTrue: [
         dist < best_dist ifTrue: [
           best_thing  _ t .
           best_dist _ dist .
+'best target' show.
+best_thing show .
         ]
       ] .
     ]

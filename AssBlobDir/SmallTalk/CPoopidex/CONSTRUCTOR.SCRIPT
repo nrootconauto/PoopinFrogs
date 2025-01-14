@@ -6,3 +6,4 @@ init ->*
   categories _ CFrogDictionary new .
   self updateScreen .
   ^ self
+ 

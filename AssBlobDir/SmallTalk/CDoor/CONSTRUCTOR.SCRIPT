@@ -1,7 +1,7 @@
 init->CDoor | |
   activated_at _ -1 .
-  open_duration _ 2 .
-  speed _ 1. .
+  open_duration _ 3 .
+  speed _ 1.5 .
   percent _ 1 .
   stains _ #() .
   ^ self

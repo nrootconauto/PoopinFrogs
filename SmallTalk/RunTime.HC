@@ -1607,7 +1607,6 @@ CFrogUndefined *FrogNil() {
 }
 U0 FrogGarbageCollectThing(CFrogThing *root,Bool debug=FALSE) {
   if(!root||root&1) return; //bit 0 is set for special "small" values
-  if(ChkOnStk(root)) return;
   static I64 depth=0;
   I64 idx;
   CPromise *prom;
@@ -1618,7 +1617,7 @@ U0 FrogGarbageCollectThing(CFrogThing *root,Bool debug=FALSE) {
   CHashClass *cls,*cls2;
   CMemberLst *mlst;
   root->shadow_ref_cnt++;
-  if(debug) "$$ID,2$$%s,%x\n",FrogThingClassName(root),root;
+  if(debug) "$$TR,\"%s,%x\"$$\n$$ID,2$$\n",FrogThingClassName(root),root;
   if(LBts(&root->thing_flags,THINGf_GC_LOCK))
     goto fin;
   LBtr(&root->thing_flags,THINGf_TO_DELETE);
@@ -1731,12 +1730,11 @@ U0 FrogGarbageCollect(CFrogThing *root=FROG_SMALL_NIL,Bool debug=FALSE) {
       next=heap_hash[bucket];
       heap_hash[bucket]=cur;
       cur->_heap_hash_next=next;
-
     } 
 
     //Scan stack "HolyC side may be using some poop"
     stacks=Fs->stk;
-    stacke=GetRBP;
+    stacke=MSize(Fs->stk)+ToI64(Fs->stk);
     while(stacks<stacke) {
       cur=stacks[0];
       if(cur&&!(cur&0b111)) {
@@ -1928,6 +1926,13 @@ CFrogThing *FrogClassFromString(CFrogThing *ul,I64 *argv,I64 argc) {
   return ret;
 }
 AddClassMethod("CFrogClass","fromString:",&FrogClassFromString);
+
+CFrogThing *FrogNumPrintString(CFrogThing *ul,I64 *argv,I64 argc) {
+  U8 buf[STR_LEN];
+  StrPrint(buf,"%n",AsF64(ul));
+  return FrogStrNew(buf);
+}
+AddMethod("CFrogNum","printString",&FrogNumPrintString);
 
 #exe{Cd(__DIR__);}; //???
 #include "Network.HC";

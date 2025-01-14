@@ -1,0 +1,15 @@
+init | |
+  walk_template_name _ 'CAlien'.
+  dying_template_name _ 'CAlien/Dead'.
+  attack_template_name _ 'CAlien/Shoot'.
+  blood_color _ #color_RED .
+  item_capacity _ 20 .
+  health _ 75 .
+  speed _ 40 / 10 *  3.4 /128 .
+  has_items _ #(
+    #(CEnergyGun 100)
+  ).
+  current_item_pair _ has_items first .
+  can_use_items _ #(CEnergyGun CMarkerDrugItem) .
+  #world addThing: self .
+  ^ self

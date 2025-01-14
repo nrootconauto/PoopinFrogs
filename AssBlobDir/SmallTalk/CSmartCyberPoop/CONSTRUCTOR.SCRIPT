@@ -1,0 +1,16 @@
+init | |
+  walk_template_name _ 'CCyberPoop'.
+  dying_template_name _ 'CCyberPoop/Dead'.
+  attack_template_name _ 'CCyberPoop/Fire'.
+  item_capacity _ 4 .
+  speed _ 1 / 2 /10 .
+  health _ 250 .
+  has_items _ #(
+    #(CRocketLauncher 50)
+    #(CShitItem 15)
+  ).
+  current_item_pair _ has_items first .
+  can_use_items _ #(CRocketLauncher CShitItem).
+  #world addThing: self .
+
+  ^ self 

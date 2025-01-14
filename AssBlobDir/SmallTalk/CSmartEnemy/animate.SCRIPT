@@ -1,0 +1,34 @@
+animate->*
+|
+  line=C3DLine
+  line2=C3DLine
+|
+
+
+    piss_stream update.
+  (next_action  ='Projectile' or: next_action = 'Chase')ifTrue: [
+    (target hasClass: C3DThing) ifTrue: [
+      piss_stream setFrom: self .
+      (self hasClass: CSmartZombie) ifTrue: [
+        self pissTowardsThing: target.
+      ].
+    ].
+  ].
+
+
+  lines _ #().
+  (self hasClass: CSmartZombie) ifTrue: [
+    line _ piss_stream->links first .
+    line->x0 _ line->x - line->momx .
+    line->y0 _ line->y - line->momy .
+    line->z0 _ line->z - line->momz  .
+    lines add: line  .
+    1 to: piss_stream->links size do: [:n=CFrogNum|
+      line _ piss_stream ->links at: n .
+      line2 _ piss_stream ->links at: n - 1 .
+      line->x0 _ line2->x .
+      line->y0 _ line2->y .
+      line->z0 _ line2->z.
+      lines add: line 
+    ].
+  ].

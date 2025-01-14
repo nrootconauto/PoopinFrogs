@@ -4,6 +4,7 @@ FramePtrAdd("OLD_DIR",DirCur);;
 #define ST_LOAD
 #include "Studio.HC";
 #include "Save.HC";
+#include "NN.HC"
 #endif
 Cd(FramePtr("OLD_DIR"));
 FramePtrDel("OLD_DIR");

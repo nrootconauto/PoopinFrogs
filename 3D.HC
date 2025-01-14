@@ -764,7 +764,13 @@ C3DThing *BumpsIntoThing(C3DThing *self,I64 *argv,I64 argc) {
 } 
 AddMethod("C3DThing","hitsThing:",&BumpsIntoThing);
 Bool CanMoveToBlock(I64 x,I64 y,I64 z) {
-  return BlockAtXYZ(x,y,z)==0&&BlockAtXYZ(x,y,z+1)==0&&BlockAtXYZ(x,y,z-1)!=0;
+  I64 at=BlockAtXYZ(x,y,z),above=BlockAtXYZ(x,y,z+1);
+  if(at>=0&&!w->solids[at]) {
+    if(above>=0&&!w->solids[above]) {
+      return TRUE;
+    }
+  }
+  return at==0&&above==0&&BlockAtXYZ(x,y,z-1)!=0;
 }
 CFrogNum *C3DThingPathFindWalkTowardsThing(C3DThing *self,I64 *argv,I64 argc) {
   CPFPoint pt;
@@ -774,6 +780,9 @@ CFrogNum *C3DThingPathFindWalkTowardsThing(C3DThing *self,I64 *argv,I64 argc) {
   CI64Set *path=PathFinder(self->x,self->y,Floor(self->z),thing->x,thing->y,Floor(thing->z),&CanMoveToBlock,AsF64(argv[1])),*dummy;
   if(path->cnt<2) {
     I64SetDel(path);
+    self->path_finder_data=FROG_SMALL_NIL;
+//Find way up/down
+    self->angle2=Arg(Sqrt(Sqr(thing->x-self->x)+Sqr(thing->y-self->y)),thing->z-self->z);
     return FrogNumNew(Arg(thing->x-self->x,thing->y-self->y));
   }
   self->path_finder_data=FrogArrayNew;
@@ -784,6 +793,8 @@ CFrogNum *C3DThingPathFindWalkTowardsThing(C3DThing *self,I64 *argv,I64 argc) {
   pt=path->body[1];
   I64SetDel(path);
   
+//Find way up/down
+  self->angle2=Arg(Sqrt(Sqr(pt.x+.5-self->x)+Sqr(pt.y+.5-self->y)),pt.z+.5-self->z);
   return FrogNumNew(Arg(pt.x+.5-self->x,pt.y+.5-self->y));
 }
 AddMethod("C3DThing","pathFinderAngleTowardsThing:withJump:",&C3DThingPathFindWalkTowardsThing);
@@ -1083,28 +1094,32 @@ Bool ExplodeDamage(CExplodeThingData *data,I64 x,I64 y,I64 z) {
   C3DWorld *w=data->w;
   Bool ret=FALSE;
   I64 splash;
-  if(0<=x<=w->world_width)
-    if(0<=y<=w->world_height)
+  if(0<=x<w->world_width)
+    if(0<=y<w->world_height)
       if(0<=z<=I8_MAX) {
         I64 tp=(x+y*w->world_width)*128+z;
-	if(!IsSolidTile(w->world_blocks[tp]))
+        if(!IsSolidTile(w->world_blocks[tp]))
 	  return TRUE;
-	splash=Max(0,Ceil((data->radius-Sqrt(Sqr(x+.5-data->x)
-		+Sqr(y+.5-data->y)
-		+Sqr(z+.5-data->z)))/data->radius*data->damage));
-	if(w->block_health[tp]<=splash&&!I64SetHas(data->checked,tp)) {
-	  CallScript("setTile:atX:atY:atZ:",
-		FrogSymbol("world")->value,
-		FrogNumNew(0),
-		FrogNumNew(x),
-		FrogNumNew(y),
-		FrogNumNew(z));
-	  return TRUE;
-	} else  {
-	  I64SetAdd(data->checked,tp);
-	  w->block_health[tp]-=splash;
+        splash=Max(0,Ceil((data->radius-Sqrt(Sqr(x+.5-data->x)
+          +Sqr(y+.5-data->y)
+          +Sqr(z+.5-data->z)))/data->radius*data->damage));
+        if(!I64SetHas(data->checked,tp)) {
+	  if(w->block_health[tp]-splash<=0) {
+	    CallScript("setTile:atX:atY:atZ:",
+		  FrogSymbol("world")->value,
+		  FrogNumNew(0),
+		  FrogNumNew(x+.5),
+		  FrogNumNew(y+.5),
+		  FrogNumNew(z+.5));
+	    return TRUE;
+	  } else {
+	    w->block_health[tp]-=splash;
+	    I64SetAdd(data->checked,tp);
+	    return FALSE;
+	  }
+        } else{
 	  return FALSE;
-	}
+        }
       }
   return TRUE;
 }
@@ -1143,9 +1158,8 @@ CFrogThing *WorldExplode(CRocket *rocket,I64 *argv,I64 argc) {
 	FrogNumNew(rocket->y),
 	FrogNumNew(r)
 	);
-  set=arr->items;
-  for(x=0;x!=set->cnt;x++) {
-    t=set->body[x];
+  for(x=0;x!=arr->items->cnt;x++) {
+    t=arr->items->body[x];
     dist=Sqrt(Sqr(t->x-rocket->x)+Sqr(t->y-rocket->y)+Sqr(t->z-rocket->z));
     if(dist<r) {
       if(t!=rocket->from) {
@@ -1202,7 +1216,7 @@ Bool PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm,F64 last_tS) {
       t->was_in_water=TRUE;
     } else { 
       if(t->was_in_water)
-	t->momz+=.4; //"Bouce on top of water"
+        t->momz+=.4; //"Bouce on top of water"
       t->momz-=wm->gravity*weight;
       t->was_in_water=FALSE;
     }
@@ -1230,12 +1244,31 @@ Bool PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm,F64 last_tS) {
         }
       }
       if(best_pf&POINT_MASK!=at_pf&POINT_MASK) {
-	MemCpy(set->body,set->body+best_i,(set->cnt-best_i)*8);
-	set->cnt-=best_i;
-        dist=Sqrt(Sqr(t->momx2)+Sqr(t->momy2));
+        MemCpy(set->body,set->body+best_i,(set->cnt-best_i)*8);
+        set->cnt-=best_i;
+        dist=Sqrt(Sqr(t->momx2)+Sqr(t->momy2)+Sqr(t->momz2));
         t->angle=Arg(best_pf.x+.5-t->next_x,best_pf.y+.5-t->next_y);
-        t->momx2=dist*Cos(t->angle);
-        t->momy2=dist*Sin(t->angle);
+        t->angle2=Arg(.33,best_pf.z+.5-t->next_z);
+	//Jump
+	if(best_pf.z>t->next_z) {
+	  if(AsF64(CallScript("isOnGround",t))) {
+	    t->momz2=.55;
+	  }
+	}
+        if(1<=(i=BlockAtXYZ(t->next_x,t->next_y,t->next_z))) {
+	  if(!w->solids[i]) {
+	    t->momx2=dist*Cos(t->angle)*Cos(t->angle2);
+	    t->momy2=dist*Sin(t->angle)*Cos(t->angle2);
+	    t->momz2=dist*Sin(t->angle2);
+	  }else {
+	    t->momx2=dist*Cos(t->angle);
+	    t->momy2=dist*Sin(t->angle);
+	  } 
+        } else  {
+	  dist=Sqrt(Sqr(t->momx2)+Sqr(t->momy2));
+	  t->momx2=dist*Cos(t->angle);
+	  t->momy2=dist*Sin(t->angle);
+        }
       }
     }
   }
@@ -1281,11 +1314,11 @@ explode:
         to_open=CallScript("doorInRadius:atX:atY:atAngle:",
 	      wm,FrogNumNew(THING_RADIUS),FrogNumNew(t->next_x),FrogNumNew(t->next_y),FrogNumNew(t->angle));
         if(ThingHasClass(to_open,"CDoor")) {
-          MPPromiseCallScript("activateBy:",to_open,t);
+	  MPPromiseCallScript("activateBy:",to_open,t);
         }
       }
     }
-    if(t->no_fall_off_edge&&on_ground) {
+    if(t->no_fall_off_edge&&on_ground&&!t->no_update) {
       if(AsF64(CallScript("isOverEdge",t))) {
         t->next_x=ox;
         t->next_y=oy;
@@ -1308,8 +1341,8 @@ explode:
     for(idx=0;idx!=set->cnt;idx++) {
       other=set->body[idx];
       if(other!=t&&Max(other->z,t->next_z)<=Min(other->z+THING_HEIGHT,t->next_z+THING_HEIGHT))
-	if(!ThingHasClass(t,"C3DProp")) {
-          if(AdjustRadiusThing(w,t,other,angle)) {
+        if(!ThingHasClass(t,"C3DProp")) {
+	  if(AdjustRadiusThing(w,t,other,angle)) {
 	    t->hit_thing=TRUE;
 	    if(ThingHasClass(other,"C3DProp")) {
 	      angle=t->angle;
@@ -1319,11 +1352,11 @@ explode:
 	      other->momy+=.05*Sin(angle)*dist;
 	      other->momx=Clamp(other->momx,-1./32,1./32);
 	      other->momy=Clamp(other->momy,-1./32,1./32);
-            }
-          }
-	}
-    }  
+	    }
 	  }
+        }
+    }  
+  }
   if(rocket) {
     if(HeightImpossible(man,t->next_x,t->next_y,t->next_z,TRUE,1.))
       goto explode;
@@ -2931,8 +2964,8 @@ CFrogThing *ThingCanSeeThing(C3DThing *self,I64 *argv,I64 argc) {
   if(other->invisible) return FrogNumNew(0);
   w->x=self->x;
   w->y=self->y;
-//TODO replace "+1"  with thing height
-  w->cam_height=self->z+1.;
+//TODO replace "+8"  with thing height
+  w->cam_height=self->z+.8;
   ret=FrogNumNew(CanSee2DThing(w,other));
   w->x=old_x;
   w->y=old_y;
@@ -3115,6 +3148,13 @@ U0 RenderMiniMap(CDC *dc,F64 x0,F64 y0,F64 angle,F64 zoom=16) {
   I64 w0=hix-lowx+1,h0=hiy-lowy+1,x,y,z,b;
   F64 x2,y2,tmp;
   CDC **textures=CAlloc(w0*h0*8),*tp;
+  C3DThing **things,*thing;
+  CFrogArray *array=CallScript("getThingsInRadiusFromX:fromY:withRadius:",
+        FrogSymbol("world")->value,
+        FrogNumNew(x0),
+        FrogNumNew(y0),
+        FrogNumNew(Max(hiy-lowy,hix-lowx)/2)
+  );
   lowx=ClampI64(lowx,0,w->world_width);
   lowy=ClampI64(lowy,0,w->world_height);
   hix=ClampI64(hix,0,w->world_width);
@@ -3129,7 +3169,7 @@ U0 RenderMiniMap(CDC *dc,F64 x0,F64 y0,F64 angle,F64 zoom=16) {
         tp=w->floor_textures[b];
         if(tp) {
 	  textures[x-lowx+(y-lowy)*w0]=tp+ToI64(tS/AnimDCDelay(tp))%AnimDCCnt(tp);
-	}
+        }
       }
     }
   for(x=0;x!=dc->width;x++)
@@ -3155,6 +3195,27 @@ U0 RenderMiniMap(CDC *dc,F64 x0,F64 y0,F64 angle,F64 zoom=16) {
         }
 skip:;
     }
+  if(ThingHasClass(array,"CFrogArray")) {
+    sin=Sin(-angle);
+    cos=Cos(-angle);
+    things=array->items->body;
+    x=array->items->cnt;
+    while(--x>=0) {
+      thing=things[x];
+      if(thing->health>0.) {
+        x2=(thing->x-x0)*zoom;
+        y2=(thing->y-y0)*zoom;
+//Rotate math
+        tmp=x2*cos-y2*sin;
+        y2=x2*sin+y2*cos;
+        x2=tmp;
+
+	dc->color=LTRED;
+	dc->thick=4;
+        GrPlot3(dc,x2+dc->width/2,y2+dc->height/2,0);
+      }
+    }
+  }
   Free(textures);
 }
 U0 Draw3DWorld(CTask *,CDC *dc) {
@@ -3250,7 +3311,7 @@ U0 Draw3DWorld(CTask *,CDC *dc) {
 	  f%=c;
       } else 
         f%=c;
-      GrBlot(dc,hand->x+hand->xoff-hand_gr->dc->width/2,hand->y+hand->yoff-hand_gr->dc->height/2,hand_gr->dc+f);
+      GrBlot(dc,hand->x+hand->xoff2+hand->xoff-hand_gr->dc->width/2,hand->y+hand->yoff2+hand->yoff-hand_gr->dc->height/2,hand_gr->dc+f);
     }
   }
   minimap=DCNew(200,200);
@@ -3743,6 +3804,7 @@ AddMethod("CWallStain","putGraphics:atX:atY:",&WallStainPutGraphics);
 CFrogStr *WorldSaveBlocksToString(C3DWorldManager *man,I64 argc,I64 *argv) {
   CFrogStr *ret=FrogStrNew("");
   CU8Set *set=ret->items;
+  U8 *healths;
   I64 consec,x,y,ptr,z,b;
   for(y=0;y!=w->world_height;y++) {
     for(x=0;x!=w->world_width;x++) {
@@ -3756,6 +3818,25 @@ CFrogStr *WorldSaveBlocksToString(C3DWorldManager *man,I64 argc,I64 *argv) {
 	  U8SetAdd(set,b);
 	  consec=1;
 	  b=BlockAtXYZ(x,y,ptr);
+        }
+      }
+      U8SetAdd(set,consec);
+      U8SetAdd(set,b);
+    }
+  }
+  for(y=0;y!=w->world_height;y++) {
+    for(x=0;x!=w->world_width;x++) {
+      healths=&w->block_health[x+y*w->world_width];
+      b=*healths;
+      consec=0;
+      for(ptr=0;ptr<=I8_MAX;ptr++) {
+        if(b==healths[ptr])
+	  consec++;
+        else {
+	  U8SetAdd(set,consec);
+	  U8SetAdd(set,b);
+	  consec=1;
+	  b=healths[ptr];
         }
       }
       U8SetAdd(set,consec);
@@ -3849,7 +3930,6 @@ C3DWorldShell *shell=ConstructThing("C3DWorldShell");
 CallScript("init",shell);
 UIShellRun(shell,NULL,0);
 #endif
-
 #endif               
    
 *   ]   g   3   

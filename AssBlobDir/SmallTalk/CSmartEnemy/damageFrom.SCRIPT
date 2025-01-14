@@ -1,0 +1,16 @@
+damage: d=CFrogNum from: t=CSmartEnemy ->* ||
+  self damage: d . 
+
+  1 to: d / 6 + 5 do:[ 
+    #world newParticleAtX: x atY: y atZ: z + .5 withSpread: .5 withColor: blood_color withSplatLump: blood_splat .
+  ] .
+
+  (t hasClass: CSmartEnemy) ifTrue: [
+    t->statistic_kills _ t->statistic_kills + d .
+    (team =0  or: team  ~= t->team) ifTrue: [
+      target _  t .
+      t updateAIWeights: t->statistic_kills .
+    ].
+  ] ifFalse: [
+    target _  t .
+  ].

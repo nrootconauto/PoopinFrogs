@@ -1,0 +1,85 @@
+pissTowardsThing: who=C3DThing ->*
+|
+  piss=CPissLink
+  cur_ts=CFrogNum
+  rand=CFrogRandom
+  launch_angle=CFrogNum
+  targetd=CFrogNum
+  force=CFrogNum
+  a=CFrogNum
+  base_a=CFrogNum
+  approx=CFrogBlock
+  best_force=CFrogNum
+  hit_at=CFrogArray
+  old_hit_at=CFrogArray
+  best_force_d=CFrogNum
+  d=CFrogNum
+  cap=CFrogNum
+|
+  piss_stream update .
+  cur_ts _ CFrogTime now asSeconds .
+
+'ps'show.
+who show.
+
+  (who hasClass:C3DThing) ifFalse: [
+    ^0 .
+  ].
+
+  approx _ [ :percent=CFrogNum|
+    piss _ CPissLink new .
+    piss ->x _  x + (1/8 * a cos ) .
+    piss ->y _  y + (1/8 * a sin ) .
+    piss ->z _  z + .3 .
+    piss ->momx _ (force * percent * a cos).
+    piss ->momy _ (force * percent * a sin).
+    piss ->momz _ .35 .
+    piss->from _ self .
+    
+    cap _ 0 .
+    [
+      hit_at _ piss updateWithWeight: 3  makeParticles: 0 .
+      hit_at = 1 and: cap < 15
+    ] whileTrue: [
+      cap _ cap + 1 .
+    ] .
+    d _ (((hit_at at: 0) -  x ) squared + ((hit_at at: 1) -  y ) squared ) sqrt .
+    ( targetd - d ) abs < best_force_d ifTrue: [
+      best_force _ force * percent .
+      best_force_d _ d 
+    ]
+  ] .
+
+    rand _ CFrogRandom new .
+    'https://en.wikipedia.org/wiki/Trajectory' .
+    launch_angle _ .35 arctan .
+    targetd _  ((who ->x -  x ) squared + (who ->y -  y ) squared ) sqrt . 
+    targetd _ targetd * .6 max: 0 .
+    force _ targetd  /3 min: 2/30 .
+    best_force _ force   .
+    best_force_d _ 10000. .
+
+    base_a _ (who ->x -  x) arg: (who ->y -  y ) .
+    a _  base_a + (3.14 / 100 * rand next ) .
+
+    0 to: 5 do: [:m=CFrogNum|
+      approx value: (m + 5) / 5 .
+    ] .
+
+'Graduall piss towards target  ' .
+    force _ best_force min: 2/30 .
+
+    0 to: 3 do: [:v=CFrogNum |
+        piss _ CPissLink new .
+        piss ->x _  x + (1/4 * a cos ) .
+        piss ->y _  y + (1/4 * a sin ) .
+        piss ->z _  z + .3 .
+        piss ->momx _ (force * a cos).
+        piss ->momy _ (force * a sin).
+        piss ->momz _ .35 .
+        piss->from _ self .
+        (piss updateWithWeight:  1  / 3 * ( 3 -  v)  makeParticles: 0) ifTrue: [ 
+          'test if wee havent hit the ground '.
+          piss_stream addLink: piss .
+        ]
+    ] .

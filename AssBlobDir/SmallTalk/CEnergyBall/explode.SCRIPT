@@ -3,5 +3,5 @@ explode->*
   things=CFrogArray
   dist=CFrogNum
 |
-  self basicExplodeWithDamage:50 withRadius: 2 .
+  self basicExplodeWithDamage:10 withRadius: 2 .
   #world removeThing: self .

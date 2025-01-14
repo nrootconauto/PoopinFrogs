@@ -25,4 +25,13 @@ wander: dist=CFrogNum
     ] . 
   ] .  
 
+  (#world tileIsLiquidAtX: x atY: y atZ: z) ifTrue:[
+    path_finder_data size < 2 ifTrue: [
+'Swim up sort of'.
+      angle2 _ 3.14 /3 .
+    ].
+    self swim: dist / 2 atAngle: angle atAngle: angle2 . 
+    ^ 1 .
+  ].
+
   ^ (self move: dist atAngle: angle) not .

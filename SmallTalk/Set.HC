@@ -5,11 +5,12 @@ class CI64Set {
   CTask *mem_task;
   I64 *body;
 };
+CTask  *set_mem_task=Fs;
 U0 I64SetDel(CI64Set *s) {
   Free(s->body);
   Free(s);
 }
-CI64Set *I64SetNew(CTask *mem_task=NULL) {
+CI64Set *I64SetNew(CTask *mem_task=set_mem_task) {
   CI64Set *s=CAlloc(sizeof(CI64Set),mem_task);
   s->mem_task=mem_task;
   s->cap=16;
@@ -55,7 +56,7 @@ class CU8Set {
   U8 *body;
 };
 
-CU8Set *U8SetNew(CTask *mem_task=NULL) {
+CU8Set *U8SetNew(CTask *mem_task=set_mem_task) {
   CU8Set *s=CAlloc(sizeof(CU8Set),mem_task);
   s->mem_task=mem_task;
   s->cap=64;

@@ -6,4 +6,4 @@ isOverEdge ->CFrogNum
       ^ 0.
     ].
   ] .
-  ^ 1 
+  ^ 1

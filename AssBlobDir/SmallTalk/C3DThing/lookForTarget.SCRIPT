@@ -1,13 +1,18 @@
 lookForTarget -> C3DThing
 |
 |
-  (#world getThingsInRadiusFromX: x fromY: y withRadius: 16) do:[:t=C3DThing|
-        'poop0' show.
-      t show .
-
-    (t hasClass: CPlayer) ifTrue: [
+  (#world getThingsInRadiusFromX: x fromY: y withRadius: 32) do:[:t=C3DThing|
+    ((t hasClass: CPlayer) or: (t hasClass: CSmartEnemy)) ifTrue: [
       ((self canSeeThing: t) and: t->health > 0) ifTrue: [
-        ^ t
+        t ~= self ifTrue: [
+          team ifTrue: [
+             team ~= t->team ifTrue: [
+               ^ t
+             ].
+          ] ifFalse: [
+            ^ t
+          ]
+        ]
       ] .
     ]
   ] .

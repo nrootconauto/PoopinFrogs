@@ -1,0 +1,205 @@
+runNN ->*
+|
+  closest=CFrogArray 
+  dist=CFrogBlock
+  softmax=CFrogBlock
+  sm_ret=CFrogArray
+  probs=CFrogArray
+  sum=CFrogNum
+  rand=CFrogRandom
+  coin=CFrogNum
+  idx=CFrogNum
+  weight=CFrogNum
+  val=CFrogNum
+
+  biggest_need=CFrogNum
+
+  dimension=CFrogArray
+  actions=CFrogArray
+
+  new_nn=CFrogBlock
+  item_classes=CFrogArray
+
+  which=CFrogArray
+
+  enemy_inputs=CFrogArray
+  freind_inputs=CFrogArray
+  health_inputs=CFrogArray
+  goal_inputs=CFrogArray
+  all_inputs=CFrogArray
+  
+  dist_num=CFrogBlock
+  dist=CFrogNum
+
+  row=CFrogArray
+  tmp=CFrogArray
+  who=C3DThing
+
+  apply_weights=CFrogBlock
+  mul=CFrogNum
+
+  dft_weights=CFrogArray
+
+  pair=CFrogArray
+  results=CFrogArray
+  cur_row=CFrogNum
+  row2=CFrogArray
+  weights=CFrogArray
+
+  hidden_cnt=CFrogNum
+  layers=CFrogNum
+
+  nn_weights=CFrogArray
+|
+  'Abritary'.
+  hidden_cnt _ 40 .
+  layers _ 4 .
+
+  rand _ CFrogRandom new .
+  next_action _ 0 .
+
+  dist_num _ [:t=C3DThing|
+    dist _ ((t->x - x)squared + (t->y -y)squared + (t->z - z)squared) sqrt.
+    dist < 3 ifTrue:[
+      dist _ 0 .
+    ] ifFalse: [
+      dist < 8 ifTrue:[
+        dist _ 1 .
+      ] ifFalse: [
+        dist _ 2 .
+      ]
+    ].
+    dist 
+  ].
+  item_classes _ #(
+    CSmartAlien
+    CSmartAssBird 
+    CSmartCyberPoop
+    CSmartEggplantMan
+    CSmartFrogNPC
+    CSmartPooka
+    CSmartPoopMan
+    CSmartPorky
+    CSmartSmallPig
+    CSmartZombie
+    CPlayer
+    0
+    0
+    0
+    0
+    0
+    0
+  ).
+  actions _ #(
+    [ 'TODO hide' show.
+      next_action _ 'Hide' .
+    ] 
+    [ 'TODO projectile attack' show.
+      next_action _ 'Projectile' .
+    ] 
+    [ 'TODO range attack' show.
+      next_action _ 'Range' .
+    ] 
+    [ 'TODO melee attack' show.
+      next_action _ 'Melee' .
+    ] 
+    ['chase' show.
+      next_action _ 'Chase'.
+    ]
+  ).
+  softmax _ [:w=CFrogArray|
+    coin _ rand next .
+    sum _ 0 .
+    w do:[:n=CFrogNum|
+      sum _ sum + (2.71 raisedTo: n *2)
+    ].
+    probs _ w collect: [:n=CFrogNum|
+      (2.71 raisedTo: n  * 2) / sum
+    ] .
+    sum _ 0 .
+    idx_ probs detect: [:n=CFrogNum|
+      sum _ sum + n .
+      coin < sum
+    ].
+    idx < 0 ifTrue: [
+      idx _  0 .
+    ] .
+   
+    sm_ret _ #() .
+    0 to: w size do:[:n=CFrogNum|
+      sm_ret add: idx = n .
+    ].
+    sm_ret
+  ].
+
+
+  closest _ #world getThingsInRadiusFromX: x fromY: y withRadius: 16 .
+
+  dist _ [:t=C3DThing|
+    ((t->x -x)squared + (t->y -y )squared +(t->z -z )squared )sqrt /4 floor max: 1
+  ].
+
+  enemy_inputs _ #() .
+  freind_inputs _ #() .
+  item_classes size * 2 timesRepeat: [enemy_inputs add: 0] .
+  item_classes size * 2 timesRepeat: [freind_inputs add: 0] .
+  closest do:[:t=CSmartEnemy|
+    idx _ item_classes detect: [:c=CFrogClass| c = t class].
+    idx >=0 ifTrue:[
+      (t->team ~= team or: team =0) ifTrue: [
+        enemy_inputs at: idx * 2 + (dist_num value: t ) put: 1
+      ] ifFalse: [
+        freind_inputs at: idx * 2 + (dist_num value: t ) put: 1
+      ].
+    ].
+  ].
+
+  goal_inputs _ softmax value: #(
+    health_priority
+    attack_priority
+    money_priority
+  ).
+
+  health_inputs _ softmax value: #(
+    (health /33 between: 2 and: 1000)
+    (health /33 between: 1 and: 2)
+    (health /33 < 1)
+  ).
+
+  all_inputs _ #().
+  all_inputs addAll: enemy_inputs.
+  all_inputs addAll: goal_inputs.
+  all_inputs addAll: health_inputs.
+'bias'.
+  all_inputs add: 1. .
+
+  nn_inputs _ all_inputs .
+
+  nn_weights _ (#ai_params at: self class asString) at:1  .
+
+
+  (nn_weights hasClass: CFrogArray)ifFalse: [
+    (#ai_params hasClass: CFrogDictionary) ifFalse: [
+      #ai_params _CFrogDictionary new .
+    ].
+    ((#ai_params at: self class asString) hasClass: CFrogArray) ifTrue: [
+      pair _ #ai_params at: self class asString.
+      nn_weights _ pair at: 1 .
+    ] ifFalse: [
+      'Load from file?'.
+      self updateAIWeights: 1.1 .
+      pair _ (#ai_params at: self class asString) at: 1 .
+    ].
+  ].
+  
+  cur_row _ 0 .
+  results _ nn_weights runNN: all_inputs.
+  results _ results copyFrom: 0 to: actions size . 
+  results _ softmax value: results.
+  probs printString show.
+
+  rand next  < .1 ifTrue: [
+    (actions at: rand next * actions size) value
+  ] ifFalse: [
+    (actions at: (idx rem: actions size)) value
+  ].

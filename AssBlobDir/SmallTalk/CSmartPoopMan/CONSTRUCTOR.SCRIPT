@@ -1,0 +1,16 @@
+init | |
+  walk_template_name _ 'CPoopMan'.
+  dying_template_name _ 'CPoopMan/Dead'.
+  attack_template_name _ 'CPoopMan/Throw'.
+  item_capacity _ 10 .
+  health _ 25 .
+  speed _ 70 / 10 *  3.4 / 128 .
+  has_items _ #(
+    #(CShitItem 30)
+  ).
+  current_item_pair _ has_items first .
+  can_use_items _ #(CShitItem).
+  blood_splat _ 'GR/PoopRocket/Splat' .
+  blood_color _ #color_BROWN .
+  #world addThing: self .
+  ^ self

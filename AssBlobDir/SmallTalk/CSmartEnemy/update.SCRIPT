@@ -1,0 +1,223 @@
+update->*
+|
+  rocket=CRocket
+  to_dodge=CFrogArray
+  projectiles=CFrogArray
+  hit_scanners=CFrogArray
+  melee=CFrogArray
+  dist=CFrogNum
+  tmp=CFrogArray
+  union=CFrogBlock
+  use_item=CFrogClass
+  cur_tS=CFrogNum
+  rand=CFrogRandom 
+  spread=CFrogNum
+  use_cnt=CFrogNum
+  t=C3DThingTemplate
+  switch_template=CFrogBlock
+  attack=CFrogNum
+  hide=CFrogNum
+  chase=CFrogNum
+|
+  attack_priority _ 1 .
+
+  no_update ifTrue: [
+   ^ 0 .
+  ].
+
+  chase _ 0 .
+  hide _ 0 .
+  attack _ 0 .
+
+
+  cur_tS _ CFrogTime now asSeconds .
+  next_ai_tS <cur_tS ifTrue: [
+    next_ai_tS _ cur_tS + .33 .
+    self runNN .
+  ].
+
+  next_action = 'Hide' ifTrue: [
+    hide _ 1 
+  ].
+  next_action = 'Projectile' ifTrue: [
+   attack _ 1 .
+  ].
+  next_action = 'Range' ifTrue: [
+   attack _ 1 .
+  ].
+  next_action = 'Melee' ifTrue: [
+   attack _ 1 .
+  ].
+  next_action = 'Chase' ifTrue: [
+   chase _ 1 .
+  ].
+  next_action = 'nil' ifTrue: [
+    ^ 0 .
+  ].
+  next_action = 'Heal' ifTrue: [
+    ^ 0 .
+  ].
+ 
+
+
+  animation_no_repeat _  0 .
+  switch_template _ [:n=CFrogStr|
+    t _ #world getThingTemplate: n .
+    t ~= template ifTrue: [
+      template _ t.
+      animation_start_tS _ cur_tS.
+    ].
+  ].
+  (template hasClass: C3DThingTemplate) ifFalse:[
+    switch_template value: walk_template_name .
+  ] .
+  health <=0 ifTrue:[
+    animation_no_repeat _ 1 .
+    switch_template value: dying_template_name.
+    'TODOdrop items' show.
+    self updateAIWeights: statistic_kills .
+    self die .
+    ^ 0 .
+  ].
+
+  target->health <= 0 ifTrue: [
+    target _ 0 .
+  ].
+  rand _ CFrogRandom new .
+  (target hasClass: C3DThing) ifFalse: [
+    target _ self lookForTarget
+  ].
+  (target hasClass: C3DThing) ifFalse: [
+    switch_template value: walk_template_name.
+    ^ 0
+  ].
+  dist _ ((x - target->x) squared + (y - target->y)squared + (z - target->z) squared) sqrt .
+  (hide) ifTrue: [
+    (self seekCoverFrom: target) ifFalse: [
+      self wander: speed withJumpVelocity:.55 withTarget: target.
+    ].
+  ] ifFalse: [
+    self wander: speed withJumpVelocity:.55 withTarget: target  .
+  ].
+
+  'Dodge opposing rockets'.
+  to_dodge _ #world getThingsInRadiusFromX:x fromY: y fromZ: z withRadius: 3 .  
+  to_dodge do:[:r=CRocket|
+    (r hasClass: CRocket) ifTrue: [
+      (r->from ~= self) ifTrue: [
+        'TODOsomthing more clever'.
+         self move: speed negated atAngle: (r->x - x arg: r->y - y).
+      ].
+    ].
+  ] .
+ 
+  cur_tS >= timeout ifTrue:[
+    ((self canSeeThing: target) and: attack) ifTrue: [
+      'Sorted by usefullnes'.
+      projectiles _ #(
+        CEnergyGun
+        CRocketLauncher
+        CShitItem
+    ) select: [:i*|
+      (has_items detect:[:p=CFrogArray| p first = i ]) >= 0
+    ].
+  
+    hit_scanners _ #(
+      CUzi
+      CShootgun
+      CGun1
+    ) select: [:i*|
+      (has_items detect:[:p=CFrogArray| p first = i ]) >= 0
+    ].
+
+    melee _ #(
+      CFrogDick
+      CKnife
+      CNumchucks
+    ) select: [:i*|
+      (has_items detect:[:p=CFrogArray| p first = i ]) >= 0
+    ].
+
+    next_action = 'Projectile' ifTrue: [
+      use_item _ projectiles first .
+    ].
+    next_action = 'Range' ifTrue: [
+      use_item _ hit_scanners first .
+    ].
+    next_action = 'Melee' ifTrue: [
+      use_item _ melee first .
+    ].
+'Fallback to an avaible weapon if the one we want isnt here'.
+    (use_item hasClass: CFrogClass) ifFalse: [
+      use_item _ projectiles first .
+      (use_item hasClass: CFrogClass)=0 ifTrue: [
+        'Favor hitscanner'.
+       use_item _ hit_scanners first.
+      ] .
+      (use_item hasClass: CFrogClass)=0 ifTrue: [
+        use_item _ melee first.
+      ].
+    ].
+
+
+
+    use_item = CEnergyGun ifTrue: [
+      timeout _ cur_tS + .25 .
+      #world sweepSoundForTime: 100 withMin: 60 withMax: 70  .
+      self fireProjectile: CEnergyBall withSpeed: 75/128 .
+      use_cnt _ 1 .
+    ].
+    use_item = CRocketLauncher ifTrue:[
+      timeout _ cur_tS + .75 .
+      #world sweepSoundForTime: 300 withMin: 80 withMax: 50 .
+      self fireProjectile: CRocket withSpeed: 60/128 .
+      use_cnt _ 1 .
+    ] .
+    use_item = CShitItem ifTrue: [
+      timeout _cur_tS + (.25 * 3.5) .
+      #world sweepSoundForTime: 300 withMin: 50 withMax: 30 .
+      self fireProjectile: CPoopRocket withSpeed: 50 / 128 .
+      use_cnt _ 1 .
+    ].
+    use_item = CUzi ifTrue: [
+      timeout _ cur_tS + .1 . 
+      #world noiseSoundForTime: 1000/10. withMin: 42 withMax: 52 .
+      self rangeAttackAtAngle: angle withDamage: (5 * rand next + 3 ).
+      use_cnt _ 1 .
+    ].
+    use_item = CGun1 ifTrue: [
+      timeout _ cur_tS + .25 .
+      #world sweepSoundForTime: 100 withMin: 50 withMax: 60 .
+      self rangeAttackAtAngle: angle withDamage: (10 * rand next + 5).
+      use_cnt _ 1 .
+    ].
+    use_item = CShootgun ifTrue:[
+      #world noiseNoiseForTime: 200 withMin: 20 withMax: 30 .
+      0 to: 6 do: [
+        spread _ rand next - .5  * (3.14 / 16 ) .
+        self rangeAttackAtAngle: angle + spread withDamage: (10 * rand next + 5) .
+      ].
+      use_cnt _ 1 .
+    ].
+    use_item = CFrogDick ifTrue: [
+      timeout _ cur_tS + 2 . 
+      use_cnt _ 0 .
+    ].
+    has_items do:[:p=CFrogArray|
+      p first = use_item ifTrue: [
+        p at:1 put: (p at:1) - use_cnt .
+        (p at:1)<=0 ifTrue: [
+          has_items remove: p.
+          switch_template value: attack_template_name .
+          ^ 1 .
+        ]
+      ].
+    ].
+    ^ 1 .
+  ] 
+  ] ifFalse: [
+    'Still attacking'.
+    switch_template value: attack_template_name .
+    ^ 1 .
+  ].
+  switch_template value: walk_template_name .

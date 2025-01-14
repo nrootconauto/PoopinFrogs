@@ -1,12 +1,12 @@
 checkExplode ->CFrogNum |
   in_radius=CFrogArray
 |
-  in_radius _ #world getThingsInRadiusFromX: x fromY: y withRadius: 32 .
+  in_radius _ #world getThingsInRadiusFromX: x fromY: y withRadius: 32/128 .
   in_radius do:[:t=C3DThing |
     (t->z - z) abs < 1.5 ifTrue: [
       t ~= from ifTrue: [
         t ->health > 0 ifTrue: [
-          t damage: 15 from: from .
+          t damage: 10 from: from .
           self explode .
           ^ 1 .
         ]

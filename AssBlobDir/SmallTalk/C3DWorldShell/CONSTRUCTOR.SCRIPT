@@ -29,6 +29,8 @@ init ->* |
   notification=CUINotification
   poopidex_active=CFrogNum
   want_item=CHandItem
+
+  trained=CFrogArray
 |
   draw_it_name _ 'Draw3DWorld' .
 
@@ -85,7 +87,6 @@ init ->* |
           #('Yes,fuck this poopy garbage' [
             #ui_root removeChild: e .
             exited _ 1 .
-100 timesRepeat: ['EXITED' show ].
             #world unpause
           ]) 
           #('No,I like this shit(correct aswer)' [
@@ -98,6 +99,18 @@ init ->* |
             e _ 0 .
             #world unpause
           ]) 
+          #('Train AIs(may take some time)' [
+            #ai_params keys do:[:k=CFrogNum|
+              (CFrogClass fromString: k) new trainAI: 256
+            ].
+            #ms_grabbed _ 1 .
+            ask_exit_active _ 0 .
+            ldown _ 0 . 
+            handled _ 1 .
+            #ui_root removeChild: e .
+            e _ 0 .
+            #world unpause
+          ])
         ) .
         e->sz_x _ e2->sz_x .
         e->sz_y _ e2->sz_y + 10 .
@@ -300,8 +313,9 @@ init ->* |
        ].
      ] .
      v->type = 'MsMove' ifTrue: [
-       hand_animate_xoff _ v->m1 - (640 / 2 ) + hand_animate_xoff .
-       hand_animate_yoff _ v->m2 - (480 / 2 ) + hand_animate_yoff .
+       hand_animate_xoff _ 0 + v->m1 - (640 / 2 ) + hand_animate_xoff .
+       hand_animate_yoff _ 0 + v->m2 - (480 / 2 ) + hand_animate_yoff .
+
 
        #ms_grabbed ifTrue: [
          player -> angle _ player->angle + ((v->m1 - (640 / 2) ) * (3.14 / 30 / 7 )) .
@@ -324,6 +338,12 @@ init ->* |
      ] .
   ] .
   on_refresh _ [
+    (hand_animate_xoff hasClass: CFrogNum) ifFalse: [
+      hand_animate_xoff _ 320 .
+    ].
+    (hand_animate_yoff hasClass: CFrogNum) ifFalse: [
+      hand_animate_yoff _ 300 .
+    ].
      player _ #world getPlayer .
      #world ->is_tainted ifTrue: [
         #ui_root _ 0 .
@@ -429,20 +449,19 @@ init ->* |
          ] .
 
          'base position' .
-         #hand_item->xoff _ hand_animate_xoff - #hand_item->x .
-         #hand_item->yoff _ hand_animate_yoff - #hand_item->y .
-
-         xdiff _ #hand_item->x - hand_animate_xoff .
-         ydiff _ #hand_item->y - hand_animate_yoff .
+         #hand_item->xoff2 _ 0 + hand_animate_xoff - #hand_item->x .
+         #hand_item->yoff2 _ 0 + hand_animate_yoff - #hand_item->y .
+         xdiff _ 0 + #hand_item->x - hand_animate_xoff .
+         ydiff _ 0 + #hand_item->y - hand_animate_yoff .
          xdiff abs < hand_animate_gravity ifTrue: [
            hand_animate_xoff _ #hand_item -> x .
          ] ifFalse: [
-           hand_animate_xoff _ (xdiff sign * hand_animate_gravity) + hand_animate_xoff.
+           hand_animate_xoff _ (xdiff sign * hand_animate_gravity) + hand_animate_xoff .
          ] .
          ydiff abs < hand_animate_gravity ifTrue: [
            hand_animate_yoff _ #hand_item -> y .
          ] ifFalse: [
-           hand_animate_yoff _ (ydiff sign * hand_animate_gravity) + hand_animate_yoff.
+           hand_animate_yoff _ (ydiff sign * hand_animate_gravity) + hand_animate_yoff .
          ] .
        ] ifFalse: [
          #ms_grabbed _ 0 .

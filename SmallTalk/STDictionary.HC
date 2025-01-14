@@ -22,8 +22,10 @@ CFrogThing *FrogDictAtPut(CFrogDictionary *d,I64 *argv,I64 argc) {
   U8 *got=AsString(argv[0]);
   CHashGeneric *gen=NULL;
   if(got) {
-    if(gen=HashFind(got,d->t,HTT_FRAME_PTR)) 
+    if(gen=HashFind(got,d->t,HTT_FRAME_PTR)) {
+      I64SetRem(d->all->items,gen->user_data1);
       HashRemDel(gen,d->t);
+    }
     gen=CAlloc(sizeof(CHashGeneric),frog_mem_task);
     gen->str=StrNew(got,frog_mem_task);
     gen->type=HTT_FRAME_PTR;

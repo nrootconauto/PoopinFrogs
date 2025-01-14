@@ -1,0 +1,26 @@
+fireProjectile: type* withSpeed: speed=CFrogNum
+  ->*
+|
+  canidates=CFrogArray
+  hit=C3DThing
+  best_dist=CFrogNum
+  best=C3DThing
+  best_angle=CFrogNum
+  dist=CFrogNum
+  rocket*
+  angle2=CFrogNum
+|
+  best _ target .
+  angle2 _ best->x - x arg: best->y - y.
+  dist _ ((best->x - x) squared + (best->y + y )squared) sqrt.
+  rocket _ type new .
+  rocket ->from _ self .
+  rocket ->x _ x.
+  rocket ->y _ y.
+  rocket ->z _ z + 1.1  .
+  rocket ->angle _ angle2 .
+  rocket->momx _ speed * angle2 cos .
+  rocket->momy _ speed * angle2 sin .
+  rocket->momz _ (target->z  + .5 - rocket ->z ) / (dist + .001) / speed .
+
+  ^ rocket .

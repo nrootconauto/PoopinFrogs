@@ -1,0 +1,23 @@
+breedNN: other=CFrogArray
+  ->CFrogArray
+|
+  layer=CFrogArray
+  weights=CFrogArray
+  layer2=CFrogArray
+  weights2=CFrogArray
+  r=CFrogRandom
+|
+  r _ CFrogRandom new.
+  0 to: other size do:[:l=CFrogNum|
+    layer _ self at: l .
+    layer2 _ other at: l .
+    0 to: layer size do:[:w=CFrogNum|
+      weights _ layer at: w .
+      weights2 _ layer2 at: w .
+      0 to: weights size do:[:i=CFrogNum|
+         r next < .25 ifTrue: [
+           weights at: i put: (weights2 at: i).
+         ].
+      ].
+    ].
+  ].

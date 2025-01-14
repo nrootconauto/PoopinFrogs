@@ -1,0 +1,12 @@
+rangeAttackAtAngle: a=CFrogNum withDamage: d=CFrogNum
+->*
+|
+  best_thing=C3DThing
+  hit_tile=C3DPoint
+|
+  best_thing _ self  bestTargetAtAngle: a .
+  (best_thing hasClass: C3DThing) ifTrue: [
+    best_thing damage: d from: self
+  ] ifFalse: [
+    'TODOdamage tile'.
+  ].

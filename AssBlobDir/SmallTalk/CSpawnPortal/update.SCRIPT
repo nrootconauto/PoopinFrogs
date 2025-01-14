@@ -1,0 +1,36 @@
+update->*
+|
+  spawn_things=CFrogArray
+  cur_tS=CFrogNum
+  cnt=CFrogNum 
+  en=CSmartEnemy
+|
+  cur_tS _ CFrogTime now asSeconds . 
+  cur_tS >= next_spawn_tS ifTrue: [
+    spawn_things _ #(
+      CSmartAlien
+      CSmartPoopMan
+      CSmartCyberPoop
+      CSmartZombie
+    ).
+    0 to: rand next * 5 + 1 do:[
+      spawned size < capacity ifTrue:[
+        en _(spawn_things at: rand next * spawn_things size) new.
+        en->x _ rand next - .5 + x .
+        en->y _ rand next - .5 + y .
+        en->z _ z.
+        en->team _ activate_tag.
+        spawned add: en .
+      ].
+    ].
+    spawned size >= capacity ifTrue: [
+      activate_tag <= 0 ifTrue: [
+        en _ spawned first .
+        spawned remove: en.
+        #world removeThing: en .
+      ].
+    ].
+    next_spawn_tS _ rand next * 5 + 5 + cur_tS .
+  ]
+
+  

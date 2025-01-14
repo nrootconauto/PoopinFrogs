@@ -85,7 +85,6 @@ again:
       FramePtrAdd(dummy,ret);
       while(--inum>=0) {
         I64SetAdd(ret(CFrogArray*)->items,LoadThing0(_str));
-DbgPrint("_str:%s",*_str);
       }
     } else if(!StrCmp(cls,"CFrogStr")) {
       ret=FrogStrNew("");
@@ -284,9 +283,8 @@ CFrogThing *RestoreThingFromSaveFile(CFrogStr *t,I64 *argv,I64 argc) {
   Free(name);
   Free(in_dir);
   if(data) {
-    d2=data;
-    ret=RestoreThing0(&data);
-    Free(d2);
+    ret=RestoreThing0(data);
+    Free(data);
   }
   return ret;
 }

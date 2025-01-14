@@ -1,0 +1,58 @@
+trainAI:iters=CFrogNum ->CFrogArray
+|
+  population=CFrogArray
+  who=CFrogArray
+  nn_weights=CFrogArray
+  best_err=CFrogNum
+  err=CFrogNum
+  max=CFrogNum
+  pair=CFrogArray
+  expected=CFrogArray
+  have=CFrogArray
+  name=CFrogStr
+|
+  name _ 'SmartEnemyData_',self class asString.
+  pair _ #ai_params at: self class asString  .
+  nn_weights _ pair at: 1 .
+  
+  population _ #() .
+
+  0 to: iters do:[
+    best_err _ 100000 .
+    population _ #((nn_weights mutateNN) nn_weights).
+    0 to: population size do:[:popi=CFrogNum|
+     who _ population at: popi.
+     err  _ 0 .
+     (pair at:2) do:[:sit=CFrogArray|
+       expected _ (sit at: 1 ).
+       max _ expected first .
+       expected do: [:s=CFrogNum|
+         max _ max max: s.
+       ].
+       expected _  expected collect: [:s=CFrogNum|
+          s / ( max + 1 ) .
+       ].
+       have _ who runNN: sit first .
+'??? Weird bug sometimes'.
+       ((have hasClass: CFrogArray) and: have size >= sit first size) ifTrue:  [
+         have _ have copyFrom: 0 to: expected size.
+         0 to: expected size do:[:o=CFrogNum|
+             err _ ((have at: o) - (sit first at: o)) abs + err .
+           ].
+         ].
+         best_err _ best_err min: err .
+
+         best_err = err ifTrue: [
+            nn_weights _ who .
+         ].
+       ].
+    ].
+  ].
+  'best_err'show.
+'/2 as values range from -1->1'.
+'/expected size as we have this many caniates'.
+  (best_err  /2 / expected size) show.
+  (pair at: 2) size show.
+ 
+  #(0 nn_weights (pair at: 2)) saveThingToSaveFile: name .
+  #ai_params at: self class asString put: #(0 nn_weights (pair at: 2)). 

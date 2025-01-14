@@ -103,8 +103,6 @@ CFrogThing*BytecodeBlock(CFrogBlock *me,I64 *data,I64 len) {
       I64SetAdd(stack,FROG_SMALL_NIL);
   }
   i=RunByteCode(me->self,me->bytecode,stack,frame);
-  QueRem(frame->stack); //Remove from GC
-  FrogArrayDel(frame->stack);
   frame->stack=FROG_SMALL_NIL;
   frame->thing_flags&=~THINGF_GC_ROOT;
   return i;
@@ -121,8 +119,6 @@ CFrogThing*BytecodeMethod(CFrogBlock *me,CI64Set *bc,I64 *data,I64 len) {
     I64SetAdd(stack,data[i]);
   }
   RunByteCode(me,bc,stack,frame);
-  QueRem(frame->stack); //Remove from GC
-  FrogArrayDel(frame->stack);
   frame->stack=FROG_SMALL_NIL;
   frame->thing_flags&=~THINGF_GC_ROOT;
   return frame->returned;
@@ -145,7 +141,7 @@ CFrogThing *FrogBlockNewBC(CI64Set *bc,CInterpFrame *frame,CFrogThing *self) {
 }
 CFrogThing *RunByteCode(CFrogThing *self,CI64Set *bytecode_stack,CI64Set *stack,CInterpFrame *fr) {
   static F64 last_collect=tS;
-  if(tS>last_collect+1./3.) { 
+  if(tS>last_collect+1/3.) { 
     FrogGarbageCollect(FROG_SMALL_NIL);
     last_collect=tS;
   }

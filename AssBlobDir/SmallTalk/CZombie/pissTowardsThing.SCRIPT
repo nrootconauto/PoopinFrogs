@@ -50,7 +50,7 @@ pissTowardsThing: who=C3DThing ->*
     'https://en.wikipedia.org/wiki/Trajectory' .
     launch_angle _ .35 arctan .
     targetd _  ((who ->x -  x ) squared + (who ->y -  y ) squared ) sqrt . 
-    targetd _ targetd * .6	 max: 0 .
+    targetd _ targetd * .6 max: 0 .
     force _ targetd  /3 min: 2/30 .
     best_force _ force   .
     best_force_d _ 10000. .

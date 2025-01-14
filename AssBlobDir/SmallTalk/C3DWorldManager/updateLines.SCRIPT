@@ -52,6 +52,9 @@ updateLines ->* |
       ].
       tmp addAll: ps->links .
     ].
+    (t hasClass: CSmartEnemy) ifTrue:[
+      tmp addAll: t->lines .
+    ].
   ] .
   lines _ tmp select: [:f*|
     f hasClass: C3DLine

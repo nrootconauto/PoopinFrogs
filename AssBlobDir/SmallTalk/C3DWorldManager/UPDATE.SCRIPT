@@ -30,19 +30,20 @@ update ->* |
   ].
 
   last_update _ now .
-  things do: [:t* |
-    t->server_old_x _ t->x .
-    t->server_old_y _ t->y .
-    t->server_old_z _ t->z .
-    'poopass' show.
-    t show .
-    t->no_update show.
-    t->no_update ifFalse: [
-      t->momx2 _ 0 .
-      t->momy2 _ 0 .
-      t->momz2 _ 0 .
-      t update
-    ] .
+  things do: [:t=C3DThing |
+    (t->dead and: (t->died_at +1.5 < now)) ifTrue: [
+      self removeThing: t .
+    ] ifFalse: [
+      t->server_old_x _ t->x .
+      t->server_old_y _ t->y .
+      t->server_old_z _ t->z .
+      t->no_update ifFalse: [
+        t->momx2 _ 0 .
+        t->momy2 _ 0 .
+        t->momz2 _ 0 .
+        t update
+      ] .
+    ]
   ].
 
   'UI and stuf' .
@@ -58,3 +59,5 @@ update ->* |
   doors do: [:d=CDoor|
     d update 
   ] .
+
+  'Clear dead(?) things'.

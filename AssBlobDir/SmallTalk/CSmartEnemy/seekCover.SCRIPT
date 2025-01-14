@@ -1,0 +1,68 @@
+seekCoverFrom:attacker=C3DThing ->C3DPoint
+|
+  ox=CFrogNum
+  oy=CFrogNum
+  oz=CFrogNum
+  dummy=C3DThing 
+  bestp=C3DPoint
+  bestd=CFrogNum
+  d=CFrogNum
+  xx=CFrogNum
+  yy=CFrogNum
+  zz=CFrogNum
+  rand=CFrogRandom
+  t=CFrogNum
+|
+  bestd _ 64 .
+  bestp _ C3DPoint new .
+  dummy _ C3DThing basicNew.
+  dummy->x _ x .
+  dummy->y _ y .
+  dummy->z _ z .
+'If we find no cover,be sure to charge towards enemy'.
+  bestp->x _ x .
+  bestp->y _ y .
+  bestp->z _ z .
+
+  rand _ CFrogRandom new .
+  
+'Try 5 random cordnates'.
+  0 to: 10 do:[
+    xx _ rand next - .5 * 2 * 5 . 
+    yy _ rand next - .5 * 2 * 5 . 
+    -2 to: 3 do:[:zz=CFrogNum| 
+       dummy->z _ z floor + zz .
+       dummy->y _ y floor + yy + .5 .
+       dummy->x _ x floor + xx + .5 .
+       t _ (#world getTileAtX: dummy->x atY: dummy->y atZ: dummy->z) 
+       (t =0 or: (#world tileIsLiquidAtX: dummy->x atY: dummy->y atZ: dummy->z)) ifTrue: [
+         (attacker canSeeThing: dummy) ifFalse: [
+           d _ ((dummy->x - x ) squared + (dummy->y - y) squared + (dummy->z - z) squared) sqrt .
+           d < bestd ifTrue: [
+               bestd _ d .
+               bestp->x _ dummy->x .
+               bestp->y _ dummy->y .
+               bestp->z _ dummy->z .
+'Hide' show .
+bestp->x show.
+bestp->y show.
+bestp->z show.
+           ].
+         ].
+       ].
+   ]
+  ] . 
+  bestd < 64 ifTrue: [
+    dummy->x _ bestp->x .
+    dummy->y _ bestp->y .
+    dummy->z _ bestp->z .
+  ] ifFalse: [
+    ^ 0 .
+  ].
+  momx2 _  0 .
+  momy2 _  0 . 
+  momz2 _  0 .
+  self wander: speed
+    withJumpVelocity: .55
+    withTarget: dummy.
+  ^ 1 . 

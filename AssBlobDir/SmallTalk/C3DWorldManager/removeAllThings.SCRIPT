@@ -1,0 +1,6 @@
+removeAllThings
+|
+|
+  things do:[:t=C3DThing|
+    self removeThing: t
+  ].

@@ -264,10 +264,11 @@ class C3DThingTemplate:CFrogThing {
 };
 extern class CEliza;
 class C3DThing:CFrogThing {
+  I64 team;
   I64  server_id;
   CFrogClass *drop_thing; //CFrogClass
   C3DThingTemplate *template;
-  F64 x,y,z,angle,health;
+  F64 x,y,z,angle,health,angle2;
   F64 next_x,next_y,next_z;
 //Used for interoplation between server frames
   F64 server_old_x,server_old_y,server_old_z;
@@ -287,7 +288,7 @@ class C3DThing:CFrogThing {
   I64 activate_tag;
 //Private,See GetColorForRay/PrepareThingsForDraw
   CDC *draw_face no_serialize 1 ; //Private
-  CD3 scrn_st,scrn_en; //Private
+  CD3 scrn_st,scrn_en; //Private
   CD3 draw_normal; //Private
   Bool no_fall_off_edge;
   Bool floating;
@@ -296,7 +297,8 @@ class C3DThing:CFrogThing {
   Bool no_update;
   Bool invisible;
   Bool was_in_water;
-  Bool pad;
+  Bool dead;
+  F64 died_at;
   CFrogArray *path_finder_data;
 };
 class C3DProp:C3DThing {};
@@ -341,6 +343,7 @@ class C3DWorldManager:CFrogThing {
   CI64Set *_lights_cache; //List of tiles-Private dont use
   CLevel *level;
   CFrogArray *lights; //CLight
+  F64 last_dead_cleanup;
   I64 sky_light; //The light from the sun. 
   I64 cur_tile_x;
   I64 cur_tile_y;
@@ -378,10 +381,12 @@ class C3DWorldManager:CFrogThing {
   I64 is_tainted;
 };
 
+
 class CHandItem:CFrogThing {
   CFrogImg *gr;
   I64 x,y;
   I64 xoff,yoff;
+  I64 xoff2,yoff2; //Used for weapon sway
   I64 ammo,max_ammo;
   F64 timeout;
   F64 anim_start_tS;
@@ -640,7 +645,6 @@ class CPlayer:C3DThing {
   CPissStream *piss_stream recur_serialize 1;
   F64 last_x,last_y;
   CFrogArray *quest_flags recur_serialize 1;
-  F64 angle2; // up/down angle
   CHandItem *want_hand_item;
 //Has form "QuestName/Codename"
   CFrogArray *quest_seen_responses recur_serialize 1;
@@ -841,4 +845,61 @@ class CTownmaker0:CFrogThing {
   CFrogArray *roads;
 //(x,y) 1 if occupied,else 0
   CFrogArray *occupied;
+};
+
+class CSmartEnemy:C3DThing {
+  F64 next_ai_tS;
+  F64 next_ai_train_tS;
+  F64 statistic_kills;
+  F64 statistic_money;
+  F64 statistic_heal;
+  CFrogArray *nn_inputs;
+  I64 blood_color;
+  CFrogStr *blood_splat;
+  CFrogStr *attack_template_name;
+  CFrogStr *dying_template_name;
+  CFrogStr *walk_template_name;
+  CFrogStr *melee_template_name;
+  I64 item_capacity;
+  F64 timeout;
+  F64 speed;
+  F64 health_priority;
+  F64 money_priority;
+  F64 attack_priority;
+  CFrogStr *next_action;
+  CFrogArray *has_items; //List of $ER$#(CFrogClass,cnt)
+  CFrogArray *current_item_pair; //An array from has_items
+  C3DThing *target;
+//The current group the thing is in
+//Same ground things live togheter.
+  CFrogArray *group;
+  CFrogArray *can_use_items; //List of valid items the enmy can use,or NIL
+  CFrogArray *lines;
+  CPissStream *piss_stream;
+};
+class CSmartAlien:CSmartEnemy {
+};
+class CSmartPoopMan:CSmartEnemy {
+};
+class CSmartAssBird:CSmartEnemy {
+};
+class CSmartCyberPoop:CSmartEnemy {
+};
+class CSmartFrogNPC:CSmartEnemy {
+};
+class CSmartEggplantMan:CSmartEnemy {
+};
+class CSmartPooka:CSmartEnemy {
+};
+class CSmartPorky:CSmartEnemy {
+};
+class CSmartSmallPig:CSmartEnemy {
+};
+class CSmartZombie:CSmartEnemy {
+};
+class CSpawnPortal:C3DThing {
+  I64 capacity dft 16;
+  CFrogArray *spawned;
+  CFrogRandom *rand;
+  F64 next_spawn_tS;
 };
