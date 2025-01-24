@@ -13,4 +13,5 @@ explode ->CFrogNum
     #world newParticleAtX: x atY: y atZ: z + .5 withSpread: 1 withColor: #color_BROWN withSplatLump: 'GR/PoopRocket/Splat'.
   ] .
   CWallStain newStainAtX: x atY: y atZ: z withGraphicsLump: 'GR/PoopRocket/Splat' .
+  CPoopSplatter new doAtX: x atY: y atZ: z + .5 .
   ^ 1 

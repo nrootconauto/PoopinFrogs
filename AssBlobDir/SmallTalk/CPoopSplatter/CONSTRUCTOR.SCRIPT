@@ -1,4 +1,4 @@
-init | |
+init->CPoopSplatter | |
   img _ CFrogImg get: 'GR/PoopSplat'.
   drop_color _ #color_BROWN .
   color _ -1 .

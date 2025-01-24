@@ -11,6 +11,9 @@ damage: d=CFrogNum from: t=CSmartEnemy ->*
   (blood_color = #color_LTRED or: blood_color = #color_RED) ifTrue: [
     CBloodSplatter new doAtX: x atY: y atZ: z + .5 .
   ].
+  blood_color = #color_BROWN ifTrue: [
+    CPoopSplatter new doAtX: x atY: y atZ: z + .5 .
+  ].
 
   (t hasClass: CSmartEnemy) ifTrue: [
     t->statistic_kills _ t->statistic_kills + d .

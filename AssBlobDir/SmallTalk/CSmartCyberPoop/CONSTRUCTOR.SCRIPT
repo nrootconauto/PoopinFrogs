@@ -11,6 +11,7 @@ init | |
   ).
   current_item_pair _ has_items first .
   can_use_items _ #(CRocketLauncher CShitItem).
+  blood_color _ #color_BROWN .
   #world addThing: self .
 
   ^ self 
