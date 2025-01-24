@@ -28,8 +28,8 @@ _CUM_SUM::
     CVTSS2SD XMM2,U32 4[RDX]
     MULSD XMM1,XMM2
     ADDSDXMM0,XMM1
-    ADD RAX,16
-    ADD RDX,16
+    ADD RAX,8
+    ADD RDX,8
     DEC RCX
     JNE @@loop
     MOVQ RAX,XMM0
@@ -72,7 +72,6 @@ AddMethod("CFrogArray","mutateNN",&MutateNN);
 CFrogArray *RunNN(CFrogArray *nn,I64 **argv,I64 argc) {
   CFrogArray *inputs=argv[0];
   if(!ThingHasClass(inputs,"CFrogArray")) {
-PrintI("ass",1);
     return FROG_SMALL_NIL;
   }
   CFrogArray *results=FrogArrayCopy(inputs);
@@ -90,13 +89,11 @@ PrintI("ass",1);
     }
     weights=layers->body[layer];
     if(!ThingHasClass(weights,"CFrogArray")) {
-PrintI("dimebage",1);
       return FROG_SMALL_NIL;
     }
     for(w=0;w!=weights->items->cnt;w++) {
       raw=weights->items->body[w];
       if(!ThingHasClass(raw,"CFrogArray")) {
-PrintI("dimebage",2);
         return FROG_SMALL_NIL;
       }
       raw=raw(CFrogArray*)->items->body;

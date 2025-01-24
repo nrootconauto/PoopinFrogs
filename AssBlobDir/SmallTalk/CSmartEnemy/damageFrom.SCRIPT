@@ -1,9 +1,16 @@
-damage: d=CFrogNum from: t=CSmartEnemy ->* ||
+damage: d=CFrogNum from: t=CSmartEnemy ->* 
+|
+  p=CPlayer
+|
+  p _ #world getPlayer .
   self damage: d . 
 
   1 to: d / 6 + 5 do:[ 
     #world newParticleAtX: x atY: y atZ: z + .5 withSpread: .5 withColor: blood_color withSplatLump: blood_splat .
   ] .
+  (blood_color = #color_LTRED or: blood_color = #color_RED) ifTrue: [
+    CBloodSplatter new doAtX: x atY: y atZ: z + .5 .
+  ].
 
   (t hasClass: CSmartEnemy) ifTrue: [
     t->statistic_kills _ t->statistic_kills + d .

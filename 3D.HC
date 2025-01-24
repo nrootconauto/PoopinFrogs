@@ -4,6 +4,7 @@ Option(OPTf_WARN_UNUSED_VAR,0);
 #include "SmallTalk/Load.HC"
 #include "QuestEditor.HC";
 #include "PathFinder.HC";
+#include "ScreenEffects.HC";
 #ifndef ENGINE_3D
 #include "SSE.HC";
 
@@ -217,6 +218,8 @@ I64 class CWallCommand {
 #define DIST_SCALE (GR_HEIGHT)
 #define EMPTY_SPACE 0
 class C3DWorld {
+  CQue screen_liquids;
+  CQue screen_splats;
   CDC *damage_texture;
   F64 fov,x,y,h,angle;
   F64 angle2;
@@ -334,6 +337,8 @@ C3DWorld *InitWorld(F64 fov=pi/2) {
     Free(tmp);
   }
   QueInit(&ret->particles);
+  QueInit(&ret->screen_liquids);
+  QueInit(&ret->screen_splats);
   ret->step_width=4; 
   ret->step_width_y=4;
   ret->world_width=64;
@@ -2832,11 +2837,11 @@ AddMethod("C3DWorldManager","pointToScreenXAtX:atY:atZ:",&WMPointToScreenX);
 AddMethod("C3DWorldManager","pointToScreenYAtX:atY:atZ:",&WMPointToScreenY);
 AddMethod("C3DWorldManager","pointToScreenZAtX:atY:atZ:",&WMPointToScreenZ);
 U0 DrawParticle(C3DWorld *w,C3DParticle *p) {
-  I32 dist=Sqrt(Sqr(w->x-p->x)+Sqr(w->y-p->y));
+  I32 dist=Sqrt(Sqr(w->x-p->x)+Sqr(w->y-p->y)+Sqr(w->cam_height-p->z));
   I64 x0,y0;
   CD3 res;
   w->to_dc->color=p->color;
-  w->to_dc->thick=(DIST_SCALE/ToF64(1+dist))/64.*p->size;
+  w->to_dc->thick=(DIST_SCALE/ToF64(1+dist))/128.*p->size;
   if(PointToScrn(w,p->x,p->y,p->z,&res))
     if(w->to_dc->thick>0)
       GrPlot3(w->to_dc,res.x,res.y,dist*128+1);
@@ -3391,6 +3396,10 @@ U0 Draw3DWorld(CTask *,CDC *dc) {
       GrBlot(dc,hand->x+hand->xoff2+hand->xoff-hand_gr->dc->width/2,hand->y+hand->yoff2+hand->yoff-hand_gr->dc->height/2,hand_gr->dc+f);
     }
   }
+
+  UpdateScreenLiquids(dc,&w->screen_liquids);
+  UpdateScreenSplats(dc,&w->screen_splats);
+
   minimap=DCNew(200,200);
   DCFill(minimap,TRANSPARENT);
   RenderMiniMap(minimap,player->x,player->y,player->angle+pi/2,10.);
@@ -3923,7 +3932,7 @@ CFrogStr *WorldSaveBlocksToString(C3DWorldManager *man,I64 argc,I64 *argv) {
   return ret;
 }
 AddMethod("C3DWorldManager","saveBlocksToString",&WorldSaveBlocksToString);
-CFrogStr *WorldRestoreBlocksFromString(C3DWorldManager *man,I64 *argv,I64 argc) {
+CFrogStr *WorldRestoreBlocksFromString(C3DWorldManager *man,I64 *argv,I64 argc) {
   CFrogStr *str=argv[0];
   CU8Set *set=str->items;
   U8 *to,*from;
@@ -3942,6 +3951,23 @@ CFrogStr *WorldRestoreBlocksFromString(C3DWorldManager *man,I64 *argv,I64 argc)
   return FROG_SMALL_NIL;
 }
 AddMethod("C3DWorldManager","restoreBlocksFromString:withWidth:withHeight:",&WorldRestoreBlocksFromString);
+CFrogNum *WorldNewScreenLiquid(C3DWorldManager *man,I64 *argv,I64 argc) {
+  NewScreenLiquid(&w->screen_liquids,AsF64(argv[0]),AsF64(argv[1]));
+  return FROG_SMALL_NIL;
+}
+AddMethod("C3DWorldManager","newScreenLiquidWithColor:withDropColor:",&WorldNewScreenLiquid);
+CFrogNum *WorldNewScreenDrop(C3DWorldManager *man,I64 *argv,I64 argc) {
+  NewScreenDrop(&w->screen_liquids,AsF64(argv[0]));
+  return FROG_SMALL_NIL;
+}
+AddMethod("C3DWorldManager","newScreenDropWithColor:",&WorldNewScreenDrop);
+CFrogNum *WorldNewScreenSplat(C3DWorldManager *man,I64 *argv,I64 argc) {
+  if(ThingHasClass(argv[0],"CFrogImg")) {
+    NewScreenSplat(&w->screen_splats,argv[0]);
+  }
+  return FROG_SMALL_NIL;
+}
+AddMethod("C3DWorldManager","newScreenSplat:",&WorldNewScreenSplat);
 CFrogStr *WorldSelectQuest(C3DWorldManager *man,I64 *argv,I64 argc) {
   U8 name[STR_LEN];
   name[0]=0;

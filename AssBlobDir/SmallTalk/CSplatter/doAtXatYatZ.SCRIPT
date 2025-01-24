@@ -1,0 +1,34 @@
+doAtX: xx=CFrogNum
+  atY: yy=CFrogNum
+  atZ: zz=CFrogNum
+  ->*
+|
+  p=CPlayer
+  dist=CFrogNum
+  r=CFrogRandom
+  dice=CFrogNum
+|
+  r _ CFrogRandom new .
+  p _ #world getPlayer . 
+  (p hasClass: CPlayer) ifTrue: [
+    dist _ ((p->x -  xx) squared +(p->y - yy) squared + (p->z - zz) squared) sqrt .
+    (dist < 1 and: r next < .5 ) ifTrue: [
+      color >=0 ifTrue: [
+        #world newScreenLiquidWithColor: color withDropColor: drop_color .
+        ^ 1 .
+      ].
+    ].
+    (dist < 2.3 and: r next < .5 ) ifTrue: [
+       (img hasClass: CFrogImg) ifTrue:[
+        #world newScreenSplat: img .
+        ^ 1 .
+      ].
+    ].
+    (dist < 4 ) ifTrue: [
+      1 to:  r next * 2 + 2 do:[
+        #world newScreenDropWithColor: drop_color .
+      ].
+      ^ 1 .
+    ].
+  ].
+  ^ 0 .

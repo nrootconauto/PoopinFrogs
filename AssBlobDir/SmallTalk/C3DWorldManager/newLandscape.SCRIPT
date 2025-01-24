@@ -14,7 +14,6 @@ newLandscapeWithWidth: w=CFrogNum withHeight: h=CFrogNum
   g3=CFrogNum
   g4=CFrogNum
   lerp=CFrogBlock
-  smooth=CFrogBlock
   gx=CFrogNum
   gy=CFrogNum
   x1=CFrogNum
@@ -64,7 +63,7 @@ newLandscapeWithWidth: w=CFrogNum withHeight: h=CFrogNum
       tmp _ #() .
       0 to: (h / grid_sz) ceil + 1 do: [:y=CFrogNum|
         angle _ r next * 6.28 .
-        tmp add: #((angle cos ) (angle sin )) .
+        tmp add: angle .
       ] .
       vectors add: tmp .
     ] .
@@ -76,36 +75,8 @@ newLandscapeWithWidth: w=CFrogNum withHeight: h=CFrogNum
      a + ((b - a )*v)
   ].
 
-  smooth _ [:x=CFrogNum|
-    (3 * (x raisedTo: 2)) - (2* (x raisedTo: 3))
-  ].
-
   value_at _ [:x=CFrogNum :y=CFrogNum|
-    gx _ x rem: grid_sz .
-    gy _ y rem: grid_sz .
-
-    vector _ ((vectors at: x / grid_sz) at: y /grid_sz) .
-    g1 _ ((gx / grid_sz ) * (vector at: 0)) + 
-      ((gy / grid_sz ) * (vector at: 1 )).
-
-    vector _ ((vectors at: x / grid_sz + 1) at: y / grid_sz  ) .
-    g2 _ (((gx / grid_sz)- 1)  * (vector at: 0)) + 
-      ((gy / grid_sz ) * (vector at: 1 )).
-
-    vector _ ((vectors at: x / grid_sz ) at: y /grid_sz + 1) .
-    g3 _ ((gx / grid_sz ) * (vector at: 0)) + 
-      (((gy / grid_sz) - 1) * (vector at: 1 )).
-
-    vector _ ((vectors at: x / grid_sz + 1) at: y / grid_sz + 1) .
-    g4 _ (((gx / grid_sz)- 1) * (vector at: 0)) + 
-      (((gy / grid_sz)- 1)  * (vector at: 1 )).
-
-
-    x1 _ lerp value: g1 value: g2 value: (smooth value: gx / grid_sz) .
-    x2 _ lerp value: g3 value: g4 value: (smooth value: gx / grid_sz) .
-
-    x1 _ lerp value: x1 value: x2 value: (smooth value: gy / grid_sz) .
-    x1
+    vectors perlinNoiseAtX: x / grid_sz atY: y / grid_sz .
   ].
 
   water_depth _ 1.5 .
@@ -133,10 +104,10 @@ newLandscapeWithWidth: w=CFrogNum withHeight: h=CFrogNum
         pre _  ((water_threshold - pre) /water_threshold) * water_depth.
 
         ground _ get_ground_at value: x value: y .
-        ground - final - 1 to: ground + 1 do: [:z=CFrogNum|
+        ground - pre - 1 to: ground + 1 do: [:z=CFrogNum|
           #world setTile: 0 atX: x atY: y atZ: z 
         ].
-        ground - final - 1 to: ground  do: [:z=CFrogNum|
+        ground - pre - 1 to: ground  do: [:z=CFrogNum|
           '6 is water'.
           #world setTile: 6 atX: x atY: y atZ: z 
         ].
@@ -147,7 +118,6 @@ newLandscapeWithWidth: w=CFrogNum withHeight: h=CFrogNum
 'Dont freeze'.
     CFrogThread yield .
   ] .
-
 
   0 to: w  do: [:x=CFrogNum|
     0 to: h do: [:y=CFrogNum|

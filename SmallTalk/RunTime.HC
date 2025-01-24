@@ -1618,9 +1618,9 @@ U0 FrogGarbageCollectThing(CFrogThing *root,Bool debug=FALSE) {
   CMemberLst *mlst;
   root->shadow_ref_cnt++;
   if(debug) "$$TR,\"%s,%x\"$$\n$$ID,2$$\n",FrogThingClassName(root),root;
-  if(LBts(&root->thing_flags,THINGf_GC_LOCK))
+  if(Bts(&root->thing_flags,THINGf_GC_LOCK))
     goto fin;
-  LBtr(&root->thing_flags,THINGf_TO_DELETE);
+  Btr(&root->thing_flags,THINGf_TO_DELETE);
   if(promises=root->promises) {
       idx=promises->cnt;
       while(--idx>=0) {
@@ -1715,22 +1715,38 @@ U0 FrogGarbageCollect(CFrogThing *root=FROG_SMALL_NIL,Bool debug=FALSE) {
   try {
 //Force No-registers.I will scan the system except blocks
     U64 bucket,i;
+    U64 mask=0x2000;
     CFrogThing **stacks,**stacke;
-    CFrogThing **heap_hash=CAlloc(sizeof(CFrogThing*)*0x200);
+    CFrogThing **heap_hash=CAlloc(sizeof(CFrogThing*)*mask);
     FrogDisableScripts;
     CFrogThing *head=&allocs_head,*cur,*next;
     for(cur=head->next;cur!=head;cur=cur->next) {
       if(!ThingHasClass(cur,"CFrogSymbol")&&!(cur->thing_flags&THINGF_GC_ROOT)) {
-        LBts(&cur->thing_flags,THINGf_TO_DELETE);
+        Bts(&cur->thing_flags,THINGf_TO_DELETE);
         cur->shadow_ref_cnt=0;
         cur->ref_cnt=I64_MAX;
       }
-      bucket=(cur>>3)(U64)%0x200;
-      cur->_heap_hash_next=NULL;
-      next=heap_hash[bucket];
-      heap_hash[bucket]=cur;
-      cur->_heap_hash_next=next;
     } 
+
+//Collect symbols first
+    for(cur=head->next;cur!=head;cur=cur->next) {
+      if(ThingHasClass(cur,"CFrogSymbol")) {
+        FrogGarbageCollectThing(cur(CFrogSymbol*)->value,debug);
+      }
+      if(cur->thing_flags&THINGF_GC_ROOT)
+        FrogGarbageCollectThing(cur,debug);
+    }
+
+//Add un-collected things to the hash
+    for(cur=head->next;cur!=head;cur=cur->next) {
+      if(Bt(&cur->thing_flags,THINGf_TO_DELETE)) {
+        bucket=(cur>>3)(U64)%mask;
+        cur->_heap_hash_next=NULL;
+        next=heap_hash[bucket];
+        heap_hash[bucket]=cur;
+        cur->_heap_hash_next=next;
+      }
+    }
 
     //Scan stack "HolyC side may be using some poop"
     stacks=Fs->stk;
@@ -1738,7 +1754,7 @@ U0 FrogGarbageCollect(CFrogThing *root=FROG_SMALL_NIL,Bool debug=FALSE) {
     while(stacks<stacke) {
       cur=stacks[0];
       if(cur&&!(cur&0b111)) {
-        bucket=(cur>>3)(U64)%0x200;
+        bucket=(cur>>3)(U64)%mask;
         next=heap_hash[bucket];
         while(next) {
 	  if(next==cur) {
@@ -1765,7 +1781,7 @@ U0 FrogGarbageCollect(CFrogThing *root=FROG_SMALL_NIL,Bool debug=FALSE) {
         while(stacks<stacke) {
 	  cur=stacks[0];
 	  if(cur&&!(cur&0b111)) {
-	    bucket=(cur>>3)(U64)%0x200;
+	    bucket=(cur>>3)(U64)%mask;
 	    next=heap_hash[bucket];
 	    while(next) {
 	      if(next==cur) {
@@ -1781,13 +1797,6 @@ U0 FrogGarbageCollect(CFrogThing *root=FROG_SMALL_NIL,Bool debug=FALSE) {
     Free(heap_hash);
 
 
-    for(cur=head->next;cur!=head;cur=cur->next) {
-      if(ThingHasClass(cur,"CFrogSymbol")) {
-        FrogGarbageCollectThing(cur(CFrogSymbol*)->value,debug);
-      }
-      if(cur->thing_flags&THINGF_GC_ROOT)
-        FrogGarbageCollectThing(cur,debug);
-    }
     FrogGarbageCollectThing(root);
     for(cur=head->next;cur!=head;cur=next) {
       next=cur->next;
@@ -1797,7 +1806,7 @@ U0 FrogGarbageCollect(CFrogThing *root=FROG_SMALL_NIL,Bool debug=FALSE) {
         ThingDel(cur,FALSE);
       } else {
         cur->ref_cnt=cur->shadow_ref_cnt;
-        LBtr(&cur->thing_flags,THINGf_GC_LOCK);
+        Btr(&cur->thing_flags,THINGf_GC_LOCK);
       }
     }
     FrogEnableScripts;
@@ -1936,6 +1945,7 @@ AddMethod("CFrogNum","printString",&FrogNumPrintString);
 
 #exe{Cd(__DIR__);}; //???
 #include "Network.HC";
+#include "PerlinNoise.HC";
 U0 FrogBinDel(CFrogBin *bin) {
   Free(bin->data);
   Free(bin);

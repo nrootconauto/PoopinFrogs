@@ -1,6 +1,6 @@
 new ->CFrogRandom | |
   #rand_gen isNil ifFalse: [
-    ^ self basicNew init: #rand_gen next
+    ^ self basicNew init: #rand_gen next * 123
   ] .
 'NR' show.
   #rand_gen _ self basicNew init: 123

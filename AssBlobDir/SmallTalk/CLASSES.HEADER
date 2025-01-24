@@ -573,7 +573,7 @@ class CGun1:CHandItem {
 };
 class CUzi:CHandItem {
   CFrogStr *state;
-  Bool active;
+  Bool active;
 };
 class CUziPickup:CPickup {
 };
@@ -903,4 +903,25 @@ class CSpawnPortal:C3DThing {
   CFrogArray *spawned;
   CFrogRandom *rand;
   F64 next_spawn_tS;
+};
+
+//
+// This is used for piss/shit hitting the screen.
+//  
+// color/drop_color are used for Liquid streams/drops
+//
+// img is used for stains on the screen
+//
+// Asplatter is spawned in the world and will affect near players
+class CSplatter:CFrogThing {
+  F64 x,y,z;
+  I64 color;
+  I64 drop_color;
+  CFrogImg *img;
+};
+class CBloodSplatter:CSplatter {
+};
+class CPoopSplatter:CSplatter {
+};
+class CPissSplatter:CSplatter {
 };

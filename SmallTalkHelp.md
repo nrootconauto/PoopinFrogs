@@ -95,16 +95,19 @@
 	 - **pointToScreenZAtX:atY:atZ:**(builtin)
 	 - **pointToScreenYAtX:atY:atZ:**(builtin)
 	 - **pointToScreenXAtX:atY:atZ:**(builtin)
+	 - **newScreenLiquidWithColor:withDropColor:**(builtin)
 	 - **getQuestChatBot:**(builtin)
 	 - **noiseSoundForTime:withMin:withMax:**(builtin)
 	 - **sweepSoundForTime:withMin:withMax:**(builtin)
 	 - **getShiftKey**(builtin)
 	 - **updateParticles**(builtin)
 	 - **width**(builtin)
+	 - **newScreenSplat:**(builtin)
 	 - **skylight:**(builtin)
 	 - **basicNewParticleAtX:atY:atZ:withSpread:withColor:withSplatLump:**(builtin)
 	 - **saveBlocksToString**(builtin)
 	 - **screenTile**(builtin)
+	 - **newScreenDropWithColor:**(builtin)
 	 - **basicNewParticleAtX:atY:atZ:withSpread:withColor:**(builtin)
 	 - **loadLevelFromBlob:**(builtin)
 	 - **screenCoordToDist**(builtin)
@@ -194,6 +197,8 @@
 	 - [init](AssBlobDir/SmallTalk/CBigKeyPickup/CONSTRUCTOR.SCRIPT)
  - CBlockEditShell
 	 - [init](AssBlobDir/SmallTalk/CBlockEditShell/CONSTRUCTOR.SCRIPT)
+ - CBloodSplatter
+	 - [init](AssBlobDir/SmallTalk/CBloodSplatter/CONSTRUCTOR.SCRIPT)
  - CCeilStain
 	 - [init](AssBlobDir/SmallTalk/CCeilStain/CONSTRUCTOR.SCRIPT)
  - CCeilWallStain
@@ -292,6 +297,7 @@
 	 - **copyFrom:to:**(builtin)
 	 - **removeAt:**(builtin)
 	 - **add:**(builtin)
+	 - **perlinNoiseAtX:atY:**(builtin)
 	 - **at:put:**(builtin)
 	 - [addAll:](AssBlobDir/SmallTalk/CFrogArray/ADDALL.SCRIPT)
 	 - [new](AssBlobDir/SmallTalk/CFrogArray/CLASS_METHODS/NEW.SCRIPT)
@@ -580,6 +586,8 @@
 	 - [setY:](AssBlobDir/SmallTalk/CPissLink/setY.SCRIPT)
 	 - [setZ:](AssBlobDir/SmallTalk/CPissLink/setZ.SCRIPT)
 	 - [updateWithWeight:makeParticles:](AssBlobDir/SmallTalk/CPissLink/update.SCRIPT)
+ - CPissSplatter
+	 - [init](AssBlobDir/SmallTalk/CPissSplatter/CONSTRUCTOR.SCRIPT)
  - CPissStream
 	 - [init](AssBlobDir/SmallTalk/CPissStream/CONSTRUCTOR.SCRIPT)
 	 - [addLink:](AssBlobDir/SmallTalk/CPissStream/addLink.SCRIPT)
@@ -623,6 +631,8 @@
 	 - [init](AssBlobDir/SmallTalk/CPoopRocket/CONSTRUCTOR.SCRIPT)
 	 - [checkExplode](AssBlobDir/SmallTalk/CPoopRocket/checkExplode.SCRIPT)
 	 - [explode](AssBlobDir/SmallTalk/CPoopRocket/explode.SCRIPT)
+ - CPoopSplatter
+	 - [init](AssBlobDir/SmallTalk/CPoopSplatter/CONSTRUCTOR.SCRIPT)
  - CPoopidex
 	 - [init](AssBlobDir/SmallTalk/CPoopidex/CONSTRUCTOR.SCRIPT)
 	 - [activate](AssBlobDir/SmallTalk/CPoopidex/activate.SCRIPT)
@@ -712,6 +722,9 @@
  - CSpawnPortal
 	 - [init](AssBlobDir/SmallTalk/CSpawnPortal/CONSTRUCTOR.SCRIPT)
 	 - [update](AssBlobDir/SmallTalk/CSpawnPortal/update.SCRIPT)
+ - CSplatter
+	 - [init](AssBlobDir/SmallTalk/CSplatter/CONSTRUCTOR.SCRIPT)
+	 - [doAtX:atY:atZ:](AssBlobDir/SmallTalk/CSplatter/doAtXatYatZ.SCRIPT)
  - CTalkShell
 	 - [init](AssBlobDir/SmallTalk/CTalkShell/CONSTRUCTOR.SCRIPT)
  - CTalker
@@ -903,6 +916,8 @@
 	 - [new](AssBlobDir/STClsRoot/CBigKeyPickup/NEW.SCRIPT)
  - CBlockEditShell
 	 - [new](AssBlobDir/STClsRoot/CBlockEditShell/NEW.SCRIPT)
+ - CBloodSplatter
+	 - [new](AssBlobDir/STClsRoot/CBloodSplatter/NEW.SCRIPT)
  - CCeilStain
 	 - [new](AssBlobDir/STClsRoot/CCeilStain/NEW.SCRIPT)
  - CCeilWallStain
@@ -1037,6 +1052,8 @@
 	 - [new](AssBlobDir/STClsRoot/CPickup/NEW.SCRIPT)
  - CPissLink
 	 - [new](AssBlobDir/STClsRoot/CPissLink/NEW.SCRIPT)
+ - CPissSplatter
+	 - [new](AssBlobDir/STClsRoot/CPissSplatter/NEW.SCRIPT)
  - CPissStream
 	 - [new](AssBlobDir/STClsRoot/CPissStream/NEW.SCRIPT)
  - CPlayer
@@ -1047,6 +1064,8 @@
 	 - [new](AssBlobDir/STClsRoot/CPoopMan/NEW.SCRIPT)
  - CPoopRocket
 	 - [new](AssBlobDir/STClsRoot/CPoopRocket/NEW.SCRIPT)
+ - CPoopSplatter
+	 - [new](AssBlobDir/STClsRoot/CPoopSplatter/NEW.SCRIPT)
  - CPoopidex
 	 - [new](AssBlobDir/STClsRoot/CPoopidex/NEW.SCRIPT)
  - CPoopidexEntry
@@ -1103,6 +1122,8 @@
 	 - [new](AssBlobDir/STClsRoot/CSmartZombie/NEW.SCRIPT)
  - CSpawnPortal
 	 - [new](AssBlobDir/STClsRoot/CSpawnPortal/NEW.SCRIPT)
+ - CSplatter
+	 - [new](AssBlobDir/STClsRoot/CSplatter/NEW.SCRIPT)
  - CTalkShell
 	 - [new](AssBlobDir/STClsRoot/CTalkShell/NEW.SCRIPT)
  - CTalker

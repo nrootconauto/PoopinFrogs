@@ -91,10 +91,13 @@ updateAIWeights:score=CFrogNum ->*
       pair2 _ inputs at: i .
       scores _ pair2 at: 1 .
       j _ indices indexOf: next_action.
-      scores printString show.
+'poopy' show.
+      pair2 first printString show.
       scores at: j put: ((scores at: j)+score).
       scores printString show.
     ] ifFalse:[
+'new_sate'show.
+nn_inputs printString show. 
       inputs add: #(nn_inputs (indices collect: [:s=CFrogStr| (s = next_action)*score]))
     ].
     nn_weights2 _  pair at: 1 .

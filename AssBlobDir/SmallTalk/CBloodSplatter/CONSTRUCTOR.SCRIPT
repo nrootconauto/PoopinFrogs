@@ -1,0 +1,5 @@
+init | |
+  img _ CFrogImg get: 'GR/BloodSplat'.
+  drop_color _ #color_LTRED .
+  color _ #color_RED .
+  ^ self
