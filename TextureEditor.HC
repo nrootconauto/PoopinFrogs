@@ -487,6 +487,7 @@ U0 _TextureEdit(CDC **_image,U8 *blob_file=NULL,U8 *write_to_name=NULL) {
   ed->color=RED;
   ed->screen=DCCopy(image,image->mem_task);
   SettingsPush;
+  WinMax;
   gr.fp_draw_ms=&TextureEditorDrawMs;
   MenuPush(
         "File {"

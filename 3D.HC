@@ -1811,7 +1811,7 @@ ystyle:
 }
 //Also prepares CWallStain's
 
-U0 PrepareThingsForDraw(C3DWorldManager *wm,F64 thing_scale=.6) {
+U0 PrepareThingsForDraw(C3DWorldManager *wm) {
   I64 args[3];
   args[0]=FrogNumNew(w->x),args[1]=FrogNumNew(w->y),args[2]=FrogNumNew(VIEW_DIST);
   CFrogArray *arr=WorldManagerThingsInRadius(wm,args,3);
@@ -1832,7 +1832,7 @@ U0 PrepareThingsForDraw(C3DWorldManager *wm,F64 thing_scale=.6) {
   F64 width;
   F64 st,en;
   F64 stz,enz;
-  F64 radius;
+  F64 radius,thing_scale;
   U32 dist;
   for(ox=0;ox!=2*VIEW_DIST;ox++)
     for(oy=0;oy!=2*VIEW_DIST;oy++) {
@@ -1858,6 +1858,7 @@ U0 PrepareThingsForDraw(C3DWorldManager *wm,F64 thing_scale=.6) {
     if(0<=ix<2*VIEW_DIST)
       if(0<=iy<2*VIEW_DIST) {
         thing->draw_face=hit_texture;
+	thing_scale=thing->scale;
         normal=Arg(w->x-thing->x,w->y-thing->y)-pi/2;
         scrn_st.x=thing->x-hit_texture->width/128./2.*Cos(normal)*thing_scale;
         scrn_st.y=thing->y-hit_texture->width/128./2.*Sin(normal)*thing_scale;
@@ -2494,7 +2495,7 @@ try_things:
 		    ToI64(sprite_hit_xyz.z)!=tz)
 	        goto skip_thing;
 	      if(hit_texture=thing->draw_face) {
-	        hy=hit_texture->height/128.*.6;
+	        hy=hit_texture->height/128.*thing->scale;
 	        if(0<=sprite_hit_xyz.z-thing->z<hy) {
 		  hx*=hit_texture->width;
 		  hy=(1.-(sprite_hit_xyz.z-thing->z)/hy)*hit_texture->height;
@@ -2968,6 +2969,17 @@ CFrogNum *WorldManagerIsLiquid(C3DWorldManager *man,I64 *argv,I64 argc) {
   return FrogNumNew(0);
 }
 AddMethod("C3DWorldManager","tileIsLiquidAtX:atY:atZ:",&WorldManagerIsLiquid);
+CFrogNum *WorldManagerIsSolid(C3DWorldManager *man,I64 *argv,I64 argc) {
+  I64 x=AsF64(argv[0]);
+  I64 y=AsF64(argv[1]);
+  I64 z=Floor(AsF64(argv[2]));
+  I64 tile=(x+y*w->world_width)*128+z;
+  if(0<=tile<w->world_width*w->world_height*128) {
+    return FrogNumNew(tile&&!IsLiquidTile(w->world_blocks[tile]));
+  }
+  return FrogNumNew(1);
+}
+AddMethod("C3DWorldManager","tileIsSolidAtX:atY:atZ:",&WorldManagerIsSolid);
 
 //Returns 1. if COLLISION,else 0
 CFrogThing *C3DThingMoveAtAngle(C3DThing *self,I64 *argv,I64 argc) {

@@ -32,3 +32,18 @@ animate->*
       lines add: line 
     ].
   ].
+
+  (tongue hasClass: CFrogTongue) ifTrue: [
+    lines add: tongue .
+    (tongue update) ifFalse: [
+      (tongue->ate_thing hasClass: C3DThing) ifTrue: [
+        self eatThing: tongue->ate_thing .
+      ].
+      tongue _ 0 .
+      timeout _ CFrogTime now asSeconds + .2 .
+    ] .
+  ].
+
+  (self hasClass: CSmartBullFrog) ifTrue: [
+    self growAnimate .
+  ]. 

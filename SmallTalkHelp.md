@@ -91,6 +91,7 @@
 	 - **getTileAtX:atY:atZ:**(builtin)
 	 - **damageTile:atX:atY:atZ:**(builtin)
 	 - **setTile:atX:atY:atZ:**(builtin)
+	 - **tileIsSolidAtX:atY:atZ:**(builtin)
 	 - **tileIsLiquidAtX:atY:atZ:**(builtin)
 	 - **pointToScreenZAtX:atY:atZ:**(builtin)
 	 - **pointToScreenYAtX:atY:atZ:**(builtin)
@@ -691,6 +692,11 @@
 	 - [init](AssBlobDir/SmallTalk/CSmartAlien/CONSTRUCTOR.SCRIPT)
  - CSmartAssBird
 	 - [init](AssBlobDir/SmallTalk/CSmartAssBird/CONSTRUCTOR.SCRIPT)
+ - CSmartBullFrog
+	 - [init](AssBlobDir/SmallTalk/CSmartBullFrog/CONSTRUCTOR.SCRIPT)
+	 - [eatThing:](AssBlobDir/SmallTalk/CSmartBullFrog/EatThing.SCRIPT)
+	 - [grow:](AssBlobDir/SmallTalk/CSmartBullFrog/grow.SCRIPT)
+	 - [growAnimate](AssBlobDir/SmallTalk/CSmartBullFrog/growAnimate.SCRIPT)
  - CSmartCyberPoop
 	 - [init](AssBlobDir/SmallTalk/CSmartCyberPoop/CONSTRUCTOR.SCRIPT)
  - CSmartEggplantMan
@@ -1102,6 +1108,8 @@
 	 - [new](AssBlobDir/STClsRoot/CSmartAlien/NEW.SCRIPT)
  - CSmartAssBird
 	 - [new](AssBlobDir/STClsRoot/CSmartAssBird/NEW.SCRIPT)
+ - CSmartBullFrog
+	 - [new](AssBlobDir/STClsRoot/CSmartBullFrog/NEW.SCRIPT)
  - CSmartCyberPoop
 	 - [new](AssBlobDir/STClsRoot/CSmartCyberPoop/NEW.SCRIPT)
  - CSmartEggplantMan

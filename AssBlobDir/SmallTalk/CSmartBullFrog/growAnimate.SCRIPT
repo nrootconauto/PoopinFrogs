@@ -1,0 +1,17 @@
+growAnimate->*
+|
+  rel=CFrogNum
+  lerp=CFrogNum
+|
+  grow_start_tS <= 0 ifTrue: [
+    ^ 0 .
+  ].
+  rel _ CFrogTime now asSeconds - grow_start_tS .
+  rel > 2 ifTrue: [
+    scale _ grow_to .
+    grow_start_tS _ 0 .
+  ] ifFalse: [
+'Make sexy growing effect'.
+    lerp _ (rel * 8 * 3.14) sin + 1 / 2 .
+    scale _ (grow_to - old_scale) * lerp + old_scale .
+  ].

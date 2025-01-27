@@ -1,0 +1,45 @@
+eatThing: t=C3DThing ->*
+|
+  mass=CFrogNum
+  target_height=CFrogNum
+|
+  #world removeThing: t .
+  (t hasClass: CRocket) ifTrue: [
+    ^ 0 .
+  ].
+  mass _ 25 .
+  (t hasClass: CSmartAlien) ifTrue: [
+    mass _ 75 .
+  ].
+  (t hasClass: CSmartAssBird) ifTrue: [
+    mass _ 50 .
+  ].
+  (t hasClass: CSmartBullFrog) ifTrue: [
+    mass _ t->scale / .6 * 50 .
+  ].
+  (t hasClass: CSmartEggplantMan) ifTrue: [
+    mass _ 100 .
+  ].
+  (t hasClass: CSmartCyberPoop) ifTrue: [
+    mass _ 200 .
+  ].
+  (t hasClass: CSmartFrogNPC) ifTrue: [
+    mass _ 75 .
+  ].
+  (t hasClass: CSmartPoopMan) ifTrue: [
+    mass _ 50 .
+  ].
+  (t hasClass: CSmartPorky) ifTrue: [
+    mass _ 150 .
+  ].
+  (t hasClass: CSmartSmallPig) ifTrue: [
+    mass _ 150 .
+  ].
+  (t hasClass: CSmartZombie) ifTrue: [
+    mass _ 75 .
+  ].
+  health _ health + mass .
+  target_height _ (health / 50) floor * .6 + 1 .
+  target_height > scale ifTrue: [
+    self grow: target_height
+  ].

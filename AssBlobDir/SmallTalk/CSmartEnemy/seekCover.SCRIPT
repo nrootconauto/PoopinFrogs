@@ -34,8 +34,7 @@ seekCoverFrom:attacker=C3DThing ->C3DPoint
        dummy->z _ z floor + zz .
        dummy->y _ y floor + yy + .5 .
        dummy->x _ x floor + xx + .5 .
-       t _ (#world getTileAtX: dummy->x atY: dummy->y atZ: dummy->z) 
-       (t =0 or: (#world tileIsLiquidAtX: dummy->x atY: dummy->y atZ: dummy->z)) ifTrue: [
+       (#world tileIsSolidAtX: dummy->x atY: dummy->y atZ: dummy->z) ifTrue: [
          (attacker canSeeThing: dummy) ifFalse: [
            d _ ((dummy->x - x ) squared + (dummy->y - y) squared + (dummy->z - z) squared) sqrt .
            d < bestd ifTrue: [
@@ -43,10 +42,6 @@ seekCoverFrom:attacker=C3DThing ->C3DPoint
                bestp->x _ dummy->x .
                bestp->y _ dummy->y .
                bestp->z _ dummy->z .
-'Hide' show .
-bestp->x show.
-bestp->y show.
-bestp->z show.
            ].
          ].
        ].

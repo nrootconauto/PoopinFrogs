@@ -31,18 +31,30 @@ update ->CFrogNum |
   angle _ target_x - fx arg: target_y - fy .
   dist _ ((target_x - fx) squared + (target_y - fy) squared ) sqrt * t .
 
+
+  x0 _ fx .
+  y0 _ fy .
+  z0 _ from->z + (from->scale * .75) .
+
   x _ (dist * angle cos ) + fx .
   y _ (dist * angle sin ) + fy .
+  z _ lerp value: z0  value: target_z .
 
-  z _ lerp value: from ->z + .5  value: target_z .
-  hit_block _ #world getTileAtX: x atY: y atZ: z .
+  (ate_thing hasClass: C3DThing) ifTrue: [
+    ate_thing->x _ x .
+    ate_thing->y _ y .
+    ate_thing->z _ z .
+  ].
+
+
+  hit_block _ #world tileIsSolidAtX: x atY: y atZ: z .
   (hit_block and: going_back not) ifTrue: [
      start_tS _ CFrogTime now asSeconds .
      going_back _ 1 .
      target_x _ x .
      target_y _ y .
      target_z _ z .
-     ^ 0 .
+     ^ 1 .
   ] .
 
   things _ #world thingsInDist: dist + .5 atAngle: angle fromThing: from .
@@ -50,6 +62,7 @@ update ->CFrogNum |
   things do: [:t=C3DThing | 
     (t ~= from and: (hit has: t) not ) ifTrue: [
       (self hitsThing: t withRadius: .75 ) ifTrue: [
+        
         dist2 _ ((t->x -x) squared + (t->y - y) squared )sqrt .
         hit add: t .
         going_back ifFalse: [
@@ -67,7 +80,15 @@ update ->CFrogNum |
         t addMomX: force * angle cos. 
         t addMomY: force * angle sin. 
         t addMomZ: .45 . 
-        ^0 .
+'Attach the thing to the tongue'.
+        hit size = 1 ifTrue: [
+          (eat and: t->health<=0) ifTrue: [
+            (t hasClass: CRocket) ifFalse: [
+              ate_thing _ t .
+            ]
+          ].
+        ].
+        ^1 .
       ]
     ] .
   ].

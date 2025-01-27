@@ -1,0 +1,19 @@
+init->* ||
+  walk_template_name _ 'CBullFrog/Walk'.
+  dying_template_name _ 'CBullFrog/Dead'.
+  attack_template_name _ 'CBullFrog/Eat'.
+  item_capacity _ 1 .
+'Bullfrogs get more health at they eat'.
+'They also get bigger too'.
+  scale _ .5 .
+  health _ 25 .
+  speed _ 4 / 30  .
+  has_items _ #(
+    #(CFrogTongue 1)
+  ).
+  current_item_pair _ has_items first .
+  can_use_items _ #(CFrogTongue).
+  blood_splat _ 'GR/BloodSplat' .
+  blood_color _ #color_RED .
+  #world addThing: self .
+  ^ self

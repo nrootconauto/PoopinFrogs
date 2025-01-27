@@ -1,0 +1,9 @@
+grow: to=CFrogNum ->*
+  |
+  |
+  grow_to _ to .
+  grow_start_tS >0 ifTrue: [
+   ^ 0 .
+  ].
+  old_scale _ scale .
+  grow_start_tS _ CFrogTime now asSeconds .

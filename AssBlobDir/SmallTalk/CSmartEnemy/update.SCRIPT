@@ -118,6 +118,7 @@ update->*
         CEnergyGun
         CRocketLauncher
         CShitItem
+        CFrogTongue
     ) select: [:i*|
       (has_items detect:[:p=CFrogArray| p first = i ]) >= 0
     ].
@@ -203,6 +204,16 @@ update->*
       timeout _ cur_tS + 2 . 
       use_cnt _ 0 .
     ].
+
+    use_item = CFrogTongue ifTrue: [
+      'Tongue will go back when it hits something'.
+      timeout _ cur_tS + 100 . 
+      use_cnt _ 0 .
+      tongue _ CFrogTongue new .
+      tongue->eat _ 1 .
+      tongue eatTarget: target fromFrog: self .
+    ].
+
     has_items do:[:p=CFrogArray|
       p first = use_item ifTrue: [
         p at:1 put: (p at:1) - use_cnt .

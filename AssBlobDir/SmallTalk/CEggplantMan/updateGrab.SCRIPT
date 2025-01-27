@@ -114,7 +114,7 @@ updateGrab->CFrogNum
       state_start_tS _ CFrogTime now asSeconds .
     ] .
 
-    (w getTileAtX: tx atY: ty  atZ: tz ) ifTrue: [
+    (w tileIsSolidAtX: tx atY: ty  atZ: tz ) ifTrue: [
       'Hit a wall ' .
       state _ 'Grab3' .
       state_start_tS _ CFrogTime now asSeconds .

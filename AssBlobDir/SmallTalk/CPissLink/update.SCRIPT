@@ -36,8 +36,8 @@ updateWithWeight: w=CFrogNum makeParticles: part=CFrogNum ->* |
     ] .
   ].
   'Use the old positions to ensure the entire piss stream in under the ground/wwal' .
-  old_under _ 0 ~= (world getTileAtX: oldx atY: oldy atZ: oldz ).
-  under _ 0 ~= (world getTileAtX: x atY: y atZ: z ).
+  old_under _ 0 ~= (world tileIsSolidAtX: oldx atY: oldy atZ: oldz ).
+  under _ 0 ~= (world tileIsSolidAtX: x atY: y atZ: z ).
 
   (old_under and: part) ifTrue: [
     1 to: 3 do:  [

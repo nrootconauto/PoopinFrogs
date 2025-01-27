@@ -12,6 +12,7 @@ update->*
       CSmartPoopMan
       CSmartCyberPoop
       CSmartZombie
+      CSmartBullFrog
     ).
     0 to: rand next * 5 + 1 do:[
       spawned size < capacity ifTrue:[

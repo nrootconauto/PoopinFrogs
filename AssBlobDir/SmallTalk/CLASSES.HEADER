@@ -264,6 +264,7 @@ class C3DThingTemplate:CFrogThing {
 };
 extern class CEliza;
 class C3DThing:CFrogThing {
+  F64 scale dft 0.6;
   I64 team;
   I64  server_id;
   CFrogClass *drop_thing; //CFrogClass
@@ -563,9 +564,10 @@ class CFrogTongue:C3DLine {
   F64 target_x,target_y,target_z;
 //if going_back is set,target_x/y/z is the hit location
   I64 going_back;
+  I64 eat; //set to 1 is to carry dead thing back.
+  C3DThing *ate_thing;
   CFrogArray *hit;
 };
-
 class CDogTongue:CFrogTongue {
 };
 
@@ -877,10 +879,16 @@ class CSmartEnemy:C3DThing {
   CFrogArray *can_use_items; //List of valid items the enmy can use,or NIL
   CFrogArray *lines;
   CPissStream *piss_stream;
+  CFrogTongue *tongue;
 };
 class CSmartAlien:CSmartEnemy {
 };
 class CSmartPoopMan:CSmartEnemy {
+};
+class CSmartBullFrog:CSmartEnemy {
+  F64 grow_start_tS;
+  F64 grow_to;
+  F64 old_scale;
 };
 class CSmartAssBird:CSmartEnemy {
 };
@@ -912,7 +920,7 @@ class CSpawnPortal:C3DThing {
 //
 // img is used for stains on the screen
 //
-// Asplatter is spawned in the world and will affect near players
+// Asplatter is spawned in the world and will affect near players
 class CSplatter:CFrogThing {
   F64 x,y,z;
   I64 color;

@@ -348,7 +348,6 @@ I64 GetClassMemberValI64(CFrogThing *t,U8 *member) {
   CMemberLstMeta *meta;
   if(!cls) return NULL;
   if(mlst=MemberFind(member,cls)) {
-
      switch(OptClassFwd(mlst->member_class)->raw_type) {
        case RT_U8:
          return *(t(U8*)+mlst->offset);
@@ -643,8 +642,12 @@ CFrogThing *_ConstructThing(U8 *class_name,I64 argc,I64 *argv) {
   for(cls=ocls;cls;cls=cls->base_class)
     for(mlst=cls->member_lst_and_root;mlst;mlst=mlst->next) {
       idx=GetClassMeta(class_name,mlst->str,"dft");
-      if(idx)
-        (t(U8*)+mlst->offset)(I64*)[0]=idx;
+      if(idx) {
+	if(OptClassFwd(mlst->member_class)==RT_F64)
+          (t(U8*)+mlst->offset)(F64*)[0]=idx(F64);
+	else
+          (t(U8*)+mlst->offset)(I64*)[0]=idx;
+      }
       else if(IsSmalltalkMember2(mlst->member_class)&&mlst->dim.total_cnt==1) {
 	(t(U8*)+mlst->offset)(I64*)[0]=FROG_SMALL_NIL;
       }
