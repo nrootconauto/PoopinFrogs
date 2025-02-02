@@ -27,7 +27,7 @@ U0 RenderUI(CDC *dc,CUIElem *e,I64 left_x=0,I64 left_y=0,I64 right_x=GR_WIDTH,I6
   CUIElem *draw,**body=e->sub_elems->items->body;
   I64 x,y;
   U8 *draw_it;
-  I64 cnt;
+  I64 cnt;
   CHashFun *fun;
   U0 (*fptr)(CDC*,I64 x,I64 y,CUIElem*);
   draw=e;

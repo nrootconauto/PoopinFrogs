@@ -1,0 +1,61 @@
+dodgeRocket: r=C3DRocket ->*
+|
+  to_rocket=CFrogNum
+  normal1=CFrogNum
+  normal2=CFrogNum
+  dummy=C3DThing
+  dx=CFrogNum
+  dy=CFrogNum
+
+  can_jump_to_angle=CFrogBlock
+  need_jump=CFrogNum
+|
+  need_jump _ 0 .
+  can_jump_to_angle _ [:a=CFrogNum|
+    need_jump _ (#world tileIsSolidAtX: x + a cos atY: y + a sin atZ: z + 1 )=0 and: (#world tileIsSolidAtX: x + a cos atY: y + a sin atZ: z) .
+    need_jump
+  ].
+
+  to_rocket _ x - r->x arg: y - r->y  .
+'Cehck if behind rocket'.
+  (to_rocket - r->angle) cos < -0.05 ifTrue: [
+    ^ 0 .
+  ].
+
+  'Check which side of line a point is on'.
+  dx _ x - r->x .
+  dy _ y - r->y .
+  (r->angle cos * dy) - (r->angle sin * dx) >0 ifTrue: [
+    normal1 _ to_rocket + (3.14/2).
+    normal2 _ to_rocket - (3.14/2).
+  ] ifFalse: [
+    normal1 _ to_rocket - (3.14/2).
+    normal2 _ to_rocket + (3.14/2).
+  ].
+  'Move left of right of rocket'.
+  ((self move: 1 atAngle: normal1)=0 or: (can_jump_to_angle value: normal1)) ifTrue: [
+    'Reset move momentum'.
+    momx2 _ 0 .
+    momy2 _ 0 .
+    (need_jump and: self isOnGround) ifTrue: [
+      momz2 _ .55 .
+    ].
+    self move: speed atAngle: normal1 .
+    ^ 1 .
+  ].
+  momx2 _ 0 .
+  momy2 _ 0 .
+  ((self move: 1 atAngle: normal2)=0 or: (can_jump_to_angle value: normal2)) ifFalse: [
+    'Reset move momentum'.
+    momx2 _ 0 .
+    momy2 _ 0 .
+    (need_jump and: self isOnGround) ifTrue: [
+      momz2 _ .55 .
+    ].
+    self move: speed atAngle: normal2 .
+    ^ 1 .
+  ].
+  momx2 _ 0 .
+  momy2 _ 0 .
+
+  ^ 0 .

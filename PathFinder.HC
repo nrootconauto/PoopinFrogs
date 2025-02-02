@@ -9,6 +9,9 @@ I64 class CPFPoint {
   I16 wave;
 };
 F64 PFHueristic(CPFPoint a,CPFPoint b) {
+//Set to I16_MAX if to ignore Z
+  if(a.z==I16_MAX||b.z==I16_MAX)
+    return Sqr(a.x-b.x)+Sqr(a.y-b.y);
   return Sqr(a.x-b.x)+Sqr(a.y-b.y)+Sqr(a.z-b.z);
 }
 U0 AddPoint(CPFPoint p,CPFPoint from,I64 score) {
@@ -26,7 +29,8 @@ U0 AddPoint(CPFPoint p,CPFPoint from,I64 score) {
   HashGenericAdd(buf,HTT_FRAME_PTR,from,0,score);
 }
 //Returns CI64Set of CPFPoint
-CI64Set *PathFinder(I64 x,I64 y,I64 z,I64 to_x,I64 to_y,I64 to_z,I64(*valid_tile)(I64,I64,I64),I64 jump=1.1,I64 max=14) {
+//to_y can be I16_MAX for ignore Z
+CI64Set *PathFinder(I64 x,I64 y,I64 z,I64 to_x,I64 to_y,I64 to_z=I16_MAX,I64(*valid_tile)(I64,I64,I64),I64 jump=1.1,I64 max=14) {
   max=max*max;
   U8 buf[STR_LEN];
   CHashTable *t=HashTableNew(0x10),*old=Fs->hash_table;
@@ -76,7 +80,10 @@ CI64Set *PathFinder(I64 x,I64 y,I64 z,I64 to_x,I64 to_y,I64 to_z,I64(*valid_tile
 		  AddPoint(pt2,pt,wave);
 		  I64SetAdd(visited,pt&POINT_MASK);
 		  I64SetAdd(frontier,pt2);
-		  if(pt_dst&POINT_MASK==pt2&POINT_MASK) {
+		  if(pt_dst.z==I16_MAX) {
+		    if(pt_dst.x==pt2.x&&pt_dst.y==pt2.y)
+		      goto back_track;
+		  } else if(pt_dst&POINT_MASK==pt2&POINT_MASK) {
 		    pt=pt2;
 back_track:
 		    iter=0;

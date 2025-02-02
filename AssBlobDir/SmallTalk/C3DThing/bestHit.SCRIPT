@@ -20,14 +20,10 @@ bestTargetAtAngle: angle=CFrogNum ->C3DThing |
       line->x _ 65 * a2 cos * angle cos  + x .
       line->y _ 65 * a2 cos * angle sin + y .
       line->z _ z + (a2 sin * 65) .
-'tar' show.
-      t show.
-      (line hitsThing: t withRadius: 1.5)  ifTrue: [
+      (line hitsThing: t withRadius: 1.5 * t->scale)  ifTrue: [
         dist < best_dist ifTrue: [
           best_thing  _ t .
           best_dist _ dist .
-'best target' show.
-best_thing show .
         ]
       ] .
     ]

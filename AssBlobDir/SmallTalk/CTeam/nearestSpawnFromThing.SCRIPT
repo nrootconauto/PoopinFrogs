@@ -1,0 +1,18 @@
+nearestSpawnFromThing: t=C3DThing ->CSpawnPortal
+|
+  best_dist=CFrogNum
+  best_spawn=CSpawnPortal
+  dist=CFrogNum
+|
+  best_spawn _ 0 .
+  best_dist _ 10000 * 10000 .
+  things do:[:s=C3DThing|
+    (s hasClass: CSpawnPortal) ifTrue: [
+      dist _ (t->x - s->x) squared + (t->y - s->y) squared .
+      dist < best_dist ifTrue: [
+        best_dist _ dist .
+        best_spawn _ s.
+      ].
+    ].
+  ].
+  ^ best_spawn

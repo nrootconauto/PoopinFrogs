@@ -1,0 +1,90 @@
+update->*
+|
+  target=C3DThing
+  find_workers=CFrogBlock
+  canidates=CFrogArray
+  goal_dist=CFrogBlock
+  best_dist=CFrogNum
+  best_goal=CTeamGoal
+  tmp*
+|
+  goal_dist _ [:t=C3DThing :g=CTeamGoal|
+    ((t->x - g->x) squared + (t->y - g->y) squared ) sqrt
+  ].
+
+  find_workers _ [:g=CTeamGoal|
+    canidates _ #() .
+    (#world getThingsInRadiusFromX: g->x fromY: g->y
+      withRadius: 64) do:[:c=CSmartEnemy|
+      (c->health > 0. and: (c hasClass: CSmartEnemy)) ifTrue: [
+        (c->goal hasClass: CTeamGoal) ifTrue: [
+          (goal_dist value: c value: c->goal) + 10 < (goal_dist value: g) ifTrue: [
+            canidates add: c .
+          ].
+        ] ifFalse: [
+            canidates add: c .
+        ].
+      ]
+    ].
+    canidates 
+  ].
+
+  'Remove goals that are useless'.
+  goals do:[:g=CTeamGoal|
+    target _ g->target_who.
+    g->workers _ g->workers select:[:w=C3DThing|
+      w->health > 0
+    ].
+
+    g->type='Attack' ifTrue: [
+      target->health <= 0. ifTrue: [
+        g->type _ 0 .
+        goals remove: g .
+      ].
+    ].
+    g->type='Heal' ifTrue: [
+      target->health <= 0. ifTrue: [
+        g->type _ 0 .
+        goals remove: g .
+      ].
+    ].
+
+    g->type='Move' ifTrue: [
+      'Remove once all the workers reached the spot'.
+      g->workers size ifTrue: [
+        tmp _ 1 .
+        g->workers do:[:w=C3DThing|
+          (goal_dist value: w value: g) < 5 ifFalse: [
+            tmp _ 0 .
+          ].
+        ].
+        tmp ifTrue: [
+          g->type _ 0 .
+          goals remove: g .
+        ].
+      ].
+    ].
+  ].
+
+  things do:[:t=CSmartEnemy|
+    'Remove usless goals from things'.
+    t->goal->type = 0 ifTrue: [
+      t->goal _ 0 .
+    ].
+
+    'Pick nearest goal for thing'.
+    (t->goal hasClass:CTeamGoal) ifFalse: [
+      best_dist _ 128 .
+      best_goal _ 0 .
+      goals do:[:g=CTeamGoal|
+        tmp _ goal_dist value: t value: g .
+        tmp < best_dist ifTrue: [
+          best_dist _ tmp .
+          best_goal _ g .
+        ].
+      ].
+      best_goal ~= 0 ifTrue: [
+        t->goal _ best_goal .
+      ].
+    ].
+  ].

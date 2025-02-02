@@ -925,7 +925,7 @@ U0 LoadMethodsFromBlob(U8 *blob_file=NULL,Bool dry_only=FALSE) {
     }
   }
   Free(lumps);
-  Free(blob_file);
+  Free(blob_file);
 }
 #if __CMD_LINE__
 LoadMethodsFromBlob;

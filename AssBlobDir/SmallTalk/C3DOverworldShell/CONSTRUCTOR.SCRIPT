@@ -1,0 +1,245 @@
+init->*
+|
+  handled=CFrogNum
+  p=CPlayer
+  t=CTeam
+  spawn=CSpawnPortal
+  root=CUIElem
+  map=CUIMap
+  list=CUIList
+  list2=CUIList
+  do_popup=CFrogBlock
+  scroll=CUIScrollBars
+  label=UILabel
+  ui_roots=CFrogArray
+  best_dist=CFrogNum
+  dist=CFrogNum
+  
+
+  popup=CUIElem
+  
+  where=C2DPoint
+
+  px=CFrogNum
+  py=CFrogNum
+
+  selected_thing=C3DThing
+
+  canidates=CFrogArray
+  homies=CFrogArray
+
+  goal=CTeamGoal
+|
+  draw_it_name _ 'Draw3DWorld' .
+
+  do_popup _ [:title=CFrogStr :items=CFrogArray|
+    label _ CUILabel new .
+    label setLabel: title .
+
+    scroll _ CUIScrollBars new .
+    scroll->bg_color _ #color_LTGRAY .
+    scroll->x _ 64 .
+    scroll->y _ 64 .
+    scroll->sz_x _ 640 - 128 /2 .
+    scroll->sz_y _ 480 - 128 /2  .
+    scroll addChild: label .
+    label->y _ 4 .
+    label->x _ scroll->sz_x / 2 - (label->sz_x / 2 ).
+
+    list2 _ CUIList new: items .
+    list2->y _ 24 .
+    scroll addChild: list2.
+
+    popup _ scroll .
+    ui_roots add: popup.
+    #ui_root _ popup .
+  ].
+
+  on_init _ [
+   #ms_grabbed _ 0 .
+
+   p _ #world getPlayer  .
+   t _ p->team . 
+   #ui_root _ CUIElem new .
+   root _ #ui_root .
+   ui_roots _ #( root ).
+   root ->sz_x  _  640 .
+   root ->sz_y  _  480 .
+   map _ CUIMap new .
+   map->map_zoom _ 16 .
+   spawn _ t nearestSpawnFromThing: p .
+   map->x _ 64 .
+   map->y _ 64 .
+   map->sz_y _ 380 - 64 .
+   map->sz_x _ 440 - 64 .
+   map->map_x _  p->x .
+   map->map_y _  p->y .
+   root addChild: map .
+
+   map->ms_ldown _ [:x=CFrogNum :y=CFrogNum|
+      x _ x - (map->sz_x/2).
+      y _ y - (map->sz_y/2).
+      x _ x / map->map_zoom + map->map_x .
+      y _ y / map->map_zoom + map->map_y .
+
+      px _ x .
+      py _ y .
+
+      selected_thing _ 0 .
+
+
+      best_dist _ 111111 .
+      (#world getThingsInRadiusFromX: x fromY: y withRadius: 3) do:[:t=C3DThing|
+        ((t hasClass: CRocket)=0 and: t->health > 0.) ifTrue: [
+          dist _ (t->x - x ) squared +(t->y - y ) squared .
+          dist < best_dist ifTrue: [
+            best_dist _ dist .
+            selected_thing _ t
+          ]
+        ].
+      ].
+
+      canidates _ #(
+       #('Build Shit'
+         [
+           popup value: 'Build Shit'
+           value: #(
+             #('Build Small Crib' 
+               [
+                 goal _ CTeamGoal new .
+                 goal->type _ 'BuildCrib'.
+                 goal->x _ x .
+                 goal->y _ y .
+                 goal->workers _ homies .
+                 t->goals add: goal 
+               ]
+             )
+             #('Build New Spawn Crib' 
+               [
+                 goal _ CTeamGoal new .
+                 goal->type _ 'BuildBase'.
+                 goal->x _ x .
+                 goal->y _ y .
+                 goal->workers _ homies .
+                 t->goals add: goal 
+               ]
+             )
+             #('Build Farm' 
+               [
+                 goal _ CTeamGoal new .
+                 goal->type _ 'BuildFarm'.
+                 goal->x _ x .
+                 goal->y _ y .
+                 goal->workers _ homies .
+                 t->goals add: goal 
+               ]
+             )
+           )
+         ]
+       )
+      ) .
+
+      'TODOadjust radius'.
+      homies _ (#world getThingsInRadiusFromX: x fromY: y withRadius: 10) select:[:t=C3DThing|
+        t->team = p->team
+      ].
+
+      homies size ifTrue: [
+        canidates add: #(
+          'Move Homies'
+          [
+            goal _ CTeamGoal new .
+            goal->type _ 'Move'.
+            goal->x _ x .
+            goal->y _ y .
+            goal->workers _ homies .
+            t->goals add: goal 
+          ]
+        ).
+      ].
+
+      (selected_thing hasClass: CSpawnPortal) ifTrue: [
+        canidates add: #(
+          'Spawn New Homies'
+          [
+          ]
+        ).
+      ].
+
+      (selected_thing hasClass: CSmartEnemy) ifTrue: [
+        (t = selected_thing->team) ifTrue: [
+          canidates add: #(
+            'Flame This Fucker Up'
+            [
+              goal _ CTeamGoal new .
+              goal->type _ 'Attack'.
+              goal->target_who _ selected_thing .
+              goal->workers _ homies .
+              goal->x _ selected_thing->x .
+              goal->y _ selected_thing->y .
+              t->goals add: goal 
+            ]
+          ).
+        ] ifFalse: [
+          canidates add: #(
+            'Heal This Homie'
+            [
+              goal _ CTeamGoal new .
+              goal->type _ 'Heal'.
+              goal->target_who _ selected_thing .
+              goal->workers _ homies .
+              goal->x _ selected_thing->x .
+              goal->y _ selected_thing->y .
+              t->goals add: goal 
+            ]
+          )
+        ]. 
+      ].
+
+      #ui_root removeChild: list .
+     
+      list _ CUIList new: canidates.
+      list->y _ 64 .
+      list->x _ 380 .
+      list->sz_y _ map->sz_y .
+      list->sz_x _ 640 - list->x - 32 .
+
+      #ui_root addChild: list.
+    ].
+  ].
+  on_event _ [:ev=CUIEvent |
+    p _ #world getPlayer  .
+    t _ p->team . 
+    ev->type = 'MsScroll' ifTrue: [
+      map->map_zoom _ map->map_zoom + (ev->m1 / 3) max: 1 .
+    ].
+    ev->type = 'KeyDown' ifTrue:[
+      'CH_ESC x CH_SHIFT_ESC' .
+      (ev->m1 = 27 or: ev->m2 = 28) ifTrue: [
+        ui_roots remove : ui_roots last .
+        ui_roots size = 0 ifTrue: [
+          exited _ 1 .
+        ].
+      ].
+      ('', ev->m1  asCharactor uppercase) = 'W' ifTrue: [
+        map->map_y _ map->map_y - (map->map_zoom * .75).
+      ] .
+      ('', ev->m1 asCharactor uppercase) = 'S' ifTrue: [
+        map->map_y _ map->map_y + (map->map_zoom * .75).
+      ] .
+      ('', ev->m1 asCharactor uppercase) = 'A' ifTrue: [
+        map->map_x _ map->map_x - (map->map_zoom * .75).
+      ] .
+      ('', ev->m1 asCharactor uppercase) = 'D' ifTrue: [
+        map->map_x _ map->map_x + (map->map_zoom * .75).
+      ] .
+    ].
+    handled ifFalse: [
+      #ui_root sendEventToUI: ev .
+    ] .
+  ].
+  on_refresh _ [
+    p _ #world getPlayer .
+    t _ p->team.
+  ].
+  ^ self

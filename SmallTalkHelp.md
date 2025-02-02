@@ -9,12 +9,15 @@
  - C3DLine
 	 - [init](AssBlobDir/SmallTalk/C3DLine/CONSTRUCTOR.SCRIPT)
 	 - [hitsThing:withRadius:](AssBlobDir/SmallTalk/C3DLine/hitsThing.SCRIPT)
+ - C3DOverworldShell
+	 - [init](AssBlobDir/SmallTalk/C3DOverworldShell/CONSTRUCTOR.SCRIPT)
  - C3DPoint
 	 - [init](AssBlobDir/SmallTalk/C3DPoint/CONSTRUCTOR.SCRIPT)
  - C3DProp
 	 - [init](AssBlobDir/SmallTalk/C3DProp/CONSTRUCTOR.SCRIPT)
  - C3DThing
 	 - **hitsThing:**(builtin)
+	 - **pathFinderAngleTowardsX:toY:**(builtin)
 	 - **pathFinderAngleTowardsThing:withJump:**(builtin)
 	 - **move:atAngle:**(builtin)
 	 - **canSeeThing:**(builtin)
@@ -53,6 +56,7 @@
 	 - [swim:atAngle:atAngle2:](AssBlobDir/SmallTalk/C3DThing/swimAtAngleAtAngle2.SCRIPT)
 	 - [wander:](AssBlobDir/SmallTalk/C3DThing/wander.SCRIPT)
 	 - [wanderFly:withTarget:](AssBlobDir/SmallTalk/C3DThing/wanderFly.SCRIPT)
+	 - [wanderTowardsX:toY:withSpeed:](AssBlobDir/SmallTalk/C3DThing/wanderTowardsXY.SCRIPT)
 	 - [wander:withJumpVelocity:withTarget:](AssBlobDir/SmallTalk/C3DThing/wanderWithJump.SCRIPT)
 	 - [xPos](AssBlobDir/SmallTalk/C3DThing/xPos.SCRIPT)
 	 - [zPos](AssBlobDir/SmallTalk/C3DThing/zPos.SCRIPT)
@@ -706,6 +710,8 @@
 	 - [init](AssBlobDir/SmallTalk/CSmartEnemy/CONSTRUCTOR.SCRIPT)
 	 - [animate](AssBlobDir/SmallTalk/CSmartEnemy/animate.SCRIPT)
 	 - [damage:from:](AssBlobDir/SmallTalk/CSmartEnemy/damageFrom.SCRIPT)
+	 - [doAI](AssBlobDir/SmallTalk/CSmartEnemy/doAI.SCRIPT)
+	 - [dodgeRocket:](AssBlobDir/SmallTalk/CSmartEnemy/dodgeRocket.SCRIPT)
 	 - [fireProjectile:withSpeed:](AssBlobDir/SmallTalk/CSmartEnemy/fireProjectile.SCRIPT)
 	 - [pissTowardsThing:](AssBlobDir/SmallTalk/CSmartEnemy/pissTowardsThing.SCRIPT)
 	 - [rangeAttackAtAngle:withDamage:](AssBlobDir/SmallTalk/CSmartEnemy/rangeAttack.SCRIPT)
@@ -736,6 +742,13 @@
  - CTalker
 	 - [init](AssBlobDir/SmallTalk/CTalker/CONSTRUCTOR.SCRIPT)
 	 - [fire](AssBlobDir/SmallTalk/CTalker/fire.SCRIPT)
+ - CTeam
+	 - [CONSTRUCTOR](AssBlobDir/SmallTalk/CTeam/CONSTRUCTOR.SCRIPT)
+	 - [addThing:](AssBlobDir/SmallTalk/CTeam/addThing.SCRIPT)
+	 - [nearestSpawnFromThing:](AssBlobDir/SmallTalk/CTeam/nearestSpawnFromThing.SCRIPT)
+	 - [update](AssBlobDir/SmallTalk/CTeam/update.SCRIPT)
+ - CTeamGoal
+	 - [init](AssBlobDir/SmallTalk/CTeamGoal/CONSTRUCTOR.SCRIPT)
  - CThingEditShell
 	 - [init](AssBlobDir/SmallTalk/CThingEditShell/CONSTRUCTOR.SCRIPT)
  - CTileTemplate
@@ -816,6 +829,8 @@
 	 - [setLabel:](AssBlobDir/SmallTalk/CUILabel/SETLABEL.SCRIPT)
  - CUIList
 	 - [init:](AssBlobDir/SmallTalk/CUIList/CONSTRUCTOR.SCRIPT)
+ - CUIMap
+	 - [init](AssBlobDir/SmallTalk/CUIMap/CONSTRUCTOR.SCRIPT)
  - CUIMeter
 	 - [init](AssBlobDir/SmallTalk/CUIMeter/CONSTRUCTOR.SCRIPT)
 	 - [setLabel:](AssBlobDir/SmallTalk/CUIMeter/SETLABEL.SCRIPT)
@@ -893,6 +908,8 @@
 	 - [new](AssBlobDir/STClsRoot/C2DThingTemplate/NEW.SCRIPT)
  - C3DLine
 	 - [new](AssBlobDir/STClsRoot/C3DLine/NEW.SCRIPT)
+ - C3DOverworldShell
+	 - [new](AssBlobDir/STClsRoot/C3DOverworldShell/NEW.SCRIPT)
  - C3DPoint
 	 - [new](AssBlobDir/STClsRoot/C3DPoint/NEW.SCRIPT)
  - C3DProp
@@ -1136,6 +1153,11 @@
 	 - [new](AssBlobDir/STClsRoot/CTalkShell/NEW.SCRIPT)
  - CTalker
 	 - [new](AssBlobDir/STClsRoot/CTalker/NEW.SCRIPT)
+ - CTeam
+	 - [new](AssBlobDir/STClsRoot/CTeam/NEW.SCRIPT)
+	 - [newFromTag:](AssBlobDir/STClsRoot/CTeam/NewFromTag.SCRIPT)
+ - CTeamGoal
+	 - [new](AssBlobDir/STClsRoot/CTeamGoal/NEW.SCRIPT)
  - CThingEditShell
 	 - [new:](AssBlobDir/STClsRoot/CThingEditShell/NEW.SCRIPT)
  - CTileTemplate
@@ -1168,6 +1190,8 @@
  - CUIList
 	 - [new](AssBlobDir/STClsRoot/CUIList/NEW.SCRIPT)
 	 - [new:](AssBlobDir/STClsRoot/CUIList/new2.SCRIPT)
+ - CUIMap
+	 - [new](AssBlobDir/STClsRoot/CUIMap/NEW.SCRIPT)
  - CUIMeter
 	 - [new](AssBlobDir/STClsRoot/CUIMeter/NEW.SCRIPT)
  - CUINotification

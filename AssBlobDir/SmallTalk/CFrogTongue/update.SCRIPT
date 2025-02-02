@@ -61,7 +61,7 @@ update ->CFrogNum |
 
   things do: [:t=C3DThing | 
     (t ~= from and: (hit has: t) not ) ifTrue: [
-      (self hitsThing: t withRadius: .75 ) ifTrue: [
+      (self hitsThing: t withRadius: .75 * t->scale ) ifTrue: [
         
         dist2 _ ((t->x -x) squared + (t->y - y) squared )sqrt .
         hit add: t .

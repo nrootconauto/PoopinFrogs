@@ -180,6 +180,12 @@ class CUIIcon:CUIElem {
   CFrogImg *img;
 };
 
+class CUIMap:CUIElem {
+  U8 *draw_it dft "UIMapDraw";
+  CFrogThing *team;
+  F64 map_x,map_y,map_zoom;
+};
+
 class CUIButton:CUIElem {
   U8 *draw_it dft "UIButtonDraw";
   U8 *constructor dft "UIButtonInit";  
@@ -256,7 +262,7 @@ class C2DPoint:CFrogThing {
 };
 class C3DThingTemplate:CFrogThing {
   I64 flags;
-  F64 radius;
+  F64 radius dft 1/3.;
   CFrogStr *name;
   CFrogImg *front;
   CFrogImg *side;
@@ -264,8 +270,10 @@ class C3DThingTemplate:CFrogThing {
 };
 extern class CEliza;
 class C3DThing:CFrogThing {
+  F64 height dft 0.8;
   F64 scale dft 0.6;
-  I64 team;
+  F64 radius dft 1./3.;
+  CFrogThing *team;
   I64  server_id;
   CFrogClass *drop_thing; //CFrogClass
   C3DThingTemplate *template;
@@ -565,7 +573,7 @@ class CFrogTongue:C3DLine {
 //if going_back is set,target_x/y/z is the hit location
   I64 going_back;
   I64 eat; //set to 1 is to carry dead thing back.
-  C3DThing *ate_thing;
+  C3DThing *ate_thing;
   CFrogArray *hit;
 };
 class CDogTongue:CFrogTongue {
@@ -761,6 +769,8 @@ class CMarkerDrugPickup:CPickup {
 
 class C3DWorldShell:CUIShell {
 };
+class C3DOverworldShell:CUIShell {
+};
 
 class CBlockEditShell:CUIShell {
 };
@@ -849,8 +859,21 @@ class CTownmaker0:CFrogThing {
 //(x,y) 1 if occupied,else 0
   CFrogArray *occupied;
 };
-
+class CTeamGoal:CFrogThing {
+  CFrogStr *type;
+  CFrogArray *workers;
+  F64 x,y;
+  CFrogThing *target_who;
+  CFrogThing *aux_data;
+};
+class CTeam:C3DThing {
+  I64 color;
+  CFrogArray *goals;
+  CFrogArray *things;
+  F64 money;
+};
 class CSmartEnemy:C3DThing {
+  CTeamGoal *goal;
   F64 next_ai_tS;
   F64 next_ai_train_tS;
   F64 statistic_kills;

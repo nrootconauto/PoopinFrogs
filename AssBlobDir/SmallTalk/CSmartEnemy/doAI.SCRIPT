@@ -1,0 +1,55 @@
+doAI->*
+|
+  has_heal_items=CFrogNum
+  has_item=CFrogBlock
+|
+  has_heal_items _ 0 .
+
+  has_item _ [:i*|
+    (has_items detect: [:p=CFrogArray|
+      p first = i and: (p at:1)
+    ]) >= 0
+  ].
+
+  
+  (goal hasClass: CTeamGoal) ifTrue: [
+    goal->type='Defend' ifTrue: [
+      next_action _ 'Defend'.
+    ].
+    goal->type='Attack' ifTrue: [
+      next_action _ 'Projectile'.
+    ].
+    goal->type='Move' ifTrue: [
+      next_action _ 'Move'.
+    ].
+    goal->type='Heal' ifTrue: [
+      has_heal_items ifTrue: [
+        next_action _ 'Heal'.
+      ].
+    ].
+    goal->type='Heal' ifTrue: [
+      has_heal_items ifTrue: [
+        next_action _ 'Heal'.
+      ].
+    ].
+    (goal->type indexOf: 'Build') >= 0 ifTrue: [
+      next_action = 'BuildCrib' ifTrue: [
+        (has_item value: CHouseMaker) ifTrue: [
+          next_action _ 'Build'.
+        ].
+      ].
+      next_action = 'BuildBase' ifTrue: [
+        (has_item value: CHouseMaker) ifTrue: [
+          next_action _ 'Build'.
+        ].        
+      ].
+    ].
+  ] ifFalse: [
+    'Do something productive like flame up enemies'.
+    (target hasClass: C3DThing) ifTrue: [
+      next_action _ 'Projectile'.
+    ] ifFalse: [
+      self lookForTarget .
+      next_action _ 'Projectile'.
+    ].
+  ].

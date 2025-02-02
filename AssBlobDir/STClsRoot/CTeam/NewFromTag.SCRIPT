@@ -1,0 +1,19 @@
+newFromTag: t=CFrogNum
+  ->*
+|
+  idx=CFrogNum
+  ret=CTeam
+|
+  (#teams_by_num hasClass:CFrogArray) ifFalse: [
+    #teams_by_num _ #() .
+  ].
+  idx _ #teams_by_num detect: [:p=CFrogArray|
+    p last = t 
+  ].
+  idx < 0 ifTrue: [
+    ret _ CTeam new .
+    #teams_by_num add: #(ret t).
+    ^ ret
+  ] ifFalse: [
+    ^ (#teams_by_num at: idx) first.
+  ].

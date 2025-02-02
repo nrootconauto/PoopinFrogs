@@ -6,6 +6,7 @@ update->*
   hit_scanners=CFrogArray
   melee=CFrogArray
   dist=CFrogNum
+  dist2=CFrogNum
   tmp=CFrogArray
   union=CFrogBlock
   use_item=CFrogClass
@@ -15,50 +16,84 @@ update->*
   use_cnt=CFrogNum
   t=C3DThingTemplate
   switch_template=CFrogBlock
+
   attack=CFrogNum
   hide=CFrogNum
   chase=CFrogNum
+  move=CFrogNum
+  build=CFrogNum
+  heal=CFrogNum
+  defend=CFrogNum
+
+  dummy_thing=C3DThing
+  do_hide=CFrogBlock
+  moved=CFrogNum
+  do_move=CFrogBlock
 |
+  moved _ 0 .
+  do_move _ [:b=CFrogBlock|
+    moved ifFalse: [
+      moved _ 1 .
+      b value
+    ].
+  ].
+
+
   attack_priority _ 1 .
 
   no_update ifTrue: [
    ^ 0 .
   ].
 
+
   chase _ 0 .
   hide _ 0 .
   attack _ 0 .
-
+  move _ 0 .
+  build _ 0 .
+  heal _ 0 .
+  defend _ 0 .
 
   cur_tS _ CFrogTime now asSeconds .
   next_ai_tS <cur_tS ifTrue: [
     next_ai_tS _ cur_tS + .33 .
-    self runNN .
+    self doAI .
+    'self runNN' .
+  ].
+
+  next_action = 'Build' ifTrue: [
+    build _ 1 .
+  ].
+
+  next_action = 'Defend' ifTrue: [
+    defend _ 1 .
+  ].
+
+  next_action = 'Heal' ifTrue: [
+    heal _ 1 .
+  ].
+  next_action = 'Move' ifTrue: [
+    move _ 1 .
   ].
 
   next_action = 'Hide' ifTrue: [
     hide _ 1 
   ].
   next_action = 'Projectile' ifTrue: [
-   attack _ 1 .
+    attack _ 1 .
   ].
   next_action = 'Range' ifTrue: [
-   attack _ 1 .
+    attack _ 1 .
   ].
   next_action = 'Melee' ifTrue: [
-   attack _ 1 .
+    attack _ 1 .
   ].
   next_action = 'Chase' ifTrue: [
-   chase _ 1 .
+    chase _ 1 .
   ].
   next_action = 'nil' ifTrue: [
     ^ 0 .
   ].
-  next_action = 'Heal' ifTrue: [
-    ^ 0 .
-  ].
- 
-
 
   animation_no_repeat _  0 .
   switch_template _ [:n=CFrogStr|
@@ -87,32 +122,70 @@ update->*
   (target hasClass: C3DThing) ifFalse: [
     target _ self lookForTarget
   ].
-  (target hasClass: C3DThing) ifFalse: [
-    switch_template value: walk_template_name.
-    ^ 0
-  ].
-  dist _ ((x - target->x) squared + (y - target->y)squared + (z - target->z) squared) sqrt .
-  (hide) ifTrue: [
-    (self seekCoverFrom: target) ifFalse: [
-      self wander: speed withJumpVelocity:.55 withTarget: target.
-    ].
-  ] ifFalse: [
-    self wander: speed withJumpVelocity:.55 withTarget: target  .
-  ].
+
+  'attack' show .
+  attack show.
 
   'Dodge opposing rockets'.
-  to_dodge _ #world getThingsInRadiusFromX:x fromY: y fromZ: z withRadius: 3 .  
+  to_dodge _ #world getThingsInRadiusFromX:x fromY: y withRadius: 7 .
   to_dodge do:[:r=CRocket|
     (r hasClass: CRocket) ifTrue: [
-      (r->from ~= self) ifTrue: [
-        'TODOsomthing more clever'.
-         self move: speed negated atAngle: (r->x - x arg: r->y - y).
+      (r->from ~= self and: (r->z - z)abs < 3 ) ifTrue: [
+        (self dodgeRocket: r) ifTrue: [
+           moved _ 1 .
+        ].
       ].
     ].
   ] .
+  'Defend section begin'.
+   defend ifTrue: [
+     (target hasClass: C3DThing) ifTrue: [
+       dist _ ((x - target->x) squared + (y - target->y)squared + (z - target->z) squared) sqrt .
+       dist2 _ ((x - goal->x) squared + (y - goal->y)squared ) sqrt.
+'Too far away from defend point,dont cahse'.
+       dist2 + 10 < dist ifTrue: [
+         do_move value: [self wanderTowardsX: goal->x toY: goal->y withSpeed: speed. ].
+         ^ 1 
+       ] ifFalse:[
+         attack _ 1 .
+       ].
+     ] ifFalse:[
+       do_move value: [self wanderTowardsX: goal->x toY: goal->y withSpeed: speed ].
+       ^ 1 
+     ].
+   ].
+  'Defend section end'.
+
+ 'Move section begin'.
+  move ifTrue: [
+    do_move value: [self wanderTowardsX: goal->x toY: goal->y withSpeed: speed].
+  ].
+  'Move section END'.
  
+  'Attack(Move) section BEGIN'.
+  (target hasClass: C3DThing) ifTrue: [
+    hide ifTrue: [
+      do_move value: [
+        (self seekCoverFrom: target) ifFalse: [
+          self wander: speed withJumpVelocity:.55 withTarget: target.
+        ].
+      ].
+    ] ifFalse: [
+      do_move value:[self wander: speed withJumpVelocity: .55 withTarget: target.].
+    ].
+  ].
+  'Attack(Move) section END'.
+
   cur_tS >= timeout ifTrue:[
+'Default timeout'.
+
+    'Attack section BEGIN'.
     ((self canSeeThing: target) and: attack) ifTrue: [
+      (target hasClass: C3DThing) ifFalse: [
+        switch_template value: walk_template_name.
+        ^ 0
+      ].
+      
       'Sorted by usefullnes'.
       projectiles _ #(
         CEnergyGun
@@ -225,7 +298,9 @@ update->*
       ].
     ].
     ^ 1 .
-  ] 
+   ] .
+   'Attack section END'.
+
   ] ifFalse: [
     'Still attacking'.
     switch_template value: attack_template_name .

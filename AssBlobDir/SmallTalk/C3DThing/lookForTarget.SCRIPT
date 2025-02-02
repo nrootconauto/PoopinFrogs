@@ -5,8 +5,11 @@ lookForTarget -> C3DThing
     ((t hasClass: CPlayer) or: (t hasClass: CSmartEnemy)) ifTrue: [
       ((self canSeeThing: t) and: t->health > 0) ifTrue: [
         t ~= self ifTrue: [
-          team ifTrue: [
+          (team hasClass: CTeam) ifTrue: [
              team ~= t->team ifTrue: [
+'look'show.
+team show.
+t->team show.
                ^ t
              ].
           ] ifFalse: [

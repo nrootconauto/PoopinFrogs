@@ -1,0 +1,4 @@
+init->* | |
+  things _ #().
+  objectives _#().
+  ^ self

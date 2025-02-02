@@ -1,0 +1,8 @@
+addThing:t=CSmartEnemy
+->*
+|
+|
+  t->team _ self .
+  things add: t .
+  'Add THING' show.
+  self show.

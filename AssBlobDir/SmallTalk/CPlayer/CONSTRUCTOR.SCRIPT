@@ -35,4 +35,6 @@ init ->CPlayer | |
 
   notifications _ #().
 
+  team _ CTeam newFromTag: -2 .
+
   ^ self

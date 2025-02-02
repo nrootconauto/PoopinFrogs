@@ -724,7 +724,7 @@ CDoor *DoorAtXYZ(C3DWorldManager *man,I64 ix,I64 iy,F64 iz,F64 tallness=.8,F64 w
   return NULL;
 }
 
-Bool HeightImpossible(C3DWorldManager *man,I64 ix,I64 iy,F64 above,Bool allow_ceil,F64 tallness=.1,F64 wiggle_room=.1) {
+Bool HeightImpossible0(C3DWorldManager *man,I64 ix,I64 iy,F64 above,Bool allow_ceil,F64 tallness=.1,F64 wiggle_room=.1) {
   I64 iz=Floor(above);
   I64 c,idx2,t;
   F64 h;
@@ -745,13 +745,31 @@ Bool HeightImpossible(C3DWorldManager *man,I64 ix,I64 iy,F64 above,Bool allow_ce
     return TRUE;
   return FALSE;
 }
+Bool HeightImpossible(C3DWorldManager *man,F64 ix,F64 iy,F64 above,Bool allow_ceil,F64 tallness=.1,F64 wiggle_room=.1,F64 radius=THING_RADIUS) {
+  F64 xoff,yoff;
+  radius=Max(radius,THING_RADIUS);
+  for(xoff=-radius;xoff<=radius;xoff+=Min(1.,radius-xoff)) {
+    for(yoff=-radius;yoff<=radius;yoff+=Min(1.,radius-yoff)) {
+      if(HeightImpossible0(man,ix+xoff,iy+yoff,above,allow_ceil,tallness,wiggle_room))
+	return TRUE;
+      if(yoff==radius)
+	break;
+    }
+    if(xoff==radius)
+      break;
+  }
+  return FALSE;
+}
 CFrogNum *ThingIsOnGround(C3DThing *self,I64 *argv,I64 argc) {
   return FrogNumNew(HeightImpossible(
 	FrogSymbol("world")->value,
 	self->x,
 	self->y,
 	self->z-.11,
-	FALSE
+	FALSE,
+	,
+	,
+	Max(THING_RADIUS,self->radius*self->scale)
   ));
 }
 AddMethod("C3DThing","isOnGround",&ThingIsOnGround);
@@ -803,55 +821,52 @@ CFrogNum *C3DThingPathFindWalkTowardsThing(C3DThing *self,I64 *argv,I64 argc) {
   return FrogNumNew(Arg(pt.x+.5-self->x,pt.y+.5-self->y));
 }
 AddMethod("C3DThing","pathFinderAngleTowardsThing:withJump:",&C3DThingPathFindWalkTowardsThing);
+CFrogNum *C3DThingPathFindWalkTowardsXY(C3DThing *self,I64 *argv,I64 argc) {
+  CPFPoint pt;
+  I64 i;
+  I64 x=AsF64(argv[0]);
+  I64 y=AsF64(argv[1]);
+  CI64Set *path=PathFinder(self->x,self->y,Floor(self->z),x,y,I16_MAX,&CanMoveToBlock,AsF64(argv[1])),*dummy;
+  if(path->cnt<2) {
+    I64SetDel(path);
+    self->path_finder_data=FROG_SMALL_NIL;
+    return FrogNumNew(Arg(x-self->x,y-self->y));
+  }
+  self->path_finder_data=FrogArrayNew;
+  dummy=self->path_finder_data->items;
+  for(i=0;i!=path->cnt;i++) {
+    I64SetAdd(dummy,path->body[i]<<16|FROG_SMALL_NIL);
+  }
+  pt=path->body[1];
+  I64SetDel(path);
+  
+//Find way up/down
+  self->angle2=Arg(Sqrt(Sqr(pt.x+.5-self->x)+Sqr(pt.y+.5-self->y)),pt.z+.5-self->z);
+  return FrogNumNew(Arg(pt.x+.5-self->x,pt.y+.5-self->y));
+}
+AddMethod("C3DThing","pathFinderAngleTowardsX:toY:",&C3DThingPathFindWalkTowardsXY);
 #define RADF_CEIL 1
 #define RADF_FLOOR 2
 #define RADF_DOOR 4
-Bool RadiusHitsWall(C3DWorldManager *man,F64 angle,F64 *_x,F64 *_y,F64 height,F64 radius=THING_RADIUS,Bool adjust=FALSE,F64 tallness=.8,I64 flags=RADF_CEIL|RADF_FLOOR,C3DThing *who=NULL) {
+Bool RadiusHitsWall(C3DWorldManager *man,F64 angle,F64 *_x,F64 *_y,F64 height,Bool adjust=FALSE,F64 tallness=.8,I64 flags=RADF_CEIL|RADF_FLOOR,C3DThing *who=NULL) {
   CDoor *door;
   F64 x=*_x;
   F64 y=*_y;
   F64 by=1/4./128.;
   Bool ret=FALSE,hit=TRUE;
-  I64 xoff,yoff,ch,cr,tile,i;
+  F64 xoff,yoff;
+  I64 i;
   F64 tx,ty,h;
+  F64 radius=THING_RADIUS;
+  F64 attempt=1.;
+  if(who)
+    radius=Max(THING_RADIUS,who->radius*who->scale);
   do {
     hit=FALSE;
-    for(i=0;i!=4;i++)  {
-      for(xoff=-1;xoff<2;xoff++)
-        for(yoff=-1;yoff<2;yoff++) {
-	  if(xoff^^yoff) {
-	    switch(xoff) {
-	      case -1:
-	        tx=Floor(x);
-	        break;
-	      case 0:
-	        tx=x;
-	        break;
-	      case 1:
-	        tx=Ceil(x);
-	        break;
-	    }
-	    switch(yoff) {
-	      case -1:
-	        ty=Floor(y);
-	        break;
-	      case 0:
-	        ty=y;
-	        break;
-	      case 1:
-	        ty=Ceil(y);
-	        break;
-	    }
-//ONLY CHECK FOR WALL WE ARE WALKING TOWARDS
-	    if(xoff) {
-	      if(Sign(Cos(angle))!=xoff)
-	        goto skip;
-	    }
-	    if(yoff) {
-	      if(Sign(Sin(angle))!=yoff)
-	        goto skip;
-	    }
-	    if(HeightImpossible(man,x+xoff,y+yoff,height,TRUE,tallness)) {
+      for(xoff=-radius;xoff<=radius;xoff+=Min(radius-xoff,1.)) {
+        for(yoff=-radius;yoff<=radius;yoff+=Min(radius-yoff,1.)) {
+	  if(xoff||yoff) {
+	    if(HeightImpossible0(man,x+xoff,y+yoff,height,TRUE,tallness)) {
 //.2 for stepping over partly open doors
 	      check:
 	      if(who) {
@@ -859,16 +874,16 @@ Bool RadiusHitsWall(C3DWorldManager *man,F64 angle,F64 *_x,F64 *_y,F64 height,F6
 		if(door)
 		  CallScript("activateBy:",door,who);
 	      }
-	      if(Abs(x-tx)<=radius&&xoff) {
+	      if(xoff) {
 	        if(adjust) {
-		  x=tx+radius*1.05*-xoff;
+		  x+=.05*radius*(attempt/32.)*Sign(-xoff);
 		  hit=TRUE;
 	        }
 	        ret|=TRUE;
 	      }
-	      if(Abs(y-ty)<=radius&&yoff) {
+	      if(yoff) {
 	        if(adjust) {
-		  y=ty+radius*1.05*-yoff;
+		  y+=.05*radius*(attempt/32.)*Sign(-yoff);
 		  hit=TRUE;
 	        }
 	        ret|=TRUE;
@@ -876,8 +891,14 @@ Bool RadiusHitsWall(C3DWorldManager *man,F64 angle,F64 *_x,F64 *_y,F64 height,F6
 	    }
 skip:;
 	  }
+	  if(yoff==radius)
+	   break;
         }
-    }
+        if(xoff==radius)
+          break;
+      }
+    if(++attempt>=32.)
+      break;
   } while(hit);
   if(adjust) {
     *_x=x;
@@ -885,7 +906,7 @@ skip:;
   }
   return ret;
 }
-Bool C3DWorldMoveZWithCollision(C3DWorld *w,F64 dist,F64 x,F64 y,F64 *_height,F64 tallness=.8) {
+Bool C3DWorldMoveZWithCollision(C3DWorld *w,F64 dist,F64 x,F64 y,F64 *_height,F64 tallness=.8,F64 radius=THING_RADIUS) {
   F64 height=*_height;
   F64 z=height;
   F64 o=height;
@@ -905,14 +926,14 @@ Bool C3DWorldMoveZWithCollision(C3DWorld *w,F64 dist,F64 x,F64 y,F64 *_height,F6
     else
       delta=Min(dist,1);
     dist-=delta;
-    if(HeightImpossible(man,x,y,z+delta,TRUE,tallness)) {
+    if(HeightImpossible(man,x,y,z+delta,TRUE,tallness,,radius)) {
       hit=TRUE;
       goto fix;
     }
     z+=delta;
   }
 fix:;
-  while(HeightImpossible(man,x,y,z,TRUE,tallness)) {
+  while(HeightImpossible(man,x,y,z,TRUE,tallness,,radius)) {
     hit=TRUE;
     z-=dir/64.;
     if(dir>0&&z<oz) {
@@ -925,7 +946,7 @@ fix:;
   }
   //Cant move anywhere but up
   if(z==oz) {
-    while(HeightImpossible(man,x,y,z,TRUE,tallness))
+    while(HeightImpossible(man,x,y,z,TRUE,tallness,,radius))
       z+=1/64.;
   }
 
@@ -946,18 +967,14 @@ Bool C3DWorldMoveWithCollision(C3DWorld *w,F64 angle,F64 dist,F64 *x,F64 *y,Bool
   I64 idx,idx2;
   I64 h,ch,cr;
   C3DWorldManager  *man=FrogSymbol("world")->value;
-  if(RadiusHitsWall(man,angle,x,y,height,THING_RADIUS,TRUE,,RADF_CEIL|RADF_FLOOR|RADF_DOOR,who)) {
-    hit_wall=TRUE;
-    goto fin;
-  }
   if(adjust_smart)
     while(dist2<dist) {
       for(idx=0;idx!=5;idx++) {
-        dist2+=1./5.;
+        dist2+=1/5.;
         if(dist2>=dist) dist2=dist;
         *x=wx+Cos(angle)*dist2;
         *y=wy+Sin(angle)*dist2;
-        if(RadiusHitsWall(man,angle,x,y,height,THING_RADIUS,TRUE,,RADF_CEIL|RADF_FLOOR|RADF_DOOR,who)) {
+        if(RadiusHitsWall(man,angle,x,y,height,TRUE,,RADF_CEIL|RADF_FLOOR|RADF_DOOR,who)) {
 	  hit_wall=TRUE;
 	  goto fin;
         }
@@ -971,6 +988,8 @@ Bool C3DWorldMoveWithCollision(C3DWorld *w,F64 angle,F64 dist,F64 *x,F64 *y,Bool
         }
         if(dist2>=dist)
 	  goto fin;
+	wx=*x;
+	wy=*y;
       }
     }
 fin:
@@ -986,8 +1005,8 @@ fin:
   return hit_wall;
 }
 Bool AdjustRadiusThing(C3DWorld *w,C3DThing *self,C3DThing *other,F64 angle) {
-  F64 sr=THING_RADIUS;
-  F64 or=THING_RADIUS;
+  F64 sr=Max(THING_RADIUS,self->scale*self->radius);
+  F64 or=Max(THING_RADIUS,other->scale*other->radius);
   F64 dist,push_back;
   I64 attempt=0;
   Bool ret=FALSE;
@@ -1200,6 +1219,7 @@ Bool PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm,F64 last_tS) {
   F64 weight=1.;
   F64 angle=t->angle,dist,ox,oy,best_dist;
   F64 omx,omy;
+  F64 radius=Max(THING_RADIUS,t->radius*t->scale);
   I64 tile=wx+wy*w->world_width,i,best_i;
   Bool i_am_moving=FALSE,on_ground;
   CRocket *rocket=NULL;
@@ -1211,7 +1231,8 @@ Bool PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm,F64 last_tS) {
   C3DWorldManager *man=FrogSymbol("world")->value;
   if(ThingHasClass(t,"CRocket"))
     rocket=t;
-  if(C3DWorldMoveZWithCollision(w,t->momz*weight+t->momz2*weight,t->next_x,t->next_y,&t->next_z)) {
+  radius=Max(THING_RADIUS,radius);
+  if(C3DWorldMoveZWithCollision(w,t->momz*weight+t->momz2*weight,t->next_x,t->next_y,&t->next_z,,radius)) {
     if(!rocket)  //Explode later(computer hitting floor after we move x/y)
       t->momz=0;
   } else if(!rocket&&!t->floating) {
@@ -1264,7 +1285,7 @@ Bool PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm,F64 last_tS) {
 	  if(!w->solids[i]) {
 	    t->momx2=dist*Cos(t->angle)*Cos(t->angle2);
 	    t->momy2=dist*Sin(t->angle)*Cos(t->angle2);
-	    t->momz2=dist*Sin(t->angle2);
+	    t->momz2=dist*Sin(t->angle2);
 	  }else {
 	    t->momx2=dist*Cos(t->angle);
 	    t->momy2=dist*Sin(t->angle);
@@ -1277,8 +1298,8 @@ Bool PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm,F64 last_tS) {
       }
     }
   }
-  omy=t->momy+t->momy2;
-  omx=t->momx+t->momx2;
+  omy=(t->momy+t->momy2)*2./3.; //Nerfed by Nrootconauto
+  omx=(t->momx+t->momx2)*2./3.;
   if(Abs(omx)>1/320.||Abs(omy)>1/320.) {
     if(!rocket) {
       t->momx*=29/30.*weight;
@@ -1330,7 +1351,7 @@ explode:
         MPPromiseCallScript("update",t); //New direction
       }
     }
-  } else if(RadiusHitsWall(man,angle,&t->next_x,&t->next_y,t->next_z,THING_RADIUS,TRUE,,RADF_CEIL|RADF_FLOOR|RADF_DOOR))
+  } else if(RadiusHitsWall(man,angle,&t->next_x,&t->next_y,t->next_z,TRUE,,RADF_CEIL|RADF_FLOOR|RADF_DOOR))
     goto hit;
   if(rocket) {
     if(!(0.<=t->next_x<w->world_width))
@@ -1345,7 +1366,7 @@ explode:
     set=in_radius->items;
     for(idx=0;idx!=set->cnt;idx++) {
       other=set->body[idx];
-      if(other!=t&&Max(other->z,t->next_z)<=Min(other->z+THING_HEIGHT,t->next_z+THING_HEIGHT))
+      if(other!=t&&Max(other->z,t->next_z)<=Min(other->z+Max(THING_HEIGHT,other->height*other->scale),t->next_z+Max(THING_HEIGHT,t->height*t->scale)))
         if(!ThingHasClass(t,"C3DProp")) {
 	  if(AdjustRadiusThing(w,t,other,angle)) {
 	    t->hit_thing=TRUE;
@@ -1363,7 +1384,7 @@ explode:
     }  
   }
   if(rocket) {
-    if(HeightImpossible(man,t->next_x,t->next_y,t->next_z,TRUE,1.))
+    if(HeightImpossible(man,t->next_x,t->next_y,t->next_z,TRUE,1.,,Max(THING_RADIUS,rocket->radius*rocket->scale)))
       goto explode;
   }
   return TRUE;
@@ -2975,7 +2996,7 @@ CFrogNum *WorldManagerIsSolid(C3DWorldManager *man,I64 *argv,I64 argc) {
   I64 z=Floor(AsF64(argv[2]));
   I64 tile=(x+y*w->world_width)*128+z;
   if(0<=tile<w->world_width*w->world_height*128) {
-    return FrogNumNew(tile&&!IsLiquidTile(w->world_blocks[tile]));
+    return FrogNumNew(w->world_blocks[tile]&&!IsLiquidTile(w->world_blocks[tile]));
   }
   return FrogNumNew(1);
 }
@@ -3230,19 +3251,30 @@ stain:
   return FROG_SMALL_NIL;
 }
 AddMethod("C3DWorldManager","updateParticles",&UpdateParticles);
-U0 RenderMiniMap(CDC *dc,F64 x0,F64 y0,F64 angle,F64 zoom=16) {
+//Returns first initial x last name
+U8 *ShortName(U8 *name) {
+  U8 *white_space;
+  if(white_space=StrLastOcc(name," ")) {
+    return MStrPrint("%C. %s",*name,white_space+1);
+  }
+  return StrNew(name);
+}
+U0 RenderMiniMap(CDC *dc,F64 x0,F64 y0,F64 angle,F64 zoom=16,Bool border=TRUE,Bool draw_things=TRUE) {
   F64 sin=Sin(angle);
   F64 cos=Cos(angle);
+  CTeam *team;
   zoom=Max(zoom,.001);
   I64 dia=MaxI64(dc->width,dc->height);
-  I64 lowx=Floor(x0-dia/zoom/2);
-  I64 lowy=Floor(y0-dia/zoom/2);
-  I64 hix=Ceil(x0+dia/zoom/2);
-  I64 hiy=Ceil(y0+dia/zoom/2);
+  I64 lowx=Floor(x0-dc->width/zoom/2);
+  I64 lowy=Floor(y0-dc->height/zoom/2);
+  I64 hix=Ceil(x0+dc->width/zoom/2);
+  I64 hiy=Ceil(y0+dc->height/zoom/2);
   I64 w0=hix-lowx+1,h0=hiy-lowy+1,x,y,z,b;
   F64 x2,y2,tmp;
+  U8 *name,*short_name;
   CDC **textures=CAlloc(w0*h0*8),*tp;
   C3DThing **things,*thing;
+  CFrogStr *cn;
   CFrogArray *array=CallScript("getThingsInRadiusFromX:fromY:withRadius:",
         FrogSymbol("world")->value,
         FrogNumNew(x0),
@@ -3271,7 +3303,8 @@ U0 RenderMiniMap(CDC *dc,F64 x0,F64 y0,F64 angle,F64 zoom=16) {
 //Origin x zoom
       x2=(x-dc->width/2)/zoom;
       y2=(y-dc->height/2)/zoom;
-      if(x2*x2+y2*y2>=Sqr(dia/2/zoom)) goto skip;
+      if(border)
+        if(x2*x2+y2*y2>=Sqr(dia/2/zoom)) goto skip;
 //Rotate math
       tmp=x2*cos-y2*sin;
       y2=x2*sin+y2*cos;
@@ -3289,29 +3322,85 @@ U0 RenderMiniMap(CDC *dc,F64 x0,F64 y0,F64 angle,F64 zoom=16) {
         }
 skip:;
     }
-  if(ThingHasClass(array,"CFrogArray")) {
-    sin=Sin(-angle);
-    cos=Cos(-angle);
-    things=array->items->body;
-    x=array->items->cnt;
-    while(--x>=0) {
-      thing=things[x];
-      if(thing->health>0.) {
-        x2=(thing->x-x0)*zoom;
-        y2=(thing->y-y0)*zoom;
+  if(draw_things)
+    if(ThingHasClass(array,"CFrogArray")) {
+      sin=Sin(-angle);
+      cos=Cos(-angle);
+      things=array->items->body;
+      x=array->items->cnt;
+      while(--x>=0) {
+        thing=things[x];
+        if(thing->health>0.) {
+	  x2=(thing->x-x0)*zoom;
+	  y2=(thing->y-y0)*zoom;
 //Rotate math
-        tmp=x2*cos-y2*sin;
-        y2=x2*sin+y2*cos;
-        x2=tmp;
+	  tmp=x2*cos-y2*sin;
+	  y2=x2*sin+y2*cos;
+	  x2=tmp;
 
-	dc->color=LTRED;
-	dc->thick=4;
-        GrPlot3(dc,x2+dc->width/2,y2+dc->height/2,0);
+	  dc->color=LTRED;
+	  dc->thick=4;
+	  x2+=dc->width/2;
+	  y2+=dc->height/2;
+	  if(ThingHasClass(team=thing->team,"CTeam")) {
+	    dc->color=team->color;
+	  }
+	  GrPlot3(dc,x2,y2,0);
+	  y2+=8;
+	  if(name=UniverseNumberToName(FrogThingClass(thing)>>16)) {
+	    GrPutS(dc,x2-4*StrLen(name),y2,name);
+	    y2+=9;
+	  }
+	  if(name=AsString(thing->name)) {
+	    short_name=ShortName(name);
+	    GrPutS(dc,x2-4*StrLen(short_name),y2,short_name);
+	    Free(short_name);
+	    Free(name);
+	    y2+=9;
+	  }
+        }
+      }
+    }
+  Free(textures);
+}
+
+U0 UIMapDraw(CDC *dc,I64 xoff,I64 yoff,CUIMap *map) {
+  CDC *dumb=DCNew(map->sz_x,map->sz_y);
+  CTeam *team=map->team;
+  CTeamGoal *goal;
+  CFrogArray *goals;
+  F64 cx,cy,xx,yy;
+  I64 idx;
+  DCFill(dumb,TRANSPARENT);
+  dc->color=DKGRAY;
+  GrRect(dc,xoff-12,yoff-12,map->sz_x+24,map->sz_y+24);
+  RenderMiniMap(dumb,map->map_x,map->map_y,0.,map->map_zoom,FALSE,TRUE);
+  cx=map->map_x-map->sz_x/2;
+  cy=map->map_y-map->sz_y/2;
+  if(ThingHasClass(team,"CTeam")) {
+    goals=team->goals;
+    if(ThingHasClass(goals,"CFrogArray")) {
+      idx=goals->items->cnt;
+      while(--idx>=0) {
+        goal=goals->items->body[idx];
+        if(ThingHasClass(goal,"CTeamGoal")) {
+	  dumb->color=RED<<8|GREEN|ROPF_DITHER<<16;
+	  dumb->thick=1;
+	  xx=(goal->x-cx)*map->map_zoom;
+	  yy=(goal->y-cy)*map->map_zoom;
+	  GrBorder(dumb,xx-4,yy-4,xx+4,yy+4);
+	  dumb->color=LTRED;
+	  dumb->thick=2;
+	  GrPlot3(dumb,xx,yy,0);
+        }
       }
     }
   }
-  Free(textures);
+  GrBlot(dc,xoff,yoff,dumb);
+  DCDel(dumb);
 }
+
+
 U0 Draw3DWorld(CTask *,CDC *dc) {
   CDC *minimap;
   C3DWorldManager *man=FrogSymbol("world")->value;
@@ -4029,6 +4118,9 @@ Bool IsSolidTile(I64 t) {
 I8 BlockLightLevel(I64 t) {
   return w->light_levels[t&0xff];
 }
+
+
+
 // 
 // Generate with builtins
 //

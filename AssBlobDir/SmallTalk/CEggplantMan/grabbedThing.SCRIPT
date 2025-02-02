@@ -16,7 +16,7 @@ grabbedThing ->C3DThing
   d _ ((left_arm->x - x ) squared +  (left_arm->y - y) squared ) sqrt .
   things _ #world getThingsInRadiusFromX: x fromY: y withRadius: d + 1 .
   things _ things select:[:t=C3DThing|
-    ((left_arm hitsThing: t withRadius: 190/128 ) and: t ~= self) and: t->health > 0
+    ((left_arm hitsThing: t withRadius: 190/128 * t->scale ) and: t ~= self) and: t->health > 0
   ] .
 
   best_thing _ 0 .

@@ -1,0 +1,11 @@
+wanderTowardsX: x=CFrogNum
+  toY: y=CFrogNum
+  withSpeed: speed=CFrogNum
+  ->*
+|
+|
+  momx2 _ 0 .
+  momy2 _ 0 .
+  self pathFinderAngleTowardsX: x toY: y .
+  self move: speed atAngle: angle .
+  ^ 0 .
