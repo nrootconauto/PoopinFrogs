@@ -743,7 +743,7 @@
 	 - [init](AssBlobDir/SmallTalk/CTalker/CONSTRUCTOR.SCRIPT)
 	 - [fire](AssBlobDir/SmallTalk/CTalker/fire.SCRIPT)
  - CTeam
-	 - [CONSTRUCTOR](AssBlobDir/SmallTalk/CTeam/CONSTRUCTOR.SCRIPT)
+	 - [init](AssBlobDir/SmallTalk/CTeam/CONSTRUCTOR.SCRIPT)
 	 - [addThing:](AssBlobDir/SmallTalk/CTeam/addThing.SCRIPT)
 	 - [nearestSpawnFromThing:](AssBlobDir/SmallTalk/CTeam/nearestSpawnFromThing.SCRIPT)
 	 - [update](AssBlobDir/SmallTalk/CTeam/update.SCRIPT)

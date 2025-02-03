@@ -29,7 +29,7 @@ U0 AddPoint(CPFPoint p,CPFPoint from,I64 score) {
   HashGenericAdd(buf,HTT_FRAME_PTR,from,0,score);
 }
 //Returns CI64Set of CPFPoint
-//to_y can be I16_MAX for ignore Z
+//to_y can be I16_MAX for ignore Z
 CI64Set *PathFinder(I64 x,I64 y,I64 z,I64 to_x,I64 to_y,I64 to_z=I16_MAX,I64(*valid_tile)(I64,I64,I64),I64 jump=1.1,I64 max=14) {
   max=max*max;
   U8 buf[STR_LEN];

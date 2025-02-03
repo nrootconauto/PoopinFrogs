@@ -78,7 +78,7 @@ CFrogArray *SplitItems(U8 *poo_poo) {
   CallScript("add:",ret,FrogStrNew(LstSub(cnt,dummy)));
   return ret;
 }
-CEliza *LoadQuestChatBot(U8 *quest_name,U8 *ass_blob=NULL,I64 nest_level=2) {
+CEliza *LoadQuestChatBot(U8 *quest_name,U8 *ass_blob=NULL,I64 nest_level=2) {
   if(!ass_blob)
     ass_blob=blob_file_cache.filename;
   ass_blob=ExtDft(ass_blob,"BLOB");

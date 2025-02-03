@@ -1285,7 +1285,7 @@ Bool PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm,F64 last_tS) {
 	  if(!w->solids[i]) {
 	    t->momx2=dist*Cos(t->angle)*Cos(t->angle2);
 	    t->momy2=dist*Sin(t->angle)*Cos(t->angle2);
-	    t->momz2=dist*Sin(t->angle2);
+	    t->momz2=dist*Sin(t->angle2);
 	  }else {
 	    t->momx2=dist*Cos(t->angle);
 	    t->momy2=dist*Sin(t->angle);
@@ -3375,8 +3375,8 @@ U0 UIMapDraw(CDC *dc,I64 xoff,I64 yoff,CUIMap *map) {
   dc->color=DKGRAY;
   GrRect(dc,xoff-12,yoff-12,map->sz_x+24,map->sz_y+24);
   RenderMiniMap(dumb,map->map_x,map->map_y,0.,map->map_zoom,FALSE,TRUE);
-  cx=map->map_x-map->sz_x/2;
-  cy=map->map_y-map->sz_y/2;
+  cx=map->map_x;
+  cy=map->map_y;
   if(ThingHasClass(team,"CTeam")) {
     goals=team->goals;
     if(ThingHasClass(goals,"CFrogArray")) {
@@ -3384,10 +3384,10 @@ U0 UIMapDraw(CDC *dc,I64 xoff,I64 yoff,CUIMap *map) {
       while(--idx>=0) {
         goal=goals->items->body[idx];
         if(ThingHasClass(goal,"CTeamGoal")) {
-	  dumb->color=RED<<8|GREEN|ROPF_DITHER<<16;
+	  dumb->color=RED<<16|GREEN|ROPF_DITHER;
 	  dumb->thick=1;
-	  xx=(goal->x-cx)*map->map_zoom;
-	  yy=(goal->y-cy)*map->map_zoom;
+	  xx=(goal->x-cx)*map->map_zoom+map->sz_x/2;
+	  yy=(goal->y-cy)*map->map_zoom+map->sz_y/2;
 	  GrBorder(dumb,xx-4,yy-4,xx+4,yy+4);
 	  dumb->color=LTRED;
 	  dumb->thick=2;

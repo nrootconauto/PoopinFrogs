@@ -34,6 +34,8 @@ init ->* |
 
   old_ldown=CFrogNum
   old_rdown=CFrogNum
+
+  force_divide=CFrogNum
 |
   draw_it_name _ 'Draw3DWorld' .
 
@@ -306,6 +308,11 @@ init ->* |
          handled _ 1 .
        ].
 
+       'Commander Shell'.
+       ('', v->m1 asCharactor uppercase) = 'O' ifTrue: [
+         C3DOverworldShell new run .
+         handled _ 1 .
+       ].
        
        'Door Editor'.
        ('', v->m1 asCharactor) = 'D' ifTrue: [
@@ -367,40 +374,42 @@ init ->* |
        player->momy2 _ 0 .
        player->momz2 _ 0 .
 '+.2 partly forces player into water for diving'. 
+       force_divide _ ((up or: down) squared + (left or: right) squared + .001)sqrt.
+
        ((#world tileIsLiquidAtX: player->x atY: player->y atZ: player->z + .2) or: player->floating) ifTrue: [
          shift ifTrue: [
-           player swim: 1 /4 atAngle: player->angle atAngle2: -3.14 / 2 .
+           player swim: 1 /4/force_divide atAngle: player->angle atAngle2: -3.14 / 2 .
          ].
          jump ifTrue: [
-           player swim: 1 /4 atAngle: player->angle atAngle2: 3.14 / 2  .
+           player swim: 1/4/force_divide atAngle: player->angle atAngle2: 3.14 / 2  .
          ].
-         up ifTrue: [
-           player swim: 1 /4 atAngle: player->angle atAngle2: player->angle2 negated .
+         (up and: down=0) ifTrue: [
+           player swim: 1/4/force_divide atAngle: player->angle atAngle2: player->angle2 negated .
          ] .
-         down ifTrue: [
-           player swim: 1 /4 atAngle: player->angle atAngle2: player->angle2  negated + 3.14 .
+         (down and: up=0) ifTrue: [
+           player swim: 1/4/force_divide atAngle: player->angle atAngle2: player->angle2  negated + 3.14 .
          ] .
-         left ifTrue: [
-           player swim: 1 /4 atAngle: player->angle - (3.14 / 2) atAngle2: player->angle2 negated.
+         (left and: right=0) ifTrue: [
+           player swim: 1/4/force_divide atAngle: player->angle - (3.14 / 2) atAngle2: player->angle2 negated.
          ] .
-         right ifTrue: [
-           player swim: 1 /4 atAngle: player->angle + (3.14 / 2) atAngle2: player->angle2 negated.
+         (right and: left=0) ifTrue: [
+           player swim: 1/4/force_divide atAngle: player->angle + (3.14 / 2) atAngle2: player->angle2 negated.
          ] .
        ] ifFalse: [
          jump ifTrue: [
            player jump .
          ] .
-         up ifTrue: [
-           player move: 1 / 4 atAngle: player->angle .
+         (up and: down=0) ifTrue: [
+           player move: 1/4/force_divide atAngle: player->angle .
          ] .
-         down ifTrue: [
-           player move: 1 / 4 atAngle: player->angle  +  3.14  .
+         (down and: up=0) ifTrue: [
+           player move: 1/4/force_divide atAngle: player->angle  +  3.14  .
          ] .
-         left ifTrue: [
-           player move: 1 / 4 atAngle: player->angle  - (3.14 / 2 ) .
+         (left and: right=0) ifTrue: [
+           player move: 1/4/force_divide atAngle: player->angle  - (3.14 / 2 ) .
          ] .
-         right ifTrue: [
-           player move: 1 / 4 atAngle: player->angle  + (3.14 / 2 ) .
+         (right and: left=0) ifTrue: [
+           player move: 1/4/force_divide atAngle: player->angle  + (3.14 / 2 ) .
          ] .
        ].
        #world animate. 

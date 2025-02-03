@@ -67,16 +67,17 @@ init->*
    root ->sz_y  _  480 .
    map _ CUIMap new .
    map->map_zoom _ 16 .
+   map->team _ t .
    spawn _ t nearestSpawnFromThing: p .
    map->x _ 64 .
    map->y _ 64 .
    map->sz_y _ 380 - 64 .
-   map->sz_x _ 440 - 64 .
+   map->sz_x _ 340 - 64 .
    map->map_x _  p->x .
    map->map_y _  p->y .
    root addChild: map .
 
-   map->ms_ldown _ [:x=CFrogNum :y=CFrogNum|
+   map->ms_ldown _ [:elem* :x=CFrogNum :y=CFrogNum|
       x _ x - (map->sz_x/2).
       y _ y - (map->sz_y/2).
       x _ x / map->map_zoom + map->map_x .
@@ -137,15 +138,7 @@ init->*
            )
          ]
        )
-      ) .
-
-      'TODOadjust radius'.
-      homies _ (#world getThingsInRadiusFromX: x fromY: y withRadius: 10) select:[:t=C3DThing|
-        t->team = p->team
-      ].
-
-      homies size ifTrue: [
-        canidates add: #(
+       #(
           'Move Homies'
           [
             goal _ CTeamGoal new .
@@ -155,7 +148,12 @@ init->*
             goal->workers _ homies .
             t->goals add: goal 
           ]
-        ).
+        )
+      ) .
+
+      'TODOadjust radius'.
+      homies _ (#world getThingsInRadiusFromX: x fromY: y withRadius: 10) select:[:t=C3DThing|
+        t->team = p->team
       ].
 
       (selected_thing hasClass: CSpawnPortal) ifTrue: [
