@@ -81,8 +81,10 @@ CI64Set *PathFinder(I64 x,I64 y,I64 z,I64 to_x,I64 to_y,I64 to_z=I16_MAX,I64(*va
 		  I64SetAdd(visited,pt&POINT_MASK);
 		  I64SetAdd(frontier,pt2);
 		  if(pt_dst.z==I16_MAX) {
-		    if(pt_dst.x==pt2.x&&pt_dst.y==pt2.y)
+		    if(pt_dst.x==pt2.x&&pt_dst.y==pt2.y) {
+		      pt=pt2;
 		      goto back_track;
+		    }
 		  } else if(pt_dst&POINT_MASK==pt2&POINT_MASK) {
 		    pt=pt2;
 back_track:
@@ -122,4 +124,4 @@ fin:
   I64SetDel(frontier);
   return result;
 }
-#endif
+#endif

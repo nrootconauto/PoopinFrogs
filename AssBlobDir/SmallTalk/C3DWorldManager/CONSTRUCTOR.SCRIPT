@@ -18,6 +18,7 @@ init | gx=CFrogNum gy=CFrogNum col=CFrogArray |
   clients _ #().
   lines _ #() .
   lights _ #() .
+  teams _ #() .
 
   level _ CLevel new .
   level->display_name _ 'Untitled mofufckin level'.

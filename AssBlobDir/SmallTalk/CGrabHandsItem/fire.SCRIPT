@@ -1,0 +1,19 @@
+fire->*
+|
+|
+  grab_start_tS _ CFrogTime now asSeconds .
+  left_arm _ C3DLine new .
+  right_arm _ C3DLine new .
+  left_hand _ C3DThing new .
+  right_hand _ C3DThing new .
+
+  left_hand->template _ #world getThingTemplate: 'CEggplantMan/Hand'.
+  right_hand->template _ #world getThingTemplate: 'CEggplantMan/Hand'.
+  
+  left_arm->color _ #color_PURPLE.
+  right_arm->color _ #color_PURPLE.
+  left_arm->thick _ 8 . 
+  right_arm->thick _ 8 . 
+
+  self animate. 
+

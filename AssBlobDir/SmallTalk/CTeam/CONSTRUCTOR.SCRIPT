@@ -1,4 +1,5 @@
 init->* | |
   things _ #().
   goals _#().
+  money _ 1000 .
   ^ self

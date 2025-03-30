@@ -13,7 +13,9 @@ newFromTag: t=CFrogNum
   idx < 0 ifTrue: [
     ret _ CTeam new .
     #teams_by_num add: #(ret t).
+    #world->teams add:ret .
     ^ ret
   ] ifFalse: [
     ^ (#teams_by_num at: idx) first.
   ].
+

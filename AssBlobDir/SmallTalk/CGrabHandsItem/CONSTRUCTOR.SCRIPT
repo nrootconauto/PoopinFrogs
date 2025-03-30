@@ -1,0 +1,22 @@
+init | |
+  self setGraphics: 'GR/EggPlantMan/HandsItemIdle' .
+  max_ammo _ 30 . 
+  ammo _ 30 .
+  x _ 0 .
+  y _ 300 .
+  xoff _ 0 .
+  yoff _ 0 .
+  timeout _ 0 .
+  inventory_item _ CUIGridItem new .
+  inventory_item setGraphics: 'GR/EggPlantMan/HandsItemIdle' .
+  inventory_item setCount: ammo .
+  inventory_item setItem: self .
+  inventory_item ->name _
+'Grabby Hands
+Grab Stuff like the President.
+' .
+  inventory_item onLeftUp: [
+    #world getPlayer selectItem: self .
+  ] .
+  #world getPlayer addInventoryItem: inventory_item .
+  ^ self

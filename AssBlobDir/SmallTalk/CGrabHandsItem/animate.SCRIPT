@@ -1,0 +1,59 @@
+animate ->*|
+  from=C3DThing
+  dist=CFrogNum
+  sidev_left=CFrogArray
+  sidev_right=CFrogArray
+  now=CFrogNum
+  rate=CFrogNum
+
+  go_back=CFrogBlock
+|
+  go_back _ [
+    grab_start_tS _ grab_start_tS negated.
+  ].
+
+  from _ #world getPlayer.
+
+  sidev_left _ #(
+    ((from->angle + (3.14/2)) cos * .1 )
+    ((from->angle + (3.14/2)) sin * .1 )
+  ).
+
+  sidev_right _ #(
+    ((from->angle - (3.14/2)) cos * .1 )
+    ((from->angle - (3.14/2)) sin * .1 )
+  ).
+
+  left_arm->x _ from->x + sidev_left first .
+  left_arm->y _ from->y + sidev_left last .
+  left_arm->z _ from->z + .3 .
+
+  left_arm->x _ from->x + sidev_right first .
+  left_arm->y _ from->y + sidev_right last .
+  left_arm->z _ from->z  + .3 .
+
+  now _ CFrogTime now asSeconds.
+
+  rate _ 2.5 .
+
+  grab_start_tS > 0 ifTrue: [
+    dist _ rate * (grab_start_tS - now ).
+    dist > 25 ifTrue: go_back.
+    ((from canSeeThing: left_hand) = 0 or: (from canSeeThing: right_hand) = 0 )ifTrue:go_back.
+  ].
+  grab_start_tS < 0 ifTrue: [
+    dist _ rate * (grab_start_tS abs * rate - now ).
+    dist < .1 ifTrue: [
+      grab_start_tS _ 0 .
+      left_arm _ 0 .
+      right_arm _ 0 .
+      #world removeThing: left_hand .
+      #world removeThing: right_hand .
+      left_hand _ 0 .
+      right_hand _ 0 .
+    ].
+  ].
+
+
+
+

@@ -2,7 +2,7 @@
 #include "AnimDC.HC"
 #include "BlobFile.HC"
 #include "FileBMP.HC";
-#include "QuestEditor.HC";
+//#include "QuestEditor.HC";
 
 class CUndoLayer:CQue {
   CDC *anim_dc;

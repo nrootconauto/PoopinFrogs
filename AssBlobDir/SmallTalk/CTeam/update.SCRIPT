@@ -1,6 +1,7 @@
 update->*
 |
   target=C3DThing
+  spawned=CSmartEnemy
   find_workers=CFrogBlock
   canidates=CFrogArray
   goal_dist=CFrogBlock
@@ -49,12 +50,33 @@ update->*
       ].
     ].
 
+    g->type='SpawnThing' ifTrue: [
+      spawned _ g->aux_data new .
+'Make a dummy thing'.
+      target _ C3DThing basicNew .
+      target->x _ g->x .
+      target->y _ g->y .
+      g->target_who _ self nearestSpawnFromThing: target .
+      #world removeFromGrid: spawned .
+      spawned->x _ g->target_who->x .
+      spawned->y _ g->target_who->y .
+      spawned->z _ g->target_who->z .
+      spawned->team _ self .
+      #world updateThingPos: spawned.
+      self addThing: spawned .
+      g->type _ 0 .
+      goals remove: g .
+    ].
+
     g->type='Move' ifTrue: [
       'Remove once all the workers reached the spot'.
       g->workers size ifTrue: [
         tmp _ 1 .
         g->workers do:[:w=C3DThing|
-          (goal_dist value: w value: g) < 5 ifFalse: [
+'workers' show.
+w show.
+(goal_dist value: w value: g) show .
+          (goal_dist value: w value: g) > 5 ifTrue: [
             tmp _ 0 .
           ].
         ].
@@ -85,6 +107,14 @@ update->*
       ].
       best_goal ~= 0 ifTrue: [
         t->goal _ best_goal .
+        best_goal->workers add: t .
       ].
     ].
   ].
+
+ 'Remove nul goals' show.
+  goals size show.
+  goals _ goals select: [:p=CTeamGoal|
+    p->type hasClass: CFrogStr
+  ].
+  goals size show.

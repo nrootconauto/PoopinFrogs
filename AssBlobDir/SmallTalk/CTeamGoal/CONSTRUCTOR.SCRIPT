@@ -1,2 +1,3 @@
 init | |
- ^ self
+  workers _ #().
+  ^ self

@@ -11,6 +11,9 @@ update->*
     team addThing: self .
   ].
   cur_tS _ CFrogTime now asSeconds . 
+  idle ifTrue: [
+   ^ 0 .
+  ].
   cur_tS >= next_spawn_tS ifTrue: [
     spawn_things _ #(
       CSmartAlien

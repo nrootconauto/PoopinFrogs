@@ -503,6 +503,10 @@
  - CFrogUndefined
 	 - [new](AssBlobDir/SmallTalk/CFrogUndefined/CLASS_METHODS/NEW.SCRIPT)
 	 - [init](AssBlobDir/SmallTalk/CFrogUndefined/CONSTRUCTOR.SCRIPT)
+ - CGrabHandsItem
+	 - [init](AssBlobDir/SmallTalk/CGrabHandsItem/CONSTRUCTOR.SCRIPT)
+	 - [animate](AssBlobDir/SmallTalk/CGrabHandsItem/animate.SCRIPT)
+	 - [fire](AssBlobDir/SmallTalk/CGrabHandsItem/fire.SCRIPT)
  - CGun1
 	 - [init](AssBlobDir/SmallTalk/CGun1/CONSTRUCTOR.SCRIPT)
 	 - [animate](AssBlobDir/SmallTalk/CGun1/animate.SCRIPT)
@@ -519,6 +523,8 @@
 	 - [setAmmo:](AssBlobDir/SmallTalk/CHandItem/setAmmoi.SCRIPT)
 	 - [setGraphics:](AssBlobDir/SmallTalk/CHandItem/setGraphics.SCRIPT)
 	 - [setMaxAmmo:](AssBlobDir/SmallTalk/CHandItem/setMaxAmmo.SCRIPT)
+ - CHealWand
+	 - [init](AssBlobDir/SmallTalk/CHealWand/CONSTRUCTOR.SCRIPT)
  - CHealthPickup
 	 - [init](AssBlobDir/SmallTalk/CHealthPickup/CONSTRUCTOR.SCRIPT)
  - CHouseMaker
@@ -1035,12 +1041,16 @@
 	 - [new](AssBlobDir/STClsRoot/CFrogTongue/NEW.SCRIPT)
  - CFrogUndefined
 	 - [new](AssBlobDir/STClsRoot/CFrogUndefined/NEW.SCRIPT)
+ - CGrabHandsItem
+	 - [new](AssBlobDir/STClsRoot/CGrabHandsItem/NEW.SCRIPT)
  - CGun1
 	 - [new](AssBlobDir/STClsRoot/CGun1/NEW.SCRIPT)
  - CGun1Pickup
 	 - [new](AssBlobDir/STClsRoot/CGun1Pickup/NEW.SCRIPT)
  - CHandItem
 	 - [new](AssBlobDir/STClsRoot/CHandItem/NEW.SCRIPT)
+ - CHealWand
+	 - [new](AssBlobDir/STClsRoot/CHealWand/NEW.SCRIPT)
  - CHealthPickup
 	 - [new](AssBlobDir/STClsRoot/CHealthPickup/NEW.SCRIPT)
  - CHouseMaker

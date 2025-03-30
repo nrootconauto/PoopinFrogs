@@ -182,7 +182,7 @@ class CUIIcon:CUIElem {
 
 class CUIMap:CUIElem {
   U8 *draw_it dft "UIMapDraw";
-  CFrogThing *team;
+  CFrogThing *team;
   F64 map_x,map_y,map_zoom;
 };
 
@@ -382,6 +382,7 @@ class C3DWorldManager:CFrogThing {
   I64 is_server;
   CTask *sound_task no_serialize 1;
   I64 is_paused;
+  CFrogArray *teams;
 //Private
   F64 game_load_tS;  //The CFrogTime now asSeconds that the game world is at when loaded
   CFrogThing *player;
@@ -406,7 +407,6 @@ class CHandItem:CFrogThing {
   I64 grid_x,grid_y;
   Bool in_quick_inventory,is_equiped;
 };
-
 class CDoorItem:CHandItem {
   I64 height;
   I64 tag;
@@ -529,7 +529,7 @@ class CSmallKeyPickup:CPickup {};
 class CBigKey:CHandItem {};
 class CBigKeyPickup:CPickup{};
 
-class C3DLine:CFrogThing {
+class C3DLine:CFrogThing {
   I32 color,thick;
   F64 oldx,oldy,oldz;
   F64 x0,y0,z0;
@@ -863,7 +863,7 @@ class CTeamGoal:CFrogThing {
   CFrogStr *type;
   CFrogArray *workers;
   F64 x,y;
-  CFrogThing *target_who;
+  C3DThing *target_who;
   CFrogThing *aux_data;
 };
 class CTeam:C3DThing {
@@ -903,6 +903,7 @@ class CSmartEnemy:C3DThing {
   CFrogArray *lines;
   CPissStream *piss_stream;
   CFrogTongue *tongue;
+  CLightningBolt *lighting_bolt;
 };
 class CSmartAlien:CSmartEnemy {
 };
@@ -934,6 +935,7 @@ class CSpawnPortal:C3DThing {
   CFrogArray *spawned;
   CFrogRandom *rand;
   F64 next_spawn_tS;
+ Bool idle;
 };
 
 //
@@ -955,4 +957,15 @@ class CBloodSplatter:CSplatter {
 class CPoopSplatter:CSplatter {
 };
 class CPissSplatter:CSplatter {
+};
+
+class CHealWand:CHandItem {
+  CLightningBolt *lighting_bolt;
+};
+class CGrabHandsItem:CHandItem {
+  F64 grab_start_tS;
+  C3DLine *left_arm;
+  C3DLine *right_arm;
+  C3DThing *left_hand;
+  C3DThing *right_hand;
 };

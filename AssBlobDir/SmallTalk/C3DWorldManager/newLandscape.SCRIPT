@@ -32,6 +32,8 @@ newLandscapeWithWidth: w=CFrogNum withHeight: h=CFrogNum
   adj_ground=CFrogNum
   sand_threshold=CFrogNum
   pre=CFrogNum
+
+  base=CSpawnPortal
 |
   get_ground_at _ [:x=CFrogNum :y=CFrogNum|
 'Start from bottom,most of top is air'.
@@ -52,6 +54,14 @@ newLandscapeWithWidth: w=CFrogNum withHeight: h=CFrogNum
   player _ CPlayer new .
   player -> x _ w / 2 + .5 . 
   player -> y _ h / 2 + .5 . 
+  player->activate_tag _ 1 .
+  base _ CSpawnPortal new .
+  base->x _ w/2 + .5 .
+  base->y _ h/2 + .5 .
+  base->idle _ 1 . 'TODO remove'.
+  base->activate_tag _ player->activate_tag .
+  base update. 'Assign tag'.
+  player->team _ base->team .
 
   grid_sz _ 10 .
 
@@ -115,8 +125,6 @@ newLandscapeWithWidth: w=CFrogNum withHeight: h=CFrogNum
 
 
     ].
-'Dont freeze'.
-    CFrogThread yield .
   ] .
 
   0 to: w  do: [:x=CFrogNum|
@@ -144,8 +152,6 @@ newLandscapeWithWidth: w=CFrogNum withHeight: h=CFrogNum
         ].
       ].
     ].
-    'Dont freeze'.
-    CFrogThread yield .
   ].
 
   ^ ret .

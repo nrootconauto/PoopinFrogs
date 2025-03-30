@@ -827,6 +827,7 @@ CFrogNum *C3DThingPathFindWalkTowardsXY(C3DThing *self,I64 *argv,I64 argc) {
   I64 x=AsF64(argv[0]);
   I64 y=AsF64(argv[1]);
   CI64Set *path=PathFinder(self->x,self->y,Floor(self->z),x,y,I16_MAX,&CanMoveToBlock,AsF64(argv[1])),*dummy;
+PrintI("XYC",path->cnt);
   if(path->cnt<2) {
     I64SetDel(path);
     self->path_finder_data=FROG_SMALL_NIL;
@@ -1295,10 +1296,12 @@ Bool PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm,F64 last_tS) {
 	  t->momx2=dist*Cos(t->angle);
 	  t->momy2=dist*Sin(t->angle);
         }
+      } else if(best_pf&POINT_MASK==at_pf&POINT_MASK) {
+	//I64SetRem(set,at_pf);
       }
     }
   }
-  omy=(t->momy+t->momy2)*2./3.; //Nerfed by Nrootconauto
+  omy=(t->momy+t->momy2)*2./3.; //Nerfed by Nrootconauto
   omx=(t->momx+t->momx2)*2./3.;
   if(Abs(omx)>1/320.||Abs(omy)>1/320.) {
     if(!rocket) {
@@ -1329,6 +1332,9 @@ Bool PhysicsOnThing(C3DWorld *w,C3DThing *t,C3DWorldManager *wm,F64 last_tS) {
 	  t->next_z,
 	  t)) {
 
+        if(ThingHasClass(t->path_finder_data,"CFrogArray"))
+          if(AsF64(CallScript("isOnGround",t)))
+	    t->momz2=.55;
       hit:
       t->momx=0.;
       t->momy=0.;
@@ -1387,6 +1393,7 @@ explode:
     if(HeightImpossible(man,t->next_x,t->next_y,t->next_z,TRUE,1.,,Max(THING_RADIUS,rocket->radius*rocket->scale)))
       goto explode;
   }
+
   return TRUE;
 }
 

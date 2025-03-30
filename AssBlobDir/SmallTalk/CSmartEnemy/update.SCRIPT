@@ -48,7 +48,8 @@ update->*
 
   chase _ 0 .
   hide _ 0 .
-  attack _ 0 .
+'Attack if doing other tasks'.
+  attack _ 1 .
   move _ 0 .
   build _ 0 .
   heal _ 0 .
@@ -158,7 +159,8 @@ update->*
 
  'Move section begin'.
   move ifTrue: [
-    do_move value: [self wanderTowardsX: goal->x toY: goal->y withSpeed: speed].
+'MOVE_DEAL 0 'show.
+    do_move value: ['MOVEDEAL'show. self wanderTowardsX: goal->x toY: goal->y withSpeed: speed].
   ].
   'Move section END'.
  

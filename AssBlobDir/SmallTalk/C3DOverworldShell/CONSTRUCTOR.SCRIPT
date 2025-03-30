@@ -29,7 +29,28 @@ init->*
   homies=CFrogArray
 
   goal=CTeamGoal
+
+  do_spawn=CFrogBlock
+
+  cost_table=CFrogArray
+  valid_spawnables=CFrogArray
+
+  selected_goal=CTeamGoal
 |
+  cost_table _ #(
+     #(CSmartAlien 500)
+     #(CSmartAssBird 200)
+     #(CSmartBullFrog 75)
+     #(CSmartBullFrog 75)
+     #(CSmartCyberPoop 2000)
+     #(CSmartEggplantMan 350)
+     #(CSmartFrogNPC 100)
+     #(CSmartPoopMan 100)
+     #(CSmartPorky 300)
+     #(CSmartSmallPig 300)
+     #(CSmartZombie 175)
+  ).
+
   draw_it_name _ 'Draw3DWorld' .
 
   do_popup _ [:title=CFrogStr :items=CFrogArray|
@@ -46,7 +67,10 @@ init->*
     label->y _ 4 .
     label->x _ scroll->sz_x / 2 - (label->sz_x / 2 ).
 
-    list2 _ CUIList new: items .
+    list2 _ CUIList new: (items collect:[:p=CFrogArray|
+         'Remove popup on click'.
+         #((p first) [p last value . ui_roots remove: ui_roots last. #ui_root _ ui_roots last ])
+        ]) .
     list2->y _ 24 .
     scroll addChild: list2.
 
@@ -86,6 +110,18 @@ init->*
       px _ x .
       py _ y .
 
+      selected_goal _ 0 .
+      best_dist _ 5 .
+      t->goals do:[:g=CTeamGoal|
+        dist _ ((g->x - x) squared + (g->y - y) squared) sqrt .
+        dist <best_dist ifTrue: [
+          (g->type hasClass: CFrogStr) ifTrue: [
+            best_dist _ dist .
+            selected_goal _ g .
+          ]
+        ].
+      ].
+
       selected_thing _ 0 .
 
 
@@ -100,7 +136,20 @@ init->*
         ].
       ].
 
-      canidates _ #(
+      canidates _ #().
+      (selected_goal hasClass: CTeamGoal) ifTrue: [
+        canidates add: #(
+          ('Remove Goal(',selected_goal->type,')')
+          [
+            selected_goal->type _ 0 .
+           'Will be removed by update'.
+            t update .
+          ]
+        ).
+      ].
+
+
+      canidates addAll: #(
        #('Build Shit'
          [
            popup value: 'Build Shit'
@@ -156,13 +205,34 @@ init->*
         t->team = p->team
       ].
 
-      (selected_thing hasClass: CSpawnPortal) ifTrue: [
-        canidates add: #(
-          'Spawn New Homies'
-          [
-          ]
-        ).
-      ].
+      canidates add: #(
+        'Spawn New Homies'
+        [
+
+          do_spawn _ [:cost=CFrogNum :who=CFrogClass|
+            goal _ CTeamGoal new.
+            goal->type _ 'SpawnThing' .
+            goal->x _ x .
+            goal->y _ y .
+            goal->aux_data _ who .
+            t->goals add: goal .
+            t->money _ t->money - cost .
+          ].
+
+          valid_spawnables _ (cost_table select: [:p=CfrogArray|
+           t->money>= p last
+          ]) collect: [:p=CFrogArray|
+            #(
+               (p first asString)
+               [do_spawn value: p last value: p first]
+            )
+          ].
+
+          do_popup value: 'Spawn a New Homie'
+            value: valid_spawnables.
+
+        ]
+      ).
 
       (selected_thing hasClass: CSmartEnemy) ifTrue: [
         (t = selected_thing->team) ifTrue: [

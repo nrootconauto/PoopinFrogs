@@ -60,4 +60,8 @@ update ->* |
     d update 
   ] .
 
+  teams do:[:t=CTeam|
+   t update
+  ].
+
   'Clear dead(?) things'.
